@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3 uid="uid://cn4w8zk2tsx1x"]
+
+[ext_resource type="Script" path="res://scripts/Weasel.gd" id="1_weasel"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_weasel"]
+size = Vector2(32, 32)
+
+[node name="Weasel" type="CharacterBody2D"]
+script = ExtResource("1_weasel")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_weasel")
+
+[node name="Sprite" type="ColorRect" parent="."]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.8, 0.7, 0.5, 1)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -20.0
+offset_top = -40.0
+offset_right = 20.0
+offset_bottom = -20.0
+text = "🦦"
+horizontal_alignment = 1
