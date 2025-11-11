@@ -1,12 +1,14 @@
-[gd_scene load_steps=2 format=3 uid="uid://dwk3vh8pqmw7t"]
+[gd_scene load_steps=3 format=3 uid="uid://dwk3vh8pqmw7t"]
 
 [ext_resource type="Script" path="res://scripts/Game.gd" id="1_game"]
+[ext_resource type="Script" path="res://scripts/GameCamera.gd" id="2_camera"]
 
 [node name="Game" type="Node2D" groups=["game"]]
 script = ExtResource("1_game")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." groups=["camera"]]
 position = Vector2(640, 360)
+script = ExtResource("2_camera")
 
 [node name="RoomContainer" type="Node2D" parent="."]
 

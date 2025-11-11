@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://cp5x9ak3trz2y"]
+[gd_scene load_steps=7 format=3 uid="uid://dp7x4bk6tsx4y"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
 
@@ -18,9 +18,9 @@ size = Vector2(100, 720)
 [sub_resource type="RectangleShape2D" id="WallShape_Floor"]
 size = Vector2(1280, 120)
 
-[node name="Kitchen" type="Node2D"]
+[node name="Cellar" type="Node2D"]
 script = ExtResource("1_room")
-room_name = "kitchen"
+room_name = "cellar"
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_1")
@@ -28,13 +28,13 @@ navigation_polygon = SubResource("NavigationPolygon_1")
 [node name="Background" type="ColorRect" parent="."]
 offset_right = 1280.0
 offset_bottom = 720.0
-color = Color(0.8, 0.7, 0.6, 1)
+color = Color(0.2, 0.2, 0.3, 1)
 
 [node name="Floor" type="ColorRect" parent="."]
 offset_top = 600.0
 offset_right = 1280.0
 offset_bottom = 720.0
-color = Color(0.5, 0.4, 0.3, 1)
+color = Color(0.15, 0.15, 0.2, 1)
 
 [node name="Walls" type="Node2D" parent="."]
 
@@ -47,7 +47,7 @@ shape = SubResource("WallShape_Left")
 [node name="Visual" type="ColorRect" parent="Walls/WallLeft"]
 offset_right = 100.0
 offset_bottom = 720.0
-color = Color(0.6, 0.5, 0.4, 1)
+color = Color(0.3, 0.3, 0.35, 1)
 
 [node name="WallRight" type="StaticBody2D" parent="Walls"]
 
@@ -59,7 +59,7 @@ shape = SubResource("WallShape_Right")
 offset_left = 1180.0
 offset_right = 1280.0
 offset_bottom = 720.0
-color = Color(0.6, 0.5, 0.4, 1)
+color = Color(0.3, 0.3, 0.35, 1)
 
 [node name="FloorCollision" type="StaticBody2D" parent="Walls"]
 
@@ -67,60 +67,62 @@ color = Color(0.6, 0.5, 0.4, 1)
 position = Vector2(640, 660)
 shape = SubResource("WallShape_Floor")
 
-[node name="Counter" type="ColorRect" parent="."]
-offset_left = 800.0
-offset_top = 400.0
-offset_right = 1100.0
-offset_bottom = 600.0
-color = Color(0.4, 0.3, 0.25, 1)
+[node name="Props" type="Node2D" parent="."]
 
-[node name="Stove" type="ColorRect" parent="."]
+[node name="Barrel1" type="ColorRect" parent="Props"]
 offset_left = 200.0
-offset_top = 450.0
-offset_right = 350.0
+offset_top = 500.0
+offset_right = 260.0
 offset_bottom = 600.0
-color = Color(0.3, 0.3, 0.3, 1)
+color = Color(0.4, 0.3, 0.2, 1)
 
-[node name="Table" type="ColorRect" parent="."]
-offset_left = 500.0
-offset_top = 350.0
+[node name="Barrel2" type="ColorRect" parent="Props"]
+offset_left = 900.0
+offset_top = 520.0
+offset_right = 960.0
+offset_bottom = 600.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="Crate" type="ColorRect" parent="Props"]
+offset_left = 600.0
+offset_top = 500.0
 offset_right = 700.0
-offset_bottom = 500.0
-color = Color(0.6, 0.4, 0.2, 1)
+offset_bottom = 600.0
+color = Color(0.35, 0.25, 0.15, 1)
 
 [node name="Items" type="Node2D" parent="."]
 
-[node name="GoldenSpoon" type="Area2D" parent="Items"]
-position = Vector2(600, 420)
+[node name="AncientKey" type="Area2D" parent="Items"]
+position = Vector2(640, 520)
 script = ExtResource("1_room")
-item_name = "golden_spoon"
+item_name = "ancient_key"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Items/GoldenSpoon"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Items/AncientKey"]
 shape = SubResource("CircleShape2D_item")
 
-[node name="Sprite" type="ColorRect" parent="Items/GoldenSpoon"]
+[node name="Sprite" type="ColorRect" parent="Items/AncientKey"]
 offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(1, 0.84, 0, 1)
+color = Color(0.8, 0.7, 0.2, 1)
 
-[node name="Label" type="Label" parent="Items/GoldenSpoon"]
+[node name="Label" type="Label" parent="Items/AncientKey"]
 offset_left = -40.0
 offset_top = -50.0
 offset_right = 40.0
 offset_bottom = -20.0
 theme_override_font_sizes/font_size = 24
-text = "🥄"
+text = "🗝️"
 horizontal_alignment = 1
 
-[node name="ItemName" type="Label" parent="Items/GoldenSpoon"]
+[node name="ItemName" type="Label" parent="Items/AncientKey"]
 offset_left = -60.0
 offset_top = 20.0
 offset_right = 60.0
 offset_bottom = 40.0
 theme_override_font_sizes/font_size = 12
-text = "Golden Spoon"
+text = "Ancient Key"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="."]
@@ -129,9 +131,9 @@ offset_top = 50.0
 offset_right = 880.0
 offset_bottom = 120.0
 theme_override_font_sizes/font_size = 20
-text = "Kitchen - Find the magical Golden Spoon!
-Click anywhere to move your character."
+text = "Cellar - Dark underground storage area
+Find the Ancient Key hidden among the barrels!"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[connection signal="body_entered" from="Items/GoldenSpoon" to="Items/GoldenSpoon" method="_on_item_collected"]
+[connection signal="body_entered" from="Items/AncientKey" to="Items/AncientKey" method="_on_item_collected"]
