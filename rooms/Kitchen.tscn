@@ -119,6 +119,10 @@ script = ExtResource("2_puzzle")
 [node name="Ingredients" type="Node2D" parent="Puzzle"]
 
 [node name="Flour" type="Area2D" parent="Puzzle/Ingredients"]
+collision_layer = 2
+collision_mask = 1
+monitorable = true
+monitoring = true
 position = Vector2(850, 500)
 script = ExtResource("3_interactive")
 interaction_prompt = "Collect Flour"
@@ -144,6 +148,10 @@ text = "Flour"
 horizontal_alignment = 1
 
 [node name="Water" type="Area2D" parent="Puzzle/Ingredients"]
+collision_layer = 2
+collision_mask = 1
+monitorable = true
+monitoring = true
 position = Vector2(950, 500)
 script = ExtResource("3_interactive")
 interaction_prompt = "Collect Water"
@@ -169,6 +177,10 @@ text = "Water"
 horizontal_alignment = 1
 
 [node name="Sugar" type="Area2D" parent="Puzzle/Ingredients"]
+collision_layer = 2
+collision_mask = 1
+monitorable = true
+monitoring = true
 position = Vector2(1050, 500)
 script = ExtResource("3_interactive")
 interaction_prompt = "Collect Sugar"
@@ -194,6 +206,10 @@ text = "Sugar"
 horizontal_alignment = 1
 
 [node name="StoveInteractive" type="Area2D" parent="Puzzle"]
+collision_layer = 2
+collision_mask = 1
+monitorable = true
+monitoring = true
 position = Vector2(275, 525)
 script = ExtResource("3_interactive")
 interaction_prompt = "Cook Recipe"

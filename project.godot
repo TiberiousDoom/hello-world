@@ -35,6 +35,12 @@ click={
 ]
 }
 
+[debug]
+
+shapes/collision/shape_color=Color(0, 0.6, 0.7, 0.42)
+shapes/collision/contact_color=Color(1, 0.2, 0.1, 0.8)
+shapes/collision/draw_2d_outlines=true
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
