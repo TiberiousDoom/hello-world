@@ -30,11 +30,24 @@ var rooms: Array = [
 	"enchanted_tower"
 ]
 
+# Solved puzzles
+var solved_puzzles: Dictionary = {
+	"kitchen_cooking": false,
+	"cellar_digging": false,
+	"ballroom_chandelier": false,
+	"garden_plants": false,
+	"library_books": false,
+	"tower_speed": false,
+	"throne_restoration": false
+}
+
 func reset_game():
 	"""Reset all game progress"""
 	selected_character = "ant"
 	for item in collected_items:
 		collected_items[item] = false
+	for puzzle in solved_puzzles:
+		solved_puzzles[puzzle] = false
 	current_room = "kitchen"
 
 func collect_item(item_name: String):
@@ -59,5 +72,36 @@ func all_items_collected() -> bool:
 	"""Check if all items have been collected"""
 	for item in collected_items.values():
 		if not item:
+			return false
+	return true
+
+# Puzzle Management
+func mark_puzzle_solved(puzzle_name: String):
+	"""Mark a puzzle as solved"""
+	if puzzle_name in solved_puzzles:
+		solved_puzzles[puzzle_name] = true
+		print("Puzzle solved: ", puzzle_name)
+
+func mark_puzzle_unsolved(puzzle_name: String):
+	"""Mark a puzzle as unsolved (for testing)"""
+	if puzzle_name in solved_puzzles:
+		solved_puzzles[puzzle_name] = false
+
+func is_puzzle_solved(puzzle_name: String) -> bool:
+	"""Check if a puzzle has been solved"""
+	return solved_puzzles.get(puzzle_name, false)
+
+func get_solved_puzzle_count() -> int:
+	"""Get number of puzzles solved"""
+	var count = 0
+	for puzzle in solved_puzzles.values():
+		if puzzle:
+			count += 1
+	return count
+
+func all_puzzles_solved() -> bool:
+	"""Check if all puzzles have been solved"""
+	for puzzle in solved_puzzles.values():
+		if not puzzle:
 			return false
 	return true
