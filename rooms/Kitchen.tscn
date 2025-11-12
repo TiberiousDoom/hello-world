@@ -93,6 +93,26 @@ offset_right = 700.0
 offset_bottom = 500.0
 color = Color(0.6, 0.4, 0.2, 1)
 
+[node name="Props" type="Node2D" parent="."]
+
+[node name="CounterCollision" type="StaticBody2D" parent="Props"]
+position = Vector2(950, 500)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/CounterCollision"]
+shape = SubResource("WallShape_Floor")
+
+[node name="StoveCollision" type="StaticBody2D" parent="Props"]
+position = Vector2(275, 525)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/StoveCollision"]
+shape = SubResource("CircleShape2D_ingredient")
+
+[node name="TableCollision" type="StaticBody2D" parent="Props"]
+position = Vector2(600, 425)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/TableCollision"]
+shape = SubResource("WallShape_Floor")
+
 [node name="Puzzle" type="Node2D" parent="."]
 script = ExtResource("2_puzzle")
 
@@ -102,6 +122,7 @@ script = ExtResource("2_puzzle")
 position = Vector2(850, 500)
 script = ExtResource("3_interactive")
 interaction_prompt = "Collect Flour"
+auto_interact_on_touch = true
 one_time_use = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Ingredients/Flour"]
@@ -126,6 +147,7 @@ horizontal_alignment = 1
 position = Vector2(950, 500)
 script = ExtResource("3_interactive")
 interaction_prompt = "Collect Water"
+auto_interact_on_touch = true
 one_time_use = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Ingredients/Water"]
@@ -150,6 +172,7 @@ horizontal_alignment = 1
 position = Vector2(1050, 500)
 script = ExtResource("3_interactive")
 interaction_prompt = "Collect Sugar"
+auto_interact_on_touch = true
 one_time_use = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Ingredients/Sugar"]
@@ -174,6 +197,7 @@ horizontal_alignment = 1
 position = Vector2(275, 525)
 script = ExtResource("3_interactive")
 interaction_prompt = "Cook Recipe"
+auto_interact_on_touch = true
 one_time_use = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/StoveInteractive"]
