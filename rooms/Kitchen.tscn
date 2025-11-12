@@ -1,9 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://cp5x9ak3trz2y"]
+[gd_scene load_steps=10 format=3 uid="uid://cp5x9ak3trz2y"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/KitchenPuzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://scripts/Interactive.gd" id="3_interactive"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_item"]
 radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ingredient"]
+radius = 25.0
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_1"]
 vertices = PackedVector2Array(100, 100, 1180, 100, 1180, 600, 100, 600)
@@ -87,6 +92,100 @@ offset_top = 350.0
 offset_right = 700.0
 offset_bottom = 500.0
 color = Color(0.6, 0.4, 0.2, 1)
+
+[node name="Puzzle" type="Node2D" parent="."]
+script = ExtResource("2_puzzle")
+
+[node name="Ingredients" type="Node2D" parent="Puzzle"]
+
+[node name="Flour" type="Area2D" parent="Puzzle/Ingredients"]
+position = Vector2(850, 500)
+script = ExtResource("3_interactive")
+interaction_prompt = "Collect Flour"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Ingredients/Flour"]
+shape = SubResource("CircleShape2D_ingredient")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Ingredients/Flour"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.95, 0.95, 0.9, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Ingredients/Flour"]
+offset_left = -30.0
+offset_top = -50.0
+offset_right = 30.0
+offset_bottom = -25.0
+text = "Flour"
+horizontal_alignment = 1
+
+[node name="Water" type="Area2D" parent="Puzzle/Ingredients"]
+position = Vector2(950, 500)
+script = ExtResource("3_interactive")
+interaction_prompt = "Collect Water"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Ingredients/Water"]
+shape = SubResource("CircleShape2D_ingredient")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Ingredients/Water"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.5, 0.7, 1, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Ingredients/Water"]
+offset_left = -30.0
+offset_top = -50.0
+offset_right = 30.0
+offset_bottom = -25.0
+text = "Water"
+horizontal_alignment = 1
+
+[node name="Sugar" type="Area2D" parent="Puzzle/Ingredients"]
+position = Vector2(1050, 500)
+script = ExtResource("3_interactive")
+interaction_prompt = "Collect Sugar"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Ingredients/Sugar"]
+shape = SubResource("CircleShape2D_ingredient")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Ingredients/Sugar"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(1, 0.95, 0.9, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Ingredients/Sugar"]
+offset_left = -30.0
+offset_top = -50.0
+offset_right = 30.0
+offset_bottom = -25.0
+text = "Sugar"
+horizontal_alignment = 1
+
+[node name="StoveInteractive" type="Area2D" parent="Puzzle"]
+position = Vector2(275, 525)
+script = ExtResource("3_interactive")
+interaction_prompt = "Cook Recipe"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/StoveInteractive"]
+shape = SubResource("CircleShape2D_ingredient")
+
+[node name="Label" type="Label" parent="Puzzle/StoveInteractive"]
+offset_left = -40.0
+offset_top = -60.0
+offset_right = 40.0
+offset_bottom = -35.0
+text = "🍳 Stove"
+horizontal_alignment = 1
 
 [node name="Items" type="Node2D" parent="."]
 
