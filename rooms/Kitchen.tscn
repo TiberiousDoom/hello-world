@@ -24,13 +24,13 @@ size = Vector2(100, 720)
 size = Vector2(1280, 120)
 
 [sub_resource type="RectangleShape2D" id="CounterShape"]
-size = Vector2(300, 200)
+size = Vector2(300, 100)
 
 [sub_resource type="RectangleShape2D" id="StoveShape"]
-size = Vector2(150, 150)
+size = Vector2(150, 75)
 
 [sub_resource type="RectangleShape2D" id="TableShape"]
-size = Vector2(200, 150)
+size = Vector2(200, 50)
 
 [node name="Kitchen" type="Node2D"]
 script = ExtResource("1_room")
@@ -105,19 +105,19 @@ color = Color(0.6, 0.4, 0.2, 1)
 [node name="Props" type="Node2D" parent="."]
 
 [node name="CounterCollision" type="StaticBody2D" parent="Props"]
-position = Vector2(950, 500)
+position = Vector2(950, 450)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/CounterCollision"]
 shape = SubResource("CounterShape")
 
 [node name="StoveCollision" type="StaticBody2D" parent="Props"]
-position = Vector2(275, 525)
+position = Vector2(275, 487)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/StoveCollision"]
 shape = SubResource("StoveShape")
 
 [node name="TableCollision" type="StaticBody2D" parent="Props"]
-position = Vector2(600, 425)
+position = Vector2(600, 375)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/TableCollision"]
 shape = SubResource("TableShape")
