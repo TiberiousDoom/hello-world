@@ -12,13 +12,35 @@ var can_climb_walls: bool = false
 var can_fly: bool = false
 var can_dig: bool = false
 var has_speed_boost: bool = false
+var is_using_ability: bool = false
+
+# Navigation
+var nav_agent: NavigationAgent2D
+
+# Animation
+var facing_direction: Vector2 = Vector2.RIGHT
 
 # Color for placeholder sprite
 var character_color: Color = Color.WHITE
 
 func _ready():
 	target_position = position
+	setup_navigation()
 	setup_character()
+
+func setup_navigation():
+	"""Set up navigation agent for pathfinding"""
+	nav_agent = NavigationAgent2D.new()
+	add_child(nav_agent)
+	nav_agent.path_desired_distance = 4.0
+	nav_agent.target_desired_distance = 10.0
+	nav_agent.avoidance_enabled = true
+	# Wait for navigation to be ready
+	call_deferred("_navigation_ready")
+
+func _navigation_ready():
+	"""Called when navigation is ready"""
+	await get_tree().physics_frame
 
 func _physics_process(delta):
 	if is_moving:
@@ -29,21 +51,27 @@ func setup_character():
 	pass
 
 func move_towards_target(delta):
-	"""Move the character towards the target position"""
-	var direction = (target_position - position).normalized()
-	var distance = position.distance_to(target_position)
-
-	if distance > 5:
-		velocity = direction * move_speed
-		move_and_slide()
-	else:
-		position = target_position
+	"""Move the character towards the target position using navigation"""
+	if nav_agent.is_navigation_finished():
 		is_moving = false
 		velocity = Vector2.ZERO
+		return
+
+	var next_position = nav_agent.get_next_path_position()
+	var direction = (next_position - global_position).normalized()
+
+	# Update facing direction
+	if direction.length() > 0.1:
+		facing_direction = direction
+
+	velocity = direction * move_speed
+	move_and_slide()
 
 func set_target(new_target: Vector2):
 	"""Set a new target position for the character to move to"""
 	target_position = new_target
+	if nav_agent:
+		nav_agent.target_position = new_target
 	is_moving = true
 
 func can_reach(target: Vector2) -> bool:

@@ -17,8 +17,23 @@ var character_scenes = {
 # Preload room scenes
 var room_scenes = {
 	"kitchen": preload("res://rooms/Kitchen.tscn"),
-	"throne_room": preload("res://rooms/ThroneRoom.tscn")
+	"cellar": preload("res://rooms/Cellar.tscn"),
+	"ballroom": preload("res://rooms/Ballroom.tscn"),
+	"throne_room": preload("res://rooms/ThroneRoom.tscn"),
+	"magical_garden": preload("res://rooms/MagicalGarden.tscn"),
+	"library": preload("res://rooms/Library.tscn"),
+	"enchanted_tower": preload("res://rooms/EnchantedTower.tscn")
 }
+
+var room_order = [
+	"kitchen",
+	"cellar",
+	"ballroom",
+	"magical_garden",
+	"library",
+	"enchanted_tower",
+	"throne_room"
+]
 
 func _ready():
 	spawn_character()
@@ -33,6 +48,13 @@ func spawn_character():
 		current_character = character_scenes[char_type].instantiate()
 		add_child(current_character)
 		current_character.position = Vector2(200, 500)
+		current_character.add_to_group("player")
+
+		# Set camera to follow character
+		var camera = $Camera2D
+		if camera and camera.has_method("set_target"):
+			camera.set_target(current_character)
+
 		print("Spawned character: ", char_type)
 
 func load_room(room_name: String):
@@ -86,9 +108,12 @@ func _on_ability_button_pressed():
 
 func _on_next_room_button_pressed():
 	"""Move to next room"""
-	var rooms = ["kitchen", "throne_room"]
-	room_index = (room_index + 1) % rooms.size()
-	load_room(rooms[room_index])
+	room_index = (room_index + 1) % room_order.size()
+	load_room(room_order[room_index])
+
+	# Reposition character at entrance of new room
+	if current_character:
+		current_character.position = Vector2(200, 500)
 
 func collect_item(item_name: String):
 	"""Called when player collects an item"""
