@@ -23,6 +23,15 @@ size = Vector2(100, 720)
 [sub_resource type="RectangleShape2D" id="WallShape_Floor"]
 size = Vector2(1280, 120)
 
+[sub_resource type="RectangleShape2D" id="CounterShape"]
+size = Vector2(300, 200)
+
+[sub_resource type="RectangleShape2D" id="StoveShape"]
+size = Vector2(150, 150)
+
+[sub_resource type="RectangleShape2D" id="TableShape"]
+size = Vector2(200, 150)
+
 [node name="Kitchen" type="Node2D"]
 script = ExtResource("1_room")
 room_name = "kitchen"
@@ -99,19 +108,19 @@ color = Color(0.6, 0.4, 0.2, 1)
 position = Vector2(950, 500)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/CounterCollision"]
-shape = SubResource("WallShape_Floor")
+shape = SubResource("CounterShape")
 
 [node name="StoveCollision" type="StaticBody2D" parent="Props"]
 position = Vector2(275, 525)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/StoveCollision"]
-shape = SubResource("CircleShape2D_ingredient")
+shape = SubResource("StoveShape")
 
 [node name="TableCollision" type="StaticBody2D" parent="Props"]
 position = Vector2(600, 425)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/TableCollision"]
-shape = SubResource("WallShape_Floor")
+shape = SubResource("TableShape")
 
 [node name="Puzzle" type="Node2D" parent="."]
 script = ExtResource("2_puzzle")
@@ -213,7 +222,6 @@ monitoring = true
 position = Vector2(275, 525)
 script = ExtResource("3_interactive")
 interaction_prompt = "Cook Recipe"
-auto_interact_on_touch = true
 one_time_use = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/StoveInteractive"]
@@ -230,6 +238,8 @@ horizontal_alignment = 1
 [node name="Items" type="Node2D" parent="."]
 
 [node name="GoldenSpoon" type="Area2D" parent="Items"]
+collision_layer = 2
+collision_mask = 1
 position = Vector2(600, 420)
 script = ExtResource("1_room")
 item_name = "golden_spoon"
