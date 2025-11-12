@@ -51,7 +51,7 @@ func _on_plant_touched(character: Character, plant: Interactive):
 			attempt_solve(character)
 	else:
 		# Fairy touched without using sparkle
-		print("=« Use your special ability (sparkle) to revive this plant!")
+		print("=ï¿½ Use your special ability (sparkle) to revive this plant!")
 
 func check_solution(character: Character) -> bool:
 	"""Puzzle solved when all plants are revived"""
@@ -85,3 +85,13 @@ func on_puzzle_already_solved():
 	for plant in plant_objects:
 		if plant:
 			plant.modulate = Color(0.5, 2.0, 0.5)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect all plant signals
+	for plant in plant_objects:
+		if plant and plant.interacted.is_connected(_on_plant_touched):
+			plant.interacted.disconnect(_on_plant_touched)
+
+	# Clear references
+	plant_objects.clear()

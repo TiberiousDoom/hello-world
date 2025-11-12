@@ -6,6 +6,8 @@ extends Node2D
 @export var item_name: String = ""
 
 var particles: CPUParticles2D
+var float_tween: Tween
+var collection_tween: Tween
 
 func _ready():
 	# Check if this is an item that's already been collected
@@ -40,9 +42,9 @@ func setup_item_effects():
 	# Add floating animation
 	var sprite = get_node_or_null("Sprite")
 	if sprite:
-		var tween = create_tween().set_loops()
-		tween.tween_property(sprite, "position:y", -10, 1.0).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(sprite, "position:y", 0, 1.0).set_ease(Tween.EASE_IN_OUT)
+		float_tween = create_tween().set_loops()
+		float_tween.tween_property(sprite, "position:y", -10, 1.0).set_ease(Tween.EASE_IN_OUT)
+		float_tween.tween_property(sprite, "position:y", 0, 1.0).set_ease(Tween.EASE_IN_OUT)
 
 	# Add sparkle particles
 	particles = CPUParticles2D.new()
@@ -72,7 +74,23 @@ func show_collection_effect():
 		particles.emitting = true
 
 	# Scale up and fade animation
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.4)
-	tween.tween_property(self, "modulate:a", 0.0, 0.4)
+	collection_tween = create_tween()
+	collection_tween.set_parallel(true)
+	collection_tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.4)
+	collection_tween.tween_property(self, "modulate:a", 0.0, 0.4)
+
+func _exit_tree():
+	"""Clean up resources when room/item is removed"""
+	# Stop and clean up tweens
+	if float_tween:
+		float_tween.kill()
+		float_tween = null
+	if collection_tween:
+		collection_tween.kill()
+		collection_tween = null
+
+	# Clean up particles
+	if particles:
+		particles.emitting = false
+		particles.queue_free()
+		particles = null

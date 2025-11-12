@@ -43,6 +43,10 @@ func activate_speed_boost():
 	# Duration of boost
 	await get_tree().create_timer(boost_duration).timeout
 
+	# Check if character still exists
+	if not is_inside_tree():
+		return
+
 	# End boost
 	move_speed = normal_speed
 	is_boosting = false
@@ -52,6 +56,11 @@ func activate_speed_boost():
 
 	# Cooldown period
 	await get_tree().create_timer(boost_cooldown).timeout
+
+	# Check if character still exists
+	if not is_inside_tree():
+		return
+
 	can_boost = true
 	print("Speed boost ready!")
 

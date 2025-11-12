@@ -150,3 +150,21 @@ func show_requirement_message(character: Character):
 	"""Show why character can't interact"""
 	var message = get_requirement_text()
 	print("❌ ", message)
+
+func _exit_tree():
+	"""Clean up resources when interactive object is removed"""
+	# Disconnect all signals to prevent memory leaks
+	if body_entered.is_connected(_on_body_entered):
+		body_entered.disconnect(_on_body_entered)
+	if body_exited.is_connected(_on_body_exited):
+		body_exited.disconnect(_on_body_exited)
+	if input_event.is_connected(_on_input_event):
+		input_event.disconnect(_on_input_event)
+
+	# Clean up hover label
+	if hover_label:
+		hover_label.queue_free()
+		hover_label = null
+
+	# Clear character reference
+	nearby_character = null

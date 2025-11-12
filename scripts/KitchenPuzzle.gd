@@ -91,3 +91,20 @@ func on_puzzle_already_solved():
 	for spot in ingredients_spots.values():
 		if spot:
 			spot.modulate = Color(0.5, 0.5, 0.5, 0.3)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect ingredient signals
+	for spot in ingredients_spots.values():
+		if spot and spot.interacted.is_connected(_on_ingredient_collected):
+			spot.interacted.disconnect(_on_ingredient_collected)
+
+	# Disconnect stove signal
+	if has_node("StoveInteractive"):
+		var stove = $StoveInteractive
+		if stove.interacted.is_connected(attempt_solve):
+			stove.interacted.disconnect(attempt_solve)
+
+	# Clear references
+	ingredients_spots.clear()
+	ingredients_collected.clear()

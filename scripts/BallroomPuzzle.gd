@@ -31,7 +31,7 @@ func auto_register_crystals():
 func _on_crystal_lit(character: Character, crystal: Interactive):
 	"""Called when character lights up a crystal"""
 	if not is_preferred_character(character):
-		print("=¡ %s struggles to reach this high crystal! Try Fairy or Ant." % character.character_type.capitalize())
+		print("=ï¿½ %s struggles to reach this high crystal! Try Fairy or Ant." % character.character_type.capitalize())
 		return
 
 	crystals_lit += 1
@@ -51,7 +51,7 @@ func check_solution(character: Character) -> bool:
 
 func on_solved(character: Character, time: float):
 	"""When puzzle is completed"""
-	print("=Ž The chandelier shines brilliantly!")
+	print("=ï¿½ The chandelier shines brilliantly!")
 	print("( The Crystal Chandelier piece is ready to be collected!")
 
 	# Make all crystals shine brightly
@@ -77,3 +77,13 @@ func on_puzzle_already_solved():
 	for crystal in crystal_objects:
 		if crystal:
 			crystal.modulate = Color(2.0, 2.0, 1.0)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect all crystal signals
+	for crystal in crystal_objects:
+		if crystal and crystal.interacted.is_connected(_on_crystal_lit):
+			crystal.interacted.disconnect(_on_crystal_lit)
+
+	# Clear references
+	crystal_objects.clear()

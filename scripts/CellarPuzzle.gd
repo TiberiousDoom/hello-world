@@ -31,11 +31,11 @@ func auto_register_dig_spots():
 func _on_spot_dug(character: Character, dig_spot: Interactive):
 	"""Called when character digs a spot"""
 	if not is_preferred_character(character):
-		print(">¨ %s can't dig through this hard dirt! Try Gnome or Ant." % character.character_type.capitalize())
+		print(">ï¿½ %s can't dig through this hard dirt! Try Gnome or Ant." % character.character_type.capitalize())
 		return
 
 	dug_spots += 1
-	print("Ï Dug spot! (%d/%d)" % [dug_spots, dig_spots_needed])
+	print("ï¿½ Dug spot! (%d/%d)" % [dug_spots, dig_spots_needed])
 
 	# Visual feedback - fade out the dirt pile
 	dig_spot.modulate = Color(0.5, 0.4, 0.3, 0.3)  # Faded dirt
@@ -51,7 +51,7 @@ func check_solution(character: Character) -> bool:
 
 func on_solved(character: Character, time: float):
 	"""When puzzle is completed"""
-	print("Ï All dirt cleared! You've uncovered the passage!")
+	print("ï¿½ All dirt cleared! You've uncovered the passage!")
 	print("( The Ancient Key has been revealed!")
 
 	# Make all dig spots completely transparent
@@ -77,3 +77,13 @@ func on_puzzle_already_solved():
 	for spot in dig_spot_objects:
 		if spot:
 			spot.modulate = Color(1, 1, 1, 0)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect all dig spot signals
+	for spot in dig_spot_objects:
+		if spot and spot.interacted.is_connected(_on_spot_dug):
+			spot.interacted.disconnect(_on_spot_dug)
+
+	# Clear references
+	dig_spot_objects.clear()

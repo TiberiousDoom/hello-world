@@ -18,6 +18,9 @@ func _ready():
 	preferred_characters = ["weasel"]
 	show_hint_on_fail = true
 
+	# Disable process by default - only enable when timer running
+	set_process(false)
+
 	# Auto-register runes
 	await get_tree().process_frame
 	auto_register_runes()
@@ -37,8 +40,9 @@ func _process(delta):
 		if puzzle_timer >= time_limit:
 			# Time's up!
 			timer_running = false
+			set_process(false)  # Stop processing when timer ends
 			if runes_activated < runes_needed:
-				print("ð Time's up! Not fast enough. Try again with Weasel's speed boost!")
+				print("ï¿½ Time's up! Not fast enough. Try again with Weasel's speed boost!")
 				reset_puzzle_state()
 
 func reset_puzzle_state():
@@ -56,12 +60,13 @@ func _on_rune_activated(character: Character, rune: Interactive):
 	# Start timer on first rune
 	if runes_activated == 0:
 		timer_running = true
+		set_process(true)  # Enable processing when timer starts
 		puzzle_timer = 0.0
-		print("¡ Speed challenge started! Activate all %d runes within %.1f seconds!" % [runes_needed, time_limit])
+		print("ï¿½ Speed challenge started! Activate all %d runes within %.1f seconds!" % [runes_needed, time_limit])
 
 	runes_activated += 1
 	var time_left = time_limit - puzzle_timer
-	print("¡ Rune activated! (%d/%d) - %.1fs remaining" % [runes_activated, runes_needed, time_left])
+	print("ï¿½ Rune activated! (%d/%d) - %.1fs remaining" % [runes_activated, runes_needed, time_left])
 
 	# Visual feedback
 	rune.modulate = Color(1.5, 1.5, 0.5)  # Bright yellow glow
@@ -69,6 +74,7 @@ func _on_rune_activated(character: Character, rune: Interactive):
 	# Check if all runes activated in time
 	if runes_activated >= runes_needed and timer_running:
 		timer_running = false
+		set_process(false)  # Stop processing when puzzle solved
 		attempt_solve(character)
 
 func check_solution(character: Character) -> bool:
@@ -77,7 +83,7 @@ func check_solution(character: Character) -> bool:
 
 func on_solved(character: Character, time: float):
 	"""When puzzle is completed"""
-	print("¡ Lightning fast! All runes activated in %.2f seconds!" % puzzle_timer)
+	print("ï¿½ Lightning fast! All runes activated in %.2f seconds!" % puzzle_timer)
 	print("( The Enchanted Crystal has been revealed!")
 
 	# Make all runes glow brightly
@@ -102,3 +108,16 @@ func on_puzzle_already_solved():
 	for rune in rune_objects:
 		if rune:
 			rune.modulate = Color(2.0, 2.0, 1.0)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect all rune signals
+	for rune in rune_objects:
+		if rune and rune.interacted.is_connected(_on_rune_activated):
+			rune.interacted.disconnect(_on_rune_activated)
+
+	# Clear references
+	rune_objects.clear()
+
+	# Stop processing
+	set_process(false)

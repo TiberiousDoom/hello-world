@@ -37,6 +37,10 @@ func use_special_ability():
 	# Digging animation period
 	await get_tree().create_timer(dig_duration).timeout
 
+	# Check if character still exists
+	if not is_inside_tree():
+		return
+
 	# Create a temporary passage (visual feedback)
 	create_dig_passage()
 
@@ -47,6 +51,11 @@ func use_special_ability():
 
 	# Cooldown
 	await get_tree().create_timer(dig_cooldown).timeout
+
+	# Check if character still exists
+	if not is_inside_tree():
+		return
+
 	can_dig_again = true
 	print("Gnome can dig again!")
 

@@ -31,7 +31,7 @@ func auto_register_books():
 func _on_book_shelved(character: Character, book: Interactive):
 	"""Called when character places a book on shelf"""
 	books_shelved += 1
-	print("=Ú Book shelved! (%d/%d)" % [books_shelved, books_needed])
+	print("=ï¿½ Book shelved! (%d/%d)" % [books_shelved, books_needed])
 
 	# Visual feedback - fade book
 	book.modulate = Color(0.7, 0.7, 0.7, 0.5)  # Faded
@@ -47,7 +47,7 @@ func check_solution(character: Character) -> bool:
 
 func on_solved(character: Character, time: float):
 	"""When puzzle is completed"""
-	print("=Ö All books organized! The library is in order!")
+	print("=ï¿½ All books organized! The library is in order!")
 	print("( The Glowing Book has been revealed!")
 
 	# Make all books transparent
@@ -58,7 +58,7 @@ func on_solved(character: Character, time: float):
 func get_hint(character: Character) -> String:
 	"""Provide helpful hints"""
 	if not is_preferred_character(character):
-		print("=¡ %s can organize the books, but Gnome is more efficient!" % character.character_type.capitalize())
+		print("=ï¿½ %s can organize the books, but Gnome is more efficient!" % character.character_type.capitalize())
 
 	if books_shelved == 0:
 		return "Click on the scattered books to place them on the shelf! There are %d books." % books_needed
@@ -73,3 +73,13 @@ func on_puzzle_already_solved():
 	for book in book_objects:
 		if book:
 			book.modulate = Color(1, 1, 1, 0)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect all book signals
+	for book in book_objects:
+		if book and book.interacted.is_connected(_on_book_shelved):
+			book.interacted.disconnect(_on_book_shelved)
+
+	# Clear references
+	book_objects.clear()

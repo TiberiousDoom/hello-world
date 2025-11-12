@@ -45,18 +45,18 @@ func check_solution(character: Character) -> bool:
 func on_solved(character: Character, time: float):
 	"""When puzzle is completed - the grand finale!"""
 	print("=Q PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP =Q")
-	print("<‰ CONGRATULATIONS! THE PALACE MAGIC IS RESTORED! <‰")
+	print("<ï¿½ CONGRATULATIONS! THE PALACE MAGIC IS RESTORED! <ï¿½")
 	print("=Q PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP =Q")
 	print("")
 	print("( %s has restored all the magical treasures!" % character.character_type.capitalize())
-	print("<ð The Fairy Tale Palace shines with renewed enchantment!")
+	print("<ï¿½ The Fairy Tale Palace shines with renewed enchantment!")
 	print("")
-	print("=Ê Game Statistics:")
+	print("=ï¿½ Game Statistics:")
 	print("   - Puzzles Solved: %d/7" % GameManager.get_solved_puzzle_count())
 	print("   - Items Collected: %d/7" % GameManager.get_collected_count())
 	print("   - Total Time: %.1f seconds" % time)
 	print("")
-	print("<Š Thank you for playing! <Š")
+	print("<ï¿½ Thank you for playing! <ï¿½")
 	print("=Q PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP =Q")
 
 	# Visual celebration
@@ -85,3 +85,12 @@ func on_puzzle_already_solved():
 	"""Throne glows if already solved"""
 	if throne_interactive:
 		throne_interactive.modulate = Color(2.0, 2.0, 0.5)
+
+func _exit_tree():
+	"""Clean up resources when puzzle is removed"""
+	# Disconnect throne signal
+	if throne_interactive and throne_interactive.interacted.is_connected(_on_throne_activated):
+		throne_interactive.interacted.disconnect(_on_throne_activated)
+
+	# Clear reference
+	throne_interactive = null

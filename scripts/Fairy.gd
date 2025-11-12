@@ -29,6 +29,11 @@ func use_special_ability():
 
 	# Reset ability state after a moment
 	await get_tree().create_timer(0.5).timeout
+
+	# Check if character still exists (may have been freed during await)
+	if not is_inside_tree():
+		return
+
 	is_using_ability = false
 
 func create_magic_sparkle():

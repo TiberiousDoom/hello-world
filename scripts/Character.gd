@@ -108,3 +108,14 @@ func get_character_info() -> Dictionary:
 		"can_dig": can_dig,
 		"has_speed": has_speed_boost
 	}
+
+func _exit_tree():
+	"""Clean up resources when character is removed from scene"""
+	# Stop any ongoing navigation
+	is_moving = false
+	velocity = Vector2.ZERO
+
+	# Clean up navigation agent
+	if nav_agent:
+		nav_agent.queue_free()
+		nav_agent = null
