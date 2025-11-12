@@ -71,11 +71,25 @@ func load_room(room_name: String):
 		update_ui()
 		print("Loaded room: ", room_name)
 
-func _unhandled_input(event):
-	"""Handle tap-to-move input (only if not handled by UI)"""
+func _input(event):
+	"""Handle tap-to-move input"""
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		# Check if we clicked on UI by testing TopBar and BottomBar bounds
+		var mouse_pos = event.position
+		var viewport_size = get_viewport().get_visible_rect().size
+
+		# TopBar is at top, 60px high
+		var topbar_rect = Rect2(0, 0, viewport_size.x, 60)
+		if topbar_rect.has_point(mouse_pos):
+			return  # Don't move character if TopBar was clicked
+
+		# BottomBar is at bottom, 100px high
+		var bottombar_rect = Rect2(0, viewport_size.y - 100, viewport_size.x, 100)
+		if bottombar_rect.has_point(mouse_pos):
+			return  # Don't move character if BottomBar was clicked
+
+		# Move character to clicked position
 		if current_character:
-			# Get click position in world space
 			var click_pos = get_global_mouse_position()
 			current_character.set_target(click_pos)
 
