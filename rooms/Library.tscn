@@ -1,9 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://cs0a7en9wva7b"]
+[gd_scene load_steps=9 format=3 uid="uid://cs0a7en9wva7b"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/LibraryPuzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://scripts/Interactive.gd" id="3_interactive"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_item"]
 radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_book"]
+radius = 25.0
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_1"]
 vertices = PackedVector2Array(100, 100, 1180, 100, 1180, 600, 100, 600)
@@ -90,9 +95,120 @@ offset_right = 780.0
 offset_bottom = 550.0
 color = Color(0.4, 0.25, 0.15, 1)
 
+[node name="Puzzle" type="Node2D" parent="."]
+script = ExtResource("2_puzzle")
+
+[node name="Books" type="Node2D" parent="Puzzle"]
+
+[node name="Book1" type="Area2D" parent="Puzzle/Books"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(300, 480)
+script = ExtResource("3_interactive")
+interaction_prompt = "Shelve Book"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Books/Book1"]
+shape = SubResource("CircleShape2D_book")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Books/Book1"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.7, 0.2, 0.2, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Books/Book1"]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -25.0
+text = "📕"
+horizontal_alignment = 1
+
+[node name="Book2" type="Area2D" parent="Puzzle/Books"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(550, 490)
+script = ExtResource("3_interactive")
+interaction_prompt = "Shelve Book"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Books/Book2"]
+shape = SubResource("CircleShape2D_book")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Books/Book2"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.2, 0.5, 0.8, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Books/Book2"]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -25.0
+text = "📘"
+horizontal_alignment = 1
+
+[node name="Book3" type="Area2D" parent="Puzzle/Books"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(730, 490)
+script = ExtResource("3_interactive")
+interaction_prompt = "Shelve Book"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Books/Book3"]
+shape = SubResource("CircleShape2D_book")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Books/Book3"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.3, 0.7, 0.3, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Books/Book3"]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -25.0
+text = "📗"
+horizontal_alignment = 1
+
+[node name="Book4" type="Area2D" parent="Puzzle/Books"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(980, 480)
+script = ExtResource("3_interactive")
+interaction_prompt = "Shelve Book"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Books/Book4"]
+shape = SubResource("CircleShape2D_book")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Books/Book4"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.6, 0.4, 0.8, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Books/Book4"]
+offset_left = -25.0
+offset_top = -50.0
+offset_right = 25.0
+offset_bottom = -25.0
+text = "📙"
+horizontal_alignment = 1
+
 [node name="Items" type="Node2D" parent="."]
 
 [node name="GlowingBook" type="Area2D" parent="Items"]
+collision_layer = 2
+collision_mask = 1
 position = Vector2(640, 400)
 script = ExtResource("1_room")
 item_name = "glowing_book"
@@ -132,7 +248,7 @@ offset_right = 880.0
 offset_bottom = 120.0
 theme_override_font_sizes/font_size = 20
 text = "Library - Repository of ancient knowledge
-Find the Glowing Book of palace secrets!"
+Organize the scattered books to reveal the Glowing Book!"
 horizontal_alignment = 1
 autowrap_mode = 3
 

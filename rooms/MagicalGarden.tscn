@@ -1,9 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://cr9z6dm8vuz6a"]
+[gd_scene load_steps=9 format=3 uid="uid://cr9z6dm8vuz6a"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/GardenPuzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://scripts/Interactive.gd" id="3_interactive"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_item"]
 radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_plant"]
+radius = 30.0
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_1"]
 vertices = PackedVector2Array(100, 100, 1180, 100, 1180, 600, 100, 600)
@@ -97,39 +102,124 @@ offset_right = 780.0
 offset_bottom = 600.0
 color = Color(0.9, 0.3, 0.5, 1)
 
+[node name="Puzzle" type="Node2D" parent="."]
+script = ExtResource("2_puzzle")
+
+[node name="Plants" type="Node2D" parent="Puzzle"]
+
+[node name="WiltedPlant1" type="Area2D" parent="Puzzle/Plants"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(350, 480)
+script = ExtResource("3_interactive")
+interaction_prompt = "Revive Plant"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Plants/WiltedPlant1"]
+shape = SubResource("CircleShape2D_plant")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Plants/WiltedPlant1"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.5, 0.5, 0.4, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Plants/WiltedPlant1"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "🥀"
+horizontal_alignment = 1
+
+[node name="WiltedPlant2" type="Area2D" parent="Puzzle/Plants"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(640, 460)
+script = ExtResource("3_interactive")
+interaction_prompt = "Revive Plant"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Plants/WiltedPlant2"]
+shape = SubResource("CircleShape2D_plant")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Plants/WiltedPlant2"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.5, 0.5, 0.4, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Plants/WiltedPlant2"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "🥀"
+horizontal_alignment = 1
+
+[node name="WiltedPlant3" type="Area2D" parent="Puzzle/Plants"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(930, 480)
+script = ExtResource("3_interactive")
+interaction_prompt = "Revive Plant"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Plants/WiltedPlant3"]
+shape = SubResource("CircleShape2D_plant")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Plants/WiltedPlant3"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.5, 0.5, 0.4, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Plants/WiltedPlant3"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "🥀"
+horizontal_alignment = 1
+
 [node name="Items" type="Node2D" parent="."]
 
-[node name="FairyDust" type="Area2D" parent="Items"]
+[node name="MagicGem" type="Area2D" parent="Items"]
+collision_layer = 2
+collision_mask = 1
 position = Vector2(640, 400)
 script = ExtResource("1_room")
-item_name = "fairy_dust"
+item_name = "magic_gem"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Items/FairyDust"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Items/MagicGem"]
 shape = SubResource("CircleShape2D_item")
 
-[node name="Sprite" type="ColorRect" parent="Items/FairyDust"]
+[node name="Sprite" type="ColorRect" parent="Items/MagicGem"]
 offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(1, 0.9, 0.5, 1)
+color = Color(0.9, 0.3, 0.9, 1)
 
-[node name="Label" type="Label" parent="Items/FairyDust"]
+[node name="Label" type="Label" parent="Items/MagicGem"]
 offset_left = -40.0
 offset_top = -50.0
 offset_right = 40.0
 offset_bottom = -20.0
 theme_override_font_sizes/font_size = 24
-text = "✨"
+text = "💎"
 horizontal_alignment = 1
 
-[node name="ItemName" type="Label" parent="Items/FairyDust"]
+[node name="ItemName" type="Label" parent="Items/MagicGem"]
 offset_left = -60.0
 offset_top = 20.0
 offset_right = 60.0
 offset_bottom = 40.0
 theme_override_font_sizes/font_size = 12
-text = "Fairy Dust"
+text = "Magic Gem"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="."]
@@ -139,8 +229,8 @@ offset_right = 880.0
 offset_bottom = 120.0
 theme_override_font_sizes/font_size = 20
 text = "Magical Garden - Nature's enchanted sanctuary
-Collect the shimmering Fairy Dust from the flowers!"
+Revive the wilted plants with Fairy magic to reveal the Magic Gem!"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[connection signal="body_entered" from="Items/FairyDust" to="Items/FairyDust" method="_on_item_collected"]
+[connection signal="body_entered" from="Items/MagicGem" to="Items/MagicGem" method="_on_item_collected"]
