@@ -2,6 +2,21 @@ extends CharacterBody2D
 class_name Character
 
 # Base character class for all playable characters
+#
+# COLLISION LAYER SYSTEM:
+# Layer 1 (collision_layer = 1, collision_mask = 1):
+#   - Physical world: walls, floors, props, and characters
+#   - Characters exist on this layer and collide with other layer 1 objects
+#   - This prevents walking through walls and props
+#
+# Layer 2 (used by interactive objects):
+#   - Non-blocking objects: collectibles, ingredients, interactive triggers
+#   - These use collision_layer = 2, collision_mask = 1
+#   - They can detect characters (layer 1) without blocking movement
+#
+# Characters are configured in their .tscn files with:
+#   collision_layer = 1  (exist on physical layer)
+#   collision_mask = 1   (collide with physical layer)
 
 @export var move_speed: float = 200.0
 @export var character_type: String = "ant"
