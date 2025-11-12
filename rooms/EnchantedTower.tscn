@@ -1,9 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://ct1b8fo0xwb8c"]
+[gd_scene load_steps=9 format=3 uid="uid://ct1b8fo0xwb8c"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/TowerPuzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://scripts/Interactive.gd" id="3_interactive"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_item"]
 radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rune"]
+radius = 28.0
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_1"]
 vertices = PackedVector2Array(100, 100, 1180, 100, 1180, 600, 100, 600)
@@ -90,9 +95,120 @@ offset_right = 350.0
 offset_bottom = 600.0
 color = Color(0.4, 0.5, 0.6, 1)
 
+[node name="Puzzle" type="Node2D" parent="."]
+script = ExtResource("2_puzzle")
+
+[node name="Runes" type="Node2D" parent="Puzzle"]
+
+[node name="Rune1" type="Area2D" parent="Puzzle/Runes"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(250, 450)
+script = ExtResource("3_interactive")
+interaction_prompt = "Activate Rune"
+can_toggle = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Runes/Rune1"]
+shape = SubResource("CircleShape2D_rune")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Runes/Rune1"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.6, 0.6, 0.7, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Runes/Rune1"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⚡"
+horizontal_alignment = 1
+
+[node name="Rune2" type="Area2D" parent="Puzzle/Runes"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(640, 380)
+script = ExtResource("3_interactive")
+interaction_prompt = "Activate Rune"
+can_toggle = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Runes/Rune2"]
+shape = SubResource("CircleShape2D_rune")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Runes/Rune2"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.6, 0.6, 0.7, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Runes/Rune2"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⚡"
+horizontal_alignment = 1
+
+[node name="Rune3" type="Area2D" parent="Puzzle/Runes"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(1030, 450)
+script = ExtResource("3_interactive")
+interaction_prompt = "Activate Rune"
+can_toggle = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Runes/Rune3"]
+shape = SubResource("CircleShape2D_rune")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Runes/Rune3"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.6, 0.6, 0.7, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Runes/Rune3"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⚡"
+horizontal_alignment = 1
+
+[node name="Rune4" type="Area2D" parent="Puzzle/Runes"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(640, 520)
+script = ExtResource("3_interactive")
+interaction_prompt = "Activate Rune"
+can_toggle = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Runes/Rune4"]
+shape = SubResource("CircleShape2D_rune")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Runes/Rune4"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.6, 0.6, 0.7, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Runes/Rune4"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⚡"
+horizontal_alignment = 1
+
 [node name="Items" type="Node2D" parent="."]
 
 [node name="EnchantedCrystal" type="Area2D" parent="Items"]
+collision_layer = 2
+collision_mask = 1
 position = Vector2(640, 300)
 script = ExtResource("1_room")
 item_name = "enchanted_crystal"
@@ -132,7 +248,7 @@ offset_right = 880.0
 offset_bottom = 120.0
 theme_override_font_sizes/font_size = 20
 text = "Enchanted Tower - Mystical spire reaching the sky
-Climb high to claim the Enchanted Crystal!"
+Activate all runes quickly to reveal the Enchanted Crystal!"
 horizontal_alignment = 1
 autowrap_mode = 3
 
