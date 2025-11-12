@@ -12,6 +12,7 @@ signal deactivated
 @export var is_active: bool = false
 @export var can_toggle: bool = true
 @export var one_time_use: bool = false
+@export var auto_interact_on_touch: bool = false  # Auto interact when character touches
 
 var nearby_character: Character = null
 var has_been_used: bool = false
@@ -35,6 +36,10 @@ func _on_body_entered(body):
 	if body is Character:
 		nearby_character = body
 		show_prompt()
+
+		# Auto-interact if enabled
+		if auto_interact_on_touch:
+			interact(body)
 
 func _on_body_exited(body):
 	"""Character leaves interaction area"""
