@@ -1,9 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://dp7x4bk6tsx4y"]
+[gd_scene load_steps=9 format=3 uid="uid://dp7x4bk6tsx4y"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/CellarPuzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://scripts/Interactive.gd" id="3_interactive"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_item"]
 radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_dirt"]
+radius = 35.0
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_1"]
 vertices = PackedVector2Array(100, 100, 1180, 100, 1180, 600, 100, 600)
@@ -90,9 +95,94 @@ offset_right = 700.0
 offset_bottom = 600.0
 color = Color(0.35, 0.25, 0.15, 1)
 
+[node name="Puzzle" type="Node2D" parent="."]
+script = ExtResource("2_puzzle")
+
+[node name="DigSpots" type="Node2D" parent="Puzzle"]
+
+[node name="DirtPile1" type="Area2D" parent="Puzzle/DigSpots"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(350, 480)
+script = ExtResource("3_interactive")
+interaction_prompt = "Dig Here"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/DigSpots/DirtPile1"]
+shape = SubResource("CircleShape2D_dirt")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/DigSpots/DirtPile1"]
+offset_left = -30.0
+offset_top = -30.0
+offset_right = 30.0
+offset_bottom = 30.0
+color = Color(0.3, 0.2, 0.15, 1)
+
+[node name="Label" type="Label" parent="Puzzle/DigSpots/DirtPile1"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⛏️"
+horizontal_alignment = 1
+
+[node name="DirtPile2" type="Area2D" parent="Puzzle/DigSpots"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(640, 450)
+script = ExtResource("3_interactive")
+interaction_prompt = "Dig Here"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/DigSpots/DirtPile2"]
+shape = SubResource("CircleShape2D_dirt")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/DigSpots/DirtPile2"]
+offset_left = -30.0
+offset_top = -30.0
+offset_right = 30.0
+offset_bottom = 30.0
+color = Color(0.3, 0.2, 0.15, 1)
+
+[node name="Label" type="Label" parent="Puzzle/DigSpots/DirtPile2"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⛏️"
+horizontal_alignment = 1
+
+[node name="DirtPile3" type="Area2D" parent="Puzzle/DigSpots"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(930, 480)
+script = ExtResource("3_interactive")
+interaction_prompt = "Dig Here"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/DigSpots/DirtPile3"]
+shape = SubResource("CircleShape2D_dirt")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/DigSpots/DirtPile3"]
+offset_left = -30.0
+offset_top = -30.0
+offset_right = 30.0
+offset_bottom = 30.0
+color = Color(0.3, 0.2, 0.15, 1)
+
+[node name="Label" type="Label" parent="Puzzle/DigSpots/DirtPile3"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "⛏️"
+horizontal_alignment = 1
+
 [node name="Items" type="Node2D" parent="."]
 
 [node name="AncientKey" type="Area2D" parent="Items"]
+collision_layer = 2
+collision_mask = 1
 position = Vector2(640, 520)
 script = ExtResource("1_room")
 item_name = "ancient_key"

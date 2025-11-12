@@ -1,9 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://cq8y5cl7uty5z"]
+[gd_scene load_steps=9 format=3 uid="uid://cq8y5cl7uty5z"]
 
 [ext_resource type="Script" path="res://scripts/Room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/BallroomPuzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://scripts/Interactive.gd" id="3_interactive"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_item"]
 radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_crystal"]
+radius = 30.0
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_1"]
 vertices = PackedVector2Array(100, 100, 1180, 100, 1180, 600, 100, 600)
@@ -90,9 +95,94 @@ offset_right = 780.0
 offset_bottom = 200.0
 color = Color(0.6, 0.5, 0.3, 1)
 
+[node name="Puzzle" type="Node2D" parent="."]
+script = ExtResource("2_puzzle")
+
+[node name="Crystals" type="Node2D" parent="Puzzle"]
+
+[node name="CrystalLeft" type="Area2D" parent="Puzzle/Crystals"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(400, 200)
+script = ExtResource("3_interactive")
+interaction_prompt = "Light Crystal"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Crystals/CrystalLeft"]
+shape = SubResource("CircleShape2D_crystal")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Crystals/CrystalLeft"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.7, 0.7, 0.8, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Crystals/CrystalLeft"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "💎"
+horizontal_alignment = 1
+
+[node name="CrystalCenter" type="Area2D" parent="Puzzle/Crystals"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(640, 180)
+script = ExtResource("3_interactive")
+interaction_prompt = "Light Crystal"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Crystals/CrystalCenter"]
+shape = SubResource("CircleShape2D_crystal")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Crystals/CrystalCenter"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.7, 0.7, 0.8, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Crystals/CrystalCenter"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "💎"
+horizontal_alignment = 1
+
+[node name="CrystalRight" type="Area2D" parent="Puzzle/Crystals"]
+collision_layer = 2
+collision_mask = 1
+position = Vector2(880, 200)
+script = ExtResource("3_interactive")
+interaction_prompt = "Light Crystal"
+one_time_use = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Puzzle/Crystals/CrystalRight"]
+shape = SubResource("CircleShape2D_crystal")
+
+[node name="Sprite" type="ColorRect" parent="Puzzle/Crystals/CrystalRight"]
+offset_left = -25.0
+offset_top = -25.0
+offset_right = 25.0
+offset_bottom = 25.0
+color = Color(0.7, 0.7, 0.8, 1)
+
+[node name="Label" type="Label" parent="Puzzle/Crystals/CrystalRight"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -35.0
+text = "💎"
+horizontal_alignment = 1
+
 [node name="Items" type="Node2D" parent="."]
 
 [node name="CrystalChandelier" type="Area2D" parent="Items"]
+collision_layer = 2
+collision_mask = 1
 position = Vector2(640, 250)
 script = ExtResource("1_room")
 item_name = "crystal_chandelier"
