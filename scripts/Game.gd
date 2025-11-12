@@ -71,8 +71,8 @@ func load_room(room_name: String):
 		update_ui()
 		print("Loaded room: ", room_name)
 
-func _input(event):
-	"""Handle tap-to-move input"""
+func _unhandled_input(event):
+	"""Handle tap-to-move input (only if not handled by UI)"""
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if current_character:
 			# Get click position in world space
