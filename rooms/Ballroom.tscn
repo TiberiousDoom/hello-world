@@ -186,6 +186,7 @@ collision_mask = 1
 position = Vector2(640, 250)
 script = ExtResource("1_room")
 item_name = "crystal_chandelier"
+required_puzzle = "ballroom_chandelier"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Items/CrystalChandelier"]
 shape = SubResource("CircleShape2D_item")

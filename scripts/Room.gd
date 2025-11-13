@@ -4,6 +4,7 @@ extends Node2D
 
 @export var room_name: String = ""
 @export var item_name: String = ""
+@export var required_puzzle: String = ""  # Puzzle that must be solved to reveal this item
 
 var particles: CPUParticles2D
 var float_tween: Tween
@@ -15,8 +16,29 @@ func _ready():
 		# Hide the item if already collected
 		visible = false
 	elif item_name != "":
-		# This is a collectible item - add idle animation and particles
-		setup_item_effects()
+		# Check if item requires a puzzle to be solved first
+		if required_puzzle != "" and not GameManager.is_puzzle_solved(required_puzzle):
+			# Hide item until puzzle is solved
+			visible = false
+			# Listen for puzzle completion
+			_connect_to_puzzle()
+		else:
+			# This is a collectible item - add idle animation and particles
+			setup_item_effects()
+
+func _connect_to_puzzle():
+	"""Connect to puzzle completion signal"""
+	# Wait a frame to ensure puzzle is ready
+	await get_tree().process_frame
+	var puzzle = get_tree().get_first_node_in_group("puzzle_" + required_puzzle)
+	if puzzle and puzzle.has_signal("puzzle_completed"):
+		puzzle.puzzle_completed.connect(_on_puzzle_completed)
+
+func _on_puzzle_completed():
+	"""Called when required puzzle is completed"""
+	visible = true
+	setup_item_effects()
+	print("✨ Reward item '%s' revealed!" % item_name)
 
 func _on_item_collected(body):
 	"""Called when character touches an item"""

@@ -212,6 +212,7 @@ collision_mask = 1
 position = Vector2(640, 400)
 script = ExtResource("1_room")
 item_name = "glowing_book"
+required_puzzle = "library_books"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Items/GlowingBook"]
 shape = SubResource("CircleShape2D_item")

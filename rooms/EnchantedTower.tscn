@@ -212,6 +212,7 @@ collision_mask = 1
 position = Vector2(640, 300)
 script = ExtResource("1_room")
 item_name = "enchanted_crystal"
+required_puzzle = "tower_speed"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Items/EnchantedCrystal"]
 shape = SubResource("CircleShape2D_item")

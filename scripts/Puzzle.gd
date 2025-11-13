@@ -19,6 +19,10 @@ var attempts: int = 0
 var start_time: float = 0.0
 
 func _ready():
+	# Add to group for easy lookup
+	if puzzle_name != "":
+		add_to_group("puzzle_" + puzzle_name)
+
 	# Check if already solved
 	if GameManager.is_puzzle_solved(puzzle_name):
 		is_solved = true
