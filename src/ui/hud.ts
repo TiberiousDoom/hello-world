@@ -80,10 +80,15 @@ export class Hud {
       this.toast('Game saved.');
       this.closeModals();
     });
-    $('btn-new').addEventListener('click', () => {
-      if (confirm('Start a new game? Your current factory will be lost.')) {
+    // Two-step confirm in the page itself; native confirm() isn't available everywhere.
+    const newBtn = $('btn-new');
+    newBtn.addEventListener('click', () => {
+      if (newBtn.dataset.armed) {
         actions.newGame();
         this.closeModals();
+      } else {
+        newBtn.dataset.armed = '1';
+        newBtn.textContent = 'Tap again to lose this factory';
       }
     });
     $('btn-gameover-new').addEventListener('click', () => actions.newGame());
@@ -350,5 +355,8 @@ export class Hud {
 
   closeModals(): void {
     for (const m of document.querySelectorAll<HTMLElement>('.modal')) m.hidden = true;
+    const newBtn = $('btn-new');
+    delete newBtn.dataset.armed;
+    newBtn.textContent = 'New game';
   }
 }
