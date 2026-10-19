@@ -27,11 +27,28 @@ All balance numbers are in `src/sim/data.ts`.
 
 ## Roadmap
 
-**Milestone 2: depth**
-- Belt splitters, mergers and underground belts
+**Milestone 2a: logistics and sustain (done)**
+
+The gap Milestone 1 left: production lines can't branch, so feeding turrets
+means building a separate mine for each one. This milestone fixes that and
+gives the player ways to keep their base alive.
+
+- **Splitter** (tier 1): takes items from behind and sends them out of its
+  front, left and right sides in turn, skipping any blocked side. Use it to
+  branch a plate line off to a turret.
+- **Underground belt** (tier 1): place an entrance, then an exit up to 5
+  tiles ahead facing the same way. They pair automatically. Items pass
+  under buildings, belts and walls, and enemies can walk over both ends.
+- **Repair station** (tier 2): repairs the most damaged building within 3.5
+  tiles. Iron plates fed in by belt are its fuel (1 plate = 40 HP).
+- **Runner** enemy: fast with low HP. Runners join waves from wave 2, so
+  turrets with a long range or fast fire rate become important.
+- Saves from Milestone 1 load into the new version.
+
+**Milestone 2b: depth**
 - Machine and belt upgrade tiers, plus more recipes and tiers
-- Repair station, and more enemy types (fast, flying, armoured)
-- More turret types with different ammo (e.g. tesla fed by wire)
+- Item filters on splitters
+- More enemy types (flying, armoured) and turret types (e.g. tesla fed by wire)
 - Better wave pacing and difficulty settings; optionally, enemy nests on the map to clear
 - Sound effects and real art (2D sprites)
 

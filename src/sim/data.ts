@@ -47,12 +47,15 @@ export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.m
 export type BuildingType =
   | 'hub'
   | 'belt'
+  | 'splitter'
+  | 'tunnel'
   | 'extractor'
   | 'furnace'
   | 'workshop'
   | 'assembler'
   | 'turret'
   | 'cannon'
+  | 'repair'
   | 'wall';
 
 export interface BuildingDef {
@@ -65,15 +68,20 @@ export interface BuildingDef {
   description: string;
 }
 
+export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
+
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 600, cost: {}, blocking: true, description: 'Receives items. Protect it.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
+  splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Takes items from behind and sends them out front, left and right in turn.' },
+  tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
   extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, cost: { iron_plate: 6 }, blocking: true, description: 'Place on a resource node to mine it.' },
   furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, cost: { brick: 4, iron_plate: 2 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
   workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, cost: { iron_plate: 8, copper_ingot: 4 }, blocking: true, description: 'Makes gears and wire.' },
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
+  repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
 };
 
@@ -95,12 +103,14 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
 };
 
+export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, maxCharge: 400 };
+
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
 export const BELT_SPEED = 1.5; // tiles per second
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
 export const OUTPUT_BUFFER = 3;
 
-export type EnemyType = 'crawler' | 'brute';
+export type EnemyType = 'crawler' | 'runner' | 'brute';
 export interface EnemyDef {
   name: string;
   hp: number;
@@ -111,6 +121,7 @@ export interface EnemyDef {
 }
 export const ENEMIES: Record<EnemyType, EnemyDef> = {
   crawler: { name: 'Crawler', hp: 18, speed: 1.1, dps: 8, radius: 0.22, color: '#e0445a' },
+  runner: { name: 'Runner', hp: 10, speed: 2.2, dps: 5, radius: 0.17, color: '#ff9a3c' },
   brute: { name: 'Brute', hp: 110, speed: 0.55, dps: 30, radius: 0.36, color: '#a8203a' },
 };
 
@@ -121,8 +132,8 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { name: 'Landing', goal: {}, unlocks: ['belt', 'extractor', 'furnace', 'workshop', 'turret', 'wall'] },
-  { name: 'Assembly', goal: { iron_plate: 60, copper_ingot: 40, gear: 20, brick: 20 }, unlocks: ['assembler', 'cannon'] },
+  { name: 'Landing', goal: {}, unlocks: ['belt', 'splitter', 'tunnel', 'extractor', 'furnace', 'workshop', 'turret', 'wall'] },
+  { name: 'Assembly', goal: { iron_plate: 60, copper_ingot: 40, gear: 20, brick: 20 }, unlocks: ['assembler', 'cannon', 'repair'] },
   { name: 'Fortress', goal: { motor: 20, gear: 60, wire: 80 }, unlocks: [] },
 ];
 
@@ -133,9 +144,16 @@ export const WAVE_INTERVAL = 75;
 export const WAVE_WARNING = 30; // spawn points are shown this long before a wave
 export const SPAWN_GAP = 0.6; // seconds between enemies in a wave
 
-export function waveComposition(n: number): { crawlers: number; brutes: number; hpMult: number; spawnPoints: number } {
+export function waveComposition(n: number): {
+  crawlers: number;
+  runners: number;
+  brutes: number;
+  hpMult: number;
+  spawnPoints: number;
+} {
   return {
     crawlers: 4 + 2 * n,
+    runners: n >= 2 ? 2 * (n - 1) : 0,
     brutes: n >= 3 ? n - 2 : 0,
     hpMult: 1 + 0.15 * (n - 1),
     spawnPoints: n >= 4 ? 2 : 1,

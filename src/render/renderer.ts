@@ -12,6 +12,7 @@ import {
   HUB_SIZE,
   ITEMS,
   RECIPE_BY_ID,
+  REPAIR,
   TURRETS,
   WAVE_WARNING,
   isMachine,
@@ -101,7 +102,7 @@ export class Renderer {
     for (const b of s.buildings) {
       if (b.type === 'belt') continue;
       const size = b.type === 'hub' ? HUB_SIZE : 1;
-      if (visible(b.x, b.y, size)) this.drawBuilding(b, z);
+      if (visible(b.x, b.y, size)) this.drawBuilding(world, b, z);
     }
 
     // Spawn warnings.
@@ -152,8 +153,10 @@ export class Renderer {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2 / z;
       ctx.strokeRect(sel.x, sel.y, size, size);
-      const t = TURRETS[sel.type];
-      if (t) rangeCircle(ctx, sel.x + 0.5, sel.y + 0.5, t.range, z);
+      const range = TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : 0);
+      if (range) rangeCircle(ctx, sel.x + 0.5, sel.y + 0.5, range, z);
+      const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
+      if (partner) linkLine(ctx, sel, partner, z);
     }
     if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
   }
@@ -183,7 +186,7 @@ export class Renderer {
     }
   }
 
-  private drawBuilding(b: Building, z: number): void {
+  private drawBuilding(world: World, b: Building, z: number): void {
     const ctx = this.ctx;
     const def = BUILDINGS[b.type];
     const size = b.type === 'hub' ? HUB_SIZE : 1;
@@ -206,6 +209,31 @@ export class Renderer {
       ctx.stroke();
     }
 
+    if (b.type === 'splitter') {
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      for (const d of [b.dir, (b.dir + 1) % 4, (b.dir + 3) % 4] as Dir[]) {
+        arrowHead(ctx, b.x + 0.5 + DX[d] * 0.33, b.y + 0.5 + DY[d] * 0.33, d, 0.1);
+      }
+      if (b.outputs.length) {
+        ctx.fillStyle = ITEMS[b.outputs[0]].color;
+        dot(ctx, b.x + 0.5, b.y + 0.5, 0.14);
+      }
+    }
+
+    if (b.type === 'tunnel') {
+      // Dark mouth on the side that leads underground.
+      const exit = world.isTunnelExit(b);
+      const m = exit ? -1 : 1;
+      ctx.fillStyle = '#0b0d11';
+      ctx.beginPath();
+      ctx.arc(b.x + 0.5 + DX[b.dir] * 0.42 * m, b.y + 0.5 + DY[b.dir] * 0.42 * m, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = b.link == null ? '#e0a040' : 'rgba(255,255,255,0.75)';
+      arrowHead(ctx, b.x + 0.5 - DX[b.dir] * 0.05 * m, b.y + 0.5 - DY[b.dir] * 0.05 * m, b.dir, 0.13);
+    }
+
+    if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.8, 0.76, b.ammo / REPAIR.maxCharge, ITEMS.iron_plate.color);
+
     const turret = TURRETS[b.type];
     if (turret) {
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -227,7 +255,7 @@ export class Renderer {
 
     if (z >= 18 && def.short) {
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = `bold ${b.type === 'hub' ? 0.6 : 0.3}px system-ui, sans-serif`;
+      ctx.font = `bold ${b.type === 'hub' ? 0.6 : b.type === 'repair' ? 0.5 : 0.3}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(def.short, b.x + size / 2, b.y + size / 2);
@@ -257,12 +285,16 @@ export class Renderer {
     ctx.strokeStyle = ok ? '#ffffff' : '#ff6070';
     ctx.lineWidth = 2 / z;
     ctx.strokeRect(x + 0.06, y + 0.06, 0.88, 0.88);
-    if (tool !== 'wall' && !TURRETS[tool]) {
+    if (tool !== 'wall' && tool !== 'repair' && !TURRETS[tool]) {
       ctx.fillStyle = '#ffffff';
       arrowHead(ctx, x + 0.5 + DX[dir] * 0.3, y + 0.5 + DY[dir] * 0.3, dir, 0.16);
     }
-    const t = TURRETS[tool];
-    if (t) rangeCircle(ctx, x + 0.5, y + 0.5, t.range, z);
+    const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : 0);
+    if (range) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
+    if (tool === 'tunnel' && ok) {
+      const entrance = world.findTunnelEntrance(x, y, dir);
+      if (entrance) linkLine(ctx, entrance, { x, y }, z);
+    }
   }
 }
 
@@ -287,6 +319,18 @@ function rangeCircle(ctx: CanvasRenderingContext2D, x: number, y: number, r: num
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
+}
+
+/** Dashed line joining a tunnel entrance and exit. */
+function linkLine(ctx: CanvasRenderingContext2D, a: { x: number; y: number }, b: { x: number; y: number }, z: number): void {
+  ctx.strokeStyle = 'rgba(255,224,138,0.8)';
+  ctx.lineWidth = 2 / z;
+  ctx.setLineDash([4 / z, 4 / z]);
+  ctx.beginPath();
+  ctx.moveTo(a.x + 0.5, a.y + 0.5);
+  ctx.lineTo(b.x + 0.5, b.y + 0.5);
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 /** Triangle pointing in `dir`, centred at (x, y). */

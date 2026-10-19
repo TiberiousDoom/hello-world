@@ -8,14 +8,30 @@ import {
   ItemCounts,
   ItemId,
   RECIPE_BY_ID,
+  REPAIR,
   TIERS,
+  TUNNEL_RANGE,
   TURRETS,
   isMachine,
 } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Tool, UIState } from './state';
 
-const TOOLBAR: BuildingType[] = ['belt', 'extractor', 'furnace', 'workshop', 'assembler', 'turret', 'cannon', 'wall'];
+const TOOLBAR: BuildingType[] = [
+  'belt',
+  'splitter',
+  'tunnel',
+  'extractor',
+  'furnace',
+  'workshop',
+  'assembler',
+  'turret',
+  'cannon',
+  'repair',
+  'wall',
+];
+/** Buildings without a meaningful facing. */
+const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 
 const PLACE_ERRORS: Record<PlaceError, string> = {
@@ -233,7 +249,7 @@ export class Hud {
       const def = BUILDINGS[t];
       const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
       return `<button class="${cls}" data-tool="${t}" title="${esc(def.name)} (${i + 1})">
-        <span class="icon" style="background:${def.color}">${def.short || ''}</span>
+        <span class="icon" style="background:${def.color}">${def.short || (t === 'tunnel' ? '⤓' : '')}</span>
         <span class="label">${esc(def.name)}</span>
         <span class="costs">${costHtml(def.cost, inv)}</span></button>`;
     });
@@ -282,7 +298,7 @@ export class Hud {
         }
         if (b!.type !== 'hub') {
           actions += `<div class="row">`;
-          if (b!.type !== 'wall' && !TURRETS[b!.type]) actions += `<button data-action="rotate">⟳ Rotate</button>`;
+          if (!NO_ROTATE.includes(b!.type) && b!.type !== 'tunnel') actions += `<button data-action="rotate">⟳ Rotate</button>`;
           actions += `<button data-action="demolish" class="danger">✕ Demolish</button></div>`;
         }
         html = `<div class="info-head"><b>${esc(def.name)}</b><button data-action="close">✕</button></div>
@@ -296,7 +312,11 @@ export class Hud {
       stats = `Cost: ${costHtml(BUILDINGS[tool as BuildingType].cost, inv)}`;
       const t = TURRETS[tool as BuildingType];
       if (t) stats += `<br>Ammo: ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name} · Range ${t.range}`;
-      if (tool !== 'wall' && !t) stats += `<br>Facing ${DIR_ARROWS[this.ui.dir]} · Rotate to turn`;
+      if (tool === 'tunnel') {
+        const entrance = world.findTunnelEntrance(this.ui.hover?.x ?? -99, this.ui.hover?.y ?? -99, this.ui.dir);
+        stats += entrance ? '<br>Here: <b>exit</b> for the entrance behind' : '<br>Here: <b>entrance</b>';
+      }
+      if (!NO_ROTATE.includes(tool as BuildingType)) stats += `<br>Facing ${DIR_ARROWS[this.ui.dir]} · Rotate to turn`;
     } else if (b) {
       const def = BUILDINGS[b.type];
       stats = `HP ${Math.ceil(b.hp)} / ${def.hp}`;
@@ -318,6 +338,15 @@ export class Hud {
         }
       }
       if (b.outputs.length) stats += `<br>Output buffer ${b.outputs.map(swatch).join('')}`;
+      if (b.type === 'repair') stats += `<br>Stored repairs ${Math.floor(b.ammo)} / ${REPAIR.maxCharge} HP`;
+      if (b.type === 'tunnel') {
+        const p = b.link != null ? world.byId.get(b.link) : undefined;
+        if (!p) stats += `<br>Entrance with no exit. Place one up to ${TUNNEL_RANGE} tiles ahead, facing the same way.`;
+        else {
+          const d = Math.abs(p.x - b.x) + Math.abs(p.y - b.y);
+          stats += world.isTunnelExit(b) ? `<br>Exit, ${d} tiles from its entrance` : `<br>Entrance, ${d} tiles from its exit (${b.belt.length} in transit)`;
+        }
+      }
       if (b.type === 'belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
     }
     if (stats !== this.statsHtml) {

@@ -151,6 +151,7 @@ export class Input {
   private paintTo(t: Tile): void {
     const from = this.lastTile;
     if (!from || (from.x === t.x && from.y === t.y)) return;
+    if (this.ui.tool === 'tunnel') return; // entrances and exits are placed one tap at a time
     const world = this.cb.getWorld();
     let { x, y } = from;
     while (x !== t.x || y !== t.y) {

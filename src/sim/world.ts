@@ -19,18 +19,20 @@ import {
   MAP_SIZE,
   OUTPUT_BUFFER,
   RECIPES,
+  REPAIR,
   RECIPE_BY_ID,
   RESOURCE_ITEMS,
   SPAWN_GAP,
   START_INVENTORY,
   TIERS,
+  TUNNEL_RANGE,
   TURRETS,
   WAVE_INTERVAL,
   isMachine,
   waveComposition,
 } from './data';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -45,13 +47,15 @@ export interface Building {
   y: number;
   dir: Dir;
   hp: number;
-  belt: BeltItem[]; // belts: items ordered front (highest pos) first
+  belt: BeltItem[]; // belts and tunnel entrances: items ordered front (highest pos) first
   recipe: string | null; // machines
   inputs: ItemCounts; // machines
-  outputs: ItemId[]; // extractors and machines
+  outputs: ItemId[]; // extractors, machines, splitters and tunnel exits
   progress: number; // extractors and machines: seconds into the current job, -1 when idle
-  ammo: number; // turrets: shots stored
+  ammo: number; // turrets: shots stored; repair stations: HP of repairs stored
   cooldown: number; // turrets
+  link: number | null; // tunnels: the paired entrance or exit
+  rr: number; // splitters: which output side is next
 }
 
 export interface Enemy {
@@ -157,6 +161,11 @@ export class World {
 
   static fromJSON(json: string): World {
     const state = JSON.parse(json) as GameState;
+    if (state.version === 1) {
+      // v2 added tunnels and splitters.
+      for (const b of state.buildings) Object.assign(b, { link: null, rr: 0 });
+      state.version = 2;
+    }
     if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
     return new World(state);
   }
@@ -238,8 +247,11 @@ export class World {
       inputs: {},
       outputs: [],
       progress: -1,
-      ammo: TURRETS[type]?.maxShots ?? 0, // turrets arrive loaded
+      // Turrets and repair stations arrive stocked.
+      ammo: TURRETS[type]?.maxShots ?? (type === 'repair' ? REPAIR.maxCharge / 2 : 0),
       cooldown: 0,
+      link: null,
+      rr: 0,
     };
     this.state.buildings.push(b);
     this.index(b);
@@ -319,7 +331,33 @@ export class World {
     const err = this.checkPlace(type, x, y);
     if (err) return err;
     for (const [item, n] of Object.entries(BUILDINGS[type].cost)) this.state.inventory[item as ItemId]! -= n!;
-    return this.addBuilding(type, x, y, dir);
+    const entrance = type === 'tunnel' ? this.findTunnelEntrance(x, y, dir) : undefined;
+    const b = this.addBuilding(type, x, y, dir);
+    if (entrance) {
+      entrance.link = b.id;
+      b.link = entrance.id;
+    }
+    return b;
+  }
+
+  /** The unpaired tunnel entrance a new tunnel at (x, y) facing `dir` would become the exit of. */
+  findTunnelEntrance(x: number, y: number, dir: Dir): Building | undefined {
+    for (let k = 1; k <= TUNNEL_RANGE; k++) {
+      const b = this.buildingAt(x - DX[dir] * k, y - DY[dir] * k);
+      if (b?.type === 'tunnel' && b.dir === dir) return b.link == null ? b : undefined;
+    }
+    return undefined;
+  }
+
+  /** A tunnel is an exit when its partner lies behind it. */
+  isTunnelExit(b: Building): boolean {
+    const p = b.link != null ? this.byId.get(b.link) : undefined;
+    return !!p && (p.x - b.x) * DX[b.dir] + (p.y - b.y) * DY[b.dir] < 0;
+  }
+
+  private tunnelLength(entrance: Building): number {
+    const p = entrance.link != null ? this.byId.get(entrance.link) : undefined;
+    return p ? Math.abs(p.x - entrance.x) + Math.abs(p.y - entrance.y) : 1;
   }
 
   /** Removes a building, refunding its cost scaled by remaining health. */
@@ -337,6 +375,11 @@ export class World {
   }
 
   private remove(b: Building): void {
+    const partner = b.link != null ? this.byId.get(b.link) : undefined;
+    if (partner) {
+      partner.link = null;
+      partner.belt = []; // items in transit are lost
+    }
     this.unindex(b);
     const i = this.state.buildings.indexOf(b);
     if (i >= 0) this.state.buildings.splice(i, 1);
@@ -344,7 +387,7 @@ export class World {
 
   rotate(id: number, dir?: Dir): void {
     const b = this.byId.get(id);
-    if (!b || b.type === 'hub') return;
+    if (!b || b.type === 'hub' || b.type === 'tunnel') return; // rotating would break the pair
     b.dir = dir ?? (((b.dir + 1) % 4) as Dir);
   }
 
@@ -372,6 +415,26 @@ export class World {
         const last = target.belt[target.belt.length - 1];
         if (last && last.pos < BELT_SPACING) return false;
         target.belt.push({ item, pos: 0 });
+        return true;
+      }
+      case 'splitter': {
+        // Only from directly behind.
+        if (target.x - DX[target.dir] !== fromX || target.y - DY[target.dir] !== fromY) return false;
+        if (target.outputs.length) return false;
+        target.outputs.push(item);
+        return true;
+      }
+      case 'tunnel': {
+        if (this.isTunnelExit(target)) return false;
+        if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
+        const last = target.belt[target.belt.length - 1];
+        if (last && last.pos < BELT_SPACING / this.tunnelLength(target)) return false;
+        target.belt.push({ item, pos: 0 });
+        return true;
+      }
+      case 'repair': {
+        if (item !== 'iron_plate' || target.ammo + REPAIR.hpPerPlate > REPAIR.maxCharge) return false;
+        target.ammo += REPAIR.hpPerPlate;
         return true;
       }
       case 'hub':
@@ -439,6 +502,15 @@ export class World {
         case 'belt':
           this.tickBelt(b, dt);
           break;
+        case 'splitter':
+          this.tickSplitter(b);
+          break;
+        case 'tunnel':
+          this.tickTunnel(b, dt);
+          break;
+        case 'repair':
+          this.tickRepair(b, dt);
+          break;
         case 'extractor':
           this.tickExtractor(b, dt);
           break;
@@ -472,17 +544,70 @@ export class World {
     this.shots = this.shots.filter((sh) => sh.age < 0.12);
   }
 
+  /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */
+  private advanceItems(items: BeltItem[], dt: number, length: number): void {
+    const spacing = BELT_SPACING / length;
+    for (let i = 0; i < items.length; i++) {
+      const limit = i === 0 ? 1 : items[i - 1].pos - spacing;
+      items[i].pos = Math.max(items[i].pos, Math.min(items[i].pos + (BELT_SPEED * dt) / length, limit));
+    }
+  }
+
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
-    for (let i = 0; i < items.length; i++) {
-      const limit = i === 0 ? 1 : items[i - 1].pos - BELT_SPACING;
-      items[i].pos = Math.max(items[i].pos, Math.min(items[i].pos + BELT_SPEED * dt, limit));
-    }
+    this.advanceItems(items, dt, 1);
     const front = items[0];
     if (front && front.pos >= 1) {
       const target = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
       if (target && this.insert(target, front.item, b.x, b.y)) items.shift();
     }
+  }
+
+  private tickSplitter(b: Building): void {
+    if (!b.outputs.length) return;
+    // Front, left, right, starting from the side after the last one used.
+    const sides: Dir[] = [b.dir, ((b.dir + 3) % 4) as Dir, ((b.dir + 1) % 4) as Dir];
+    for (let i = 0; i < 3; i++) {
+      const k = (b.rr + i) % 3;
+      const target = this.buildingAt(b.x + DX[sides[k]], b.y + DY[sides[k]]);
+      if (target && this.insert(target, b.outputs[0], b.x, b.y)) {
+        b.outputs.shift();
+        b.rr = (k + 1) % 3;
+        return;
+      }
+    }
+  }
+
+  private tickTunnel(b: Building, dt: number): void {
+    this.pushOutput(b); // exits, or a former exit whose entrance was removed
+    if (this.isTunnelExit(b)) return;
+    const exit = b.link != null ? this.byId.get(b.link) : undefined;
+    this.advanceItems(b.belt, dt, this.tunnelLength(b));
+    const front = b.belt[0];
+    if (exit && front && front.pos >= 1 && exit.outputs.length < OUTPUT_BUFFER) {
+      exit.outputs.push(front.item);
+      b.belt.shift();
+    }
+  }
+
+  private tickRepair(b: Building, dt: number): void {
+    if (b.ammo <= 0) return;
+    let worst: Building | undefined;
+    let worstFrac = 1;
+    for (const o of this.state.buildings) {
+      const frac = o.hp / BUILDINGS[o.type].hp;
+      if (frac >= worstFrac) continue;
+      const size = this.sizeOf(o.type);
+      const d = Math.hypot(o.x + size / 2 - (b.x + 0.5), o.y + size / 2 - (b.y + 0.5));
+      if (d <= REPAIR.range + size / 2 - 0.5) {
+        worst = o;
+        worstFrac = frac;
+      }
+    }
+    if (!worst) return;
+    const heal = Math.min(REPAIR.hpPerSecond * dt, BUILDINGS[worst.type].hp - worst.hp, b.ammo);
+    worst.hp += heal;
+    b.ammo -= heal;
   }
 
   private tickExtractor(b: Building, dt: number): void {
@@ -567,7 +692,11 @@ export class World {
     s.wave++;
     const comp = waveComposition(s.wave);
     const points = s.nextSpawnPoints.length ? s.nextSpawnPoints : this.pickSpawnPoints(comp.spawnPoints);
-    const types: EnemyType[] = [...Array(comp.crawlers).fill('crawler'), ...Array(comp.brutes).fill('brute')];
+    const types: EnemyType[] = [
+      ...Array(comp.crawlers).fill('crawler'),
+      ...Array(comp.runners).fill('runner'),
+      ...Array(comp.brutes).fill('brute'),
+    ];
     types.forEach((type, i) => {
       const p = points[i % points.length];
       const jitter = () => (this.random() - 0.5) * 1.5;

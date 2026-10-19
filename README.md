@@ -16,9 +16,10 @@ It runs in the browser on desktop and mobile. Art is placeholder for now.
 1. Put **extractors** on resource nodes (iron, copper, stone).
 2. Lay **belts** (drag to draw a line) into **furnaces** and **workshops**, then on to the **hub**.
 3. Building costs come out of the hub's stock, so keep it supplied.
-4. Deliver the goal items to the hub to unlock the next **tier**.
-5. Enemies arrive in waves (the first one comes after 3 minutes, with red markers 30 seconds before each wave). **Turrets** fire iron plates and **cannons** fire gears. New turrets come loaded, but you need belts to refill them.
-6. If the hub is destroyed, the game is over.
+4. Use **splitters** to branch a line (for example plates to both the hub and a turret) and **underground belts** to cross other lines.
+5. Deliver the goal items to the hub to unlock the next **tier**.
+6. Enemies arrive in waves (the first one comes after 3 minutes, with red markers 30 seconds before each wave). **Turrets** fire iron plates and **cannons** fire gears. New turrets come loaded, but you need belts to refill them.
+7. If the hub is destroyed, the game is over.
 
 | | Desktop | Touch |
 |---|---|---|
@@ -28,7 +29,7 @@ It runs in the browser on desktop and mobile. Art is placeholder for now.
 | Zoom | Mouse wheel | Pinch |
 | Rotate | R | Rotate button |
 | Demolish | X | Demolish button |
-| Pick building | 1–8 | Toolbar |
+| Pick building | 1–9 | Toolbar |
 | Pause | Space | ❚❚ button |
 
 Progress autosaves to the browser's local storage.

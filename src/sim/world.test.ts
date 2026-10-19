@@ -147,6 +147,98 @@ describe('World', () => {
     expect(w.state.enemies.length).toBeGreaterThan(0);
   });
 
+  it('splitters take from behind and alternate between front, left and right', () => {
+    const w = emptyWorld();
+    const sp = placed(w.place('splitter', 10, 10, 0)); // facing east
+    const front = placed(w.place('belt', 11, 10, 0));
+    const left = placed(w.place('belt', 10, 9, 3));
+    const right = placed(w.place('belt', 10, 11, 1));
+    expect(w.insert(sp, 'iron_plate', 10, 9)).toBe(false); // from the side
+    for (let i = 0; i < 3; i++) {
+      expect(w.insert(sp, 'iron_plate', 9, 10)).toBe(true);
+      run(w, 0.5);
+    }
+    expect([front, left, right].map((b) => b.belt.length)).toEqual([1, 1, 1]);
+  });
+
+  it('splitters skip blocked sides', () => {
+    const w = emptyWorld();
+    const sp = placed(w.place('splitter', 10, 10, 0));
+    const front = placed(w.place('belt', 11, 10, 0));
+    for (let i = 0; i < 3; i++) {
+      expect(w.insert(sp, 'iron_plate', 9, 10)).toBe(true);
+      run(w, 0.5);
+    }
+    expect(front.belt.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('underground belts pair up and carry items under walls', () => {
+    const w = emptyWorld();
+    const a = placed(w.place('tunnel', 10, 10, 0));
+    placed(w.place('wall', 11, 10, 0));
+    placed(w.place('wall', 12, 10, 0));
+    const b = placed(w.place('tunnel', 13, 10, 0));
+    expect(a.link).toBe(b.id);
+    expect(b.link).toBe(a.id);
+    expect(w.isTunnelExit(b)).toBe(true);
+    expect(w.isTunnelExit(a)).toBe(false);
+    const out = placed(w.place('belt', 14, 10, 0));
+    expect(w.insert(b, 'gear', 12, 10)).toBe(false); // exits take no input
+    expect(w.insert(a, 'gear', 9, 10)).toBe(true);
+    run(w, 3);
+    expect(out.belt.map((i) => i.item)).toEqual(['gear']);
+    w.demolish(b.id);
+    expect(a.link).toBe(null);
+  });
+
+  it('underground belts only pair within range and the same direction', () => {
+    const w = emptyWorld();
+    placed(w.place('tunnel', 10, 10, 0));
+    expect(placed(w.place('tunnel', 16, 10, 0)).link).toBe(null); // 6 tiles: too far
+    const c = placed(w.place('tunnel', 20, 20, 1));
+    expect(placed(w.place('tunnel', 21, 20, 0)).link).toBe(null); // c faces south
+    expect(c.link).toBe(null);
+  });
+
+  it('repair stations heal nearby buildings using stored plates', () => {
+    const w = emptyWorld();
+    w.state.tier = 1;
+    const wall = placed(w.place('wall', 12, 10, 0));
+    const far = placed(w.place('wall', 30, 10, 0));
+    wall.hp = 100;
+    far.hp = 100;
+    const r = placed(w.place('repair', 10, 10, 0));
+    r.ammo = 0;
+    run(w, 1);
+    expect(wall.hp).toBe(100);
+    expect(w.insert(r, 'iron_plate', 9, 10)).toBe(true);
+    run(w, 3);
+    expect(wall.hp).toBeCloseTo(140);
+    expect(far.hp).toBe(100);
+  });
+
+  it('adds runners from wave 2', () => {
+    const w = emptyWorld();
+    w.startWave();
+    expect(w.state.spawnQueue.some((p) => p.type === 'runner')).toBe(false);
+    w.startWave();
+    expect(w.state.spawnQueue.some((p) => p.type === 'runner')).toBe(true);
+  });
+
+  it('loads version 1 saves', () => {
+    const w = World.create(9);
+    placed(w.place('belt', 1, 1, 2));
+    const v1 = JSON.parse(w.toJSON());
+    v1.version = 1;
+    for (const b of v1.buildings) {
+      delete b.link;
+      delete b.rr;
+    }
+    const loaded = World.fromJSON(JSON.stringify(v1));
+    expect(loaded.state.version).toBe(2);
+    expect(loaded.buildingAt(1, 1)?.link).toBe(null);
+  });
+
   it('round-trips through save data', () => {
     const w = World.create(9);
     placed(w.place('belt', 1, 1, 2));
