@@ -15,7 +15,7 @@ one; don't edit the old entry.
 | D-007 | 2026-10-19 | **Research replaces tiers.** You start with 3 buildings, and research is paid from hub stock | Builderment-style progression, and fewer choices up front for new players | Accepted (from playtest notes) |
 | D-008 | 2026-10-19 | **Standard mode** has a soft fail (a breach). **Hardcore** ends the run and is unlocked by clearing wave 10 | Matches the request: hardcore is unlocked, and the default is forgiving | Accepted. The unlock condition is open to tuning |
 | D-009 | 2026-10-19 | The **tutorial** is a series of spotlight steps (Next, Back, ✕). It explains but doesn't require actions | Matches the request, and is simple to keep accurate | Accepted. An interactive version may come later |
-| D-010 | 2026-10-19 | Deploy `main` to **GitHub Pages** via Actions. CI runs the tests and the build on every PR | Gives a public link with no servers to run | Accepted |
+| D-010 | 2026-10-19 | Deploy `master` to **GitHub Pages** via Actions. CI runs the tests and the build on every PR | Gives a public link with no servers to run | Accepted |
 
 ## D-006: How should turrets get ammo?
 

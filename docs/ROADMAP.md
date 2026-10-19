@@ -79,7 +79,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 
 ## 6. Platform and release
 - ✅ Single-file build for sharing (claude.ai artifact)
-- 🚧 GitHub Pages deployment from `main` (D-010)
+- 🚧 GitHub Pages deployment from `master` (D-010)
 - ⬜ PWA: offline play, install to home screen, app icon
 - ⬜ Capacitor wrapper for iOS and Android (M5)
 - ⬜ Store accounts (Apple Developer, Google Play), signing, and a build pipeline

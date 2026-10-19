@@ -1,6 +1,6 @@
 # Game design
 
-How the game works on `main` today. Balance numbers live in
+How the game works on `master` today. Balance numbers live in
 `src/sim/data.ts`, which wins if this doc disagrees with it.
 
 ## Core loop

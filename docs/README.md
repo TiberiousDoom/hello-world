@@ -7,7 +7,7 @@
 | [ROADMAP.md](ROADMAP.md) | Milestones and every workstream, with status | work starts, finishes or gets reprioritized |
 | [DECISIONS.md](DECISIONS.md) | Choices we've made and why, plus open questions | a choice is made or a question is raised |
 | [ART_LIST.md](ART_LIST.md) | Every art asset the game needs, with specs and status | an asset is added, delivered or changes |
-| [../CHANGELOG.md](../CHANGELOG.md) | What changed in each release | every merge to `main` |
+| [../CHANGELOG.md](../CHANGELOG.md) | What changed in each release | every merge to `master` |
 
 ## Working agreement
 
@@ -17,7 +17,7 @@
    tool, a trade-off), add an entry to [DECISIONS.md](DECISIONS.md). Open
    questions go there too, so they don't get lost.
 3. **Keep the design doc true.** [GAME_DESIGN.md](GAME_DESIGN.md) describes
-   the game as it is on `main`. Numbers come from `src/sim/data.ts`, which
+   the game as it is on `master`. Numbers come from `src/sim/data.ts`, which
    is the source of truth if the two disagree.
 4. **Every PR** updates the roadmap status, the changelog, and the design doc
    if mechanics changed. Tests and the build must pass (CI checks both).

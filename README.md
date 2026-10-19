@@ -9,7 +9,7 @@ It runs in the browser on desktop and mobile. Art is placeholder for now.
 ## Play
 
 - **Locally:** `npm install`, then `npm run dev` and open the printed URL.
-- **Online:** every push to `main` deploys to GitHub Pages (see below).
+- **Online:** every push to `master` deploys to GitHub Pages (see below).
 
 ### How to play
 
@@ -49,7 +49,7 @@ map seed. It knows nothing about rendering, so a 3D front end can reuse it as is
 ### Deploying to GitHub Pages
 
 `.github/workflows/deploy.yml` tests and builds every push and PR, and
-deploys `main` to Pages. To turn deployment on, go to
+deploys `master` to Pages. To turn deployment on, go to
 **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**.
 
 ## Docs
