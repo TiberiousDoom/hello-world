@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FIRST_WAVE_AT, ItemId } from './data';
+import { BREACH, BUILDINGS, FIRST_WAVE_AT, ItemId, RESEARCH } from './data';
 import { Building, TICK, World } from './world';
 
-/** A world with no resources, no buildings except the hub, and a big inventory. */
-function emptyWorld(): World {
-  const w = World.create(1);
+/** A world with no resources, no buildings except the hub, everything researched and a big inventory. */
+function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
+  const w = World.create(1, mode);
+  w.state.researched = RESEARCH.map((r) => r.id);
   w.state.resources.fill(0);
   w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999 };
   w.state.nextWaveAt = 1e9;
@@ -44,7 +45,8 @@ describe('World', () => {
   it('rejects invalid placements', () => {
     const w = emptyWorld();
     expect(w.place('extractor', 2, 2, 0)).toBe('needs-resource');
-    expect(w.place('assembler', 2, 2, 0)).toBe('locked');
+    expect(World.create(1).place('turret', 2, 2, 0)).toBe('locked');
+    expect(w.place('port', 2, 2, 0)).toBe('needs-hub');
     const hub = w.hub!;
     expect(w.place('belt', hub.x, hub.y, 0)).toBe('occupied');
     w.state.inventory = {};
@@ -69,7 +71,6 @@ describe('World', () => {
 
   it('crafts multi-input recipes', () => {
     const w = emptyWorld();
-    w.state.tier = 1;
     const a = placed(w.place('assembler', 2, 2, 0));
     const feed = (item: ItemId, n: number) => {
       for (let i = 0; i < n; i++) expect(w.insert(a, item, 1, 2)).toBe(true);
@@ -82,13 +83,56 @@ describe('World', () => {
     expect(a.outputs).toEqual(['motor']);
   });
 
-  it('advances tiers when goals are delivered', () => {
+  it('starts with a few buildings and unlocks more through research', () => {
+    const w = World.create(2);
+    expect(['belt', 'extractor', 'furnace'].every((t) => w.isUnlocked(t as never))).toBe(true);
+    expect(w.isUnlocked('turret')).toBe(false);
+    expect(w.research('logistics')).toBe('requires'); // needs workshops first
+    const plates = w.state.inventory.iron_plate!;
+    expect(w.research('defense')).toBe(null);
+    expect(w.state.inventory.iron_plate).toBe(plates - 20);
+    expect(w.isUnlocked('turret')).toBe(true);
+    expect(w.research('defense')).toBe('done');
+    w.state.inventory = {};
+    expect(w.research('workshop')).toBe('cost');
+    expect(w.availableResearch().map((r) => r.id)).toContain('distribution');
+  });
+
+  it('hub ports take the chosen item out of stock and face away from the hub', () => {
     const w = emptyWorld();
     const hub = w.hub!;
-    const goal = { iron_plate: 60, copper_ingot: 40, gear: 20, brick: 20 };
-    for (const [item, n] of Object.entries(goal)) for (let i = 0; i < n; i++) w.insert(hub, item as ItemId, 0, 0);
-    expect(w.state.tier).toBe(1);
-    expect(w.isUnlocked('cannon')).toBe(true);
+    const port = placed(w.place('port', hub.x - 1, hub.y + 1, 1));
+    expect(port.dir).toBe(2); // west, away from the hub
+    const belt = placed(w.place('belt', hub.x - 2, hub.y + 1, 2)); // leads nowhere, so items pile up
+    const before = w.state.inventory.iron_plate!;
+    run(w, 2);
+    expect(belt.belt.length).toBe(0); // no item chosen yet
+    w.setFilter(port.id, 'iron_plate');
+    run(w, 2);
+    expect(w.state.inventory.iron_plate).toBeLessThan(before);
+    expect(belt.belt.length).toBeGreaterThan(0);
+  });
+
+  it('standard mode survives losing the hub, at a cost', () => {
+    const w = emptyWorld();
+    w.state.inventory = { iron_plate: 100 };
+    w.state.enemies.push({ id: 999, type: 'brute', x: 0.5, y: 0.5, hp: 50, maxHp: 50 });
+    w.hub!.hp = 0;
+    const nextWave = w.state.nextWaveAt;
+    w.tick();
+    expect(w.state.gameOver).toBe(false);
+    expect(w.state.breaches).toBe(1);
+    expect(w.state.enemies.length).toBe(0);
+    expect(w.state.inventory.iron_plate).toBe(100 * (1 - BREACH.stockLost));
+    expect(w.hub!.hp).toBe(BUILDINGS.hub.hp * BREACH.hubRestore);
+    expect(w.state.nextWaveAt).toBeGreaterThan(nextWave);
+  });
+
+  it('hardcore mode ends when the hub falls', () => {
+    const w = emptyWorld('hardcore');
+    w.hub!.hp = 0;
+    w.tick();
+    expect(w.state.gameOver).toBe(true);
   });
 
   it('sends enemies to the hub and damages it', () => {
@@ -128,6 +172,7 @@ describe('World', () => {
 
   it('two loaded turrets by the hub hold off the first wave', () => {
     const w = World.create(11);
+    w.research('defense');
     const hub = w.hub!;
     placed(w.place('turret', hub.x - 1, hub.y + 1, 0));
     placed(w.place('turret', hub.x + 3, hub.y + 1, 0));
@@ -202,7 +247,6 @@ describe('World', () => {
 
   it('repair stations heal nearby buildings using stored plates', () => {
     const w = emptyWorld();
-    w.state.tier = 1;
     const wall = placed(w.place('wall', 12, 10, 0));
     const far = placed(w.place('wall', 30, 10, 0));
     wall.hp = 100;
@@ -235,8 +279,22 @@ describe('World', () => {
       delete b.rr;
     }
     const loaded = World.fromJSON(JSON.stringify(v1));
-    expect(loaded.state.version).toBe(2);
+    expect(loaded.state.version).toBe(3);
     expect(loaded.buildingAt(1, 1)?.link).toBe(null);
+  });
+
+  it('loads version 2 saves, converting tiers to research', () => {
+    const v2 = JSON.parse(World.create(4).toJSON());
+    v2.version = 2;
+    v2.tier = 1;
+    v2.tierProgress = {};
+    delete v2.researched;
+    delete v2.mode;
+    delete v2.breaches;
+    const loaded = World.fromJSON(JSON.stringify(v2));
+    expect(loaded.isUnlocked('cannon')).toBe(true);
+    expect(loaded.state.mode).toBe('standard');
+    expect('tier' in loaded.state).toBe(false);
   });
 
   it('round-trips through save data', () => {

@@ -13,24 +13,11 @@ It runs in the browser on desktop and mobile. Art is placeholder for now.
 
 ### How to play
 
-1. Put **extractors** on resource nodes (iron, copper, stone).
-2. Lay **belts** (drag to draw a line) into **furnaces** and **workshops**, then on to the **hub**.
-3. Building costs come out of the hub's stock, so keep it supplied.
-4. Use **splitters** to branch a line (for example plates to both the hub and a turret) and **underground belts** to cross other lines.
-5. Deliver the goal items to the hub to unlock the next **tier**.
-6. Enemies arrive in waves (the first one comes after 3 minutes, with red markers 30 seconds before each wave). **Turrets** fire iron plates and **cannons** fire gears. New turrets come loaded, but you need belts to refill them.
-7. If the hub is destroyed, the game is over.
-
-| | Desktop | Touch |
-|---|---|---|
-| Build / select | Left click | Tap |
-| Lay belts | Drag with Belt tool | Drag with Belt tool |
-| Pan | Right/middle drag, WASD | Drag (no tool), two fingers |
-| Zoom | Mouse wheel | Pinch |
-| Rotate | R | Rotate button |
-| Demolish | X | Demolish button |
-| Pick building | 1–9 | Toolbar |
-| Pause | Space | ❚❚ button |
+A tutorial runs the first time you play, and you can replay it from the menu.
+In short: mine with **extractors**, move items with **belts**, smelt in
+**furnaces**, deliver to the **hub**, spend hub stock on **research** and
+buildings, and feed **turrets** to survive the waves. The full rules and
+controls are in [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md).
 
 Progress autosaves to the browser's local storage.
 
@@ -65,6 +52,9 @@ map seed. It knows nothing about rendering, so a 3D front end can reuse it as is
 deploys `main` to Pages. To turn deployment on, go to
 **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**.
 
-See [DESIGN.md](DESIGN.md) for the design and roadmap.
+## Docs
+
+Project docs are in [`docs/`](docs/README.md): vision, game design, roadmap,
+decisions and the art list. The [changelog](CHANGELOG.md) records each release.
 
 The earlier Godot project, *Fairy Tale Palace Adventure*, is still in the git history.

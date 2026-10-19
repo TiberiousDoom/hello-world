@@ -1,4 +1,4 @@
-// Static game content: items, recipes, buildings, enemies, tiers and waves.
+// Static game content: items, recipes, buildings, research, enemies and waves.
 // Balance numbers live here so they can be tuned without touching the sim.
 
 export type Dir = 0 | 1 | 2 | 3; // East, South, West, North
@@ -56,6 +56,7 @@ export type BuildingType =
   | 'turret'
   | 'cannon'
   | 'repair'
+  | 'port'
   | 'wall';
 
 export interface BuildingDef {
@@ -82,6 +83,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
   repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
+  port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
 };
 
@@ -125,19 +127,45 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   brute: { name: 'Brute', hp: 110, speed: 0.55, dps: 30, radius: 0.36, color: '#a8203a' },
 };
 
-export interface Tier {
+/** Buildings available at the start; everything else is researched. */
+export const STARTING_BUILDINGS: BuildingType[] = ['belt', 'extractor', 'furnace'];
+
+export interface Research {
+  id: string;
   name: string;
-  goal: ItemCounts; // items to deliver to the hub to reach this tier
+  cost: ItemCounts; // paid from hub stock
+  requires: string[]; // research ids
   unlocks: BuildingType[];
+  description: string;
 }
 
-export const TIERS: Tier[] = [
-  { name: 'Landing', goal: {}, unlocks: ['belt', 'splitter', 'tunnel', 'extractor', 'furnace', 'workshop', 'turret', 'wall'] },
-  { name: 'Assembly', goal: { iron_plate: 60, copper_ingot: 40, gear: 20, brick: 20 }, unlocks: ['assembler', 'cannon', 'repair'] },
-  { name: 'Fortress', goal: { motor: 20, gear: 60, wire: 80 }, unlocks: [] },
+export const RESEARCH: Research[] = [
+  { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, requires: [], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
+  { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
+  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, requires: [], unlocks: ['workshop'], description: 'Make gears and wire.' },
+  { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
+  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 20, gear: 10 }, requires: ['workshop'], unlocks: ['splitter'], description: 'Splitters branch a line three ways.' },
+  { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
+  { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
+  { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
+  { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
 ];
+export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));
 
-export const START_INVENTORY: ItemCounts = { iron_plate: 80, brick: 24, copper_ingot: 16 };
+export type GameMode = 'standard' | 'hardcore';
+
+/** Standard mode: what happens when the hub falls instead of ending the run. */
+export const BREACH = {
+  stockLost: 0.25, // fraction of every item in hub stock
+  hubRestore: 0.5, // fraction of hub HP restored
+  waveDelay: 60, // extra seconds before the next wave
+};
+/** Surviving this many waves in standard mode unlocks hardcore. */
+export const HARDCORE_UNLOCK_WAVE = 10;
+
+export const PORT_PERIOD = 0.5; // seconds per item a hub port puts out
+
+export const START_INVENTORY: ItemCounts = { iron_plate: 100, brick: 24, copper_ingot: 16 };
 
 export const FIRST_WAVE_AT = 180; // seconds
 export const WAVE_INTERVAL = 75;

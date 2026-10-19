@@ -1,12 +1,15 @@
 import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
-import { HUB_SIZE } from './sim/data';
+import { HARDCORE_UNLOCK_WAVE, HUB_SIZE } from './sim/data';
 import { TICK, World } from './sim/world';
 import { Hud } from './ui/hud';
 import { createUIState } from './ui/state';
+import { Tutorial } from './ui/tutorial';
 
 const SAVE_KEY = 'foundry-front-save';
+/** Progress that outlives a single game: tutorial seen, hardcore unlocked. */
+const PROFILE_KEY = 'foundry-front-profile';
 const AUTOSAVE_MS = 20_000;
 const MAX_TICKS_PER_FRAME = 20;
 
@@ -20,6 +23,28 @@ function loadWorld(): World {
   return World.create();
 }
 
+interface Profile {
+  tutorialDone: boolean;
+  hardcoreUnlocked: boolean;
+}
+
+function loadProfile(): Profile {
+  const fallback: Profile = { tutorialDone: false, hardcoreUnlocked: false };
+  try {
+    return { ...fallback, ...JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}') };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveProfile(): void {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    // Storage can be unavailable (private windows); the profile then lasts for this visit.
+  }
+}
+
 function save(): void {
   try {
     localStorage.setItem(SAVE_KEY, world.toJSON());
@@ -28,7 +53,15 @@ function save(): void {
   }
 }
 
+const hadSave = (() => {
+  try {
+    return localStorage.getItem(SAVE_KEY) != null;
+  } catch {
+    return false;
+  }
+})();
 let world = loadWorld();
+const profile = loadProfile();
 const ui = createUIState();
 const camera = new Camera();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -44,8 +77,10 @@ function centreOnHub(): void {
 const hud = new Hud(ui, {
   getWorld: () => world,
   save,
-  newGame: () => {
-    world = World.create();
+  hardcoreUnlocked: () => profile.hardcoreUnlocked,
+  startTutorial: () => tutorial.start(),
+  newGame: (mode) => {
+    world = World.create(undefined, mode);
     ui.selected = null;
     ui.tool = null;
     centreOnHub();
@@ -53,6 +88,11 @@ const hud = new Hud(ui, {
     hud.closeModals();
     hud.refresh();
   },
+});
+
+const tutorial = new Tutorial(camera, () => world, ui, () => {
+  profile.tutorialDone = true;
+  saveProfile();
 });
 
 new Input(canvas, camera, ui, {
@@ -70,6 +110,19 @@ setInterval(save, AUTOSAVE_MS);
 
 renderer.resize();
 centreOnHub();
+if (!profile.tutorialDone && !hadSave) tutorial.start();
+
+/** Surviving enough waves in standard mode unlocks hardcore. */
+function checkUnlocks(): void {
+  const s = world.state;
+  const cleared = s.wave >= HARDCORE_UNLOCK_WAVE && !s.enemies.length && !s.spawnQueue.length;
+  if (s.mode === 'standard' && cleared && !profile.hardcoreUnlocked) {
+    profile.hardcoreUnlocked = true;
+    saveProfile();
+    hud.toast('Hardcore mode unlocked! Start it from Menu → New game.');
+  }
+}
+setInterval(checkUnlocks, 1000);
 
 let last = performance.now();
 let acc = 0;
@@ -87,6 +140,7 @@ function frame(now: number): void {
   camera.clampTo(world.state.width, world.state.height);
   renderer.draw(world, ui, now);
   hud.update(world, now);
+  tutorial.update();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

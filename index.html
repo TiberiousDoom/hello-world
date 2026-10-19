@@ -11,9 +11,9 @@
     <canvas id="game"></canvas>
 
     <header id="topbar">
-      <div class="stat" title="Hub health"><span class="heart">♥</span> <span id="hub-hp"></span></div>
+      <div class="stat" title="Hub health"><span class="heart">♥</span> <span id="hub-hp"></span><span id="mode-badge" class="badge" hidden>Hardcore</span></div>
       <div class="stat" id="wave"></div>
-      <button id="tier-btn" title="Research tiers"></button>
+      <button id="research-btn" title="Research">Research</button>
       <div id="speed" class="seg">
         <button data-speed="0" title="Pause (Space)">❚❚</button>
         <button data-speed="1">1×</button>
@@ -28,10 +28,31 @@
     <aside id="info" hidden></aside>
     <nav id="toolbar"></nav>
 
-    <div id="tier" class="modal" hidden>
+    <div id="research" class="modal" hidden>
       <div class="card">
-        <div id="tier-body"></div>
+        <div id="research-body"></div>
         <button data-close>Close</button>
+      </div>
+    </div>
+
+    <div id="newgame" class="modal" hidden>
+      <div class="card">
+        <h2>New game</h2>
+        <p class="muted">Your current factory will be lost.</p>
+        <div class="modes">
+          <button data-mode="standard"><b>Standard</b><span id="standard-note"></span></button>
+          <button data-mode="hardcore" id="btn-hardcore"><b>Hardcore</b><span id="hardcore-note"></span></button>
+        </div>
+        <button data-close>Cancel</button>
+      </div>
+    </div>
+
+    <div id="tutorial" hidden>
+      <div class="spot"></div>
+      <div class="tip" role="dialog" aria-live="polite">
+        <div class="tip-head"><span class="step"></span><button class="tip-close" title="Close tutorial">✕</button></div>
+        <p class="tip-text"></p>
+        <div class="tip-nav"><button class="tip-back">← Back</button><button class="tip-next">Next →</button></div>
       </div>
     </div>
 
@@ -44,9 +65,8 @@
           <li>Put <b>extractors</b> on resource nodes and run <b>belts</b> to <b>furnaces</b>, <b>workshops</b> and the <b>hub</b>.</li>
           <li>Machines take input from any side and output where their arrow points.</li>
           <li><b>Splitters</b> take items from behind and send them out the other three sides in turn. <b>Underground belts</b> pass items under anything: place an entrance, then an exit ahead of it.</li>
-          <li>Building costs come out of the hub's stock, so keep it supplied.</li>
-          <li>Enemies attack in waves. <b>Turrets</b> fire iron plates and <b>cannons</b> fire gears, so feed them with belts.</li>
-          <li>Deliver the goal items to the hub to unlock new tiers.</li>
+          <li>Buildings and research are paid for from the hub's stock, so keep it supplied.</li>
+          <li>Enemies attack in waves. <b>Turrets</b> fire iron plates and <b>cannons</b> fire gears. Feed them by belt, or from the hub with a <b>hub port</b>.</li>
         </ul>
         <h3>Controls</h3>
         <ul>
@@ -55,6 +75,7 @@
         </ul>
         <div class="row">
           <button id="btn-resume">Resume</button>
+          <button id="btn-tutorial">Tutorial</button>
           <button id="btn-save">Save now</button>
           <button id="btn-new" class="danger">New game</button>
         </div>
@@ -64,6 +85,7 @@
     <div id="gameover" class="modal" hidden>
       <div class="card">
         <h2>Hub destroyed</h2>
+        <p class="muted">Hardcore run over.</p>
         <p id="gameover-text"></p>
         <button id="btn-gameover-new">New game</button>
       </div>

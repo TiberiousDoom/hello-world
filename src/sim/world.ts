@@ -4,6 +4,7 @@
 import {
   BELT_SPACING,
   BELT_SPEED,
+  BREACH,
   BUILDINGS,
   BuildingType,
   DX,
@@ -13,18 +14,22 @@ import {
   EXTRACTOR_PERIOD,
   EnemyType,
   FIRST_WAVE_AT,
+  GameMode,
   HUB_SIZE,
   ItemCounts,
   ItemId,
   MAP_SIZE,
   OUTPUT_BUFFER,
+  PORT_PERIOD,
   RECIPES,
-  REPAIR,
   RECIPE_BY_ID,
+  REPAIR,
+  RESEARCH,
+  RESEARCH_BY_ID,
   RESOURCE_ITEMS,
   SPAWN_GAP,
+  STARTING_BUILDINGS,
   START_INVENTORY,
-  TIERS,
   TUNNEL_RANGE,
   TURRETS,
   WAVE_INTERVAL,
@@ -32,7 +37,7 @@ import {
   waveComposition,
 } from './data';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -56,6 +61,7 @@ export interface Building {
   cooldown: number; // turrets
   link: number | null; // tunnels: the paired entrance or exit
   rr: number; // splitters: which output side is next
+  filter: ItemId | null; // hub ports: the item taken out of stock
 }
 
 export interface Enemy {
@@ -86,8 +92,9 @@ export interface GameState {
   enemies: Enemy[];
   nextId: number;
   time: number;
-  tier: number;
-  tierProgress: ItemCounts;
+  mode: GameMode;
+  researched: string[];
+  breaches: number; // standard mode: times the hub has fallen
   inventory: ItemCounts;
   hubId: number;
   wave: number;
@@ -106,7 +113,8 @@ export interface Shot {
   age: number;
 }
 
-export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource';
+export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub';
+export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 export class World {
   state: GameState;
@@ -126,7 +134,7 @@ export class World {
     for (const b of state.buildings) this.index(b);
   }
 
-  static create(seed = Math.floor(Math.random() * 2 ** 31)): World {
+  static create(seed = Math.floor(Math.random() * 2 ** 31), mode: GameMode = 'standard'): World {
     const size = MAP_SIZE;
     const state: GameState = {
       version: SAVE_VERSION,
@@ -139,8 +147,9 @@ export class World {
       enemies: [],
       nextId: 1,
       time: 0,
-      tier: 0,
-      tierProgress: {},
+      mode,
+      researched: [],
+      breaches: 0,
       inventory: { ...START_INVENTORY },
       hubId: 0,
       wave: 0,
@@ -165,6 +174,21 @@ export class World {
       // v2 added tunnels and splitters.
       for (const b of state.buildings) Object.assign(b, { link: null, rr: 0 });
       state.version = 2;
+    }
+    if (state.version === 2) {
+      // v3 replaced tiers with research and added modes and hub ports.
+      const old = state as unknown as { tier?: number; tierProgress?: unknown };
+      const byTier = [
+        ['defense', 'masonry', 'workshop', 'logistics', 'underground'],
+        ['distribution', 'assembly', 'repair', 'ordnance'],
+      ];
+      state.researched = byTier.slice(0, (old.tier ?? 0) + 1).flat();
+      delete old.tier;
+      delete old.tierProgress;
+      state.mode = 'standard';
+      state.breaches = 0;
+      for (const b of state.buildings) b.filter = null;
+      state.version = 3;
     }
     if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
     return new World(state);
@@ -212,8 +236,48 @@ export class World {
   }
 
   isUnlocked(type: BuildingType): boolean {
-    for (let t = 0; t <= this.state.tier; t++) if (TIERS[t].unlocks.includes(type)) return true;
-    return false;
+    if (STARTING_BUILDINGS.includes(type)) return true;
+    return this.state.researched.some((id) => RESEARCH_BY_ID[id]?.unlocks.includes(type));
+  }
+
+  /** Why a research can't be done yet, or null if it can. */
+  checkResearch(id: string): ResearchError | null {
+    const r = RESEARCH_BY_ID[id];
+    if (!r) return 'unknown';
+    if (this.state.researched.includes(id)) return 'done';
+    if (!r.requires.every((q) => this.state.researched.includes(q))) return 'requires';
+    if (!this.canAfford(r.cost)) return 'cost';
+    return null;
+  }
+
+  research(id: string): ResearchError | null {
+    const err = this.checkResearch(id);
+    if (err) return err;
+    const r = RESEARCH_BY_ID[id];
+    this.pay(r.cost);
+    this.state.researched.push(id);
+    this.events.push(`Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked`);
+    return null;
+  }
+
+  /** Research whose prerequisites are met but which isn't done yet. */
+  availableResearch() {
+    return RESEARCH.filter((r) => {
+      const err = this.checkResearch(r.id);
+      return err === null || err === 'cost';
+    });
+  }
+
+  private pay(cost: ItemCounts): void {
+    for (const [item, n] of Object.entries(cost)) this.state.inventory[item as ItemId]! -= n!;
+  }
+
+  /** Direction pointing away from an adjacent hub, if there is one. */
+  private awayFromHub(x: number, y: number): Dir | null {
+    for (let d = 0; d < 4; d++) {
+      if (this.buildingAt(x - DX[d], y - DY[d])?.type === 'hub') return d as Dir;
+    }
+    return null;
   }
 
   canAfford(cost: ItemCounts): boolean {
@@ -252,6 +316,7 @@ export class World {
       cooldown: 0,
       link: null,
       rr: 0,
+      filter: null,
     };
     this.state.buildings.push(b);
     this.index(b);
@@ -323,6 +388,7 @@ export class World {
     if (this.buildingAt(x, y)) return 'occupied';
     if (!this.isUnlocked(type)) return 'locked';
     if (type === 'extractor' && !this.resourceAt(x, y)) return 'needs-resource';
+    if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
     if (!this.canAfford(BUILDINGS[type].cost)) return 'cost';
     return null;
   }
@@ -330,7 +396,8 @@ export class World {
   place(type: BuildingType, x: number, y: number, dir: Dir): Building | PlaceError {
     const err = this.checkPlace(type, x, y);
     if (err) return err;
-    for (const [item, n] of Object.entries(BUILDINGS[type].cost)) this.state.inventory[item as ItemId]! -= n!;
+    this.pay(BUILDINGS[type].cost);
+    if (type === 'port') dir = this.awayFromHub(x, y)!;
     const entrance = type === 'tunnel' ? this.findTunnelEntrance(x, y, dir) : undefined;
     const b = this.addBuilding(type, x, y, dir);
     if (entrance) {
@@ -387,7 +454,8 @@ export class World {
 
   rotate(id: number, dir?: Dir): void {
     const b = this.byId.get(id);
-    if (!b || b.type === 'hub' || b.type === 'tunnel') return; // rotating would break the pair
+    // Tunnels would lose their pair, and ports always face away from the hub.
+    if (!b || b.type === 'hub' || b.type === 'tunnel' || b.type === 'port') return;
     b.dir = dir ?? (((b.dir + 1) % 4) as Dir);
   }
 
@@ -399,7 +467,12 @@ export class World {
     b.progress = -1;
   }
 
-  /** Recipes a machine can use with the current tier. */
+  setFilter(id: number, item: ItemId | null): void {
+    const b = this.byId.get(id);
+    if (b?.type === 'port') b.filter = item;
+  }
+
+  /** Recipes a machine can use. */
   recipesFor(type: BuildingType) {
     return RECIPES.filter((r) => r.machine === type);
   }
@@ -468,20 +541,8 @@ export class World {
   }
 
   private deliver(item: ItemId): void {
-    const s = this.state;
-    s.inventory[item] = (s.inventory[item] ?? 0) + 1;
-    const next = TIERS[s.tier + 1];
-    if (!next) return;
-    const goal = next.goal[item];
-    if (goal && (s.tierProgress[item] ?? 0) < goal) s.tierProgress[item] = (s.tierProgress[item] ?? 0) + 1;
-    const done = Object.entries(next.goal).every(([k, n]) => (s.tierProgress[k as ItemId] ?? 0) >= n!);
-    if (done) {
-      s.tier++;
-      s.tierProgress = {};
-      const unlocks = next.unlocks.map((t) => BUILDINGS[t].name).join(', ');
-      this.events.push(`Reached tier ${s.tier + 1}: ${next.name}` + (unlocks ? ` — unlocked ${unlocks}` : ''));
-      if (!TIERS[s.tier + 1]) this.events.push('Milestone complete! Hold out as long as you can.');
-    }
+    const inv = this.state.inventory;
+    inv[item] = (inv[item] ?? 0) + 1;
   }
 
   private pushOutput(b: Building): void {
@@ -511,6 +572,9 @@ export class World {
         case 'repair':
           this.tickRepair(b, dt);
           break;
+        case 'port':
+          this.tickPort(b, dt);
+          break;
         case 'extractor':
           this.tickExtractor(b, dt);
           break;
@@ -533,8 +597,12 @@ export class World {
     for (const b of [...s.buildings]) {
       if (b.hp > 0) continue;
       if (b.type === 'hub') {
-        s.gameOver = true;
-        this.events.push('The hub was destroyed.');
+        if (s.mode === 'hardcore') {
+          s.gameOver = true;
+          this.events.push('The hub was destroyed.');
+        } else {
+          this.breach(b);
+        }
       } else {
         this.remove(b);
       }
@@ -588,6 +656,19 @@ export class World {
       exit.outputs.push(front.item);
       b.belt.shift();
     }
+  }
+
+  private tickPort(b: Building, dt: number): void {
+    const inv = this.state.inventory;
+    if (b.filter && !b.outputs.length && (inv[b.filter] ?? 0) > 0) {
+      b.progress = Math.max(b.progress, 0) + dt;
+      if (b.progress >= PORT_PERIOD) {
+        b.progress = 0;
+        inv[b.filter]!--;
+        b.outputs.push(b.filter);
+      }
+    }
+    this.pushOutput(b);
   }
 
   private tickRepair(b: Building, dt: number): void {
@@ -669,6 +750,20 @@ export class World {
       target.hp -= def.damage;
     }
     this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0 });
+  }
+
+  /** Standard mode's softer fail: the attack ends, but it costs stock and time. */
+  private breach(hub: Building): void {
+    const s = this.state;
+    s.breaches++;
+    s.enemies = [];
+    s.spawnQueue = [];
+    for (const item of Object.keys(s.inventory) as ItemId[]) {
+      s.inventory[item] = Math.floor(s.inventory[item]! * (1 - BREACH.stockLost));
+    }
+    hub.hp = BUILDINGS.hub.hp * BREACH.hubRestore;
+    s.nextWaveAt = Math.max(s.nextWaveAt, s.time) + BREACH.waveDelay;
+    this.events.push(`The hub was breached! The attack is over, but ${BREACH.stockLost * 100}% of hub stock was lost.`);
   }
 
   // ---------------------------------------------------------------- waves

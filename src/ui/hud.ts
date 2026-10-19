@@ -1,15 +1,18 @@
 // HTML overlay: top bar, inventory, build toolbar, info panel and dialogs.
 
 import {
+  BREACH,
   BUILDINGS,
   BuildingType,
+  GameMode,
+  HARDCORE_UNLOCK_WAVE,
   ITEMS,
   ITEM_IDS,
   ItemCounts,
   ItemId,
   RECIPE_BY_ID,
   REPAIR,
-  TIERS,
+  RESEARCH,
   TUNNEL_RANGE,
   TURRETS,
   isMachine,
@@ -21,6 +24,7 @@ const TOOLBAR: BuildingType[] = [
   'belt',
   'splitter',
   'tunnel',
+  'port',
   'extractor',
   'furnace',
   'workshop',
@@ -31,21 +35,24 @@ const TOOLBAR: BuildingType[] = [
   'wall',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon'];
+const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 
 const PLACE_ERRORS: Record<PlaceError, string> = {
   bounds: 'Outside the map.',
   occupied: 'That tile is taken.',
-  locked: 'Not unlocked yet.',
+  locked: 'Research this first.',
   cost: 'Not enough materials in the hub.',
   'needs-resource': 'Extractors must go on a resource node.',
+  'needs-hub': 'Hub ports must go right next to the hub.',
 };
 
 export interface HudActions {
   getWorld(): World;
-  newGame(): void;
+  newGame(mode: GameMode): void;
   save(): void;
+  hardcoreUnlocked(): boolean;
+  startTutorial(): void;
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -88,7 +95,14 @@ export class Hud {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-speed]');
       if (btn) this.setSpeed(Number(btn.dataset.speed));
     });
-    $('tier-btn').addEventListener('click', () => this.openTier());
+    $('research-btn').addEventListener('click', () => this.openResearch());
+    $('research-body').addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-research]');
+      if (!btn) return;
+      actions.getWorld().research(btn.dataset.research!);
+      this.openResearch();
+      this.refresh();
+    });
     $('menu-btn').addEventListener('click', () => this.openModal('menu'));
     $('btn-resume').addEventListener('click', () => this.closeModals());
     $('btn-save').addEventListener('click', () => {
@@ -96,18 +110,18 @@ export class Hud {
       this.toast('Game saved.');
       this.closeModals();
     });
-    // Two-step confirm in the page itself; native confirm() isn't available everywhere.
-    const newBtn = $('btn-new');
-    newBtn.addEventListener('click', () => {
-      if (newBtn.dataset.armed) {
-        actions.newGame();
-        this.closeModals();
-      } else {
-        newBtn.dataset.armed = '1';
-        newBtn.textContent = 'Tap again to lose this factory';
-      }
+    $('btn-new').addEventListener('click', () => this.openNewGame());
+    $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
+    $('btn-tutorial').addEventListener('click', () => {
+      this.closeModals();
+      actions.startTutorial();
     });
-    $('btn-gameover-new').addEventListener('click', () => actions.newGame());
+    $('newgame').addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
+      if (!btn || btn.disabled) return;
+      actions.newGame(btn.dataset.mode as GameMode);
+      this.closeModals();
+    });
     for (const el of document.querySelectorAll<HTMLElement>('.modal [data-close]')) {
       el.addEventListener('click', () => this.closeModals());
     }
@@ -128,6 +142,9 @@ export class Hud {
       switch (btn.dataset.action) {
         case 'recipe':
           if (id != null) world.setRecipe(id, btn.dataset.recipe!);
+          break;
+        case 'filter':
+          if (id != null) world.setFilter(id, (btn.dataset.item || null) as ItemId | null);
           break;
         case 'rotate':
           this.rotate();
@@ -214,14 +231,11 @@ export class Hud {
     $('wave').textContent = active
       ? `Wave ${s.wave} · ${active} enemies`
       : `Wave ${s.wave + 1} in ${formatTime(s.nextWaveAt - s.time)}`;
-    const next = TIERS[s.tier + 1];
-    let pct = 100;
-    if (next) {
-      const goal = Object.values(next.goal).reduce((a, b) => a + b!, 0);
-      const have = Object.entries(next.goal).reduce((a, [k, n]) => a + Math.min(n!, s.tierProgress[k as ItemId] ?? 0), 0);
-      pct = Math.floor((100 * have) / goal);
-    }
-    $('tier-btn').textContent = `Tier ${s.tier + 1} · ${next ? pct + '%' : 'max'}`;
+    $('hub-hp').parentElement!.title = s.mode === 'hardcore' ? 'Hub health · Hardcore' : 'Hub health';
+    $('mode-badge').hidden = s.mode !== 'hardcore';
+    const ready = RESEARCH.filter((r) => world.checkResearch(r.id) === null).length;
+    $('research-btn').textContent = ready ? `Research · ${ready} ready` : 'Research';
+    $('research-btn').classList.toggle('ready', ready > 0);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
       b.classList.toggle('active', Number(b.dataset.speed) === this.ui.speed);
     }
@@ -235,7 +249,7 @@ export class Hud {
     this.updateToolbar(world);
     this.updateInfo(world);
 
-    $('gameover').hidden = !s.gameOver;
+    if (s.gameOver && $('gameover').hidden && $('newgame').hidden) $('gameover').hidden = false;
     if (s.gameOver) $('gameover-text').textContent = `You held out for ${s.wave} wave${s.wave === 1 ? '' : 's'}.`;
   }
 
@@ -275,7 +289,7 @@ export class Hud {
     const inv = world.state.inventory;
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
-    const key = tool ? `tool:${tool}` : `b:${b!.id}:${b!.recipe}`;
+    const key = tool ? `tool:${tool}` : `b:${b!.id}:${b!.recipe}:${b!.filter}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -295,6 +309,12 @@ export class Hud {
                 `<button data-action="recipe" data-recipe="${r.id}" class="${b!.recipe === r.id ? 'active' : ''}">${swatch(r.output)}${esc(ITEMS[r.output].name)}</button>`,
             )
             .join('')}</div>`;
+        }
+        if (b!.type === 'port') {
+          actions += `<div class="recipes">${ITEM_IDS.map(
+            (i) =>
+              `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
+          ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         if (b!.type !== 'hub') {
           actions += `<div class="row">`;
@@ -347,6 +367,15 @@ export class Hud {
           stats += world.isTunnelExit(b) ? `<br>Exit, ${d} tiles from its entrance` : `<br>Entrance, ${d} tiles from its exit (${b.belt.length} in transit)`;
         }
       }
+      if (b.type === 'port') {
+        stats += b.filter
+          ? `<br>Sending ${swatch(b.filter)}${ITEMS[b.filter].name} (${world.state.inventory[b.filter] ?? 0} in stock)`
+          : '<br>Choose an item to send out.';
+      }
+      if (b.type === 'hub') {
+        stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : 'Standard'}`;
+        if (world.state.breaches) stats += `<br>Breached ${world.state.breaches}×`;
+      }
       if (b.type === 'belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
     }
     if (stats !== this.statsHtml) {
@@ -356,25 +385,37 @@ export class Hud {
     }
   }
 
-  private openTier(): void {
+  private openResearch(): void {
     const world = this.actions.getWorld();
-    const s = world.state;
-    const next = TIERS[s.tier + 1];
-    let html = `<h2>Tier ${s.tier + 1}: ${esc(TIERS[s.tier].name)}</h2>`;
-    if (next) {
-      html += `<p>Deliver these to the hub to reach <b>Tier ${s.tier + 2}: ${esc(next.name)}</b>.</p>`;
-      for (const [k, n] of Object.entries(next.goal)) {
-        const item = k as ItemId;
-        const have = Math.min(n!, s.tierProgress[item] ?? 0);
-        html += `<div class="goal">${swatch(item)}<span>${ITEMS[item].name}</span><span>${have} / ${n}</span>
-          <div class="progress"><div style="width:${(100 * have) / n!}%"></div></div></div>`;
-      }
-      if (next.unlocks.length) html += `<p>Unlocks: ${next.unlocks.map((t) => BUILDINGS[t].name).join(', ')}</p>`;
-    } else {
-      html += `<p>All tiers reached for this milestone. Survive as many waves as you can.</p>`;
-    }
-    $('tier-body').innerHTML = html;
-    this.openModal('tier');
+    const inv = world.state.inventory;
+    const rows = RESEARCH.map((r) => {
+      const err = world.checkResearch(r.id);
+      const unlocks = r.unlocks.map((t) => BUILDINGS[t].name).join(', ');
+      let action: string;
+      if (err === 'done') action = '<span class="done">✓ Done</span>';
+      else if (err === 'requires') {
+        const missing = r.requires.filter((q) => !world.state.researched.includes(q));
+        action = `<span class="muted">Needs ${missing.map((q) => RESEARCH.find((x) => x.id === q)!.name).join(', ')}</span>`;
+      } else action = `<button data-research="${r.id}" ${err ? 'disabled' : ''}>Research</button>`;
+      return `<div class="research ${err ?? 'ready'}">
+        <div><b>${esc(r.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br>
+        <span class="muted">${esc(r.description)}</span><br>${err === 'done' ? '' : costHtml(r.cost, inv)}</div>
+        <div>${action}</div></div>`;
+    });
+    $('research-body').innerHTML = `<h2>Research</h2>
+      <p class="muted">Research is paid for from hub stock.</p>${rows.join('')}`;
+    if ($('research').hidden) this.openModal('research');
+  }
+
+  private openNewGame(): void {
+    const unlocked = this.actions.hardcoreUnlocked();
+    const hc = $<HTMLButtonElement>('btn-hardcore');
+    hc.disabled = !unlocked;
+    $('hardcore-note').textContent = unlocked
+      ? 'Losing the hub ends the run.'
+      : `Locked: survive wave ${HARDCORE_UNLOCK_WAVE} in Standard to unlock.`;
+    $('standard-note').textContent = `If the hub falls, the attack ends but you lose ${BREACH.stockLost * 100}% of hub stock.`;
+    this.openModal('newgame');
   }
 
   private openModal(id: string): void {
@@ -384,8 +425,5 @@ export class Hud {
 
   closeModals(): void {
     for (const m of document.querySelectorAll<HTMLElement>('.modal')) m.hidden = true;
-    const newBtn = $('btn-new');
-    delete newBtn.dataset.armed;
-    newBtn.textContent = 'New game';
   }
 }

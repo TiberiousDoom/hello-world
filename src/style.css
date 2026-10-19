@@ -303,6 +303,117 @@ button.danger {
   background: var(--accent);
 }
 
+#research-btn.ready {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.badge {
+  margin-left: 6px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--danger);
+  color: #fff;
+}
+.research {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.research > div:first-child {
+  min-width: 0;
+}
+.research.requires {
+  opacity: 0.6;
+}
+.research .done {
+  color: #7bd389;
+  white-space: nowrap;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.modes {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.modes button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.modes button span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Tutorial: a spotlight cut out of a dark overlay by a huge box-shadow. */
+#tutorial {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+#tutorial .spot {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.72);
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+#tutorial .spot.circle {
+  border-radius: 50%;
+}
+#tutorial .spot.none {
+  width: 0 !important;
+  height: 0 !important;
+  outline: none;
+}
+#tutorial .tip {
+  position: fixed;
+  width: min(340px, calc(100% - 24px));
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: top 0.25s ease, left 0.25s ease;
+}
+.tip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+.tip-close {
+  padding: 2px 8px;
+}
+.tip-text {
+  margin: 6px 0 10px;
+}
+.tip-nav {
+  display: flex;
+  justify-content: space-between;
+}
+.tip-next {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  #tutorial .spot,
+  #tutorial .tip {
+    transition: none;
+  }
+}
+
 @media (max-width: 600px) {
   #info {
     left: 8px;
@@ -314,7 +425,7 @@ button.danger {
     min-width: 64px;
   }
   .stat,
-  #tier-btn,
+  #research-btn,
   #menu-btn,
   .seg button {
     padding: 4px 8px;

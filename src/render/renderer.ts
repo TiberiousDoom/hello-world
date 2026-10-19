@@ -241,6 +241,15 @@ export class Renderer {
       bar(ctx, b.x + 0.12, b.y + 0.8, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
 
+    if (b.type === 'port') {
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      arrowHead(ctx, b.x + 0.5 + DX[b.dir] * 0.36, b.y + 0.5 + DY[b.dir] * 0.36, b.dir, 0.12);
+      if (b.filter) {
+        ctx.fillStyle = ITEMS[b.filter].color;
+        dot(ctx, b.x + 0.78, b.y + 0.22, 0.1);
+      }
+    }
+
     if (b.type === 'extractor' || isMachine(b.type)) {
       // Output side marker.
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
@@ -285,7 +294,7 @@ export class Renderer {
     ctx.strokeStyle = ok ? '#ffffff' : '#ff6070';
     ctx.lineWidth = 2 / z;
     ctx.strokeRect(x + 0.06, y + 0.06, 0.88, 0.88);
-    if (tool !== 'wall' && tool !== 'repair' && !TURRETS[tool]) {
+    if (tool !== 'wall' && tool !== 'repair' && tool !== 'port' && !TURRETS[tool]) {
       ctx.fillStyle = '#ffffff';
       arrowHead(ctx, x + 0.5 + DX[dir] * 0.3, y + 0.5 + DY[dir] * 0.3, dir, 0.16);
     }
