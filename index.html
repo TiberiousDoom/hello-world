@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0f13" />
+    <title>Foundry Front</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <header id="topbar">
+      <div class="stat" title="Hub health"><span class="heart">♥</span> <span id="hub-hp"></span></div>
+      <div class="stat" id="wave"></div>
+      <button id="tier-btn" title="Research tiers"></button>
+      <div id="speed" class="seg">
+        <button data-speed="0" title="Pause (Space)">❚❚</button>
+        <button data-speed="1">1×</button>
+        <button data-speed="2">2×</button>
+        <button data-speed="4">4×</button>
+      </div>
+      <button id="menu-btn" title="Menu">☰</button>
+    </header>
+
+    <div id="inventory"></div>
+    <div id="toasts"></div>
+    <aside id="info" hidden></aside>
+    <nav id="toolbar"></nav>
+
+    <div id="tier" class="modal" hidden>
+      <div class="card">
+        <div id="tier-body"></div>
+        <button data-close>Close</button>
+      </div>
+    </div>
+
+    <div id="menu" class="modal" hidden>
+      <div class="card">
+        <h2>Foundry Front</h2>
+        <p class="muted">Prototype · progress saves automatically in this browser.</p>
+        <h3>How to play</h3>
+        <ul>
+          <li>Put <b>extractors</b> on resource nodes and run <b>belts</b> to <b>furnaces</b>, <b>workshops</b> and the <b>hub</b>.</li>
+          <li>Machines take input from any side and output where their arrow points.</li>
+          <li>Building costs come out of the hub's stock, so keep it supplied.</li>
+          <li>Enemies attack in waves. <b>Turrets</b> fire iron plates and <b>cannons</b> fire gears, so feed them with belts.</li>
+          <li>Deliver the goal items to the hub to unlock new tiers.</li>
+        </ul>
+        <h3>Controls</h3>
+        <ul>
+          <li><b>Desktop:</b> click to build or select, drag to lay belts, right-drag or WASD to pan, wheel to zoom, R to rotate, X to demolish, 1–8 to pick buildings, Space to pause, Esc to cancel.</li>
+          <li><b>Touch:</b> tap to build or select, drag with a tool to lay belts, drag with no tool to pan, pinch to zoom.</li>
+        </ul>
+        <div class="row">
+          <button id="btn-resume">Resume</button>
+          <button id="btn-save">Save now</button>
+          <button id="btn-new" class="danger">New game</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="gameover" class="modal" hidden>
+      <div class="card">
+        <h2>Hub destroyed</h2>
+        <p id="gameover-text"></p>
+        <button id="btn-gameover-new">New game</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
