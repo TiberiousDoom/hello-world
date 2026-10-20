@@ -204,7 +204,7 @@ export class Input {
   }
 
   private key(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement) return;
+    if (e.target instanceof HTMLInputElement || document.body.classList.contains('in-menu')) return;
     const k = e.key.toLowerCase();
     const pan = 40;
     if (k === 'r') {

@@ -17,6 +17,7 @@ import {
   TURRETS,
   isMachine,
 } from '../sim/data';
+import { artUrl, icon } from '../art';
 import { PlaceError, World } from '../sim/world';
 import { Tool, UIState } from './state';
 
@@ -37,6 +38,7 @@ const TOOLBAR: BuildingType[] = [
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
+const DIR_DEGREES = [0, 90, 180, 270];
 
 const PLACE_ERRORS: Record<PlaceError, string> = {
   bounds: 'Outside the map.',
@@ -53,6 +55,26 @@ export interface HudActions {
   save(): void;
   hardcoreUnlocked(): boolean;
   startTutorial(): void;
+  toMainMenu(): void;
+  hasGame(): boolean;
+}
+
+/** Fills every empty `[data-icon]` element under `root` with its inline SVG. */
+export function hydrateIcons(root: ParentNode = document): void {
+  for (const el of root.querySelectorAll<HTMLElement>('[data-icon]')) {
+    if (!el.firstElementChild) el.innerHTML = icon(el.dataset.icon!);
+  }
+}
+
+const ico = (name: string) => `<i data-icon="${name}">${icon(name)}</i>`;
+
+/** Image markup for a building's sprite (turrets get their barrel on top, pointing up). */
+function buildingIcon(t: BuildingType, cls = ''): string {
+  const key = t === 'tunnel' ? 'tunnel_in' : t === 'turret' || t === 'cannon' ? `${t}_base` : t;
+  const base = artUrl(`buildings/${key}`);
+  if (!base) return `<span class="${cls}" style="background:${BUILDINGS[t].color};border-radius:6px"></span>`;
+  const barrel = TURRETS[t] ? `<img class="barrel" src="${artUrl(`buildings/${t}_barrel`)}" alt="">` : '';
+  return `<span class="${cls}"><img src="${base}" alt="">${barrel}</span>`;
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -62,6 +84,8 @@ function esc(s: string): string {
 }
 
 function swatch(item: ItemId): string {
+  const url = artUrl(`items/${item}`);
+  if (url) return `<img class="item-icon" src="${url}" alt="${ITEMS[item].name}">`;
   return `<span class="swatch" style="background:${ITEMS[item].color}"></span>`;
 }
 
@@ -105,6 +129,15 @@ export class Hud {
     });
     $('menu-btn').addEventListener('click', () => this.openModal('menu'));
     $('btn-resume').addEventListener('click', () => this.closeModals());
+    $('btn-help').addEventListener('click', () => this.openModal('help'));
+    $('btn-mainmenu').addEventListener('click', () => {
+      this.closeModals();
+      actions.toMainMenu();
+    });
+    $('btn-gameover-menu').addEventListener('click', () => {
+      this.closeModals();
+      actions.toMainMenu();
+    });
     $('btn-save').addEventListener('click', () => {
       actions.save();
       this.toast('Game saved.');
@@ -161,6 +194,7 @@ export class Hud {
     });
 
     window.addEventListener('keydown', (e) => {
+      if (document.body.classList.contains('in-menu')) return;
       if (e.key === ' ') {
         e.preventDefault();
         this.setSpeed(this.ui.speed === 0 ? 1 : 0);
@@ -234,7 +268,7 @@ export class Hud {
     $('hub-hp').parentElement!.title = s.mode === 'hardcore' ? 'Hub health · Hardcore' : 'Hub health';
     $('mode-badge').hidden = s.mode !== 'hardcore';
     const ready = RESEARCH.filter((r) => world.checkResearch(r.id) === null).length;
-    $('research-btn').textContent = ready ? `Research · ${ready} ready` : 'Research';
+    $('research-label').textContent = ready ? `Research · ${ready}` : 'Research';
     $('research-btn').classList.toggle('ready', ready > 0);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
       b.classList.toggle('active', Number(b.dataset.speed) === this.ui.speed);
@@ -263,13 +297,13 @@ export class Hud {
       const def = BUILDINGS[t];
       const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
       return `<button class="${cls}" data-tool="${t}" title="${esc(def.name)} (${i + 1})">
-        <span class="icon" style="background:${def.color}">${def.short || (t === 'tunnel' ? '⤓' : '')}</span>
+        ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
         <span class="costs">${costHtml(def.cost, inv)}</span></button>`;
     });
     buttons.push(
-      `<button class="tool util" data-tool="rotate" title="Rotate (R)"><span class="icon">${DIR_ARROWS[this.ui.dir]}</span><span class="label">Rotate</span></button>`,
-      `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (X)"><span class="icon">✕</span><span class="label">Demolish</span></button>`,
+      `<button class="tool util" data-tool="rotate" title="Rotate (R)"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
+      `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (X)"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
     );
     $('toolbar').innerHTML = buttons.join('');
   }
@@ -296,7 +330,7 @@ export class Hud {
       let html = '';
       if (tool) {
         const def = BUILDINGS[tool as BuildingType];
-        html = `<div class="info-head"><b>${esc(def.name)}</b><button data-action="close">✕</button></div>
+        html = `<div class="info-head"><span>${buildingIcon(tool as BuildingType, 'head-icon')}${esc(def.name)}</span><button data-action="close">${ico('close')}</button></div>
           <p>${esc(def.description)}</p><div class="stats"></div>`;
       } else {
         const def = BUILDINGS[b!.type];
@@ -321,7 +355,7 @@ export class Hud {
           if (!NO_ROTATE.includes(b!.type) && b!.type !== 'tunnel') actions += `<button data-action="rotate">⟳ Rotate</button>`;
           actions += `<button data-action="demolish" class="danger">✕ Demolish</button></div>`;
         }
-        html = `<div class="info-head"><b>${esc(def.name)}</b><button data-action="close">✕</button></div>
+        html = `<div class="info-head"><span>${buildingIcon(b!.type, 'head-icon')}${esc(def.name)}</span><button data-action="close">${ico('close')}</button></div>
           <p>${esc(def.description)}</p><div class="stats"></div>${actions}`;
       }
       panel.innerHTML = html;
@@ -407,7 +441,8 @@ export class Hud {
     if ($('research').hidden) this.openModal('research');
   }
 
-  private openNewGame(): void {
+  openNewGame(): void {
+    $('newgame-warning').hidden = !this.actions.hasGame();
     const unlocked = this.actions.hardcoreUnlocked();
     const hc = $<HTMLButtonElement>('btn-hardcore');
     hc.disabled = !unlocked;
@@ -418,7 +453,7 @@ export class Hud {
     this.openModal('newgame');
   }
 
-  private openModal(id: string): void {
+  openModal(id: string): void {
     this.closeModals();
     $(id).hidden = false;
   }

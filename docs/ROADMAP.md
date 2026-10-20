@@ -11,8 +11,9 @@ quality and business work don't get left until the end.
 |---|---|---|
 | M1: Prototype | The core loop is playable in the browser | ✅ |
 | M2a: Logistics and sustain | Branching lines, tunnels, repair | ✅ |
-| M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ (this PR) |
-| M3: First art pass | Replace placeholders with 2D sprites, plus sound | ⬜ |
+| M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ |
+| M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ (this PR) |
+| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | ⬜ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
@@ -51,7 +52,9 @@ quality and business work don't get left until the end.
 
 ## 3. UX and onboarding
 - ✅ Spotlight tutorial (M2b)
-- ⬜ Tooltips for items in the inventory bar (touch users can't hover)
+- ✅ Main menu with a live demo factory behind it: Continue, New game, How to play (M3a)
+- ⬜ Settings screen reachable from the main menu
+- ⬜ Tooltips for items in the inventory bar (touch users can't hover; item icons help)
 - ⬜ Hotkeys beyond 9 tools, and a key-binding screen
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste, or blueprints, for sections of a factory
@@ -61,10 +64,14 @@ quality and business work don't get left until the end.
 ## 4. Art and audio
 See [ART_LIST.md](ART_LIST.md) for the full list.
 - ❓ Art direction and name (Q-1)
-- ⬜ Art pipeline: load sprites from `public/art/`, falling back to placeholders while assets are missing
-- ⬜ P1 sprites: items, resource nodes, belt, extractor, furnace, hub, turret, crawler
-- ⬜ P2 sprites: remaining buildings and enemies
-- ⬜ P3: effects, UI icons, app icon
+- ✅ Art pipeline: sprites load from `src/art/`, and a PNG replaces a same-named SVG placeholder (M3a)
+- ✅ Placeholder SVGs for every P1 and P2 sprite, plus UI icons and a logo mark (M3a)
+- ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, spawn marker, breach shockwave (M3a)
+- ✅ Menu style: navy and sky blue, flat icons, Montserrat headings (M3a, D-011)
+- 🚧 Final P1 sprites from the project owner: items, resource nodes, belt, extractor, furnace, hub, turret, crawler
+- ⬜ Final P2 sprites: remaining buildings and enemies
+- ⬜ Final P3: effects, UI icons, app icon
+- ⬜ Loading animation strips (frame sheets) for belts, machines and enemies
 - ⬜ Sound effects (building placed, machine running, shot, explosion, breach, research done) and music
 - ⬜ Animation: belts, machines, turret aim, enemy walk cycles
 

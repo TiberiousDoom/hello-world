@@ -4,7 +4,8 @@ A factory-automation game inspired by Builderment, with a tower-defense twist:
 waves of enemies attack your base, and your turrets only fire what your
 conveyor belts deliver to them.
 
-It runs in the browser on desktop and mobile. Art is placeholder for now.
+It runs in the browser on desktop and mobile. The art is detailed placeholder
+art; final sprites drop into `src/art/` (see [docs/ART_LIST.md](docs/ART_LIST.md)).
 
 ## Play
 
@@ -36,7 +37,8 @@ npm run build:single # one self-contained HTML file in dist-single/
 
 ```
 src/
-  sim/       game rules, with no DOM: data.ts (balance/content), world.ts (simulation)
+  art/       sprites and icons (SVG placeholders; a same-named PNG replaces one)
+  sim/       game rules, with no DOM: data.ts (balance/content), world.ts (simulation), demo.ts (menu factory)
   render/    Canvas 2D renderer and camera (swappable for 3D later)
   input/     mouse, touch and keyboard
   ui/        HTML overlay (HUD, toolbar, dialogs)

@@ -16,6 +16,9 @@ one; don't edit the old entry.
 | D-008 | 2026-10-19 | **Standard mode** has a soft fail (a breach). **Hardcore** ends the run and is unlocked by clearing wave 10 | Matches the request: hardcore is unlocked, and the default is forgiving | Accepted. The unlock condition is open to tuning |
 | D-009 | 2026-10-19 | The **tutorial** is a series of spotlight steps (Next, Back, ✕). It explains but doesn't require actions | Matches the request, and is simple to keep accurate | Accepted. An interactive version may come later |
 | D-010 | 2026-10-19 | Deploy `master` to **GitHub Pages** via Actions. CI runs the tests and the build on every PR | Gives a public link with no servers to run | Accepted |
+| D-011 | 2026-10-20 | **Menu style:** flat navy and sky-blue icons with bold rounded type (Montserrat), inspired by a stock factory icon set the owner shared. Our icons are drawn from scratch; the stock art is not used | Clean, readable, works on phones. The stock image is watermarked and licensed | Accepted |
+| D-012 | 2026-10-20 | **Art pipeline:** sprites in `src/art/`, SVG placeholders that same-named PNGs override, pre-rendered once at load | The owner's art drops in with no code changes. Pre-rendering keeps drawing fast on phones | Accepted |
+| D-013 | 2026-10-20 | The game opens on a **main menu** with a demo factory running behind it | A first impression that shows the game, and a home for Continue, New game and Help | Accepted |
 
 ## D-006: How should turrets get ammo?
 

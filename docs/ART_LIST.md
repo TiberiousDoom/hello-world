@@ -1,8 +1,22 @@
 # Art list
 
-Everything the game draws today, as placeholders, plus what's needed for
-launch. Mark an asset **Delivered** when its file is in `public/art/` (the
-loader is a planned roadmap item; until it exists, send the files and I'll wire them in).
+Everything the game draws, plus what's needed for launch.
+
+## How art gets into the game
+
+Sprites live in **`src/art/<category>/<name>`** and are loaded automatically.
+Every P1 and P2 asset already has a **placeholder SVG** there. To replace one,
+add a **PNG with the same name** next to it (for example `src/art/items/gear.png`
+beside `gear.svg`). The PNG wins and no code changes are needed. Delete the SVG once you're happy.
+
+Status values: **Placeholder** = an SVG stand-in exists, **Code** = drawn by the
+renderer for now (a sprite can replace it later), **Needed** = not in the game
+yet, **Final** = your art is in.
+
+![All placeholder art](art-placeholders.png)
+
+Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
+They show the intended size, facing and silhouette.
 
 ## Specs (for every asset unless noted)
 
@@ -12,9 +26,9 @@ loader is a planned roadmap item; until it exists, send the files and I'll wire 
 | **Grid** | 1 tile = **64×64 px** at 1×. Please also export **128×128 (@2x)** for phones |
 | **Format** | PNG with transparency. Keep layered source files (PSD, Aseprite, Krita…) |
 | **Facing** | Directional sprites face **east (right)**; the game rotates them. If the lighting looks wrong rotated, provide all four directions as `_e`, `_s`, `_w`, `_n` |
-| **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png` |
+| **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png`. The loader doesn't read strips yet, so a single frame is the most useful first delivery. The game animates belts, glows and bobbing in code for now |
 | **Padding** | Building art should leave about 4 px clear at each tile edge, so neighbours read as separate |
-| **Naming** | `category/name.png`, all lower case with underscores, e.g. `items/iron_plate.png` |
+| **Naming** | Match the placeholder: `src/art/category/name.png`, e.g. `src/art/items/iron_plate.png` |
 | **Palette** | Item colours must stay distinct for colour-blind players. Give each item a distinct **shape** as well |
 
 Priority: **P1** = needed to replace the placeholders in the core loop,
@@ -24,11 +38,11 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 
 | Asset | Size | Frames | Priority | Status |
 |---|---|---|---|---|
-| Ground tile (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Needed |
-| Map edge or boundary | 64×64 | 1 | P3 | Needed |
-| Iron ore node (2–3 variants) | 64×64 | 1 | P1 | Needed |
-| Copper ore node (2–3 variants) | 64×64 | 1 | P1 | Needed |
-| Stone node (2–3 variants) | 64×64 | 1 | P1 | Needed |
+| Ground tile (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Placeholder |
+| Map edge or boundary | 64×64 | 1 | P3 | Code |
+| Iron ore node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
+| Copper ore node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
+| Stone node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
 
 ## Items
 
@@ -36,37 +50,37 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 | Asset | Size | Priority | Status |
 |---|---|---|---|
-| Iron ore | 32×32 (+64×64 for UI) | P1 | Needed |
-| Copper ore | 32×32 (+64×64) | P1 | Needed |
-| Stone | 32×32 (+64×64) | P1 | Needed |
-| Iron plate | 32×32 (+64×64) | P1 | Needed |
-| Copper ingot | 32×32 (+64×64) | P1 | Needed |
-| Brick | 32×32 (+64×64) | P1 | Needed |
-| Gear | 32×32 (+64×64) | P1 | Needed |
-| Copper wire | 32×32 (+64×64) | P1 | Needed |
-| Motor | 32×32 (+64×64) | P1 | Needed |
+| Iron ore | 32×32 (+64×64 for UI) | P1 | Placeholder |
+| Copper ore | 32×32 (+64×64) | P1 | Placeholder |
+| Stone | 32×32 (+64×64) | P1 | Placeholder |
+| Iron plate | 32×32 (+64×64) | P1 | Placeholder |
+| Copper ingot | 32×32 (+64×64) | P1 | Placeholder |
+| Brick | 32×32 (+64×64) | P1 | Placeholder |
+| Gear | 32×32 (+64×64) | P1 | Placeholder |
+| Copper wire | 32×32 (+64×64) | P1 | Placeholder |
+| Motor | 32×32 (+64×64) | P1 | Placeholder |
 
 ## Buildings
 
 | Asset | Tiles | Notes | Frames | Priority | Status |
 |---|---|---|---|---|---|
-| Hub | 3×3 (192×192) | Centrepiece. A damaged variant is a nice extra | 1 (+idle loop) | P1 | Needed |
-| Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Needed |
+| Hub | 3×3 (192×192) | Centrepiece. A damaged variant is a nice extra | 1 (+idle loop) | P1 | Placeholder |
+| Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Placeholder |
 | Belt (corner) | 1×1 | Not drawn yet; would make turns look right | 8 | P3 | Needed |
-| Extractor | 1×1 | Drill; the output side should be obvious | 4–8 working | P1 | Needed |
-| Furnace | 1×1 | Idle and working (glow) | 1 + 4 | P1 | Needed |
-| Workshop | 1×1 | Idle and working | 1 + 4 | P2 | Needed |
-| Assembler | 1×1 | Idle and working | 1 + 4 | P2 | Needed |
-| Splitter | 1×1 | Should read as "one in, three out" | 1 | P2 | Needed |
-| Underground belt entrance | 1×1 | Mouth on the east side | 1 | P2 | Needed |
-| Underground belt exit | 1×1 | Mouth on the west side | 1 | P2 | Needed |
-| Hub port | 1×1 | Should look like part of the hub, with output to the east | 1 | P2 | Needed |
-| Turret base | 1×1 | Static | 1 | P1 | Needed |
-| Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot | 1 | P1 | Needed |
-| Cannon base | 1×1 | | 1 | P2 | Needed |
-| Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Needed |
-| Repair station | 1×1 | | 1 + 4 working | P2 | Needed |
-| Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Needed |
+| Extractor | 1×1 | Drill; the output side should be obvious | 4–8 working | P1 | Placeholder |
+| Furnace | 1×1 | Idle and working (glow) | 1 + 4 | P1 | Placeholder |
+| Workshop | 1×1 | Idle and working | 1 + 4 | P2 | Placeholder |
+| Assembler | 1×1 | Idle and working | 1 + 4 | P2 | Placeholder |
+| Splitter | 1×1 | Should read as "one in, three out" | 1 | P2 | Placeholder |
+| Underground belt entrance | 1×1 | Mouth on the east side | 1 | P2 | Placeholder |
+| Underground belt exit | 1×1 | Mouth on the west side | 1 | P2 | Placeholder |
+| Hub port | 1×1 | Should look like part of the hub, with output to the east | 1 | P2 | Placeholder |
+| Turret base | 1×1 | Static | 1 | P1 | Placeholder |
+| Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot | 1 | P1 | Placeholder |
+| Cannon base | 1×1 | | 1 | P2 | Placeholder |
+| Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Placeholder |
+| Repair station | 1×1 | | 1 + 4 working | P2 | Placeholder |
+| Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
 ## Enemies
@@ -75,32 +89,37 @@ All top-down and facing east, as walk cycles.
 
 | Asset | Size on screen | Frames | Priority | Status |
 |---|---|---|---|---|
-| Crawler | ~28 px (fits a 32×32 frame) | 4 walk + 4 attack | P1 | Needed |
-| Runner | ~22 px (32×32) | 4 walk + 4 attack | P2 | Needed |
-| Brute | ~46 px (64×64) | 4 walk + 4 attack | P2 | Needed |
-| Death puff or splat (shared) | 64×64 | 4–6 | P2 | Needed |
+| Crawler | ~28 px (fits a 32×32 frame) | 4 walk + 4 attack | P1 | Placeholder |
+| Runner | ~22 px (32×32) | 4 walk + 4 attack | P2 | Placeholder |
+| Brute | ~46 px (64×64) | 4 walk + 4 attack | P2 | Placeholder |
+| Death puff or splat (shared) | 64×64 | 4–6 | P2 | Code |
 
 ## Effects
 
 | Asset | Size | Frames | Priority | Status |
 |---|---|---|---|---|
-| Muzzle flash | 32×32 | 2–3 | P3 | Needed |
+| Muzzle flash | 32×32 | 2–3 | P3 | Code |
 | Cannon shell | 16×16 | 1 | P3 | Needed |
-| Explosion (cannon splash) | 128×128 | 6 | P3 | Needed |
+| Explosion (cannon splash) | 128×128 | 6 | P3 | Code |
 | Hit spark | 32×32 | 3 | P3 | Needed |
 | Repair sparkle | 32×32 | 4 | P3 | Needed |
 | Building destroyed (debris) | 64×64 | 5 | P3 | Needed |
-| Spawn warning marker | 128×128 | 4 (pulse) | P2 | Needed |
-| Hub breach (shockwave) | 256×256 | 6 | P3 | Needed |
+| Spawn warning marker | 128×128 | 4 (pulse) | P2 | Code |
+| Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 
 ## UI
 
+The menus use a flat, two-colour style: navy `#1d3b6e` and sky blue `#3fa9f5`
+on white, with bold, rounded silhouettes. Icons are drawn white with one
+sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
+`var(--icon-accent, #3fa9f5)` and `var(--icon-ink, #1d3b6e)`, the game can recolour it on highlighted buttons.
+
 | Asset | Size | Priority | Status |
 |---|---|---|---|
-| App icon master | 1024×1024 (no transparency, for the stores) | P3 | Needed (after naming) |
-| Favicon / PWA icons | 512×512 and 192×192 | P3 | Needed |
-| Logo / wordmark | Vector (SVG) | P3 | Needed (after naming) |
-| HUD icons: health, wave, research, pause, play, speed, menu, rotate, demolish, close | 48×48, single colour, SVG preferred | P3 | Needed |
+| App icon master | 1024×1024 (no transparency, for the stores) | P3 | Needed (after naming). Can start from `ui/logo.svg` |
+| Favicon / PWA icons | 512×512 and 192×192 | P3 | Placeholder |
+| Logo / wordmark | Vector (SVG) | P3 | Placeholder mark `ui/logo.svg`; the wordmark is text for now |
+| UI icons (`src/art/ui/`): health, wave, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory | 24×24 grid, SVG preferred | P3 | Placeholder |
 | Research icons (one per research, 9 today) | 64×64 | P3 | Optional |
 | Toolbar building icons | Uses the building sprites; no extra art needed | — | — |
 
