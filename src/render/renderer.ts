@@ -1,6 +1,8 @@
-// Canvas 2D renderer with placeholder art. It only reads the simulation, so a
-// 3D renderer can replace it later behind the same draw() call.
+// Canvas 2D renderer. It draws sprites from src/art (falling back to plain
+// shapes if one is missing) and only reads the simulation, so a 3D renderer
+// can replace it later behind the same draw() call.
 
+import { sprite } from '../art';
 import {
   BELT_SPEED,
   BUILDINGS,
@@ -9,23 +11,49 @@ import {
   DY,
   Dir,
   ENEMIES,
+  EnemyType,
   HUB_SIZE,
   ITEMS,
+  ItemId,
   RECIPE_BY_ID,
   REPAIR,
+  RESOURCE_ITEMS,
   TURRETS,
   WAVE_WARNING,
   isMachine,
 } from '../sim/data';
-import { Building, World } from '../sim/world';
+import { Building, Shot, World } from '../sim/world';
 import { UIState } from '../ui/state';
 import { Camera } from './camera';
 
+const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
 const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
+/** Enemy sprites are drawn larger than their hit radius so legs show. */
+const ENEMY_SPRITE_SCALE = 4.2;
+const ENEMY_SPRITE_MAX = 1.35; // tiles
+
+interface Effect {
+  kind: 'puff' | 'blast' | 'shockwave';
+  x: number;
+  y: number;
+  r: number;
+  born: number; // ms
+  life: number; // ms
+  color: string;
+}
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
+  private groundPattern: CanvasPattern | null = null;
+  /** Turret aim angles, from their most recent shot. */
+  private aims = new Map<number, number>();
+  private seenShots = new WeakSet<Shot>();
+  /** Last known enemy positions and headings, to face sprites and place death puffs. */
+  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType }>();
+  private effects: Effect[] = [];
+  private breaches = -1;
+  private world: World | null = null;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -44,11 +72,19 @@ export class Renderer {
     this.camera.height = h;
   }
 
-  draw(world: World, ui: UIState, now: number): void {
+  draw(world: World, ui: UIState | null, now: number): void {
+    if (world !== this.world) {
+      // A different game: forget per-game animation state.
+      this.world = world;
+      this.aims.clear();
+      this.enemies.clear();
+      this.effects = [];
+      this.breaches = world.state.breaches;
+    }
     const { ctx, camera } = this;
     const z = camera.zoom;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = '#0d0f13';
+    ctx.fillStyle = '#0b0e14';
     ctx.fillRect(0, 0, camera.width, camera.height);
 
     // World transform: 1 unit = 1 tile.
@@ -64,95 +100,59 @@ export class Renderer {
     const y1 = Math.min(s.height - 1, Math.ceil(y1f) + 1);
     const visible = (x: number, y: number, size = 1) => x + size >= x0 && y + size >= y0 && x <= x1 && y <= y1;
 
+    this.trackEffects(world, now);
+
     // Ground and resources.
-    ctx.fillStyle = '#1a1d23';
-    ctx.fillRect(0, 0, s.width, s.height);
+    this.drawGround(s.width, s.height);
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         const r = s.resources[world.idx(x, y)];
-        if (!r) continue;
-        ctx.fillStyle = RESOURCE_COLORS[r];
-        ctx.fillRect(x + 0.04, y + 0.04, 0.92, 0.92);
-        ctx.fillStyle = ITEMS[world.resourceAt(x, y)!].color;
-        dot(ctx, x + 0.3, y + 0.35, 0.09);
-        dot(ctx, x + 0.68, y + 0.3, 0.07);
-        dot(ctx, x + 0.5, y + 0.7, 0.1);
+        if (r) this.drawNode(r, x, y);
       }
     }
-    if (z >= 14) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-      ctx.lineWidth = 1 / z;
-      ctx.beginPath();
-      for (let x = x0; x <= x1 + 1; x++) {
-        ctx.moveTo(x, y0);
-        ctx.lineTo(x, y1 + 1);
-      }
-      for (let y = y0; y <= y1 + 1; y++) {
-        ctx.moveTo(x0, y);
-        ctx.lineTo(x1 + 1, y);
-      }
-      ctx.stroke();
-    }
-    ctx.strokeStyle = '#3a4150';
+    ctx.strokeStyle = '#3a4a68';
     ctx.lineWidth = 2 / z;
     ctx.strokeRect(0, 0, s.width, s.height);
 
-    // Belts first so items sit under nothing else.
+    // Belts first so everything else sits on top.
     for (const b of s.buildings) if (b.type === 'belt' && visible(b.x, b.y)) this.drawBelt(b, now, z);
     for (const b of s.buildings) {
       if (b.type === 'belt') continue;
       const size = b.type === 'hub' ? HUB_SIZE : 1;
-      if (visible(b.x, b.y, size)) this.drawBuilding(world, b, z);
+      if (visible(b.x, b.y, size)) this.drawBuilding(world, b, now, z);
     }
 
-    // Spawn warnings.
-    const untilWave = s.nextWaveAt - s.time;
-    if (untilWave <= WAVE_WARNING) {
+    // Spawn warnings: pulsing rings with a warning sign.
+    if (s.nextWaveAt - s.time <= WAVE_WARNING) {
       const pulse = 0.5 + 0.5 * Math.sin(now / 150);
-      for (const p of s.nextSpawnPoints) {
-        ctx.fillStyle = `rgba(224,68,90,${0.25 + 0.35 * pulse})`;
-        ctx.beginPath();
-        ctx.arc(p.x + 0.5, p.y + 0.5, 1.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#e0445a';
-        ctx.lineWidth = 2 / z;
-        ctx.stroke();
-      }
+      for (const p of s.nextSpawnPoints) this.drawSpawnMarker(p.x + 0.5, p.y + 0.5, pulse, z);
     }
 
-    // Enemies.
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
       const def = ENEMIES[e.type];
-      ctx.fillStyle = def.color;
-      dot(ctx, e.x, e.y, def.radius);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1.5 / z;
-      ctx.stroke();
-      if (e.hp < e.maxHp) bar(ctx, e.x - 0.3, e.y - def.radius - 0.16, 0.6, e.hp / e.maxHp, '#e0445a');
-    }
-
-    // Shots.
-    for (const sh of world.shots) {
-      if (sh.splash > 0) {
-        ctx.fillStyle = `rgba(255,190,90,${0.5 * (1 - sh.age / 0.12)})`;
-        dot(ctx, sh.x2, sh.y2, sh.splash);
+      const angle = this.enemies.get(e.id)?.angle ?? 0;
+      // A small bob so they look alive.
+      const bob = 1 + 0.06 * Math.sin(now / 90 + e.id);
+      const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob;
+      if (!this.drawSprite(`enemies/${e.type}`, e.x - size / 2, e.y - size / 2, size, angle)) {
+        ctx.fillStyle = def.color;
+        dot(ctx, e.x, e.y, def.radius);
       }
-      ctx.strokeStyle = '#ffe08a';
-      ctx.lineWidth = (sh.splash ? 3 : 1.5) / z;
-      ctx.beginPath();
-      ctx.moveTo(sh.x1, sh.y1);
-      ctx.lineTo(sh.x2, sh.y2);
-      ctx.stroke();
+      if (e.hp < e.maxHp) bar(ctx, e.x - 0.3, e.y - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
     }
 
-    // Selection and placement preview.
+    this.drawShots(world, now, z);
+    this.drawEffects(now, z);
+
+    if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
     if (sel) {
       const size = sel.type === 'hub' ? HUB_SIZE : 1;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2 / z;
-      ctx.strokeRect(sel.x, sel.y, size, size);
+      ctx.strokeStyle = '#3fa9f5';
+      ctx.lineWidth = 3 / z;
+      roundRect(ctx, sel.x - 0.04, sel.y - 0.04, size + 0.08, size + 0.08, 0.12);
+      ctx.stroke();
       const range = TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : 0);
       if (range) rangeCircle(ctx, sel.x + 0.5, sel.y + 0.5, range, z);
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
@@ -161,116 +161,157 @@ export class Renderer {
     if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
   }
 
-  private drawBelt(b: Building, now: number, z: number): void {
+  // ------------------------------------------------------------- sprites
+
+  /** Draws a sprite into a square, rotated about its centre. Returns false if it isn't loaded. */
+  private drawSprite(key: string, x: number, y: number, size: number, angle = 0): boolean {
+    const img = sprite(key);
+    if (!img) return false;
     const ctx = this.ctx;
-    ctx.fillStyle = BUILDINGS.belt.color;
-    ctx.fillRect(b.x + 0.06, b.y + 0.06, 0.88, 0.88);
-    // Animated chevrons show direction.
-    const phase = ((now / 1000) * BELT_SPEED) % 0.5;
-    ctx.strokeStyle = '#555c6b';
-    ctx.lineWidth = 2 / z;
-    for (const o of [0, 0.5]) {
-      const t = o + phase - 0.25;
-      if (t < -0.35 || t > 0.35) continue;
-      chevron(ctx, b.x + 0.5, b.y + 0.5, b.dir, t, 0.18);
+    if (angle) {
+      ctx.save();
+      ctx.translate(x + size / 2, y + size / 2);
+      ctx.rotate(angle);
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, x, y, size, size);
     }
-    for (const it of b.belt) {
-      const t = it.pos - 0.5;
-      const cx = b.x + 0.5 + DX[b.dir] * t;
-      const cy = b.y + 0.5 + DY[b.dir] * t;
-      ctx.fillStyle = ITEMS[it.item].color;
-      dot(ctx, cx, cy, 0.16);
-      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-      ctx.lineWidth = 1 / z;
-      ctx.stroke();
+    return true;
+  }
+
+  private drawItem(item: ItemId, cx: number, cy: number, size: number): void {
+    if (!this.drawSprite(`items/${item}`, cx - size / 2, cy - size / 2, size)) {
+      this.ctx.fillStyle = ITEMS[item].color;
+      dot(this.ctx, cx, cy, size * 0.4);
     }
   }
 
-  private drawBuilding(world: World, b: Building, z: number): void {
+  private drawGround(w: number, h: number): void {
+    const ctx = this.ctx;
+    const img = sprite('terrain/ground');
+    if (img && !this.groundPattern) {
+      this.groundPattern = ctx.createPattern(img, 'repeat');
+      this.groundPattern?.setTransform(new DOMMatrix().scale(1 / img.width));
+    }
+    ctx.fillStyle = this.groundPattern ?? '#1a1d23';
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  private drawNode(kind: number, x: number, y: number): void {
+    // Rotate each node by a fixed per-tile amount so clusters don't look stamped.
+    const turn = ((x * 7 + y * 13) % 4) * (Math.PI / 2);
+    if (this.drawSprite(RESOURCE_NODES[kind], x, y, 1, turn)) return;
+    const ctx = this.ctx;
+    ctx.fillStyle = RESOURCE_COLORS[kind];
+    ctx.fillRect(x + 0.04, y + 0.04, 0.92, 0.92);
+    ctx.fillStyle = ITEMS[RESOURCE_ITEMS[kind]!].color;
+    dot(ctx, x + 0.5, y + 0.5, 0.12);
+  }
+
+  // ----------------------------------------------------------- buildings
+
+  private drawBelt(b: Building, now: number, z: number): void {
+    const ctx = this.ctx;
+    const angle = (b.dir * Math.PI) / 2;
+    if (!this.drawSprite('buildings/belt', b.x, b.y, 1, angle)) {
+      ctx.fillStyle = BUILDINGS.belt.color;
+      ctx.fillRect(b.x + 0.06, b.y + 0.06, 0.88, 0.88);
+    }
+    // Moving slats show the direction of travel.
+    const phase = ((now / 1000) * BELT_SPEED) % 0.25;
+    ctx.strokeStyle = 'rgba(138,150,168,0.45)';
+    ctx.lineWidth = 2.5 / z;
+    ctx.beginPath();
+    for (let t = phase; t < 1; t += 0.25) {
+      const cx = b.x + 0.5 + DX[b.dir] * (t - 0.5);
+      const cy = b.y + 0.5 + DY[b.dir] * (t - 0.5);
+      ctx.moveTo(cx - DY[b.dir] * 0.3, cy + DX[b.dir] * 0.3);
+      ctx.lineTo(cx + DY[b.dir] * 0.3, cy - DX[b.dir] * 0.3);
+    }
+    ctx.stroke();
+    for (const it of b.belt) {
+      const t = it.pos - 0.5;
+      this.drawItem(it.item, b.x + 0.5 + DX[b.dir] * t, b.y + 0.5 + DY[b.dir] * t, 0.42);
+    }
+  }
+
+  private spriteKey(world: World, b: Building): string {
+    if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
+    if (b.type === 'turret' || b.type === 'cannon') return `buildings/${b.type}_base`;
+    return `buildings/${b.type}`;
+  }
+
+  private drawBuilding(world: World, b: Building, now: number, z: number): void {
     const ctx = this.ctx;
     const def = BUILDINGS[b.type];
     const size = b.type === 'hub' ? HUB_SIZE : 1;
-    const inset = b.type === 'wall' ? 0.02 : 0.08;
-    ctx.fillStyle = def.color;
-    ctx.fillRect(b.x + inset, b.y + inset, size - inset * 2, size - inset * 2);
+    const directional = b.type !== 'hub' && b.type !== 'wall' && b.type !== 'repair' && !TURRETS[b.type];
+    const angle = directional ? (b.dir * Math.PI) / 2 : 0;
 
-    if (b.type === 'wall') {
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ctx.lineWidth = 1.5 / z;
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y + 0.5);
-      ctx.lineTo(b.x + 1, b.y + 0.5);
-      ctx.moveTo(b.x + 0.5, b.y);
-      ctx.lineTo(b.x + 0.5, b.y + 0.5);
-      ctx.moveTo(b.x + 0.25, b.y + 0.5);
-      ctx.lineTo(b.x + 0.25, b.y + 1);
-      ctx.moveTo(b.x + 0.75, b.y + 0.5);
-      ctx.lineTo(b.x + 0.75, b.y + 1);
-      ctx.stroke();
-    }
-
-    if (b.type === 'splitter') {
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      for (const d of [b.dir, (b.dir + 1) % 4, (b.dir + 3) % 4] as Dir[]) {
-        arrowHead(ctx, b.x + 0.5 + DX[d] * 0.33, b.y + 0.5 + DY[d] * 0.33, d, 0.1);
-      }
-      if (b.outputs.length) {
-        ctx.fillStyle = ITEMS[b.outputs[0]].color;
-        dot(ctx, b.x + 0.5, b.y + 0.5, 0.14);
+    if (!this.drawSprite(this.spriteKey(world, b), b.x, b.y, size, angle)) {
+      ctx.fillStyle = def.color;
+      ctx.fillRect(b.x + 0.08, b.y + 0.08, size - 0.16, size - 0.16);
+      if (directional) {
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        arrowHead(ctx, b.x + 0.5 + DX[b.dir] * 0.36, b.y + 0.5 + DY[b.dir] * 0.36, b.dir, 0.12);
       }
     }
 
-    if (b.type === 'tunnel') {
-      // Dark mouth on the side that leads underground.
-      const exit = world.isTunnelExit(b);
-      const m = exit ? -1 : 1;
-      ctx.fillStyle = '#0b0d11';
-      ctx.beginPath();
-      ctx.arc(b.x + 0.5 + DX[b.dir] * 0.42 * m, b.y + 0.5 + DY[b.dir] * 0.42 * m, 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = b.link == null ? '#e0a040' : 'rgba(255,255,255,0.75)';
-      arrowHead(ctx, b.x + 0.5 - DX[b.dir] * 0.05 * m, b.y + 0.5 - DY[b.dir] * 0.05 * m, b.dir, 0.13);
+    // Working machines glow and pulse.
+    const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0 && b.outputs.length < 3;
+    if (working) {
+      const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
+      const glow = b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' ? '160,220,90' : '120,190,255';
+      const g = ctx.createRadialGradient(b.x + 0.5, b.y + 0.5, 0.05, b.x + 0.5, b.y + 0.5, 0.6);
+      g.addColorStop(0, `rgba(${glow},${0.22 + 0.18 * pulse})`);
+      g.addColorStop(1, `rgba(${glow},0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(b.x - 0.1, b.y - 0.1, 1.2, 1.2);
     }
-
-    if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.8, 0.76, b.ammo / REPAIR.maxCharge, ITEMS.iron_plate.color);
 
     const turret = TURRETS[b.type];
     if (turret) {
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      dot(ctx, b.x + 0.5, b.y + 0.5, 0.3);
-      bar(ctx, b.x + 0.12, b.y + 0.8, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
+      const aim = this.aims.get(b.id) ?? -Math.PI / 2;
+      if (!this.drawSprite(`buildings/${b.type}_barrel`, b.x, b.y, 1, aim)) {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        dot(ctx, b.x + 0.5, b.y + 0.5, 0.3);
+      }
+      bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
 
-    if (b.type === 'port') {
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      arrowHead(ctx, b.x + 0.5 + DX[b.dir] * 0.36, b.y + 0.5 + DY[b.dir] * 0.36, b.dir, 0.12);
-      if (b.filter) {
-        ctx.fillStyle = ITEMS[b.filter].color;
-        dot(ctx, b.x + 0.78, b.y + 0.22, 0.1);
-      }
+    if (b.type === 'splitter' && b.outputs.length) this.drawItem(b.outputs[0], b.x + 0.5, b.y + 0.5, 0.34);
+    if (b.type === 'tunnel' && b.link == null) {
+      // Unpaired: flash a warning dot.
+      ctx.fillStyle = `rgba(242,193,78,${0.5 + 0.5 * Math.sin(now / 200)})`;
+      dot(ctx, b.x + 0.8, b.y + 0.2, 0.1);
     }
+    if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / REPAIR.maxCharge, '#3fbf5f');
+    if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
 
     if (b.type === 'extractor' || isMachine(b.type)) {
-      // Output side marker.
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      arrowHead(ctx, b.x + 0.5 + DX[b.dir] * 0.36, b.y + 0.5 + DY[b.dir] * 0.36, b.dir, 0.12);
       const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
-      if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + 0.8, 0.76, b.progress / recipe.time, '#8fd18f');
-      if (recipe) {
-        ctx.fillStyle = ITEMS[recipe.output].color;
-        dot(ctx, b.x + 0.78, b.y + 0.22, 0.1);
-      }
+      if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.progress / recipe.time, '#8fd18f');
+      if (recipe) this.drawBadge(recipe.output, b.x, b.y);
     }
 
-    if (z >= 18 && def.short) {
+    if (!sprite(this.spriteKey(world, b)) && z >= 18 && def.short) {
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = `bold ${b.type === 'hub' ? 0.6 : b.type === 'repair' ? 0.5 : 0.3}px system-ui, sans-serif`;
+      ctx.font = `bold ${b.type === 'hub' ? 0.6 : 0.3}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(def.short, b.x + size / 2, b.y + size / 2);
     }
 
-    if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.04, size - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+    if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.02, size - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+  }
+
+  /** Small item icon in a building's top-right corner (its product or chosen item). */
+  private drawBadge(item: ItemId, x: number, y: number): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(15,26,46,0.85)';
+    dot(ctx, x + 0.8, y + 0.2, 0.17);
+    this.drawItem(item, x + 0.8, y + 0.2, 0.28);
   }
 
   private drawGhost(world: World, tool: BuildingType | 'demolish', x: number, y: number, dir: Dir, z: number): void {
@@ -287,22 +328,151 @@ export class Renderer {
       return;
     }
     const ok = !world.checkPlace(tool, x, y);
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = ok ? BUILDINGS[tool].color : '#a03040';
-    ctx.fillRect(x + 0.06, y + 0.06, 0.88, 0.88);
+    const turret = !!TURRETS[tool];
+    const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && !turret;
+    const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
+    ctx.globalAlpha = 0.6;
+    const drawn = this.drawSprite(key, x, y, 1, directional ? (dir * Math.PI) / 2 : 0);
+    if (drawn && turret) this.drawSprite(`buildings/${tool}_barrel`, x, y, 1, -Math.PI / 2);
+    if (!drawn) {
+      ctx.fillStyle = BUILDINGS[tool].color;
+      ctx.fillRect(x + 0.06, y + 0.06, 0.88, 0.88);
+    }
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = ok ? '#ffffff' : '#ff6070';
-    ctx.lineWidth = 2 / z;
-    ctx.strokeRect(x + 0.06, y + 0.06, 0.88, 0.88);
-    if (tool !== 'wall' && tool !== 'repair' && tool !== 'port' && !TURRETS[tool]) {
+    if (!ok) {
+      ctx.fillStyle = 'rgba(224,68,90,0.35)';
+      ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.strokeStyle = ok ? '#3fa9f5' : '#ff6070';
+    ctx.lineWidth = 2.5 / z;
+    roundRect(ctx, x + 0.03, y + 0.03, 0.94, 0.94, 0.1);
+    ctx.stroke();
+    if (directional) {
       ctx.fillStyle = '#ffffff';
-      arrowHead(ctx, x + 0.5 + DX[dir] * 0.3, y + 0.5 + DY[dir] * 0.3, dir, 0.16);
+      arrowHead(ctx, x + 0.5 + DX[dir] * 0.62, y + 0.5 + DY[dir] * 0.62, dir, 0.14);
     }
     const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : 0);
     if (range) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
     if (tool === 'tunnel' && ok) {
       const entrance = world.findTunnelEntrance(x, y, dir);
       if (entrance) linkLine(ctx, entrance, { x, y }, z);
+    }
+  }
+
+  private drawSpawnMarker(x: number, y: number, pulse: number, z: number): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = `rgba(224,68,90,${0.15 + 0.2 * pulse})`;
+    dot(ctx, x, y, 1.5 + 0.3 * pulse);
+    ctx.strokeStyle = '#e0445a';
+    ctx.lineWidth = 3 / z;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.1, 0, Math.PI * 2);
+    ctx.stroke();
+    // Warning triangle.
+    ctx.fillStyle = '#e0445a';
+    ctx.beginPath();
+    ctx.moveTo(x, y - 0.55);
+    ctx.lineTo(x + 0.55, y + 0.4);
+    ctx.lineTo(x - 0.55, y + 0.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - 0.05, y - 0.25, 0.1, 0.38);
+    ctx.fillRect(x - 0.05, y + 0.2, 0.1, 0.1);
+  }
+
+  // ------------------------------------------------------------- effects
+
+  /** Updates aim angles and enemy headings, and spawns effects for what happened since last frame. */
+  private trackEffects(world: World, now: number): void {
+    const s = world.state;
+    for (const sh of world.shots) {
+      if (this.seenShots.has(sh)) continue;
+      this.seenShots.add(sh);
+      const b = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
+      if (b) this.aims.set(b.id, Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1));
+      if (sh.splash) this.effects.push({ kind: 'blast', x: sh.x2, y: sh.y2, r: sh.splash, born: now, life: 350, color: '255,170,70' });
+    }
+
+    const alive = new Set<number>();
+    for (const e of s.enemies) {
+      alive.add(e.id);
+      const prev = this.enemies.get(e.id);
+      let angle = prev?.angle ?? 0;
+      if (prev) {
+        const dx = e.x - prev.x;
+        const dy = e.y - prev.y;
+        if (dx * dx + dy * dy > 1e-6) angle = Math.atan2(dy, dx);
+      }
+      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type });
+    }
+    const breached = s.breaches !== this.breaches;
+    for (const [id, e] of this.enemies) {
+      if (alive.has(id)) continue;
+      this.enemies.delete(id);
+      if (!breached) {
+        this.effects.push({ kind: 'puff', x: e.x, y: e.y, r: ENEMIES[e.type].radius * 2.2, born: now, life: 400, color: '224,68,90' });
+      }
+    }
+    if (breached) {
+      this.breaches = s.breaches;
+      const hub = world.hub;
+      if (hub) {
+        const c = hub.x + HUB_SIZE / 2;
+        this.effects.push({ kind: 'shockwave', x: c, y: hub.y + HUB_SIZE / 2, r: 9, born: now, life: 900, color: '63,169,245' });
+      }
+    }
+    this.effects = this.effects.filter((fx) => now - fx.born < fx.life);
+  }
+
+  private drawShots(world: World, now: number, z: number): void {
+    const ctx = this.ctx;
+    for (const sh of world.shots) {
+      const fade = 1 - sh.age / 0.12;
+      ctx.strokeStyle = `rgba(255,224,138,${fade})`;
+      ctx.lineWidth = (sh.splash ? 3 : 1.5) / z;
+      ctx.beginPath();
+      ctx.moveTo(sh.x1, sh.y1);
+      ctx.lineTo(sh.x2, sh.y2);
+      ctx.stroke();
+      if (sh.age < 0.06) {
+        // Muzzle flash at the barrel tip.
+        const a = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
+        const mx = sh.x1 + Math.cos(a) * 0.48;
+        const my = sh.y1 + Math.sin(a) * 0.48;
+        const flicker = 0.8 + 0.2 * Math.sin(now);
+        ctx.fillStyle = `rgba(255,236,160,${0.9 * flicker})`;
+        dot(ctx, mx, my, sh.splash ? 0.2 : 0.12);
+      }
+    }
+  }
+
+  private drawEffects(now: number, z: number): void {
+    const ctx = this.ctx;
+    for (const fx of this.effects) {
+      const t = (now - fx.born) / fx.life;
+      const a = 1 - t;
+      if (fx.kind === 'blast') {
+        ctx.fillStyle = `rgba(${fx.color},${0.45 * a})`;
+        dot(ctx, fx.x, fx.y, fx.r * (0.5 + 0.5 * t));
+        ctx.strokeStyle = `rgba(255,240,200,${a})`;
+        ctx.lineWidth = 2 / z;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, fx.r * (0.3 + 0.9 * t), 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (fx.kind === 'puff') {
+        ctx.fillStyle = `rgba(${fx.color},${0.6 * a})`;
+        for (let i = 0; i < 6; i++) {
+          const ang = (i / 6) * Math.PI * 2;
+          dot(ctx, fx.x + Math.cos(ang) * fx.r * t, fx.y + Math.sin(ang) * fx.r * t, 0.06 * (1 - t) + 0.02);
+        }
+      } else {
+        ctx.strokeStyle = `rgba(${fx.color},${a})`;
+        ctx.lineWidth = 6 / z;
+        ctx.beginPath();
+        ctx.arc(fx.x, fx.y, fx.r * t, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
 }
@@ -313,16 +483,21 @@ function dot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): vo
   ctx.fill();
 }
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
 function bar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, frac: number, color: string): void {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
   ctx.fillRect(x, y, w, 0.09);
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), 0.09);
 }
 
 function rangeCircle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, z: number): void {
-  ctx.fillStyle = 'rgba(120,200,255,0.07)';
-  ctx.strokeStyle = 'rgba(120,200,255,0.5)';
+  ctx.fillStyle = 'rgba(63,169,245,0.08)';
+  ctx.strokeStyle = 'rgba(63,169,245,0.6)';
   ctx.lineWidth = 1.5 / z;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -353,16 +528,3 @@ function arrowHead(ctx: CanvasRenderingContext2D, x: number, y: number, dir: Dir
   ctx.closePath();
   ctx.fill();
 }
-
-function chevron(ctx: CanvasRenderingContext2D, cx: number, cy: number, dir: Dir, t: number, s: number): void {
-  const fx = DX[dir];
-  const fy = DY[dir];
-  const x = cx + fx * t;
-  const y = cy + fy * t;
-  ctx.beginPath();
-  ctx.moveTo(x - fx * s - fy * s, y - fy * s + fx * s);
-  ctx.lineTo(x, y);
-  ctx.lineTo(x - fx * s + fy * s, y - fy * s - fx * s);
-  ctx.stroke();
-}
-

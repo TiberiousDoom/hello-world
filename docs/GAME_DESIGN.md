@@ -137,7 +137,11 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 ## Onboarding
 
-- A tutorial plays on first launch, and can be replayed from the menu. Each step
+- The game opens on a **main menu**, with a small factory running behind it.
+  It offers **Continue** (when a save exists, showing its mode and next wave),
+  **New game** (choose the mode) and **How to play**.
+
+- A tutorial plays the first time you start a game, and can be replayed from the pause menu. Each step
   darkens the screen except a spotlight (a circle or rounded rectangle) on the
   thing being explained, with Back, Next and ✕ buttons. The game is paused while it's open.
 - Steps: the hub, hub stock, a resource node, the extractor, the belt, the furnace,

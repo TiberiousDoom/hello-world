@@ -86,12 +86,12 @@ const STEPS: Step[] = [
       'Research unlocks new buildings, paid from hub stock. Get Basic Defense before the first wave arrives.',
   },
   {
-    el: '#wave',
+    el: '#wave-stat',
     text: () =>
       'Enemies attack in waves. Red markers show where the next wave will come from. Turrets fire iron plates, so keep them supplied by belt, or later from the hub with a hub port.',
   },
   {
-    el: '#hub-hp',
+    el: '#hub-stat',
     text: (w) =>
       w.state.mode === 'hardcore'
         ? 'Hub health. This is a hardcore run: if it reaches zero, the run is over.'

@@ -306,3 +306,24 @@ describe('World', () => {
     expect(copy.buildingAt(1, 1)?.type).toBe('belt');
   });
 });
+
+describe('Demo world', () => {
+  it('lays out a working factory that delivers to the hub and fights waves', async () => {
+    const { createDemoWorld, sustainDemo } = await import('./demo');
+    const w = createDemoWorld();
+    const types = w.state.buildings.map((b) => b.type);
+    for (const t of ['extractor', 'furnace', 'workshop', 'splitter', 'tunnel', 'turret', 'cannon', 'wall', 'repair']) {
+      expect(types).toContain(t);
+    }
+    expect(w.state.buildings.filter((b) => b.type === 'tunnel').every((b) => b.link != null)).toBe(true);
+    const start = { ...w.state.inventory };
+    for (let t = 0; t < 60; t += TICK) {
+      w.tick();
+      sustainDemo(w);
+    }
+    expect(w.state.inventory.iron_plate!).toBeGreaterThan(start.iron_plate!);
+    expect(w.state.inventory.wire!).toBeGreaterThan(start.wire!);
+    expect(w.state.inventory.brick!).toBeGreaterThan(start.brick!);
+    expect(w.state.wave).toBeGreaterThan(0);
+  });
+});
