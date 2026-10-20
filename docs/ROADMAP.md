@@ -15,7 +15,7 @@ quality and business work don't get left until the end.
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ (this PR) |
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | ⬜ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
-| M4s: Story layer (proposal) | Quotas, suspicion, black market, food, escape ship ([STORY.md](STORY.md)) | ❓ Q-8 to Q-11 |
+| M4s: Story layer | Contracts and inbox ✅; suspicion and black market; food; escape ship ([STORY.md](STORY.md)) | 🚧 |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -32,6 +32,13 @@ quality and business work don't get left until the end.
 - ✅ Hub ports for sending items back out of the hub (M2b, D-006 proposed)
 - ✅ Standard and hardcore modes, with the hardcore unlock (M2b)
 
+### Story layer (M4s, [STORY.md](STORY.md))
+- ✅ Phase 1: Company contracts, wages and deductions, debt, fines, Company Store, licence fees, inbox (D-022)
+- ⬜ Phase 2: suspicion, audits, black-market machines (skimmer, stash, hidden workshop), and penalties for getting caught (D-016)
+- ⬜ Phase 3: food factories and meal buffs
+- ⬜ Phase 4: escape ship and win screen, which unlocks endless mode (D-019)
+- ⏸ Vehicles and gear (D-021)
+
 ### Next (M4)
 - ⬜ Upgrades: faster belts and a mk2 tier for each machine
 - ⬜ Item filters on splitters
@@ -39,9 +46,9 @@ quality and business work don't get left until the end.
 - ⬜ A tesla turret fed by wire, and other ammo options
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
-- ❓ Research that takes time or uses a research building (Q-4)
-- ❓ Win condition or campaign (Q-5)
-- ❓ How enemies choose targets (Q-6)
+- ⬜ Research consumes delivered items over time (D-018)
+- ⬜ Win condition: escape (D-019, story phase 4)
+- ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (wave size and timer)
 - ⬜ Enemy nests on the map that players can clear (optional)
 
@@ -100,7 +107,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Respect reduced-motion (done for the tutorial; extend to effects)
 
 ## 8. Business and legal
-- ❓ Monetization model (Q-2)
+- ⬜ Optional purchase plus donations or tips (D-017)
 - ⬜ Trademark check on the final name
 - ⬜ Licences for any third-party assets and fonts, tracked in `CREDITS.md`
 - ⬜ Privacy policy (required by app stores, even with no data collection)

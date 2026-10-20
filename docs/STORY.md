@@ -1,8 +1,8 @@
 # Story proposal: "Keep up appearances"
 
-**Status:** Proposal, from a conversation the project owner had with a friend.
-Nothing here is built yet. The decisions it needs are listed as Q-8 to Q-11 in
-[DECISIONS.md](DECISIONS.md).
+**Status:** Adopted (D-014). Phase 1, contracts and the inbox, is built. The
+idea came from a conversation the project owner had with a friend. The
+related decisions are D-014 to D-022 in [DECISIONS.md](DECISIONS.md).
 
 ## The pitch
 
@@ -10,6 +10,10 @@ You're a contract worker shipped to a hostile planet by a megacorp (working
 name: **the Company**). Your job is to build a factory and teleport goods home
 through the hub. The Company watches every shipment, and docks your pay by
 email whenever something goes missing.
+
+It turns out it isn't really a job. It's **indentured servitude**: your
+passage, equipment and oxygen are all billed to you, the debt keeps growing,
+and your pay keeps getting docked.
 
 **Your real goal is to escape.** While you keep the quota flowing to keep up
 appearances, you quietly divert parts into a hidden ship. You build black-market
@@ -28,8 +32,8 @@ fines itemised to the cent.
 | Hub port (takes stock back out) | Visibly suspicious. The Company notices withdrawals |
 | Research paid from stock | **Company research**, paid in quota credits, versus **black-market research**, paid in diverted parts |
 | Waves of enemies | The planet's wildlife. When suspicion runs high, Company "security sweeps" can come too |
-| Open question Q-5 (win condition) | **Escape.** Launching the ship wins the run, and endless play continues afterwards |
-| Standard and hardcore modes | Standard: get caught and you're fined. Hardcore: get caught and you're fired, which ends the run |
+| The win condition | **Escape.** Launching the ship wins the run and unlocks endless mode: you couldn't survive on your own, so you came back (D-019) |
+| Standard and hardcore modes | Getting caught: Standard fines you. Hardcore confiscates or destroys your unauthorized equipment (D-016) |
 
 ## New systems
 
@@ -72,8 +76,8 @@ These are what break up the factory loop.
 
 ## Rough phasing
 
-1. **Quota and inbox.** Contracts, credits, fines and emails. Small, and gives the game its voice right away.
+1. ✅ **Quota and inbox.** Contracts, wages and deductions, fines, debt, the Company Store on credit, licence fees and repair invoices. See [GAME_DESIGN.md](GAME_DESIGN.md#the-company).
 2. **Suspicion and the black market.** Skimmer, stash, black-market research, audits.
 3. **Food.** A new resource chain with meal buffs.
 4. **Escape ship.** The win condition, plus a victory screen and a stats summary.
-5. **Vehicles.** Depends on Q-8.
+5. **Vehicles.** On hold (D-021).

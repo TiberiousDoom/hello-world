@@ -19,6 +19,15 @@ one; don't edit the old entry.
 | D-011 | 2026-10-20 | **Menu style:** flat navy and sky-blue icons with bold rounded type (Montserrat), inspired by a stock factory icon set the owner shared. Our icons are drawn from scratch; the stock art is not used | Clean, readable, works on phones. The stock image is watermarked and licensed | Accepted |
 | D-012 | 2026-10-20 | **Art pipeline:** sprites in `src/art/`, SVG placeholders that same-named PNGs override, pre-rendered once at load | The owner's art drops in with no code changes. Pre-rendering keeps drawing fast on phones | Accepted |
 | D-013 | 2026-10-20 | The game opens on a **main menu** with a demo factory running behind it | A first impression that shows the game, and a home for Continue, New game and Help | Accepted |
+| D-014 | 2026-10-20 | **Story (Q-9):** adopt "keep up appearances". What you thought was a job is really indentured servitude: debt keeps piling up and your pay keeps getting docked. Your real goal is escape | The owner's idea. It gives the factory a purpose and a villain | Accepted |
+| D-015 | 2026-10-20 | **Tone (Q-10):** dry corporate satire, delivered mostly through Company emails | Funny without cutscenes, and cheap to write and change | Accepted |
+| D-016 | 2026-10-20 | **Getting caught (Q-11):** Standard mode fines you. Hardcore confiscates or destroys your unauthorized (black-market) equipment | Keeps hardcore harsh without ending the run on a single audit | Accepted (black market is phase 2) |
+| D-017 | 2026-10-20 | **Monetization (Q-2):** an optional purchase, plus donations or tips | Donations and tips allow repeat support from the same player. No ads | Accepted |
+| D-018 | 2026-10-20 | **Research takes time (Q-4):** items are delivered to the research and consumed by it over time, not paid all at once | Builderment-style, and makes research a logistics job | Accepted (not built yet) |
+| D-019 | 2026-10-20 | **Win condition (Q-5):** escaping wins the run and unlocks endless mode. Story beat: you couldn't survive on your own, so you came back | A satisfying ending that keeps the sandbox | Accepted (not built yet) |
+| D-020 | 2026-10-20 | **Enemy targeting (Q-6):** basic enemies attack the nearest building. Later enemies also attack the nearest, but switch to a turret that shoots them. Both still attack a wall in the way if they can't easily go around | Makes walls and turret placement matter | Accepted (not built yet) |
+| D-021 | 2026-10-20 | **Vehicles and gear (Q-8):** on hold | Decide after the story's core systems are in | Deferred |
+| D-022 | 2026-10-20 | **Contracts and the inbox** (story phase 1): timed contracts paid in wages minus deductions; missed contracts fined and the next one enlarged; a store on credit; licence fees for research; repair invoices for breaches. Placeholder company name: **Halcyon Extraction Co.** | Smallest slice that gives the game its voice and the factory a purpose | Accepted (built) |
 
 ## D-006: How should turrets get ammo?
 
@@ -40,14 +49,10 @@ not available at the start, so early defense still depends on production lines.
 
 | # | Question | Notes |
 |---|---|---|
-| Q-1 | Final **name** and art direction | Needed before store listings and the logo. Check trademarks |
-| Q-2 | **Monetization** for the app stores: premium, free with ads, or free plus an optional purchase? | Affects store setup, privacy policy and UI |
-| Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research |
-| Q-4 | Should **research take time**, rather than being paid for and done at once? | Builderment-like research could use a research building that's fed by belts |
-| Q-5 | Should there be a **win condition** or campaign (for example, a final wave or a launch goal), or should the game be endless? | Affects pacing and the content plan |
-| Q-6 | Should enemies **target** specific buildings (turrets first) rather than whatever blocks their path? | Affects how walls work as a strategy |
+| Q-1 | Final **name** and art direction, including the Company's name (placeholder: Halcyon Extraction Co.) | Needed before store listings and the logo. Check trademarks |
+| Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research, or escaping once |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
-| Q-8 | **Vehicles and gear** ([STORY.md](STORY.md)): should the player get a character or vehicle they steer around the map (a jetpack, rover or small ship), or should vehicles stay off-screen, as expeditions you send out for loot? | The biggest decision. A steerable unit changes controls, the camera and the pace |
-| Q-9 | Adopt the **"keep up appearances" story** (quotas, suspicion, black market, escape) as the game's core? | Would also answer Q-5: escaping is the win condition |
-| Q-10 | **Tone**: is dry corporate satire (emails that dock your pay) the right voice? | Affects writing, UI and art |
-| Q-11 | What happens when **you get caught**: fines in Standard and being fired in Hardcore? | Fits the existing modes |
+| Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
+| Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
+
+Answered: Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).

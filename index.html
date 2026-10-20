@@ -17,6 +17,8 @@
     <header id="topbar" class="hud">
       <div class="stat" id="hub-stat" title="Hub health"><i data-icon="health"></i><span id="hub-hp"></span><span id="mode-badge" class="badge" hidden>Hardcore</span></div>
       <div class="stat" id="wave-stat"><i data-icon="wave"></i><span id="wave"></span></div>
+      <button id="contract-btn" title="Company contract"><i data-icon="contract"></i><span id="contract-label">Contract</span></button>
+      <button id="mail-btn" title="Inbox"><i data-icon="mail"></i><span id="mail-badge" class="count" hidden></span></button>
       <button id="research-btn" title="Research"><i data-icon="research"></i><span id="research-label">Research</span></button>
       <div id="speed" class="seg">
         <button data-speed="0" title="Pause (Space)"><i data-icon="pause"></i></button>
@@ -57,6 +59,24 @@
       </div>
     </div>
 
+    <div id="company" class="modal" hidden>
+      <div class="card wide">
+        <div class="company-head">
+          <div>
+            <h2 id="company-name"></h2>
+            <p class="debt"><i data-icon="coin"></i>Balance owed <b id="company-debt"></b></p>
+          </div>
+          <button data-close title="Close"><i data-icon="close"></i></button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button data-tab="contract" role="tab"><i data-icon="contract"></i>Contract</button>
+          <button data-tab="inbox" role="tab"><i data-icon="mail"></i>Inbox<span id="tab-unread" class="count" hidden></span></button>
+          <button data-tab="store" role="tab"><i data-icon="store"></i>Store</button>
+        </div>
+        <div id="company-body"></div>
+      </div>
+    </div>
+
     <div id="newgame" class="modal" hidden>
       <div class="card">
         <h2>New game</h2>
@@ -92,6 +112,7 @@
           <li>Machines take input from any side and output where their arrow points.</li>
           <li>Buildings and research are paid for from the hub's stock, so keep it supplied.</li>
           <li><b>Splitters</b> take items from behind and send them out the other three sides in turn. <b>Underground belts</b> pass items under anything: place an entrance, then an exit ahead of it.</li>
+          <li>You owe <b>the Company</b>. Meet its shipping <b>contracts</b> (in your inbox) to earn wages. Miss them and you're fined. The <b>Company Store</b> sells emergency supplies on credit.</li>
           <li>Enemies attack in waves. <b>Turrets</b> fire iron plates and <b>cannons</b> fire gears. Feed them by belt, or from the hub with a <b>hub port</b>.</li>
         </ul>
         <h3>Controls</h3>

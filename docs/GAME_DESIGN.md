@@ -126,6 +126,45 @@ They are fuelled by iron plates (1 plate = 40 HP, holding up to 400 HP), and arr
 - Wave *n* has 4 + 2n crawlers, 2(n−1) runners from wave 2, and n−2 brutes from wave 3.
 - Waves come from 1 map-edge spawn point, or 2 from wave 4. The points are shown 30 s ahead.
 
+## The Company
+
+You're a contractor for **Halcyon Extraction Co.** (placeholder name), and you
+start ¢48,750 in debt. Numbers live in `src/sim/company.ts`.
+
+### Contracts
+- The first contract arrives 30 s into a game. The next one arrives 45 s after each contract closes.
+- A contract lists 1 item (contract 1), 2 items (contracts 2–3) or 3 items. The items are
+  picked from iron plates, copper ingots and bricks, plus gears and wire once Workshops are researched,
+  and motors once Assembly is. Amounts grow 25% per contract.
+- You have **6 minutes**. Only items delivered to the hub while the contract is open count.
+- When every count is met, the contract closes at once. The items **ship home out of hub stock**,
+  and you're paid. Wage: ¢1,500 + ¢250 per contract, minus 3–5 random deductions
+  (habitat rent, oxygen allocation, a gravity surcharge…). The net goes against your debt.
+- If time runs out, whatever was delivered (and is still in stock) ships. You're fined
+  ¢1,000 plus ¢40 per item short. You're also put on a **Performance Improvement Plan**:
+  the next contract is 10% bigger for each miss in a row, up to 50%.
+
+### Other charges
+- **Research licence:** ¢1,500 per research.
+- **Hub breach:** a ¢5,000 repair invoice, on top of the stock lost (Standard mode).
+
+### Company Store
+Crates paid for on credit: items go straight into hub stock, and the price is added to your debt.
+You can't buy past a credit limit of ¢100,000.
+
+| Crate | Items | Price |
+|---|---|---|
+| Iron plate crate | 30 iron plates | ¢1,800 |
+| Brick pallet | 20 bricks | ¢1,400 |
+| Copper ingot crate | 20 copper ingots | ¢1,600 |
+| Gear box | 10 gears | ¢2,200 |
+
+### Inbox
+The mail button shows unread mail. Emails cover: a welcome, every new contract,
+payslips, underperformance notices, licence fees, repair invoices and a wildlife
+advisory before the first wave. The inbox keeps the 60 newest emails. The contract button in the
+top bar shows the time left and progress.
+
 ## Modes
 
 | | Standard (default) | Hardcore |
@@ -145,7 +184,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   darkens the screen except a spotlight (a circle or rounded rectangle) on the
   thing being explained, with Back, Next and ✕ buttons. The game is paused while it's open.
 - Steps: the hub, hub stock, a resource node, the extractor, the belt, the furnace,
-  research, waves, hub health (text depends on the mode), and the menu.
+  research, the contract, the inbox, waves, hub health (text depends on the mode), and the menu.
 
 ## Controls
 
@@ -163,5 +202,5 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently v3). Older saves are migrated when loaded,
+- Save files are versioned (currently v4). Older saves are migrated when loaded,
   and every migration is covered by a test.

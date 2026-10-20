@@ -8,6 +8,11 @@ A factory-automation game in the spirit of Builderment, where the factory is
 also the fortress. You mine, smelt and assemble, and waves of enemies test
 whether your production can keep your defenses fed.
 
+**Story ([STORY.md](STORY.md)):** you signed up for a job, and it turned out to be
+indentured servitude. The Company bills you for everything and docks your
+pay by email. Keep its shipping contracts flowing to keep up appearances,
+while you quietly build your way off the planet.
+
 ## Pillars
 
 1. **Satisfying automation.** Infinite resource nodes, readable belts, and
@@ -41,7 +46,7 @@ kids' game. The default mode is forgiving, and hardcore mode is for players who 
 - Multiplayer
 - Combat units the player controls directly
 - Procedural storylines or dialogue
-- Monetization design (deferred; see open questions)
+- Ads. Monetization is an optional purchase plus donations or tips (D-017)
 
 ## Our own identity
 

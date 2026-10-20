@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BREACH, BUILDINGS, FIRST_WAVE_AT, ItemId, RESEARCH } from './data';
-import { Building, TICK, World } from './world';
+import { Building, SAVE_VERSION, TICK, World } from './world';
 
 /** A world with no resources, no buildings except the hub, everything researched and a big inventory. */
 function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
@@ -279,7 +279,7 @@ describe('World', () => {
       delete b.rr;
     }
     const loaded = World.fromJSON(JSON.stringify(v1));
-    expect(loaded.state.version).toBe(3);
+    expect(loaded.state.version).toBe(SAVE_VERSION);
     expect(loaded.buildingAt(1, 1)?.link).toBe(null);
   });
 

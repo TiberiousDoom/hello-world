@@ -86,6 +86,17 @@ const STEPS: Step[] = [
       'Research unlocks new buildings, paid from hub stock. Get Basic Defense before the first wave arrives.',
   },
   {
+    el: '#contract-btn',
+    text: () =>
+      "You owe the Company for your passage here, and the debt only grows. Its shipping contracts are your wages: deliver the listed goods to the hub before the timer runs out. Miss one and you're fined.",
+  },
+  {
+    el: '#mail-btn',
+    shape: 'circle',
+    text: () =>
+      'The Company keeps in touch by email: new contracts, payslips (after deductions), fines and invoices. The Company Store is in here too, and happy to sell you supplies on credit.',
+  },
+  {
     el: '#wave-stat',
     text: () =>
       'Enemies attack in waves. Red markers show where the next wave will come from. Turrets fire iron plates, so keep them supplied by belt, or later from the hub with a hub port.',

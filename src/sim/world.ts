@@ -36,8 +36,19 @@ import {
   isMachine,
   waveComposition,
 } from './data';
+import {
+  COMPANY,
+  CompanyState,
+  createCompanyState,
+  onBreach,
+  onDelivered,
+  onFirstWave,
+  onResearched,
+  tickCompany,
+  welcomeMail,
+} from './company';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -102,6 +113,7 @@ export interface GameState {
   spawnQueue: PendingSpawn[];
   nextSpawnPoints: { x: number; y: number }[];
   gameOver: boolean;
+  company: CompanyState;
 }
 
 export interface Shot {
@@ -157,8 +169,10 @@ export class World {
       spawnQueue: [],
       nextSpawnPoints: [],
       gameOver: false,
+      company: createCompanyState(),
     };
     const world = new World(state);
+    welcomeMail(world);
     const hx = Math.floor(size / 2) - 1;
     const hy = Math.floor(size / 2) - 1;
     world.generateResources(hx + 1, hy + 1);
@@ -190,8 +204,18 @@ export class World {
       for (const b of state.buildings) b.filter = null;
       state.version = 3;
     }
+    let addedCompany = false;
+    if (state.version === 3) {
+      // v4 added the Company: contracts, debt and the inbox.
+      state.company = createCompanyState();
+      state.company.nextContractAt = state.time + COMPANY.firstContractAt;
+      state.version = 4;
+      addedCompany = true;
+    }
     if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
-    return new World(state);
+    const world = new World(state);
+    if (addedCompany) welcomeMail(world);
+    return world;
   }
 
   toJSON(): string {
@@ -257,6 +281,7 @@ export class World {
     this.pay(r.cost);
     this.state.researched.push(id);
     this.events.push(`Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked`);
+    onResearched(this, r.name);
     return null;
   }
 
@@ -543,6 +568,7 @@ export class World {
   private deliver(item: ItemId): void {
     const inv = this.state.inventory;
     inv[item] = (inv[item] ?? 0) + 1;
+    onDelivered(this, item);
   }
 
   private pushOutput(b: Building): void {
@@ -591,6 +617,7 @@ export class World {
     }
 
     this.tickWaves();
+    tickCompany(this);
     if (this.flowDirty) this.computeFlow();
     this.tickEnemies(dt);
 
@@ -764,6 +791,7 @@ export class World {
     hub.hp = BUILDINGS.hub.hp * BREACH.hubRestore;
     s.nextWaveAt = Math.max(s.nextWaveAt, s.time) + BREACH.waveDelay;
     this.events.push(`The hub was breached! The attack is over, but ${BREACH.stockLost * 100}% of hub stock was lost.`);
+    onBreach(this);
   }
 
   // ---------------------------------------------------------------- waves
@@ -785,6 +813,7 @@ export class World {
   startWave(): void {
     const s = this.state;
     s.wave++;
+    if (s.wave === 1) onFirstWave(this);
     const comp = waveComposition(s.wave);
     const points = s.nextSpawnPoints.length ? s.nextSpawnPoints : this.pickSpawnPoints(comp.spawnPoints);
     const types: EnemyType[] = [

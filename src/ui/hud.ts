@@ -18,7 +18,9 @@ import {
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
+import { money } from '../sim/company';
 import { PlaceError, World } from '../sim/world';
+import { CompanyPanel } from './company';
 import { Tool, UIState } from './state';
 
 const TOOLBAR: BuildingType[] = [
@@ -110,11 +112,13 @@ export class Hud {
   private infoKey = '';
   private statsHtml = '';
   private invHtml = '';
+  readonly company: CompanyPanel;
 
   constructor(
     private ui: UIState,
     private actions: HudActions,
   ) {
+    this.company = new CompanyPanel(actions.getWorld, () => this.refresh());
     $('speed').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-speed]');
       if (btn) this.setSpeed(Number(btn.dataset.speed));
@@ -280,6 +284,7 @@ export class Hud {
       .join('');
     if (inv !== this.invHtml) $('inventory').innerHTML = this.invHtml = inv;
 
+    this.company.update(world);
     this.updateToolbar(world);
     this.updateInfo(world);
 
@@ -409,6 +414,7 @@ export class Hud {
       if (b.type === 'hub') {
         stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : 'Standard'}`;
         if (world.state.breaches) stats += `<br>Breached ${world.state.breaches}×`;
+        stats += `<br>You owe the Company ${money(world.state.company.debt)}`;
       }
       if (b.type === 'belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
     }
