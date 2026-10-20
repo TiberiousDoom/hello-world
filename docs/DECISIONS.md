@@ -28,6 +28,8 @@ one; don't edit the old entry.
 | D-020 | 2026-10-20 | **Enemy targeting (Q-6):** basic enemies attack the nearest building. Later enemies also attack the nearest, but switch to a turret that shoots them. Both still attack a wall in the way if they can't easily go around | Makes walls and turret placement matter | Accepted (not built yet) |
 | D-021 | 2026-10-20 | **Vehicles and gear (Q-8):** on hold | Decide after the story's core systems are in | Deferred |
 | D-022 | 2026-10-20 | **Contracts and the inbox** (story phase 1): timed contracts paid in wages minus deductions; missed contracts fined and the next one enlarged; a store on credit; licence fees for research; repair invoices for breaches. Placeholder company name: **Halcyon Extraction Co.** | Smallest slice that gives the game its voice and the factory a purpose | Accepted (built) |
+| D-023 | 2026-10-20 | **Mouse wheel (Q-13):** rotates the building being placed, and zooms otherwise. Ctrl+wheel (also a trackpad pinch) always zooms | Owner agreed with the recommendation. Touch is unchanged | Accepted (built) |
+| D-024 | 2026-10-20 | **Hub gun:** 9 damage, 1.2 shots/s, range 6, no ammo, no upgrades | Meets the owner's target (wave 1 alone for at most 25% HP) and still needs turrets from wave 2 on | Accepted (built) |
 
 ## D-006: How should turrets get ammo?
 
@@ -53,7 +55,6 @@ not available at the start, so early defense still depends on production lines.
 | Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research, or escaping once |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
-| Q-13 | **Mouse wheel:** it zooms today. Should it rotate only while a building is selected (and zoom otherwise), or always rotate, with zoom moving to Ctrl+wheel and the +/− keys? | Recommendation: rotate while a building is selected, zoom otherwise. Touch is unaffected (pinch zoom, Rotate button) |
 | Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
 
-Answered: Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).
+Answered: Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).

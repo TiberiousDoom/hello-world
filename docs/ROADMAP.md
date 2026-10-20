@@ -14,7 +14,7 @@ quality and business work don't get left until the end.
 | M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ |
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ (this PR) |
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | ⬜ |
-| M3c: Playtest polish | Owner's playtest notes: tutorial, store lock, hub weapon, controls | ⬜ Next |
+| M3c: Playtest polish | Owner's playtest notes: tutorial, store lock, hub weapon, controls | 🚧 All but the tutorial rework done |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
 | M4s: Story layer | Contracts and inbox ✅; suspicion and black market; food; escape ship ([STORY.md](STORY.md)) | 🚧 |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
@@ -22,13 +22,9 @@ quality and business work don't get left until the end.
 
 ## Next up (in order)
 
-1. **Merge story phase 1** (contracts and inbox) so it reaches GitHub Pages.
-2. **M3c: Playtest polish.** These are small and independent, and they change what the tutorial has to teach, so they come before it:
-   - Controls: right-click clears the selected tool, and clicking or tapping outside a menu closes it
-   - Mouse wheel rotates (Q-13)
-   - Store locked until the first contract closes
-   - Hub weapon
-3. **Interactive tutorial.** Rebuild it around the finished early game.
+1. ✅ Merge story phase 1 (contracts and inbox).
+2. ✅ M3c playtest polish: controls, wheel rotation, store lock, hub weapon.
+3. **Interactive tutorial (M3c).** Rebuild it around the finished early game.
 4. **Research over time (D-018).** It changes the early economy, so do it before balancing.
 5. **Story phase 2:** suspicion, audits and the black market.
 
@@ -53,8 +49,8 @@ quality and business work don't get left until the end.
 - ⏸ Vehicles and gear (D-021)
 
 ### Playtest polish (M3c)
-- ⬜ **Hub weapon:** the hub gets its own built-in weapon, strong enough to beat wave 1 alone while losing no more than 25% of its HP. A test will enforce that target. It should hold the early waves without making turrets pointless later. For example, it could fire slowly with no ammo, and not grow stronger
-- ⬜ **Store lock:** the Company Store opens only after the first contract is completed or missed
+- ✅ **Hub weapon:** the hub has a built-in gun that needs no ammo and never upgrades. It beats wave 1 alone while losing no more than 25% of its HP (a test checks 25 maps; the worst case is about 12%). It loses about half its HP to wave 2 and falls to wave 3, so turrets still matter (D-024)
+- ✅ **Store lock:** the Company Store opens only after the first contract is completed or missed, and an email announces it
 
 ### Next (M4)
 - ⬜ Upgrades: faster belts and a mk2 tier for each machine
@@ -92,9 +88,9 @@ quality and business work don't get left until the end.
   - *Store* when it unlocks
   - *Splitters and tunnels* when they're first researched
   - Each lesson plays once (tracked in the profile) and can be replayed from the menu
-- ⬜ **Right-click clears the selected tool** (and the selection), the same as Esc (M3c)
-- ⬜ **Clicking or tapping outside a menu closes it** (all dialogs except the tutorial) (M3c)
-- ⬜ **Mouse wheel rotates** the building being placed (M3c, Q-13)
+- ✅ **Right-click clears the selected tool** (and the selection), the same as Esc. Right-drag still pans (M3c)
+- ✅ **Clicking or tapping outside a menu closes it** (all dialogs except the tutorial and game over) (M3c)
+- ✅ **Mouse wheel rotates** the building being placed, and zooms otherwise. Ctrl+wheel always zooms (M3c, D-023)
 
 ## 4. Art and audio
 See [ART_LIST.md](ART_LIST.md) for the full list.

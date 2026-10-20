@@ -1,7 +1,9 @@
 // Mouse, touch and keyboard input.
 //
 // Mouse: left click/drag builds with the selected tool (or selects with no
-// tool), right/middle drag pans, wheel zooms.
+// tool), right-click clears the tool and selection, right/middle drag pans.
+// The wheel rotates the building being placed, and zooms otherwise
+// (Ctrl+wheel, which is also a trackpad pinch, always zooms).
 // Touch: one finger builds/selects like the left mouse button, or pans when
 // no tool is selected; two fingers pan and pinch-zoom.
 
@@ -10,7 +12,7 @@ import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from '../ui/state';
 
-type Mode = 'none' | 'pending' | 'pan' | 'paint' | 'pinch';
+type Mode = 'none' | 'pending' | 'right' | 'pan' | 'paint' | 'pinch';
 
 interface Tile {
   x: number;
@@ -24,6 +26,7 @@ export interface InputCallbacks {
 }
 
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
+const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 
 export class Input {
   private pointers = new Map<number, { x: number; y: number }>();
@@ -33,6 +36,7 @@ export class Input {
   private lastPlacedId: number | null = null;
   private reportedError = false;
   private pinch = { dist: 0, midX: 0, midY: 0 };
+  private wheelTurn = 0;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -50,14 +54,40 @@ export class Input {
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener(
       'wheel',
-      (e) => {
-        e.preventDefault();
-        const [x, y] = this.local(e);
-        camera.zoomAt(x, y, Math.exp(-e.deltaY * 0.0015));
-      },
+      (e) => this.wheel(e),
       { passive: false },
     );
     window.addEventListener('keydown', (e) => this.key(e));
+  }
+
+  private wheel(e: WheelEvent): void {
+    e.preventDefault();
+    const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY;
+    const tool = this.ui.tool;
+    if (e.ctrlKey || !tool || tool === 'demolish') {
+      const [x, y] = this.local(e);
+      this.camera.zoomAt(x, y, Math.exp(-delta * 0.0015));
+      return;
+    }
+    // Rotate the building being placed: wheel down turns clockwise.
+    this.wheelTurn += delta;
+    let turns = 0;
+    while (Math.abs(this.wheelTurn) >= WHEEL_STEP) {
+      const step = Math.sign(this.wheelTurn);
+      turns += step;
+      this.wheelTurn -= step * WHEEL_STEP;
+    }
+    if (turns) {
+      this.ui.dir = ((((this.ui.dir + turns) % 4) + 4) % 4) as Dir;
+      this.cb.onChange();
+    }
+  }
+
+  /** Right-click: put down the tool and clear the selection (same as Esc). */
+  private clearSelection(): void {
+    this.ui.tool = null;
+    this.ui.selected = null;
+    this.cb.onChange();
   }
 
   private local(e: { clientX: number; clientY: number }): [number, number] {
@@ -84,7 +114,9 @@ export class Input {
     if (this.pointers.size > 2) return;
 
     this.downAt = { x, y };
-    if (e.pointerType === 'mouse' && e.button !== 0) {
+    if (e.pointerType === 'mouse' && e.button === 2) {
+      this.mode = 'right'; // a click clears; a drag pans
+    } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
     } else if (this.ui.tool) {
       this.mode = 'paint';
@@ -111,7 +143,8 @@ export class Input {
       return;
     }
     this.ui.hover = this.tileAt(x, y);
-    if (this.mode === 'pending' && Math.hypot(x - this.downAt.x, y - this.downAt.y) > TAP_SLOP) this.mode = 'pan';
+    const moved = Math.hypot(x - this.downAt.x, y - this.downAt.y) > TAP_SLOP;
+    if ((this.mode === 'pending' || this.mode === 'right') && moved) this.mode = 'pan';
     if (this.mode === 'pan') this.camera.pan(x - prev.x, y - prev.y);
     if (this.mode === 'paint') this.paintTo(this.ui.hover);
   }
@@ -121,6 +154,7 @@ export class Input {
     const [x, y] = this.local(e);
     this.pointers.delete(e.pointerId);
     if (completed && this.mode === 'pending') this.select(this.tileAt(x, y));
+    if (completed && this.mode === 'right') this.clearSelection();
     if (e.pointerType !== 'mouse') this.ui.hover = null;
     // After a pinch, the remaining finger pans rather than building.
     this.mode = this.pointers.size === 1 ? 'pan' : 'none';

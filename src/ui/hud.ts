@@ -6,6 +6,7 @@ import {
   BuildingType,
   GameMode,
   HARDCORE_UNLOCK_WAVE,
+  HUB_WEAPON,
   ITEMS,
   ITEM_IDS,
   ItemCounts,
@@ -161,6 +162,18 @@ export class Hud {
     });
     for (const el of document.querySelectorAll<HTMLElement>('.modal [data-close]')) {
       el.addEventListener('click', () => this.closeModals());
+    }
+    // Clicking or tapping the dimmed backdrop closes a menu. Only when the press
+    // also started there, so dragging out of a card doesn't close it. Game over
+    // stays up: it needs a choice.
+    for (const modal of document.querySelectorAll<HTMLElement>('.modal')) {
+      if (modal.id === 'gameover') continue;
+      let pressedBackdrop = false;
+      modal.addEventListener('pointerdown', (e) => (pressedBackdrop = e.target === modal));
+      modal.addEventListener('click', (e) => {
+        if (pressedBackdrop && e.target === modal) this.closeModals();
+        pressedBackdrop = false;
+      });
     }
 
     $('toolbar').addEventListener('click', (e) => {
@@ -415,6 +428,7 @@ export class Hud {
         stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : 'Standard'}`;
         if (world.state.breaches) stats += `<br>Breached ${world.state.breaches}×`;
         stats += `<br>You owe the Company ${money(world.state.company.debt)}`;
+        stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
       }
       if (b.type === 'belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
     }

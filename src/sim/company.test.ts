@@ -52,7 +52,7 @@ describe('Company', () => {
     expect(w.state.company.contract).toBe(null);
     expect(w.state.company.contractsMet).toBe(1);
     expect(w.state.inventory[item]).toBe(stockBefore + 1 - need);
-    expect(w.state.company.inbox[0].subject).toMatch(/Payslip: Contract #1/);
+    expect(w.state.company.inbox.some((m) => m.subject === 'Payslip: Contract #1')).toBe(true);
     run(w, COMPANY.contractGap + 1);
     expect(w.state.company.contract?.id).toBe(2);
   });
@@ -70,7 +70,7 @@ describe('Company', () => {
     expect(c.missedInARow).toBe(1);
     const total = Object.values(first.items).reduce((a, n) => a + n!, 0);
     expect(c.debt).toBe(debt + COMPANY.lateFee + (total - 2) * COMPANY.shortfallFinePerItem);
-    expect(c.inbox[0].tone).toBe('bad');
+    expect(c.inbox.find((m) => m.subject.startsWith('Notice of Underperformance'))?.tone).toBe('bad');
     run(w, COMPANY.contractGap + 1);
     expect(c.inbox[0].body).toMatch(/Performance Improvement Plan/);
   });
@@ -108,8 +108,18 @@ describe('Company', () => {
     expect(w.state.company.inbox[0].subject).toMatch(/Invoice/);
   });
 
+  it('keeps the store closed until the first contract closes', () => {
+    const w = quietWorld();
+    expect(buyCrate(w, STORE[0].id)).toBe('locked');
+    run(w, COMPANY.firstContractAt + COMPANY.contractTime + 2); // let the first contract lapse
+    expect(w.state.company.contractsMissed).toBe(1);
+    expect(w.state.company.inbox.some((m) => m.subject.includes('Store is now open'))).toBe(true);
+    expect(buyCrate(w, STORE[0].id)).toBe(null);
+  });
+
   it('sells crates on credit up to a limit', () => {
     const w = quietWorld();
+    w.state.company.contractsMet = 1;
     const crate = STORE[0];
     const plates = w.state.inventory.iron_plate!;
     expect(buyCrate(w, crate.id)).toBe(null);

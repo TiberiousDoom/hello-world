@@ -327,3 +327,39 @@ describe('Demo world', () => {
     expect(w.state.wave).toBeGreaterThan(0);
   });
 });
+
+describe('Hub weapon', () => {
+  /** Runs wave `n` against a hub with no other defenses; returns HP lost and breaches. */
+  function hubAlone(seed: number, n: number) {
+    const w = World.create(seed);
+    w.state.wave = n - 1;
+    w.state.time = FIRST_WAVE_AT - TICK / 2;
+    w.state.nextWaveAt = FIRST_WAVE_AT;
+    w.tick();
+    w.state.nextWaveAt = 1e9;
+    for (let t = 0; t < 120 && (w.state.enemies.length || w.state.spawnQueue.length); t += TICK) w.tick();
+    return { lost: BUILDINGS.hub.hp - w.hub!.hp, breaches: w.state.breaches, left: w.state.enemies.length };
+  }
+
+  it('beats wave 1 alone, losing at most 25% of its HP, on every map', () => {
+    for (let seed = 1; seed <= 25; seed++) {
+      const r = hubAlone(seed, 1);
+      expect(r.left).toBe(0);
+      expect(r.breaches).toBe(0);
+      expect(r.lost).toBeLessThanOrEqual(BUILDINGS.hub.hp * 0.25);
+    }
+  });
+
+  it('is not enough on its own by wave 3', () => {
+    expect(hubAlone(7, 3).breaches).toBe(1);
+  });
+
+  it('needs no ammo', () => {
+    const w = World.create(2);
+    const hub = w.hub!;
+    w.state.enemies.push({ id: 999, type: 'crawler', x: hub.x + 5, y: hub.y + 1.5, hp: 1000, maxHp: 1000 });
+    for (let t = 0; t < 5; t += TICK) w.tick();
+    expect(w.state.enemies[0].hp).toBeLessThan(1000);
+    expect(hub.ammo).toBe(0);
+  });
+});

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased: M3c playtest polish
+- The hub has a built-in gun (no ammo). It beats wave 1 on its own; later waves still need turrets.
+- The Company Store opens after your first contract closes.
+- The mouse wheel rotates the building being placed, and zooms otherwise. Ctrl+wheel always zooms.
+- Right-click puts down the tool and clears the selection. Right-drag still pans.
+- Clicking or tapping outside a menu closes it.
+
 ## Unreleased: story phase 1, the Company
 - You start ¢48,750 in debt to Halcyon Extraction Co. (placeholder name).
 - Timed shipping contracts: deliver the listed items to the hub to get paid, minus satirical deductions. Missed contracts are fined, and the next one grows.

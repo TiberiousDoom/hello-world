@@ -13,6 +13,7 @@ import {
   ENEMIES,
   EnemyType,
   HUB_SIZE,
+  HUB_WEAPON,
   ITEMS,
   ItemId,
   RECIPE_BY_ID,
@@ -153,8 +154,8 @@ export class Renderer {
       ctx.lineWidth = 3 / z;
       roundRect(ctx, sel.x - 0.04, sel.y - 0.04, size + 0.08, size + 0.08, 0.12);
       ctx.stroke();
-      const range = TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : 0);
-      if (range) rangeCircle(ctx, sel.x + 0.5, sel.y + 0.5, range, z);
+      const range = TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : 0);
+      if (range) rangeCircle(ctx, sel.x + size / 2, sel.y + size / 2, range, z);
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
     }
@@ -268,6 +269,13 @@ export class Renderer {
       g.addColorStop(1, `rgba(${glow},0)`);
       ctx.fillStyle = g;
       ctx.fillRect(b.x - 0.1, b.y - 0.1, 1.2, 1.2);
+    }
+
+    if (b.type === 'hub') {
+      // The hub's built-in gun sits on the centre pad.
+      const aim = this.aims.get(b.id) ?? -Math.PI / 2;
+      const gun = 1.5;
+      this.drawSprite('buildings/turret_barrel', b.x + HUB_SIZE / 2 - gun / 2, b.y + HUB_SIZE / 2 - gun / 2, gun, aim);
     }
 
     const turret = TURRETS[b.type];
@@ -438,8 +446,9 @@ export class Renderer {
       if (sh.age < 0.06) {
         // Muzzle flash at the barrel tip.
         const a = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
-        const mx = sh.x1 + Math.cos(a) * 0.48;
-        const my = sh.y1 + Math.sin(a) * 0.48;
+        const reach = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1))?.type === 'hub' ? 0.72 : 0.48;
+        const mx = sh.x1 + Math.cos(a) * reach;
+        const my = sh.y1 + Math.sin(a) * reach;
         const flicker = 0.8 + 0.2 * Math.sin(now);
         ctx.fillStyle = `rgba(255,236,160,${0.9 * flicker})`;
         dot(ctx, mx, my, sh.splash ? 0.2 : 0.12);

@@ -52,7 +52,7 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 - Building costs are paid from hub stock. Demolishing a building refunds its
   cost, scaled by the HP it has left.
-- **Hub:** 600 HP. Accepts any item from any side.
+- **Hub:** 600 HP. Accepts any item from any side. It has a **built-in gun**: 9 damage, 1.2 shots/s, range 6 from its centre, and no ammo needed. It beats wave 1 alone but not wave 3.
 
 ## Logistics rules
 
@@ -149,7 +149,7 @@ start ¢48,750 in debt. Numbers live in `src/sim/company.ts`.
 - **Hub breach:** a ¢5,000 repair invoice, on top of the stock lost (Standard mode).
 
 ### Company Store
-Crates paid for on credit: items go straight into hub stock, and the price is added to your debt.
+Opens once the first contract closes (met or missed), announced by email. Crates are paid for on credit: items go straight into hub stock, and the price is added to your debt.
 You can't buy past a credit limit of ¢100,000.
 
 | Crate | Items | Price |
@@ -193,11 +193,13 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 | Build / select | Left click | Tap |
 | Lay belts | Drag with the Belt tool | Drag with the Belt tool |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
-| Zoom | Mouse wheel | Pinch |
-| Rotate | R | Rotate button |
+| Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
+| Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
 | Pick a building | 1–9 | Toolbar |
 | Pause | Space | ❚❚ button |
+| Put down the tool or clear the selection | Right-click or Esc | Tap the tool again |
+| Close a menu | Click outside it | Tap outside it |
 
 ## Saves
 
