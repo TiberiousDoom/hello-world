@@ -53,6 +53,7 @@ not available at the start, so early defense still depends on production lines.
 | Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research, or escaping once |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
+| Q-13 | **Mouse wheel:** it zooms today. Should it rotate only while a building is selected (and zoom otherwise), or always rotate, with zoom moving to Ctrl+wheel and the +/− keys? | Recommendation: rotate while a building is selected, zoom otherwise. Touch is unaffected (pinch zoom, Rotate button) |
 | Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
 
 Answered: Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).
