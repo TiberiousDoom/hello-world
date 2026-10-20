@@ -249,6 +249,8 @@ export class Tutorial {
   private paused = false;
   /** Bumped by input outside the tutorial so a step's text refreshes promptly. */
   private lastText = '';
+  /** The map area the camera last moved to, so a newly targeted area is brought into view once. */
+  private lastTiles = '';
 
   constructor(
     private camera: Camera,
@@ -346,11 +348,7 @@ export class Tutorial {
     const step = lesson.steps[this.index];
     this.setPaused(!step.done);
     this.root.classList.toggle('blocking', !step.done);
-    const t = step.target?.(this.ctx);
-    if (t?.tiles) {
-      this.camera.x = t.tiles.tx + t.tiles.size / 2;
-      this.camera.y = t.tiles.ty + t.tiles.size / 2;
-    }
+    this.lastTiles = ''; // update() centres the camera on this step's map target, if it has one
     this.root.querySelector('.step')!.textContent = `${lesson.title} · ${this.index + 1} of ${lesson.steps.length}`;
     this.root.querySelector<HTMLButtonElement>('.tip-back')!.disabled = this.index === 0;
     const last = this.index === lesson.steps.length - 1;
@@ -379,6 +377,15 @@ export class Tutorial {
     }
 
     const target = step.target?.(this.ctx) ?? {};
+    if (target.tiles) {
+      // A step can switch to a map target partway through (e.g. after picking a tool): bring it into view.
+      const k = `${target.tiles.tx},${target.tiles.ty}`;
+      if (k !== this.lastTiles) {
+        this.lastTiles = k;
+        this.camera.x = target.tiles.tx + target.tiles.size / 2;
+        this.camera.y = target.tiles.ty + target.tiles.size / 2;
+      }
+    }
     let r: Rect | null = null;
     if (target.el) {
       const el = document.querySelector(target.el);
