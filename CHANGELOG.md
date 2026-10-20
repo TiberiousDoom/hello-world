@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased: story phase 1, the Company
+- You start ¢48,750 in debt to Halcyon Extraction Co. (placeholder name).
+- Timed shipping contracts: deliver the listed items to the hub to get paid, minus satirical deductions. Missed contracts are fined, and the next one grows.
+- Inbox with Company emails: contracts, payslips, fines, licence fees, repair invoices, a wildlife advisory.
+- Company Store: emergency supply crates on credit.
+- Research charges a licence fee, and hub breaches send a repair invoice.
+- Top bar: contract countdown and progress, plus a mail button with an unread count. The tutorial covers both.
+- Saves move to v4; v3 saves gain the Company on load.
+
 ## Unreleased: M3a, placeholder art and main menu
 - Detailed placeholder art for every P1 and P2 sprite: items, resource nodes, ground, all buildings, the hub, and enemies. Turrets and cannons aim their barrels.
 - Effects: muzzle flashes, cannon blasts, enemy death puffs, spawn warning markers, and a hub breach shockwave.

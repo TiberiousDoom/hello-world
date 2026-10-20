@@ -478,6 +478,209 @@ body.in-menu #toasts {
   color: var(--muted);
 }
 
+/* ---------------------------------------------------- company window */
+
+.count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font: 700 11px/18px var(--display);
+  text-align: center;
+}
+#mail-btn {
+  position: relative;
+}
+#mail-btn .count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
+#mail-btn.unread {
+  border-color: var(--sky);
+}
+#contract-btn {
+  font-variant-numeric: tabular-nums;
+}
+#contract-btn.urgent {
+  border-color: var(--danger);
+  color: #ffb3bd;
+}
+#contract-btn.done {
+  border-color: var(--good);
+}
+.card.wide {
+  width: 560px;
+}
+.company-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.company-head h2 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+.company-head button {
+  padding: 4px 6px;
+}
+.debt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+.debt b {
+  color: #ffb3bd;
+  font: 800 18px/1 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.tabs .count {
+  margin-left: 2px;
+}
+.contract-items {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+.contract-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 4px 10px;
+  align-items: center;
+}
+.contract-item img {
+  width: 28px;
+  height: 28px;
+  grid-row: span 2;
+}
+.contract-item .n {
+  font: 700 14px var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  grid-column: 2 / -1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--navy-ink);
+  overflow: hidden;
+}
+.bar > div {
+  height: 100%;
+  background: var(--sky);
+}
+.bar.full > div {
+  background: var(--good);
+}
+.contract-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+.contract-meta b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.mail-list {
+  display: grid;
+  gap: 6px;
+}
+.mail {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 10px;
+  background: var(--navy);
+}
+.mail.good {
+  border-left-color: var(--good);
+}
+.mail.bad {
+  border-left-color: var(--danger);
+}
+.mail summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+}
+.mail summary::-webkit-details-marker {
+  display: none;
+}
+.mail summary .subj {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mail.unread summary .subj {
+  font-weight: 800;
+  color: var(--white);
+}
+.mail.unread summary .subj::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--sky);
+  vertical-align: 1px;
+}
+.mail summary .from,
+.mail summary .when {
+  color: var(--muted);
+  font-size: 12px;
+}
+.mail pre {
+  margin: 0;
+  padding: 0 12px 12px;
+  white-space: pre-wrap;
+  font: 13px/1.5 ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  color: var(--text);
+}
+.crates {
+  display: grid;
+  gap: 8px;
+}
+.crate {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--navy);
+}
+.crate b {
+  font-family: var(--display);
+}
+.price {
+  font: 700 13px var(--display);
+  color: #ffb3bd;
+  font-variant-numeric: tabular-nums;
+}
+
 /* -------------------------------------------------------- main menu */
 
 #mainmenu {
@@ -643,6 +846,8 @@ body:not(.in-menu) #mainmenu {
   }
   .stat,
   #research-btn,
+  #contract-btn,
+  #mail-btn,
   #menu-btn,
   .seg button {
     padding: 5px 7px;

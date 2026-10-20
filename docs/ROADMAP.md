@@ -14,9 +14,23 @@ quality and business work don't get left until the end.
 | M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ |
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ (this PR) |
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | ⬜ |
+| M3c: Playtest polish | Owner's playtest notes: tutorial, store lock, hub weapon, controls | ⬜ Next |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
+| M4s: Story layer | Contracts and inbox ✅; suspicion and black market; food; escape ship ([STORY.md](STORY.md)) | 🚧 |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
+
+## Next up (in order)
+
+1. **Merge story phase 1** (contracts and inbox) so it reaches GitHub Pages.
+2. **M3c: Playtest polish.** These are small and independent, and they change what the tutorial has to teach, so they come before it:
+   - Controls: right-click clears the selected tool, and clicking or tapping outside a menu closes it
+   - Mouse wheel rotates (Q-13)
+   - Store locked until the first contract closes
+   - Hub weapon
+3. **Interactive tutorial.** Rebuild it around the finished early game.
+4. **Research over time (D-018).** It changes the early economy, so do it before balancing.
+5. **Story phase 2:** suspicion, audits and the black market.
 
 ---
 
@@ -31,6 +45,17 @@ quality and business work don't get left until the end.
 - ✅ Hub ports for sending items back out of the hub (M2b, D-006 proposed)
 - ✅ Standard and hardcore modes, with the hardcore unlock (M2b)
 
+### Story layer (M4s, [STORY.md](STORY.md))
+- ✅ Phase 1: Company contracts, wages and deductions, debt, fines, Company Store, licence fees, inbox (D-022)
+- ⬜ Phase 2: suspicion, audits, black-market machines (skimmer, stash, hidden workshop), and penalties for getting caught (D-016)
+- ⬜ Phase 3: food factories and meal buffs
+- ⬜ Phase 4: escape ship and win screen, which unlocks endless mode (D-019)
+- ⏸ Vehicles and gear (D-021)
+
+### Playtest polish (M3c)
+- ⬜ **Hub weapon:** the hub gets its own built-in weapon, strong enough to beat wave 1 alone while losing no more than 25% of its HP. A test will enforce that target. It should hold the early waves without making turrets pointless later. For example, it could fire slowly with no ammo, and not grow stronger
+- ⬜ **Store lock:** the Company Store opens only after the first contract is completed or missed
+
 ### Next (M4)
 - ⬜ Upgrades: faster belts and a mk2 tier for each machine
 - ⬜ Item filters on splitters
@@ -38,9 +63,9 @@ quality and business work don't get left until the end.
 - ⬜ A tesla turret fed by wire, and other ammo options
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
-- ❓ Research that takes time or uses a research building (Q-4)
-- ❓ Win condition or campaign (Q-5)
-- ❓ How enemies choose targets (Q-6)
+- ⬜ Research consumes delivered items over time (D-018)
+- ⬜ Win condition: escape (D-019, story phase 4)
+- ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (wave size and timer)
 - ⬜ Enemy nests on the map that players can clear (optional)
 
@@ -59,7 +84,17 @@ quality and business work don't get left until the end.
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste, or blueprints, for sections of a factory
 - ⬜ A settings screen: sound, UI scale, reduced motion
-- ⬜ Interactive tutorial steps that wait for the player to place an extractor (optional; see D-009)
+- ⬜ **Tutorial rework (M3c):** split into short lessons by priority, made interactive, and triggered by actions or events. This replaces D-009's single walkthrough. For example:
+  - *Essentials* at the start of a game: place an extractor, lay a belt, build a furnace, deliver to the hub. Each step waits for you to do it
+  - *Contracts* when the first contract arrives
+  - *Defense* when the first wave warning appears
+  - *Research* the first time you can afford one
+  - *Store* when it unlocks
+  - *Splitters and tunnels* when they're first researched
+  - Each lesson plays once (tracked in the profile) and can be replayed from the menu
+- ⬜ **Right-click clears the selected tool** (and the selection), the same as Esc (M3c)
+- ⬜ **Clicking or tapping outside a menu closes it** (all dialogs except the tutorial) (M3c)
+- ⬜ **Mouse wheel rotates** the building being placed (M3c, Q-13)
 
 ## 4. Art and audio
 See [ART_LIST.md](ART_LIST.md) for the full list.
@@ -99,7 +134,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Respect reduced-motion (done for the tutorial; extend to effects)
 
 ## 8. Business and legal
-- ❓ Monetization model (Q-2)
+- ⬜ Optional purchase plus donations or tips (D-017)
 - ⬜ Trademark check on the final name
 - ⬜ Licences for any third-party assets and fonts, tracked in `CREDITS.md`
 - ⬜ Privacy policy (required by app stores, even with no data collection)
