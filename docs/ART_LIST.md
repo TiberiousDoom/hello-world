@@ -13,7 +13,9 @@ Status values: **Placeholder** = an SVG stand-in exists, **Code** = drawn by the
 renderer for now (a sprite can replace it later), **Needed** = not in the game
 yet, **Final** = your art is in.
 
-Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders.
+![All placeholder art](art-placeholders.png)
+
+Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
 They show the intended size, facing and silhouette.
 
 ## Specs (for every asset unless noted)
