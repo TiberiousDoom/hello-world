@@ -549,6 +549,9 @@ body.in-menu #toasts {
   flex: 1 1 0;
   min-width: 0;
 }
+.tabs button.locked {
+  opacity: 0.55;
+}
 .tabs .count {
   margin-left: 2px;
 }
@@ -774,6 +777,23 @@ body:not(.in-menu) #mainmenu {
   position: fixed;
   inset: 0;
   z-index: 20;
+  pointer-events: none; /* action steps: the game stays playable */
+}
+#tutorial.blocking {
+  pointer-events: auto; /* explanation steps: read first */
+}
+#tutorial .tip {
+  pointer-events: auto;
+}
+#tutorial:not(.blocking) .spot {
+  box-shadow: 0 0 0 200vmax rgba(8, 14, 26, 0.35);
+  animation: spot-pulse 1.2s ease-in-out infinite;
+}
+@keyframes spot-pulse {
+  50% {
+    outline-color: var(--white);
+    outline-width: 5px;
+  }
 }
 #tutorial .spot {
   position: fixed;
@@ -818,6 +838,28 @@ body:not(.in-menu) #mainmenu {
 .tip-nav {
   display: flex;
   justify-content: space-between;
+  gap: 6px;
+}
+button.quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+.tip-next.quiet {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--muted);
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+.lesson-seen {
+  margin-left: auto;
+  color: var(--good);
+  font-size: 12px;
 }
 .tip-next {
   --icon-accent: #ffffff;
@@ -829,6 +871,7 @@ body:not(.in-menu) #mainmenu {
   #tutorial .spot,
   #tutorial .tip {
     transition: none;
+    animation: none !important;
   }
 }
 

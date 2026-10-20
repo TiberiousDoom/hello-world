@@ -1,7 +1,7 @@
 // The Company window (contract, inbox, store) and its top-bar buttons.
 
 import { artUrl, icon } from '../art';
-import { COMPANY, COMPANY_NAME, STORE, buyCrate, contractProgress, money, unreadCount } from '../sim/company';
+import { COMPANY, COMPANY_NAME, STORE, buyCrate, contractProgress, money, storeOpen, unreadCount } from '../sim/company';
 import { ITEMS, ItemCounts, ItemId } from '../sim/data';
 import { World } from '../sim/world';
 
@@ -117,6 +117,7 @@ export class CompanyPanel {
     badge.hidden = unread === 0;
     badge.textContent = String(unread);
     $('mail-btn').classList.toggle('unread', unread > 0);
+    $('company').querySelector('[data-tab="store"]')!.classList.toggle('locked', !storeOpen(world));
     const tabUnread = $('tab-unread');
     tabUnread.hidden = unread === 0;
     tabUnread.textContent = String(unread);
@@ -127,7 +128,7 @@ export class CompanyPanel {
     let key: string;
     if (this.tab === 'contract') key = `c:${JSON.stringify(c.contract)}:${Math.ceil(s.time)}:${c.contractsMet}:${c.contractsMissed}`;
     else if (this.tab === 'inbox') key = `i:${c.inbox.length}:${c.inbox[0]?.id}`;
-    else key = `s:${c.debt}`;
+    else key = `s:${c.debt}:${storeOpen(world)}`;
     if (key === this.bodyKey) return;
     this.bodyKey = key;
     $('company-body').innerHTML =
@@ -172,6 +173,9 @@ export class CompanyPanel {
   }
 
   private renderStore(world: World): string {
+    if (!storeOpen(world)) {
+      return `<p><i data-icon="lock">${icon('lock')}</i> <b>Closed.</b> The Company Store opens after your first contract closes.</p>`;
+    }
     const debt = world.state.company.debt;
     const room = COMPANY.creditLimit - debt;
     return `<p class="muted">Everything is delivered straight to hub stock and added to your balance. Credit limit ${money(COMPANY.creditLimit)}; you have ${money(Math.max(0, room))} left.</p>

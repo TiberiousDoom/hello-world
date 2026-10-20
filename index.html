@@ -95,12 +95,22 @@
         <div class="menu-list">
           <button id="btn-resume" class="primary"><i data-icon="play"></i>Resume</button>
           <button id="btn-save"><i data-icon="save"></i>Save now</button>
-          <button id="btn-tutorial"><i data-icon="help"></i>Tutorial</button>
+          <button id="btn-tutorial"><i data-icon="help"></i>Tutorials</button>
           <button id="btn-help"><i data-icon="research"></i>How to play</button>
           <button id="btn-mainmenu"><i data-icon="home"></i>Main menu</button>
           <button id="btn-new" class="danger"><i data-icon="new"></i>New game</button>
         </div>
         <p class="muted small">Progress saves automatically in this browser.</p>
+      </div>
+    </div>
+
+    <div id="lessons" class="modal" hidden>
+      <div class="card">
+        <h2>Tutorials</h2>
+        <p class="muted">Lessons appear by themselves the first time they're useful. Replay any of them here.</p>
+        <div id="lessons-list" class="menu-list"></div>
+        <label class="toggle"><input type="checkbox" id="tips-toggle" /> Show lessons automatically</label>
+        <button data-close>Close</button>
       </div>
     </div>
 
@@ -117,7 +127,7 @@
         </ul>
         <h3>Controls</h3>
         <ul>
-          <li><b>Desktop:</b> click to build or select, drag to lay belts, right-drag or WASD to pan, wheel to zoom, R to rotate, X to demolish, 1–9 to pick buildings, Space to pause, Esc to cancel.</li>
+          <li><b>Desktop:</b> click to build or select, drag to lay belts, right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9 picks buildings, Space pauses and Esc cancels.</li>
           <li><b>Touch:</b> tap to build or select, drag with a tool to lay belts, drag with no tool to pan, pinch to zoom.</li>
         </ul>
         <button data-close>Close</button>
@@ -141,7 +151,7 @@
       <div class="tip" role="dialog" aria-live="polite">
         <div class="tip-head"><span class="step"></span><button class="tip-close" title="Close tutorial"><i data-icon="close"></i></button></div>
         <p class="tip-text"></p>
-        <div class="tip-nav"><button class="tip-back">← Back</button><button class="tip-next">Next →</button></div>
+        <div class="tip-nav"><button class="tip-back">← Back</button><button class="tip-hide quiet" title="Stop lessons from appearing (turn them back on in Menu → Tutorials)">Hide tips</button><button class="tip-next">Next →</button></div>
       </div>
     </div>
 

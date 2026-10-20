@@ -278,6 +278,16 @@ export function tickCompany(w: World): void {
   else missContract(w, contract, shipped, short);
   c.contract = null;
   c.nextContractAt = s.time + COMPANY.contractGap;
+  if (c.contractsMet + c.contractsMissed === 1) {
+    sendMail(
+      w,
+      SENDERS.store,
+      'The Company Store is now open!',
+      `Now that you've settled in, the Company Store is pleased to offer you emergency supplies on credit. Iron, bricks, copper and gears are delivered straight to your hub.
+
+Prices include a convenience fee. Credit limit: ${money(COMPANY.creditLimit)}.`,
+    );
+  }
 }
 
 export function onResearched(w: World, name: string): void {
@@ -316,12 +326,19 @@ export function onFirstWave(w: World): void {
   );
 }
 
-export type BuyError = 'unknown' | 'credit-limit';
+export type BuyError = 'unknown' | 'locked' | 'credit-limit';
+
+/** The store opens once your first contract closes, whether you met it or not. */
+export function storeOpen(w: World): boolean {
+  const c = w.state.company;
+  return c.contractsMet + c.contractsMissed > 0;
+}
 
 /** Buys a crate on credit: items go straight into hub stock, the price onto your debt. */
 export function buyCrate(w: World, id: string): BuyError | null {
   const crate = STORE.find((x) => x.id === id);
   if (!crate) return 'unknown';
+  if (!storeOpen(w)) return 'locked';
   const c = w.state.company;
   if (c.debt + crate.price > COMPANY.creditLimit) return 'credit-limit';
   c.debt += crate.price;
@@ -337,7 +354,7 @@ export function welcomeMail(w: World): void {
     SENDERS.relations,
     `Welcome to ${COMPANY_NAME}, valued contractor!`,
     `Congratulations on your relocation!\n\nYour passage, equipment lease and this orientation email come to ${money(COMPANY.startingDebt)}, which has been added to your account. Repayment is easy: simply complete your shipping contracts.\n\n` +
-      `  • Contracts arrive in this inbox.\n  • Deliver the listed goods to the hub before the deadline.\n  • Wages are credited after standard deductions.\n  • Need supplies? The Company Store is happy to extend credit.\n\n` +
+      `  • Contracts arrive in this inbox.\n  • Deliver the listed goods to the hub before the deadline.\n  • Wages are credited after standard deductions.\n  • The Company Store opens after your first contract.\n\n` +
       `We look forward to a long and productive relationship.\n\nVery long.`,
   );
 }

@@ -16,6 +16,7 @@ import {
   FIRST_WAVE_AT,
   GameMode,
   HUB_SIZE,
+  HUB_WEAPON,
   ItemCounts,
   ItemId,
   MAP_SIZE,
@@ -138,6 +139,8 @@ export class World {
   private flowDirty = true;
   shots: Shot[] = [];
   events: string[] = [];
+  /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
+  delivered: ItemCounts = {};
 
   constructor(state: GameState) {
     this.state = state;
@@ -568,6 +571,7 @@ export class World {
   private deliver(item: ItemId): void {
     const inv = this.state.inventory;
     inv[item] = (inv[item] ?? 0) + 1;
+    this.delivered[item] = (this.delivered[item] ?? 0) + 1;
     onDelivered(this, item);
   }
 
@@ -609,6 +613,7 @@ export class World {
         case 'assembler':
           this.tickMachine(b, dt);
           break;
+        case 'hub':
         case 'turret':
         case 'cannon':
           this.tickTurret(b, dt);
@@ -752,11 +757,13 @@ export class World {
   }
 
   private tickTurret(b: Building, dt: number): void {
-    const def = TURRETS[b.type]!;
+    const hub = b.type === 'hub';
+    const def = hub ? HUB_WEAPON : TURRETS[b.type]!;
     b.cooldown = Math.max(0, b.cooldown - dt);
-    if (b.cooldown > 0 || b.ammo <= 0) return;
-    const cx = b.x + 0.5;
-    const cy = b.y + 0.5;
+    if (b.cooldown > 0 || (!hub && b.ammo <= 0)) return; // the hub's gun needs no ammo
+    const half = this.sizeOf(b.type) / 2;
+    const cx = b.x + half;
+    const cy = b.y + half;
     let target: Enemy | undefined;
     let best = def.range * def.range;
     for (const e of this.state.enemies) {
@@ -767,7 +774,7 @@ export class World {
       }
     }
     if (!target) return;
-    b.ammo--;
+    if (!hub) b.ammo--;
     b.cooldown = 1 / def.rate;
     if (def.splash > 0) {
       for (const e of this.state.enemies) {

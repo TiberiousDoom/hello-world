@@ -52,7 +52,7 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 - Building costs are paid from hub stock. Demolishing a building refunds its
   cost, scaled by the HP it has left.
-- **Hub:** 600 HP. Accepts any item from any side.
+- **Hub:** 600 HP. Accepts any item from any side. It has a **built-in gun**: 9 damage, 1.2 shots/s, range 6 from its centre, and no ammo needed. It beats wave 1 alone but not wave 3.
 
 ## Logistics rules
 
@@ -149,7 +149,7 @@ start ¢48,750 in debt. Numbers live in `src/sim/company.ts`.
 - **Hub breach:** a ¢5,000 repair invoice, on top of the stock lost (Standard mode).
 
 ### Company Store
-Crates paid for on credit: items go straight into hub stock, and the price is added to your debt.
+Opens once the first contract closes (met or missed), announced by email. Crates are paid for on credit: items go straight into hub stock, and the price is added to your debt.
 You can't buy past a credit limit of ¢100,000.
 
 | Crate | Items | Price |
@@ -180,11 +180,21 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   It offers **Continue** (when a save exists, showing its mode and next wave),
   **New game** (choose the mode) and **How to play**.
 
-- A tutorial plays the first time you start a game, and can be replayed from the pause menu. Each step
-  darkens the screen except a spotlight (a circle or rounded rectangle) on the
-  thing being explained, with Back, Next and ✕ buttons. The game is paused while it's open.
-- Steps: the hub, hub stock, a resource node, the extractor, the belt, the furnace,
-  research, the contract, the inbox, waves, hub health (text depends on the mode), and the menu.
+- **Tutorial lessons** start by themselves the first time each one is useful:
+
+  | Lesson | Starts when | Steps |
+  |---|---|---|
+  | Essentials | A game has no extractors or belts yet | The hub → pick the extractor → place it on iron ore → lay 3 belts → build a furnace → deliver a plate → hub stock |
+  | Contracts | The first contract arrives | Contract button, inbox |
+  | Defense | The first wave warning | Spawn marker → research Basic Defense |
+  | Company Store | The store opens | Where to find it |
+  | Splitters and tunnels | The splitter is unlocked | What splitters do |
+  | Breaches | The hub is breached for the first time | What a breach costs |
+
+- **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
+- **Explanation steps** pause the game until you press Next.
+- Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
+- Lessons play once. Menu → Tutorials lists them, replays any of them, and switches automatic lessons on or off.
 
 ## Controls
 
@@ -193,11 +203,13 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 | Build / select | Left click | Tap |
 | Lay belts | Drag with the Belt tool | Drag with the Belt tool |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
-| Zoom | Mouse wheel | Pinch |
-| Rotate | R | Rotate button |
+| Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
+| Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
 | Pick a building | 1–9 | Toolbar |
 | Pause | Space | ❚❚ button |
+| Put down the tool or clear the selection | Right-click or Esc | Tap the tool again |
+| Close a menu | Click outside it | Tap outside it |
 
 ## Saves
 

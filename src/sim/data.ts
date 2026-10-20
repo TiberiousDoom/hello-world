@@ -72,7 +72,7 @@ export interface BuildingDef {
 export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
-  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 600, cost: {}, blocking: true, description: 'Receives items. Protect it.' },
+  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 600, cost: {}, blocking: true, description: 'Receives items, and defends itself with a built-in gun. Protect it.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Takes items from behind and sends them out front, left and right in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
@@ -106,6 +106,12 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
 };
 
 export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, maxCharge: 400 };
+
+/**
+ * The hub's built-in gun. It needs no ammo and never upgrades: strong enough
+ * to beat wave 1 alone, weak enough that later waves need real defenses.
+ */
+export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, maxShots: 0, range: 6, rate: 1.2, damage: 9, splash: 0 };
 
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
 export const BELT_SPEED = 1.5; // tiles per second
