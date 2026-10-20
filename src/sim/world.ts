@@ -139,6 +139,8 @@ export class World {
   private flowDirty = true;
   shots: Shot[] = [];
   events: string[] = [];
+  /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
+  delivered: ItemCounts = {};
 
   constructor(state: GameState) {
     this.state = state;
@@ -569,6 +571,7 @@ export class World {
   private deliver(item: ItemId): void {
     const inv = this.state.inventory;
     inv[item] = (inv[item] ?? 0) + 1;
+    this.delivered[item] = (this.delivered[item] ?? 0) + 1;
     onDelivered(this, item);
   }
 

@@ -180,11 +180,21 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   It offers **Continue** (when a save exists, showing its mode and next wave),
   **New game** (choose the mode) and **How to play**.
 
-- A tutorial plays the first time you start a game, and can be replayed from the pause menu. Each step
-  darkens the screen except a spotlight (a circle or rounded rectangle) on the
-  thing being explained, with Back, Next and ✕ buttons. The game is paused while it's open.
-- Steps: the hub, hub stock, a resource node, the extractor, the belt, the furnace,
-  research, the contract, the inbox, waves, hub health (text depends on the mode), and the menu.
+- **Tutorial lessons** start by themselves the first time each one is useful:
+
+  | Lesson | Starts when | Steps |
+  |---|---|---|
+  | Essentials | A game has no extractors or belts yet | The hub → pick the extractor → place it on iron ore → lay 3 belts → build a furnace → deliver a plate → hub stock |
+  | Contracts | The first contract arrives | Contract button, inbox |
+  | Defense | The first wave warning | Spawn marker → research Basic Defense |
+  | Company Store | The store opens | Where to find it |
+  | Splitters and tunnels | The splitter is unlocked | What splitters do |
+  | Breaches | The hub is breached for the first time | What a breach costs |
+
+- **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
+- **Explanation steps** pause the game until you press Next.
+- Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
+- Lessons play once. Menu → Tutorials lists them, replays any of them, and switches automatic lessons on or off.
 
 ## Controls
 

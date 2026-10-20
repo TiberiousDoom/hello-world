@@ -7,10 +7,10 @@ import { createDemoWorld, sustainDemo } from './sim/demo';
 import { TICK, World } from './sim/world';
 import { Hud, hydrateIcons } from './ui/hud';
 import { createUIState } from './ui/state';
-import { Tutorial } from './ui/tutorial';
+import { LESSONS, Tutorial } from './ui/tutorial';
 
 const SAVE_KEY = 'foundry-front-save';
-/** Progress that outlives a single game: tutorial seen, hardcore unlocked. */
+/** Progress that outlives a single game: lessons seen, tips on or off, hardcore unlocked. */
 const PROFILE_KEY = 'foundry-front-profile';
 const AUTOSAVE_MS = 20_000;
 const MAX_TICKS_PER_FRAME = 20;
@@ -26,14 +26,19 @@ function loadWorld(): World {
 }
 
 interface Profile {
-  tutorialDone: boolean;
+  lessonsSeen: string[];
+  tipsOff: boolean;
   hardcoreUnlocked: boolean;
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { tutorialDone: false, hardcoreUnlocked: false };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false };
   try {
-    return { ...fallback, ...JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}') };
+    const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
+    // Players who finished the old one-shot tutorial have seen what its lessons cover.
+    if (stored.tutorialDone && !stored.lessonsSeen) stored.lessonsSeen = ['essentials', 'contracts', 'defense'];
+    delete stored.tutorialDone;
+    return { ...fallback, ...stored };
   } catch {
     return fallback;
   }
@@ -102,7 +107,7 @@ function showMainMenu(): void {
   document.body.classList.add('in-menu');
   demo = createDemoWorld();
   camera.zoom = window.innerWidth < 600 ? 26 : 38;
-  if (tutorial.active) tutorial.close();
+  if (tutorial.active) tutorial.abort();
   hud.closeModals();
   refreshMainMenu();
 }
@@ -124,19 +129,32 @@ const hud = new Hud(ui, {
   getWorld: active,
   save,
   hardcoreUnlocked: () => profile.hardcoreUnlocked,
-  startTutorial: () => tutorial.start(),
+  lessons: () => LESSONS.map((l) => ({ id: l.id, title: l.title, seen: profile.lessonsSeen.includes(l.id) })),
+  playLesson: (id) => tutorial.start(id),
+  tipsOff: () => profile.tipsOff,
+  setTipsOff: (off) => {
+    profile.tipsOff = off;
+    saveProfile();
+  },
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
   newGame: (mode) => {
     play(World.create(undefined, mode));
     save();
-    if (!profile.tutorialDone) tutorial.start();
   },
 });
 
-const tutorial = new Tutorial(camera, active, ui, () => {
-  profile.tutorialDone = true;
-  saveProfile();
+const tutorial = new Tutorial(camera, active, ui, {
+  seen: (id) => profile.lessonsSeen.includes(id),
+  markSeen: (id) => {
+    if (!profile.lessonsSeen.includes(id)) profile.lessonsSeen.push(id);
+    saveProfile();
+  },
+  tipsOff: () => profile.tipsOff,
+  setTipsOff: (off) => {
+    profile.tipsOff = off;
+    saveProfile();
+  },
 });
 
 new Input(canvas, camera, ui, {
@@ -198,7 +216,10 @@ function frame(now: number): void {
   }
   camera.clampTo(world.state.width, world.state.height);
   renderer.draw(world, inMenu ? null : ui, now);
-  if (!inMenu) hud.update(world, now);
+  if (!inMenu) {
+    hud.update(world, now);
+    tutorial.check();
+  }
   tutorial.update();
   requestAnimationFrame(frame);
 }

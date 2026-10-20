@@ -30,6 +30,7 @@ one; don't edit the old entry.
 | D-022 | 2026-10-20 | **Contracts and the inbox** (story phase 1): timed contracts paid in wages minus deductions; missed contracts fined and the next one enlarged; a store on credit; licence fees for research; repair invoices for breaches. Placeholder company name: **Halcyon Extraction Co.** | Smallest slice that gives the game its voice and the factory a purpose | Accepted (built) |
 | D-023 | 2026-10-20 | **Mouse wheel (Q-13):** rotates the building being placed, and zooms otherwise. Ctrl+wheel (also a trackpad pinch) always zooms | Owner agreed with the recommendation. Touch is unchanged | Accepted (built) |
 | D-024 | 2026-10-20 | **Hub gun:** 9 damage, 1.2 shots/s, range 6, no ammo, no upgrades | Meets the owner's target (wave 1 alone for at most 25% HP) and still needs turrets from wave 2 on | Accepted (built) |
+| D-025 | 2026-10-20 | **Tutorial as lessons** (supersedes D-009): short lessons triggered by game events, with action steps that wait for the player. The game runs during action steps and pauses during explanations. Seen lessons are stored in the browser profile; players can replay them or switch them off | Owner's playtest notes: split by priority, make it interactive, trigger it by events | Accepted (built) |
 
 ## D-006: How should turrets get ammo?
 

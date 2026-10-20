@@ -6,6 +6,7 @@
 - The mouse wheel rotates the building being placed, and zooms otherwise. Ctrl+wheel always zooms.
 - Right-click puts down the tool and clears the selection. Right-drag still pans.
 - Clicking or tapping outside a menu closes it.
+- The tutorial is now six short lessons that start when they're useful (new game, first contract, first wave warning, store opening, splitters, first breach). Steps that ask you to build wait until you do it. Menu → Tutorials replays them or switches them off.
 
 ## Unreleased: story phase 1, the Company
 - You start ¢48,750 in debt to Halcyon Extraction Co. (placeholder name).

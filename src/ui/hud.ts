@@ -57,7 +57,10 @@ export interface HudActions {
   newGame(mode: GameMode): void;
   save(): void;
   hardcoreUnlocked(): boolean;
-  startTutorial(): void;
+  lessons(): { id: string; title: string; seen: boolean }[];
+  playLesson(id: string): void;
+  tipsOff(): boolean;
+  setTipsOff(off: boolean): void;
   toMainMenu(): void;
   hasGame(): boolean;
 }
@@ -150,9 +153,15 @@ export class Hud {
     });
     $('btn-new').addEventListener('click', () => this.openNewGame());
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
-    $('btn-tutorial').addEventListener('click', () => {
+    $('btn-tutorial').addEventListener('click', () => this.openLessons());
+    $('lessons-list').addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-lesson]');
+      if (!btn) return;
       this.closeModals();
-      actions.startTutorial();
+      actions.playLesson(btn.dataset.lesson!);
+    });
+    $<HTMLInputElement>('tips-toggle').addEventListener('change', (e) => {
+      actions.setTipsOff(!(e.target as HTMLInputElement).checked);
     });
     $('newgame').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
@@ -459,6 +468,18 @@ export class Hud {
     $('research-body').innerHTML = `<h2>Research</h2>
       <p class="muted">Research is paid for from hub stock.</p>${rows.join('')}`;
     if ($('research').hidden) this.openModal('research');
+  }
+
+  private openLessons(): void {
+    $('lessons-list').innerHTML = this.actions
+      .lessons()
+      .map(
+        (l) =>
+          `<button data-lesson="${l.id}">${ico('play')}${esc(l.title)}${l.seen ? '<span class="lesson-seen">✓ Seen</span>' : ''}</button>`,
+      )
+      .join('');
+    $<HTMLInputElement>('tips-toggle').checked = !this.actions.tipsOff();
+    this.openModal('lessons');
   }
 
   openNewGame(): void {
