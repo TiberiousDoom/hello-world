@@ -393,7 +393,10 @@ export class Tutorial {
     const vh = window.innerHeight;
     let left = vw / 2 - tw / 2;
     let top = vh / 2 - th / 2;
-    if (r && target.tiles && step.done) {
+    if (!r && step.done) {
+      // Nothing to point at while the player builds: stay near the top, off the map's centre.
+      top = 110;
+    } else if (r && target.tiles && step.done) {
       // Map targets the player has to build around: keep the card out of the way,
       // in the half of the screen the target isn't in.
       top = r.y + r.h / 2 > vh / 2 ? 110 : vh - th - 120;
