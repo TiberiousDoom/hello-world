@@ -47,3 +47,7 @@ not available at the start, so early defense still depends on production lines.
 | Q-5 | Should there be a **win condition** or campaign (for example, a final wave or a launch goal), or should the game be endless? | Affects pacing and the content plan |
 | Q-6 | Should enemies **target** specific buildings (turrets first) rather than whatever blocks their path? | Affects how walls work as a strategy |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
+| Q-8 | **Vehicles and gear** ([STORY.md](STORY.md)): should the player get a character or vehicle they steer around the map (a jetpack, rover or small ship), or should vehicles stay off-screen, as expeditions you send out for loot? | The biggest decision. A steerable unit changes controls, the camera and the pace |
+| Q-9 | Adopt the **"keep up appearances" story** (quotas, suspicion, black market, escape) as the game's core? | Would also answer Q-5: escaping is the win condition |
+| Q-10 | **Tone**: is dry corporate satire (emails that dock your pay) the right voice? | Affects writing, UI and art |
+| Q-11 | What happens when **you get caught**: fines in Standard and being fired in Hardcore? | Fits the existing modes |

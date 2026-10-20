@@ -15,6 +15,7 @@ quality and business work don't get left until the end.
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ (this PR) |
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | ⬜ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
+| M4s: Story layer (proposal) | Quotas, suspicion, black market, food, escape ship ([STORY.md](STORY.md)) | ❓ Q-8 to Q-11 |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
