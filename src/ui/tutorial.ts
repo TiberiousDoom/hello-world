@@ -176,7 +176,7 @@ export const LESSONS: Lesson[] = [
         target: () => ({ el: '#research-btn' }),
         done: (c) => c.world.state.researched.includes('defense'),
         text: () =>
-          'The hub gun can handle this first wave, but not many more. Open Research and get Basic Defense to unlock turrets. Turrets fire iron plates, so feed them by belt.',
+          'The hub gun can handle this first wave, but not many more. Open Research and start Basic Defense: it draws 20 iron plates from the hub over 30 seconds, then unlocks turrets. Turrets fire iron plates, so feed them by belt.',
       },
     ],
   },
@@ -350,6 +350,9 @@ export class Tutorial {
       this.go(this.index + 1);
       return;
     }
+    // While the player has a menu open to do what an action step asked, step aside.
+    const menuOpen = !!document.querySelector('.modal:not([hidden])');
+    this.root.classList.toggle('aside', menuOpen && !!step.done);
     const text = step.text(this.ctx);
     if (text !== this.lastText) {
       this.root.querySelector('.tip-text')!.textContent = this.lastText = text;

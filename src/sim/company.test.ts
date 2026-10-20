@@ -100,7 +100,7 @@ describe('Company', () => {
   it('charges licence fees for research and invoices hub breaches', () => {
     const w = quietWorld();
     const debt = w.state.company.debt;
-    w.research('defense');
+    w.researchNow('defense');
     expect(w.state.company.debt).toBe(debt + COMPANY.researchFee);
     w.hub!.hp = 0;
     w.tick();

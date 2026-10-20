@@ -139,22 +139,23 @@ export const STARTING_BUILDINGS: BuildingType[] = ['belt', 'extractor', 'furnace
 export interface Research {
   id: string;
   name: string;
-  cost: ItemCounts; // paid from hub stock
+  cost: ItemCounts; // drawn from hub stock while it's being researched
+  time: number; // seconds to research, if the stock keeps up
   requires: string[]; // research ids
   unlocks: BuildingType[];
   description: string;
 }
 
 export const RESEARCH: Research[] = [
-  { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, requires: [], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
-  { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
-  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, requires: [], unlocks: ['workshop'], description: 'Make gears and wire.' },
-  { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
-  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 20, gear: 10 }, requires: ['workshop'], unlocks: ['splitter'], description: 'Splitters branch a line three ways.' },
-  { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
-  { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
-  { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
-  { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
+  { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: [], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
+  { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
+  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: [], unlocks: ['workshop'], description: 'Make gears and wire.' },
+  { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
+  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 20, gear: 10 }, time: 75, requires: ['workshop'], unlocks: ['splitter'], description: 'Splitters branch a line three ways.' },
+  { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
+  { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
+  { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
+  { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
 ];
 export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));
 

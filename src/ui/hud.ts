@@ -116,6 +116,7 @@ export class Hud {
   private infoKey = '';
   private statsHtml = '';
   private invHtml = '';
+  private researchKey = '';
   readonly company: CompanyPanel;
 
   constructor(
@@ -129,11 +130,15 @@ export class Hud {
     });
     $('research-btn').addEventListener('click', () => this.openResearch());
     $('research-body').addEventListener('click', (e) => {
-      const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-research]');
-      if (!btn) return;
-      actions.getWorld().research(btn.dataset.research!);
-      this.openResearch();
-      this.refresh();
+      const target = e.target as HTMLElement;
+      const start = target.closest<HTMLElement>('[data-research]');
+      if (start) actions.getWorld().startResearch(start.dataset.research!);
+      if (target.closest('[data-pause-research]')) actions.getWorld().pauseResearch();
+      if (start || target.closest('[data-pause-research]')) {
+        this.researchKey = '';
+        this.renderResearch(actions.getWorld());
+        this.refresh();
+      }
     });
     $('menu-btn').addEventListener('click', () => this.openModal('menu'));
     $('btn-resume').addEventListener('click', () => this.closeModals());
@@ -293,9 +298,17 @@ export class Hud {
       : `Wave ${s.wave + 1} in ${formatTime(s.nextWaveAt - s.time)}`;
     $('hub-hp').parentElement!.title = s.mode === 'hardcore' ? 'Hub health · Hardcore' : 'Hub health';
     $('mode-badge').hidden = s.mode !== 'hardcore';
+    const rs = s.research;
     const ready = RESEARCH.filter((r) => world.checkResearch(r.id) === null).length;
-    $('research-label').textContent = ready ? `Research · ${ready}` : 'Research';
-    $('research-btn').classList.toggle('ready', ready > 0);
+    $('research-label').textContent = rs.active
+      ? `Research · ${rs.stalled ? 'stalled' : Math.floor(world.researchProgress(rs.active) * 100) + '%'}`
+      : ready
+        ? `Research · ${ready}`
+        : 'Research';
+    // Draw the eye when nothing is being researched but something could be.
+    $('research-btn').classList.toggle('ready', !rs.active && ready > 0);
+    $('research-btn').classList.toggle('stalled', rs.stalled);
+    if (!$('research').hidden) this.renderResearch(world);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
       b.classList.toggle('active', Number(b.dataset.speed) === this.ui.speed);
     }
@@ -449,25 +462,55 @@ export class Hud {
   }
 
   private openResearch(): void {
-    const world = this.actions.getWorld();
+    this.researchKey = '';
+    this.renderResearch(this.actions.getWorld());
+    this.openModal('research');
+  }
+
+  /** Redraws the research list when anything on it has changed. */
+  private renderResearch(world: World): void {
+    const rs = world.state.research;
     const inv = world.state.inventory;
+    const key = JSON.stringify([rs.active, rs.stalled, rs.paid, world.state.researched.length, ITEM_IDS.map((i) => inv[i] ?? 0)]);
+    if (key === this.researchKey) return;
+    this.researchKey = key;
     const rows = RESEARCH.map((r) => {
       const err = world.checkResearch(r.id);
       const unlocks = r.unlocks.map((t) => BUILDINGS[t].name).join(', ');
+      const active = rs.active === r.id;
+      const progress = world.researchProgress(r.id);
+      const paid = rs.paid[r.id] ?? {};
       let action: string;
+      let state = '';
       if (err === 'done') action = '<span class="done">✓ Done</span>';
       else if (err === 'requires') {
         const missing = r.requires.filter((q) => !world.state.researched.includes(q));
         action = `<span class="muted">Needs ${missing.map((q) => RESEARCH.find((x) => x.id === q)!.name).join(', ')}</span>`;
-      } else action = `<button data-research="${r.id}" ${err ? 'disabled' : ''}>Research</button>`;
-      return `<div class="research ${err ?? 'ready'}">
+      } else if (active) {
+        action = `<button data-pause-research>${ico('pause')}Pause</button>`;
+        state = rs.stalled ? '<span class="stalled-note">Stalled: the hub is out of an item it needs</span>' : '<span class="active-note">Researching…</span>';
+      } else {
+        action = `<button data-research="${r.id}" class="${rs.active ? '' : 'primary'}">${ico('research')}${progress > 0 ? 'Resume' : rs.active ? 'Switch' : 'Start'}</button>`;
+      }
+      const items =
+        err === 'done'
+          ? ''
+          : Object.entries(r.cost)
+              .map(([k, n]) => {
+                const item = k as ItemId;
+                const have = Math.min(n!, paid[item] ?? 0);
+                const short = have < n! && (inv[item] ?? 0) === 0 ? ' short' : '';
+                return `<span class="cost${short}">${swatch(item)}${have}/${n}</span>`;
+              })
+              .join(' ') + ` <span class="muted">· ${formatTime(r.time)}</span>`;
+      const bar = err !== 'done' && (active || progress > 0) ? `<div class="bar"><div style="width:${progress * 100}%"></div></div>` : '';
+      return `<div class="research ${err ?? 'ready'} ${active ? 'active' : ''}">
         <div><b>${esc(r.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br>
-        <span class="muted">${esc(r.description)}</span><br>${err === 'done' ? '' : costHtml(r.cost, inv)}</div>
+        <span class="muted">${esc(r.description)}</span><br>${items}${state ? '<br>' + state : ''}${bar}</div>
         <div>${action}</div></div>`;
     });
     $('research-body').innerHTML = `<h2>Research</h2>
-      <p class="muted">Research is paid for from hub stock.</p>${rows.join('')}`;
-    if ($('research').hidden) this.openModal('research');
+      <p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress. Each completed research also costs a Company licence fee.</p>${rows.join('')}`;
   }
 
   private openLessons(): void {
