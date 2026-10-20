@@ -437,6 +437,28 @@ body.in-menu #toasts {
 .research b {
   font-family: var(--display);
 }
+.research.active {
+  background: rgba(63, 169, 245, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+  margin: 0 -10px;
+}
+.research .bar {
+  margin-top: 6px;
+}
+.active-note {
+  color: var(--sky);
+  font-size: 12px;
+  font-weight: 700;
+}
+.stalled-note {
+  color: #ff8a98;
+  font-size: 12px;
+  font-weight: 700;
+}
+#research-btn.stalled {
+  border-color: var(--danger);
+}
 .research.requires {
   opacity: 0.55;
 }
@@ -778,6 +800,9 @@ body:not(.in-menu) #mainmenu {
   inset: 0;
   z-index: 20;
   pointer-events: none; /* action steps: the game stays playable */
+}
+#tutorial.aside {
+  visibility: hidden;
 }
 #tutorial.blocking {
   pointer-events: auto; /* explanation steps: read first */

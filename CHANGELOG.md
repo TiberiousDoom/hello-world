@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased: research over time
+- Research now takes time: start one and it draws its items from hub stock over 30–150 seconds. It stalls if the hub runs out, and you can switch or pause without losing progress.
+- The research button shows progress (or "stalled"). The research window shows items put in, time and a progress bar.
+- Saves move to v5.
+
 ## Unreleased: M3c playtest polish
 - The hub has a built-in gun (no ammo). It beats wave 1 on its own; later waves still need turrets.
 - The Company Store opens after your first contract closes.

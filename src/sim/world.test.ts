@@ -87,14 +87,14 @@ describe('World', () => {
     const w = World.create(2);
     expect(['belt', 'extractor', 'furnace'].every((t) => w.isUnlocked(t as never))).toBe(true);
     expect(w.isUnlocked('turret')).toBe(false);
-    expect(w.research('logistics')).toBe('requires'); // needs workshops first
+    expect(w.researchNow('logistics')).toBe('requires'); // needs workshops first
     const plates = w.state.inventory.iron_plate!;
-    expect(w.research('defense')).toBe(null);
+    expect(w.researchNow('defense')).toBe(null);
     expect(w.state.inventory.iron_plate).toBe(plates - 20);
     expect(w.isUnlocked('turret')).toBe(true);
-    expect(w.research('defense')).toBe('done');
+    expect(w.researchNow('defense')).toBe('done');
     w.state.inventory = {};
-    expect(w.research('workshop')).toBe('cost');
+    expect(w.researchNow('workshop')).toBe('cost');
     expect(w.availableResearch().map((r) => r.id)).toContain('distribution');
   });
 
@@ -172,7 +172,7 @@ describe('World', () => {
 
   it('two loaded turrets by the hub hold off the first wave', () => {
     const w = World.create(11);
-    w.research('defense');
+    w.researchNow('defense');
     const hub = w.hub!;
     placed(w.place('turret', hub.x - 1, hub.y + 1, 0));
     placed(w.place('turret', hub.x + 3, hub.y + 1, 0));
@@ -361,5 +361,76 @@ describe('Hub weapon', () => {
     for (let t = 0; t < 5; t += TICK) w.tick();
     expect(w.state.enemies[0].hp).toBeLessThan(1000);
     expect(hub.ammo).toBe(0);
+  });
+});
+
+describe('Research over time', () => {
+  function world() {
+    const w = World.create(8);
+    w.state.nextWaveAt = 1e9;
+    w.state.company.nextContractAt = 1e9;
+    return w;
+  }
+
+  it('draws items from stock over its research time, then unlocks', () => {
+    const w = world();
+    const plates = w.state.inventory.iron_plate!;
+    expect(w.startResearch('defense')).toBe(null);
+    run(w, 15); // half of 30 s
+    expect(w.researchProgress('defense')).toBeCloseTo(0.5, 1);
+    expect(Math.abs(w.state.inventory.iron_plate! - (plates - 10))).toBeLessThanOrEqual(1);
+    expect(w.isUnlocked('turret')).toBe(false);
+    run(w, 16);
+    expect(w.isUnlocked('turret')).toBe(true);
+    expect(w.state.inventory.iron_plate).toBe(plates - 20);
+    expect(w.state.research.active).toBe(null);
+  });
+
+  it('stalls when the hub runs out, and resumes when stock arrives', () => {
+    const w = world();
+    w.state.inventory.iron_plate = 5;
+    w.startResearch('defense');
+    run(w, 30);
+    expect(w.state.research.stalled).toBe(true);
+    expect(w.researchProgress('defense')).toBeCloseTo(0.25);
+    w.state.inventory.iron_plate = 100;
+    run(w, 25);
+    expect(w.isUnlocked('turret')).toBe(true);
+  });
+
+  it('keeps progress when switching between researches', () => {
+    const w = world();
+    w.startResearch('defense');
+    run(w, 15);
+    const p = w.researchProgress('defense');
+    w.startResearch('masonry');
+    run(w, 10);
+    expect(w.researchProgress('defense')).toBe(p);
+    expect(w.researchProgress('masonry')).toBeGreaterThan(0);
+    w.startResearch('defense');
+    run(w, 20);
+    expect(w.isUnlocked('turret')).toBe(true);
+  });
+
+  it('draws mixed costs evenly', () => {
+    const w = world();
+    w.startResearch('workshop'); // 30 plates + 10 copper over 60 s
+    run(w, 30);
+    const paid = w.state.research.paid.workshop;
+    expect(paid.iron_plate! / 30).toBeCloseTo(paid.copper_ingot! / 10, 1);
+  });
+
+  it("won't start research whose prerequisites aren't done", () => {
+    const w = world();
+    expect(w.startResearch('logistics')).toBe('requires');
+    expect(w.startResearch('nope')).toBe('unknown');
+  });
+
+  it('migrates version 4 saves', () => {
+    const v4 = JSON.parse(World.create(9).toJSON());
+    v4.version = 4;
+    delete v4.research;
+    const w = World.fromJSON(JSON.stringify(v4));
+    expect(w.state.research.active).toBe(null);
   });
 });

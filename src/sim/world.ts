@@ -49,7 +49,7 @@ import {
   welcomeMail,
 } from './company';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -106,6 +106,7 @@ export interface GameState {
   time: number;
   mode: GameMode;
   researched: string[];
+  research: ResearchState;
   breaches: number; // standard mode: times the hub has fallen
   inventory: ItemCounts;
   hubId: number;
@@ -128,6 +129,20 @@ export interface Shot {
 
 export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
+
+export interface ResearchState {
+  active: string | null;
+  /** Items already put into each research, kept when you switch to another. */
+  paid: Record<string, ItemCounts>;
+  /** Items the active research may take but hasn't yet (fractional, carried between ticks). */
+  budget: number;
+  /** True when the active research is waiting for items the hub doesn't have. */
+  stalled: boolean;
+}
+
+export function createResearchState(): ResearchState {
+  return { active: null, paid: {}, budget: 0, stalled: false };
+}
 
 export class World {
   state: GameState;
@@ -164,6 +179,7 @@ export class World {
       time: 0,
       mode,
       researched: [],
+      research: createResearchState(),
       breaches: 0,
       inventory: { ...START_INVENTORY },
       hubId: 0,
@@ -214,6 +230,11 @@ export class World {
       state.company.nextContractAt = state.time + COMPANY.firstContractAt;
       state.version = 4;
       addedCompany = true;
+    }
+    if (state.version === 4) {
+      // v5 made research take time.
+      state.research = createResearchState();
+      state.version = 5;
     }
     if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
     const world = new World(state);
@@ -267,33 +288,108 @@ export class World {
     return this.state.researched.some((id) => RESEARCH_BY_ID[id]?.unlocks.includes(type));
   }
 
-  /** Why a research can't be done yet, or null if it can. */
+  /** Why a research can't be started yet, or null if it can. */
   checkResearch(id: string): ResearchError | null {
     const r = RESEARCH_BY_ID[id];
     if (!r) return 'unknown';
     if (this.state.researched.includes(id)) return 'done';
     if (!r.requires.every((q) => this.state.researched.includes(q))) return 'requires';
-    if (!this.canAfford(r.cost)) return 'cost';
     return null;
   }
 
-  research(id: string): ResearchError | null {
+  /**
+   * Makes `id` the active research. It then draws its items from hub stock
+   * over its research time. Switching keeps what was already put in.
+   */
+  startResearch(id: string): ResearchError | null {
+    const err = this.checkResearch(id);
+    if (err) return err;
+    const rs = this.state.research;
+    if (rs.active !== id) rs.budget = 0;
+    rs.active = id;
+    rs.stalled = false;
+    return null;
+  }
+
+  pauseResearch(): void {
+    this.state.research.active = null;
+    this.state.research.budget = 0;
+    this.state.research.stalled = false;
+  }
+
+  /** Fraction (0–1) of a research's items put in so far. */
+  researchProgress(id: string): number {
+    const r = RESEARCH_BY_ID[id];
+    const paid = this.state.research.paid[id] ?? {};
+    let need = 0;
+    let have = 0;
+    for (const [k, n] of Object.entries(r.cost)) {
+      need += n!;
+      have += Math.min(n!, paid[k as ItemId] ?? 0);
+    }
+    return need ? have / need : 1;
+  }
+
+  /** Finishes a research at once, paying whatever is left from stock (tests, debugging, the menu demo). */
+  researchNow(id: string): ResearchError | null {
     const err = this.checkResearch(id);
     if (err) return err;
     const r = RESEARCH_BY_ID[id];
-    this.pay(r.cost);
+    const paid = this.state.research.paid[id] ?? {};
+    const rest: ItemCounts = {};
+    for (const [k, n] of Object.entries(r.cost)) rest[k as ItemId] = n! - Math.min(n!, paid[k as ItemId] ?? 0);
+    if (!this.canAfford(rest)) return 'cost';
+    this.pay(rest);
+    this.completeResearch(id);
+    return null;
+  }
+
+  private completeResearch(id: string): void {
+    const r = RESEARCH_BY_ID[id];
+    const rs = this.state.research;
+    delete rs.paid[id];
+    if (rs.active === id) this.pauseResearch();
     this.state.researched.push(id);
     this.events.push(`Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked`);
     onResearched(this, r.name);
-    return null;
+  }
+
+  /** Draws the active research's items from hub stock at a steady pace. */
+  private tickResearch(dt: number): void {
+    const rs = this.state.research;
+    if (!rs.active) return;
+    const r = RESEARCH_BY_ID[rs.active];
+    const paid = (rs.paid[r.id] ??= {});
+    const total = Object.values(r.cost).reduce((a, n) => a + n!, 0);
+    rs.budget = Math.min(rs.budget + (total / r.time) * dt, 1 + (total / r.time) * dt);
+    const inv = this.state.inventory;
+    rs.stalled = false;
+    while (rs.budget >= 1) {
+      // Take from whichever item is furthest behind and in stock.
+      let pick: ItemId | null = null;
+      let worst = Infinity;
+      for (const [k, n] of Object.entries(r.cost)) {
+        const item = k as ItemId;
+        const frac = (paid[item] ?? 0) / n!;
+        if (frac < 1 && (inv[item] ?? 0) > 0 && frac < worst) {
+          worst = frac;
+          pick = item;
+        }
+      }
+      if (!pick) {
+        rs.stalled = this.researchProgress(r.id) < 1;
+        break;
+      }
+      inv[pick]!--;
+      paid[pick] = (paid[pick] ?? 0) + 1;
+      rs.budget--;
+    }
+    if (this.researchProgress(r.id) >= 1) this.completeResearch(r.id);
   }
 
   /** Research whose prerequisites are met but which isn't done yet. */
   availableResearch() {
-    return RESEARCH.filter((r) => {
-      const err = this.checkResearch(r.id);
-      return err === null || err === 'cost';
-    });
+    return RESEARCH.filter((r) => this.checkResearch(r.id) === null);
   }
 
   private pay(cost: ItemCounts): void {
@@ -621,6 +717,7 @@ export class World {
       }
     }
 
+    this.tickResearch(dt);
     this.tickWaves();
     tickCompany(this);
     if (this.flowDirty) this.computeFlow();

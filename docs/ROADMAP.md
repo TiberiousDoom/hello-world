@@ -25,7 +25,7 @@ quality and business work don't get left until the end.
 1. ✅ Merge story phase 1 (contracts and inbox).
 2. ✅ M3c playtest polish: controls, wheel rotation, store lock, hub weapon.
 3. ✅ Interactive tutorial (M3c).
-4. **Research over time (D-018).** It changes the early economy, so do it before balancing.
+4. ✅ Research over time (D-018, D-026).
 5. **Story phase 2:** suspicion, audits and the black market.
 
 ---
@@ -59,7 +59,7 @@ quality and business work don't get left until the end.
 - ⬜ A tesla turret fed by wire, and other ammo options
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
-- ⬜ Research consumes delivered items over time (D-018)
+- ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
 - ⬜ Win condition: escape (D-019, story phase 4)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (wave size and timer)

@@ -70,19 +70,26 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 ## Research
 
-Research is paid for at once from hub stock. You start with the belt, extractor and furnace.
+You start with the belt, extractor and furnace. Everything else is researched.
 
-```
-Basic Defense (20 plates) → Turret
-├─ Distribution (25 plates, 10 copper) → Hub Port
-Masonry (12 bricks) → Wall
-Workshops (30 plates, 10 copper) → Workshop
-├─ Logistics (20 plates, 10 gears) → Splitter
-│  └─ Underground Transport (20 gears, 10 bricks) → Underground Belt
-├─ Assembly (30 gears, 30 wire) → Assembler
-│  └─ Heavy Ordnance (10 motors, 30 gears; also needs Basic Defense) → Cannon
-└─ Field Repair (20 gears, 20 wire; also needs Masonry) → Repair Station
-```
+- **Start** a research, and it draws its items from hub stock at a steady pace over its research
+  time. For example, Basic Defense takes 20 iron plates over 30 s.
+- If the hub runs out of an item it needs, the research **stalls** until more arrives.
+- Only one research is active at a time. **Switching** keeps what's already been put in, and
+  **Pause** stops drawing.
+- When it completes, the buildings unlock and the Company charges a licence fee.
+
+| Research | Items | Time | Needs | Unlocks |
+|---|---|---|---|---|
+| Basic Defense | 20 iron plates | 30 s | — | Turret |
+| Masonry | 12 bricks | 30 s | — | Wall |
+| Workshops | 30 iron plates, 10 copper | 60 s | — | Workshop |
+| Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
+| Logistics | 20 iron plates, 10 gears | 75 s | Workshops | Splitter |
+| Underground Transport | 20 gears, 10 bricks | 90 s | Logistics | Underground Belt |
+| Assembly | 30 gears, 30 wire | 120 s | Workshops | Assembler |
+| Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
+| Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Basic Defense | Cannon |
 
 Starting stock: 100 iron plates, 24 bricks, 16 copper ingots.
 
@@ -214,5 +221,5 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently v4). Older saves are migrated when loaded,
+- Save files are versioned (currently v5). Older saves are migrated when loaded,
   and every migration is covered by a test.
