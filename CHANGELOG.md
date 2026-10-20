@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: story phase 2, the black market
+- A Friend gets in touch after your first contract and opens the black market (the eye in the top bar).
+- Stash: hidden storage that the Company can't count. Skimmer: a belt piece that diverts every 4th item.
+- Black-market research paid from the stash: Skimmer and Disguise Kit.
+- Suspicion builds from missed contracts, skimming, hub-port withdrawals and contraband within 14 tiles of the hub.
+- High suspicion brings an audit: an inspection drone sweeps the hub area. Standard fines each piece of contraband found; Hardcore confiscates and destroys it.
+- New "Black market" tutorial lesson. New art: stash, skimmer, audit drone, eye icon. Saves move to v6.
+
 ## Unreleased: research over time
 - Research now takes time: start one and it draws its items from hub stock over 30–150 seconds. It stalls if the hub runs out, and you can switch or pause without losing progress.
 - The research button shows progress (or "stalled"). The research window shows items put in, time and a progress bar.

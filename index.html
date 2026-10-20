@@ -19,6 +19,7 @@
       <div class="stat" id="wave-stat"><i data-icon="wave"></i><span id="wave"></span></div>
       <button id="contract-btn" title="Company contract"><i data-icon="contract"></i><span id="contract-label">Contract</span></button>
       <button id="mail-btn" title="Inbox"><i data-icon="mail"></i><span id="mail-badge" class="count" hidden></span></button>
+      <button id="suspicion-btn" title="Black market · Company suspicion" hidden><i data-icon="eye"></i><span id="suspicion-label"></span></button>
       <button id="research-btn" title="Research"><i data-icon="research"></i><span id="research-label">Research</span></button>
       <div id="speed" class="seg">
         <button data-speed="0" title="Pause (Space)"><i data-icon="pause"></i></button>
@@ -77,6 +78,19 @@
       </div>
     </div>
 
+    <div id="blackmarket" class="modal" hidden>
+      <div class="card wide bm">
+        <div class="company-head">
+          <div>
+            <h2>Black market</h2>
+            <p class="muted">Off the books. The Company can't see this window, but it can see what you build near the hub.</p>
+          </div>
+          <button data-close title="Close"><i data-icon="close"></i></button>
+        </div>
+        <div id="bm-body"></div>
+      </div>
+    </div>
+
     <div id="newgame" class="modal" hidden>
       <div class="card">
         <h2>New game</h2>
@@ -123,6 +137,7 @@
           <li>Buildings and research are paid for from the hub's stock, so keep it supplied.</li>
           <li><b>Splitters</b> take items from behind and send them out the other three sides in turn. <b>Underground belts</b> pass items under anything: place an entrance, then an exit ahead of it.</li>
           <li>You owe <b>the Company</b>. Meet its shipping <b>contracts</b> (in your inbox) to earn wages. Miss them and you're fined. The <b>Company Store</b> sells emergency supplies on credit.</li>
+          <li>Once <b>A Friend</b> gets in touch, the <b>black market</b> (the eye at the top) opens. A <b>Stash</b> hides items from the Company, and a <b>Skimmer</b> diverts some from your belts. Keep contraband away from the hub: if <b>suspicion</b> gets high, an audit drone sweeps the area around it.</li>
           <li>Enemies attack in waves. <b>Turrets</b> fire iron plates and <b>cannons</b> fire gears. Feed them by belt, or from the hub with a <b>hub port</b>.</li>
         </ul>
         <h3>Controls</h3>

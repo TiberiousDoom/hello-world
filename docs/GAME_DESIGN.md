@@ -172,6 +172,38 @@ payslips, underperformance notices, licence fees, repair invoices and a wildlife
 advisory before the first wave. The inbox keeps the 60 newest emails. The contract button in the
 top bar shows the time left and progress.
 
+## The black market
+
+Numbers live in `BLACK_MARKET` in `src/sim/data.ts` and in `src/sim/blackmarket.ts`.
+
+- **A Friend** emails you 45 s after your first contract closes (met or missed). That unlocks the
+  **Stash** and the black-market window (the eye button in the top bar, showing suspicion).
+- **Stash** (contraband): hidden storage that accepts any item by belt, 150 items per stash, shared
+  across all your stashes. Stashed items aren't hub stock. Losing a stash loses its share of the contents.
+- **Skimmer** (contraband, black-market research): a belt piece that accepts from behind and passes items
+  straight on, except every 4th item, which goes out of its right side, typically toward a stash.
+- **Black-market research** is paid from the stash, with the same over-time rules as Company research:
+  - *Skimmer*: 20 iron plates and 6 gears, 60 s
+  - *Disguise Kit*: 25 bricks and 20 wire, 90 s. Afterwards audits spot each piece of contraband only 25% of
+    the time, and contraband near the hub draws a quarter of the suspicion.
+
+### Suspicion (0–100%)
+
+| Raises it | Lowers it |
+|---|---|
+| Each contraband building within 14 tiles of the hub's centre: +0.1/s (+0.025/s disguised) | −0.04/s at all times |
+| Missing a contract: +10 | Meeting a contract: −8 |
+| Each skimmed item: +0.3 | |
+| Each item a hub port takes out of stock: +0.05 | |
+
+- At **30%** the Company sends a policy reminder.
+- At **60%** it orders an **audit** with 60 s notice; at **100%**, with 15 s notice.
+- **Audit:** an inspection drone spirals out from the hub over 8 s and finds contraband within the 14-tile watch
+  radius (shown as a red dashed ring while you place or select contraband, and during an audit). An audit always
+  charges a ¢1,000 fee. It then sets suspicion to 25% if it found anything, or 15% if not.
+  - **Standard:** a ¢3,000 fine for each piece found.
+  - **Hardcore:** the pieces found are confiscated and destroyed.
+
 ## Modes
 
 | | Standard (default) | Hardcore |
@@ -187,12 +219,13 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   It offers **Continue** (when a save exists, showing its mode and next wave),
   **New game** (choose the mode) and **How to play**.
 
-- **Tutorial lessons** start by themselves the first time each one is useful:
+- **Tutorial lessons** (seven) start by themselves the first time each one is useful:
 
   | Lesson | Starts when | Steps |
   |---|---|---|
   | Essentials | A game has no extractors or belts yet | The hub → pick the extractor → place it on iron ore → lay 3 belts → build a furnace → deliver a plate → hub stock |
   | Contracts | The first contract arrives | Contract button, inbox |
+  | Black market | A Friend gets in touch | Suspicion button → pick the stash → place it outside the watch ring |
   | Defense | The first wave warning | Spawn marker → research Basic Defense |
   | Company Store | The store opens | Where to find it |
   | Splitters and tunnels | The splitter is unlocked | What splitters do |
@@ -221,5 +254,5 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently v5). Older saves are migrated when loaded,
+- Save files are versioned (currently v6). Older saves are migrated when loaded,
   and every migration is covered by a test.

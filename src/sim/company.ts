@@ -3,6 +3,7 @@
 
 import { ITEMS, ItemCounts, ItemId } from './data';
 import type { World } from './world';
+import { onContractResult } from './blackmarket';
 
 export const COMPANY_NAME = 'Halcyon Extraction Co.';
 
@@ -217,6 +218,7 @@ function payContract(w: World, contract: Contract): void {
   c.debt = Math.max(0, c.debt - net);
   c.contractsMet++;
   c.missedInARow = 0;
+  onContractResult(w, true);
   sendMail(
     w,
     SENDERS.payroll,
@@ -236,6 +238,7 @@ function missContract(w: World, contract: Contract, shipped: number, short: numb
   c.debt += fine;
   c.contractsMissed++;
   c.missedInARow++;
+  onContractResult(w, false);
   const total = Object.values(contract.items).reduce((a, n) => a + n!, 0);
   sendMail(
     w,

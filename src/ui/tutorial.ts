@@ -8,7 +8,7 @@
 // thing being explained.
 
 import { storeOpen } from '../sim/company';
-import { BREACH, BuildingType, HUB_SIZE, ItemId, WAVE_WARNING } from '../sim/data';
+import { BLACK_MARKET, BREACH, BuildingType, HUB_SIZE, ItemId, WAVE_WARNING } from '../sim/data';
 import { World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -177,6 +177,26 @@ export const LESSONS: Lesson[] = [
         done: (c) => c.world.state.researched.includes('defense'),
         text: () =>
           'The hub gun can handle this first wave, but not many more. Open Research and start Basic Defense: it draws 20 iron plates from the hub over 30 seconds, then unlocks turrets. Turrets fire iron plates, so feed them by belt.',
+      },
+    ],
+  },
+  {
+    id: 'blackmarket',
+    title: 'Black market',
+    trigger: (w) => w.state.blackMarket.contacted,
+    steps: [
+      {
+        target: () => ({ el: '#suspicion-btn' }),
+        text: () =>
+          "Someone wants to help you get out. This is the black market, and the number is how suspicious the Company is. Keep it low: miss contracts or flaunt contraband and they'll send an audit drone.",
+      },
+      {
+        target: (c) => toolThen(c, 'stash'),
+        done: (c) => built(c, 'stash'),
+        text: (c) =>
+          c.ui.tool === 'stash'
+            ? `Build it more than ${BLACK_MARKET.watchRadius} tiles from the hub: outside the red ring the Company is watching. Then belt items into it.`
+            : 'A Stash hides items from the Company. What goes in is yours, and it pays for black-market research. Pick the Stash.',
       },
     ],
   },

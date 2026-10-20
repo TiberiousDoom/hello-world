@@ -1,6 +1,6 @@
 # Story proposal: "Keep up appearances"
 
-**Status:** Adopted (D-014). Phase 1, contracts and the inbox, is built. The
+**Status:** Adopted (D-014). Phase 1 (contracts and the inbox) and phase 2 (suspicion, audits and the black market) are built. The
 idea came from a conversation the project owner had with a friend. The
 related decisions are D-014 to D-022 in [DECISIONS.md](DECISIONS.md).
 
@@ -77,7 +77,7 @@ These are what break up the factory loop.
 ## Rough phasing
 
 1. ✅ **Quota and inbox.** Contracts, wages and deductions, fines, debt, the Company Store on credit, licence fees and repair invoices. See [GAME_DESIGN.md](GAME_DESIGN.md#the-company).
-2. **Suspicion and the black market.** Skimmer, stash, black-market research, audits.
+2. ✅ **Suspicion and the black market.** A Friend, stash, skimmer, black-market research (skimmer, disguise kit), suspicion, audits with mode-specific penalties. The hidden workshop moves to phase 4, where it builds ship parts. See [GAME_DESIGN.md](GAME_DESIGN.md#the-black-market).
 3. **Food.** A new resource chain with meal buffs.
 4. **Escape ship.** The win condition, plus a victory screen and a stats summary.
 5. **Vehicles.** On hold (D-021).

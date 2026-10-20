@@ -22,6 +22,7 @@ import { artUrl, icon } from '../art';
 import { money } from '../sim/company';
 import { PlaceError, World } from '../sim/world';
 import { CompanyPanel } from './company';
+import { BlackMarketPanel } from './blackmarket';
 import { Tool, UIState } from './state';
 
 const TOOLBAR: BuildingType[] = [
@@ -37,9 +38,11 @@ const TOOLBAR: BuildingType[] = [
   'cannon',
   'repair',
   'wall',
+  'stash',
+  'skimmer',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port'];
+const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port', 'stash'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -118,12 +121,14 @@ export class Hud {
   private invHtml = '';
   private researchKey = '';
   readonly company: CompanyPanel;
+  readonly blackMarket: BlackMarketPanel;
 
   constructor(
     private ui: UIState,
     private actions: HudActions,
   ) {
     this.company = new CompanyPanel(actions.getWorld, () => this.refresh());
+    this.blackMarket = new BlackMarketPanel(actions.getWorld, () => this.refresh());
     $('speed').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-speed]');
       if (btn) this.setSpeed(Number(btn.dataset.speed));
@@ -320,6 +325,7 @@ export class Hud {
     if (inv !== this.invHtml) $('inventory').innerHTML = this.invHtml = inv;
 
     this.company.update(world);
+    this.blackMarket.update(world);
     this.updateToolbar(world);
     this.updateInfo(world);
 
@@ -335,7 +341,7 @@ export class Hud {
     this.toolbarKey = key;
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
-      const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
+      const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor', def.contraband ? 'contraband' : ''].join(' ');
       return `<button class="${cls}" data-tool="${t}" title="${esc(def.name)} (${i + 1})">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>

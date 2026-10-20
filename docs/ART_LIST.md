@@ -80,6 +80,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Cannon base | 1×1 | | 1 | P2 | Placeholder |
 | Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Placeholder |
 | Repair station | 1×1 | | 1 + 4 working | P2 | Placeholder |
+| Stash | 1×1 | Contraband. Hidden crate under a tarp | 1 | P2 | Placeholder |
+| Skimmer | 1×1 | Contraband belt piece with a side chute to the right | 1 | P2 | Placeholder |
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
@@ -105,6 +107,7 @@ All top-down and facing east, as walk cycles.
 | Repair sparkle | 32×32 | 4 | P3 | Needed |
 | Building destroyed (debris) | 64×64 | 5 | P3 | Needed |
 | Spawn warning marker | 128×128 | 4 (pulse) | P2 | Code |
+| Audit drone | 64×64 | 2–4 (rotors) | P2 | Placeholder (`buildings/drone`) |
 | Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 
 ## UI
@@ -119,7 +122,7 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 | App icon master | 1024×1024 (no transparency, for the stores) | P3 | Needed (after naming). Can start from `ui/logo.svg` |
 | Favicon / PWA icons | 512×512 and 192×192 | P3 | Placeholder |
 | Logo / wordmark | Vector (SVG) | P3 | Placeholder mark `ui/logo.svg`; the wordmark is text for now |
-| UI icons (`src/art/ui/`): health, wave, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory | 24×24 grid, SVG preferred | P3 | Placeholder |
+| UI icons (`src/art/ui/`): health, wave, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory, mail, contract, coin, store, eye | 24×24 grid, SVG preferred | P3 | Placeholder |
 | Research icons (one per research, 9 today) | 64×64 | P3 | Optional |
 | Toolbar building icons | Uses the building sprites; no extra art needed | — | — |
 

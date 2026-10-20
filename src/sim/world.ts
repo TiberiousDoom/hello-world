@@ -4,6 +4,7 @@
 import {
   BELT_SPACING,
   BELT_SPEED,
+  BLACK_MARKET,
   BREACH,
   BUILDINGS,
   BuildingType,
@@ -48,8 +49,23 @@ import {
   tickCompany,
   welcomeMail,
 } from './company';
+import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
+import {
+  BlackMarketState,
+  createBlackMarketState,
+  insertStash,
+  isBlackMarketUnlocked,
+  isContraband,
+  onPortWithdrawal,
+  onSkim,
+  onStashRemoved,
+  tickBlackMarket,
+} from './blackmarket';
 
-export const SAVE_VERSION = 5;
+export { createResearchState };
+export type { ResearchState };
+
+export const SAVE_VERSION = 6;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -116,6 +132,7 @@ export interface GameState {
   nextSpawnPoints: { x: number; y: number }[];
   gameOver: boolean;
   company: CompanyState;
+  blackMarket: BlackMarketState;
 }
 
 export interface Shot {
@@ -130,19 +147,6 @@ export interface Shot {
 export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
-export interface ResearchState {
-  active: string | null;
-  /** Items already put into each research, kept when you switch to another. */
-  paid: Record<string, ItemCounts>;
-  /** Items the active research may take but hasn't yet (fractional, carried between ticks). */
-  budget: number;
-  /** True when the active research is waiting for items the hub doesn't have. */
-  stalled: boolean;
-}
-
-export function createResearchState(): ResearchState {
-  return { active: null, paid: {}, budget: 0, stalled: false };
-}
 
 export class World {
   state: GameState;
@@ -189,6 +193,7 @@ export class World {
       nextSpawnPoints: [],
       gameOver: false,
       company: createCompanyState(),
+      blackMarket: createBlackMarketState(),
     };
     const world = new World(state);
     welcomeMail(world);
@@ -235,6 +240,11 @@ export class World {
       // v5 made research take time.
       state.research = createResearchState();
       state.version = 5;
+    }
+    if (state.version === 5) {
+      // v6 added the black market: stash, skimmer, suspicion and audits.
+      state.blackMarket = createBlackMarketState();
+      state.version = 6;
     }
     if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
     const world = new World(state);
@@ -285,6 +295,7 @@ export class World {
 
   isUnlocked(type: BuildingType): boolean {
     if (STARTING_BUILDINGS.includes(type)) return true;
+    if (isContraband(type)) return isBlackMarketUnlocked(this, type);
     return this.state.researched.some((id) => RESEARCH_BY_ID[id]?.unlocks.includes(type));
   }
 
@@ -319,15 +330,7 @@ export class World {
 
   /** Fraction (0–1) of a research's items put in so far. */
   researchProgress(id: string): number {
-    const r = RESEARCH_BY_ID[id];
-    const paid = this.state.research.paid[id] ?? {};
-    let need = 0;
-    let have = 0;
-    for (const [k, n] of Object.entries(r.cost)) {
-      need += n!;
-      have += Math.min(n!, paid[k as ItemId] ?? 0);
-    }
-    return need ? have / need : 1;
+    return researchFraction(this.state.research, RESEARCH_BY_ID[id]);
   }
 
   /** Finishes a research at once, paying whatever is left from stock (tests, debugging, the menu demo). */
@@ -358,33 +361,7 @@ export class World {
   private tickResearch(dt: number): void {
     const rs = this.state.research;
     if (!rs.active) return;
-    const r = RESEARCH_BY_ID[rs.active];
-    const paid = (rs.paid[r.id] ??= {});
-    const total = Object.values(r.cost).reduce((a, n) => a + n!, 0);
-    rs.budget = Math.min(rs.budget + (total / r.time) * dt, 1 + (total / r.time) * dt);
-    const inv = this.state.inventory;
-    rs.stalled = false;
-    while (rs.budget >= 1) {
-      // Take from whichever item is furthest behind and in stock.
-      let pick: ItemId | null = null;
-      let worst = Infinity;
-      for (const [k, n] of Object.entries(r.cost)) {
-        const item = k as ItemId;
-        const frac = (paid[item] ?? 0) / n!;
-        if (frac < 1 && (inv[item] ?? 0) > 0 && frac < worst) {
-          worst = frac;
-          pick = item;
-        }
-      }
-      if (!pick) {
-        rs.stalled = this.researchProgress(r.id) < 1;
-        break;
-      }
-      inv[pick]!--;
-      paid[pick] = (paid[pick] ?? 0) + 1;
-      rs.budget--;
-    }
-    if (this.researchProgress(r.id) >= 1) this.completeResearch(r.id);
+    if (drawResearch(rs, RESEARCH_BY_ID[rs.active], this.state.inventory, dt)) this.completeResearch(rs.active);
   }
 
   /** Research whose prerequisites are met but which isn't done yet. */
@@ -565,7 +542,13 @@ export class World {
     return true;
   }
 
+  /** Removes a building with no refund (an audit confiscating contraband). */
+  confiscate(b: Building): void {
+    this.remove(b);
+  }
+
   private remove(b: Building): void {
+    if (b.type === 'stash') onStashRemoved(this);
     const partner = b.link != null ? this.byId.get(b.link) : undefined;
     if (partner) {
       partner.link = null;
@@ -614,6 +597,9 @@ export class World {
         target.belt.push({ item, pos: 0 });
         return true;
       }
+      case 'stash':
+        return insertStash(this, item);
+      case 'skimmer':
       case 'splitter': {
         // Only from directly behind.
         if (target.x - DX[target.dir] !== fromX || target.y - DY[target.dir] !== fromY) return false;
@@ -692,6 +678,9 @@ export class World {
         case 'splitter':
           this.tickSplitter(b);
           break;
+        case 'skimmer':
+          this.tickSkimmer(b);
+          break;
         case 'tunnel':
           this.tickTunnel(b, dt);
           break;
@@ -720,6 +709,7 @@ export class World {
     this.tickResearch(dt);
     this.tickWaves();
     tickCompany(this);
+    tickBlackMarket(this, dt);
     if (this.flowDirty) this.computeFlow();
     this.tickEnemies(dt);
 
@@ -775,6 +765,28 @@ export class World {
     }
   }
 
+  /** Passes items straight on, except every Nth, which slips out of the right side. */
+  private tickSkimmer(b: Building): void {
+    if (!b.outputs.length) return;
+    const item = b.outputs[0];
+    const skimTurn = b.rr % BLACK_MARKET.skimEvery === BLACK_MARKET.skimEvery - 1;
+    if (skimTurn) {
+      const right = ((b.dir + 1) % 4) as Dir;
+      const side = this.buildingAt(b.x + DX[right], b.y + DY[right]);
+      if (side && this.insert(side, item, b.x, b.y)) {
+        b.outputs.shift();
+        b.rr++;
+        onSkim(this);
+        return;
+      }
+    }
+    const front = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
+    if (front && this.insert(front, item, b.x, b.y)) {
+      b.outputs.shift();
+      b.rr++;
+    }
+  }
+
   private tickTunnel(b: Building, dt: number): void {
     this.pushOutput(b); // exits, or a former exit whose entrance was removed
     if (this.isTunnelExit(b)) return;
@@ -795,6 +807,7 @@ export class World {
         b.progress = 0;
         inv[b.filter]!--;
         b.outputs.push(b.filter);
+        onPortWithdrawal(this);
       }
     }
     this.pushOutput(b);

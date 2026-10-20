@@ -3,8 +3,10 @@
 // can replace it later behind the same draw() call.
 
 import { sprite } from '../art';
+import { auditSweep, isContraband } from '../sim/blackmarket';
 import {
   BELT_SPEED,
+  BLACK_MARKET,
   BUILDINGS,
   BuildingType,
   DX,
@@ -145,6 +147,7 @@ export class Renderer {
 
     this.drawShots(world, now, z);
     this.drawEffects(now, z);
+    this.drawAudit(world, now, z, ui);
 
     if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
@@ -247,7 +250,7 @@ export class Renderer {
     const ctx = this.ctx;
     const def = BUILDINGS[b.type];
     const size = b.type === 'hub' ? HUB_SIZE : 1;
-    const directional = b.type !== 'hub' && b.type !== 'wall' && b.type !== 'repair' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'wall' && b.type !== 'repair' && b.type !== 'stash' && !TURRETS[b.type];
     const angle = directional ? (b.dir * Math.PI) / 2 : 0;
 
     if (!this.drawSprite(this.spriteKey(world, b), b.x, b.y, size, angle)) {
@@ -288,7 +291,7 @@ export class Renderer {
       bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
 
-    if (b.type === 'splitter' && b.outputs.length) this.drawItem(b.outputs[0], b.x + 0.5, b.y + 0.5, 0.34);
+    if ((b.type === 'splitter' || b.type === 'skimmer') && b.outputs.length) this.drawItem(b.outputs[0], b.x + 0.5, b.y + 0.5, 0.34);
     if (b.type === 'tunnel' && b.link == null) {
       // Unpaired: flash a warning dot.
       ctx.fillStyle = `rgba(242,193,78,${0.5 + 0.5 * Math.sin(now / 200)})`;
@@ -337,7 +340,7 @@ export class Renderer {
     }
     const ok = !world.checkPlace(tool, x, y);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && !turret;
+    const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSprite(key, x, y, 1, directional ? (dir * Math.PI) / 2 : 0);
@@ -364,6 +367,51 @@ export class Renderer {
     if (tool === 'tunnel' && ok) {
       const entrance = world.findTunnelEntrance(x, y, dir);
       if (entrance) linkLine(ctx, entrance, { x, y }, z);
+    }
+  }
+
+  /** The Company's watch radius (while placing or inspecting contraband, or during an audit) and the audit drone. */
+  private drawAudit(world: World, now: number, z: number, ui: UIState | null): void {
+    const ctx = this.ctx;
+    const hub = world.hub;
+    if (!hub) return;
+    const cx = hub.x + HUB_SIZE / 2;
+    const cy = hub.y + HUB_SIZE / 2;
+    const r = BLACK_MARKET.watchRadius;
+    const audit = world.state.blackMarket.audit;
+    const sel = ui?.selected != null ? world.byId.get(ui.selected) : undefined;
+    const showRing =
+      !!audit ||
+      (ui?.tool && ui.tool !== 'demolish' && isContraband(ui.tool)) ||
+      (sel && isContraband(sel.type));
+    if (showRing) {
+      ctx.strokeStyle = 'rgba(224,68,90,0.75)';
+      ctx.fillStyle = 'rgba(224,68,90,0.05)';
+      ctx.lineWidth = 2 / z;
+      ctx.setLineDash([8 / z, 6 / z]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    const sweep = auditSweep(world);
+    if (sweep == null) return;
+    // The drone spirals out from the hub to the edge of the watch radius.
+    const dist = 2 + (r - 2) * sweep;
+    const angle = sweep * Math.PI * 6;
+    const dx = cx + Math.cos(angle) * dist;
+    const dy = cy + Math.sin(angle) * dist;
+    const scan = 2.5;
+    const g = ctx.createRadialGradient(dx, dy, 0, dx, dy, scan);
+    g.addColorStop(0, 'rgba(255,90,110,0.35)');
+    g.addColorStop(1, 'rgba(255,90,110,0)');
+    ctx.fillStyle = g;
+    dot(ctx, dx, dy, scan);
+    const bob = 0.05 * Math.sin(now / 120);
+    if (!this.drawSprite('buildings/drone', dx - 0.6, dy - 0.6 + bob, 1.2, angle + Math.PI / 2)) {
+      ctx.fillStyle = '#1d3b6e';
+      dot(ctx, dx, dy, 0.4);
     }
   }
 
