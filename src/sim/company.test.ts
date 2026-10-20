@@ -72,7 +72,7 @@ describe('Company', () => {
     expect(c.debt).toBe(debt + COMPANY.lateFee + (total - 2) * COMPANY.shortfallFinePerItem);
     expect(c.inbox.find((m) => m.subject.startsWith('Notice of Underperformance'))?.tone).toBe('bad');
     run(w, COMPANY.contractGap + 1);
-    expect(c.inbox[0].body).toMatch(/Performance Improvement Plan/);
+    expect(c.inbox.find((m) => m.subject.startsWith('Contract #2'))?.body).toMatch(/Performance Improvement Plan/);
   });
 
   it('counts spent items as a shortfall when shipping', () => {

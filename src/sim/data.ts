@@ -57,6 +57,8 @@ export type BuildingType =
   | 'cannon'
   | 'repair'
   | 'port'
+  | 'stash'
+  | 'skimmer'
   | 'wall';
 
 export interface BuildingDef {
@@ -67,6 +69,8 @@ export interface BuildingDef {
   cost: ItemCounts;
   blocking: boolean; // enemies must break through it rather than walk over it
   description: string;
+  /** Black-market equipment the Company must not find. */
+  contraband?: boolean;
 }
 
 export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
@@ -83,6 +87,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
   repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
+  stash: { name: 'Stash', short: 'ST', color: '#5a3a2a', hp: 100, cost: { brick: 10, iron_plate: 5 }, blocking: true, contraband: true, description: 'Hidden storage. Items you belt in here are yours, not the Company\'s. Keep it away from the hub.' },
+  skimmer: { name: 'Skimmer', short: 'SK', color: '#6a2a3a', hp: 40, cost: { iron_plate: 4, gear: 2 }, blocking: false, contraband: true, description: 'A belt that slips every 4th item out to its right side, toward a stash. Each skimmed item raises suspicion.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
 };
@@ -171,6 +177,40 @@ export const BREACH = {
 export const HARDCORE_UNLOCK_WAVE = 10;
 
 export const PORT_PERIOD = 0.5; // seconds per item a hub port puts out
+
+/** Black-market research, paid from your stash rather than hub stock. */
+export const BLACK_MARKET_RESEARCH: Research[] = [
+  { id: 'skimmer', name: 'Skimmer', cost: { iron_plate: 20, gear: 6 }, time: 60, requires: [], unlocks: ['skimmer'], description: 'A belt piece that quietly diverts every 4th item.' },
+  { id: 'disguise', name: 'Disguise Kit', cost: { brick: 25, wire: 20 }, time: 90, requires: [], unlocks: [], description: 'Dresses contraband up as Company equipment: audits spot it only 1 time in 4, and it draws less attention near the hub.' },
+];
+
+export const BLACK_MARKET = {
+  contactDelay: 45, // seconds after the first contract closes before A Friend writes
+  stashCapacity: 150, // items per stash
+  skimEvery: 4, // a skimmer diverts every Nth item
+  watchRadius: 14, // tiles from the hub's centre the Company watches and audits
+  suspicion: {
+    decayPerSecond: 0.04,
+    perContrabandPerSecond: 0.1, // each contraband building inside the watch radius (outweighs the decay)
+    disguisedFactor: 0.25,
+    perSkim: 0.3,
+    perPortItem: 0.05,
+    contractMissed: 10,
+    contractMet: -8,
+    warnAt: 30,
+    auditAt: 60,
+  },
+  audit: {
+    notice: 60, // seconds of warning before an audit
+    urgentNotice: 15, // at 100% suspicion
+    sweep: 8, // seconds the inspection drone takes
+    fee: 1_000,
+    finePerItem: 3_000, // Standard: per piece of contraband found
+    disguisedChance: 0.25, // chance an audit spots disguised contraband
+    after: 25, // suspicion after an audit that found something
+    afterClean: 15,
+  },
+};
 
 export const START_INVENTORY: ItemCounts = { iron_plate: 100, brick: 24, copper_ingot: 16 };
 

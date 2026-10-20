@@ -16,7 +16,7 @@ quality and business work don't get left until the end.
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | ⬜ |
 | M3c: Playtest polish | Owner's playtest notes: tutorial, store lock, hub weapon, controls | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
-| M4s: Story layer | Contracts and inbox ✅; suspicion and black market; food; escape ship ([STORY.md](STORY.md)) | 🚧 |
+| M4s: Story layer | Contracts and inbox ✅; suspicion and black market ✅; food; escape ship ([STORY.md](STORY.md)) | 🚧 |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -26,7 +26,8 @@ quality and business work don't get left until the end.
 2. ✅ M3c playtest polish: controls, wheel rotation, store lock, hub weapon.
 3. ✅ Interactive tutorial (M3c).
 4. ✅ Research over time (D-018, D-026).
-5. **Story phase 2:** suspicion, audits and the black market.
+5. ✅ Story phase 2: suspicion, audits and the black market.
+6. **Next:** story phase 3 (food factories) or phase 4 (escape ship and win condition). Owner's choice; see the open questions.
 
 ---
 
@@ -43,9 +44,9 @@ quality and business work don't get left until the end.
 
 ### Story layer (M4s, [STORY.md](STORY.md))
 - ✅ Phase 1: Company contracts, wages and deductions, debt, fines, Company Store, licence fees, inbox (D-022)
-- ⬜ Phase 2: suspicion, audits, black-market machines (skimmer, stash, hidden workshop), and penalties for getting caught (D-016)
+- ✅ Phase 2: A Friend, stash, skimmer, black-market research, suspicion, audits with penalties by mode (D-016, D-027)
 - ⬜ Phase 3: food factories and meal buffs
-- ⬜ Phase 4: escape ship and win screen, which unlocks endless mode (D-019)
+- ⬜ Phase 4: hidden workshop, escape ship and win screen, which unlocks endless mode (D-019)
 - ⏸ Vehicles and gear (D-021)
 
 ### Playtest polish (M3c)

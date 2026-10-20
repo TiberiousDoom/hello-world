@@ -32,6 +32,7 @@ one; don't edit the old entry.
 | D-024 | 2026-10-20 | **Hub gun:** 9 damage, 1.2 shots/s, range 6, no ammo, no upgrades | Meets the owner's target (wave 1 alone for at most 25% HP) and still needs turrets from wave 2 on | Accepted (built) |
 | D-025 | 2026-10-20 | **Tutorial as lessons** (supersedes D-009): short lessons triggered by game events, with action steps that wait for the player. The game runs during action steps and pauses during explanations. Seen lessons are stored in the browser profile; players can replay them or switch them off | Owner's playtest notes: split by priority, make it interactive, trigger it by events | Accepted (built) |
 | D-026 | 2026-10-20 | **How research takes time** (implements D-018): the active research draws its items from **hub stock** at a steady rate over its research time, stalls when stock runs out, and keeps its progress when you switch. No separate lab building | Simplest reading of D-018. It competes with contracts and building for stock. Alternative if wanted: a Research Lab building that you belt items into | Accepted (built). Owner may prefer the lab alternative |
+| D-027 | 2026-10-20 | **Black market (story phase 2):** A Friend makes contact after the first contract. Stash and skimmer are contraband. Suspicion builds from misses, skimming, port withdrawals and contraband within 14 tiles of the hub. Audits at 60%/100% fine (Standard) or confiscate (Hardcore) contraband in range. The hidden workshop moves to phase 4 | Gives hiding a spatial puzzle (keep contraband out of the ring) and ties suspicion to the contract loop | Accepted (built). Numbers to tune in playtesting |
 
 ## D-006: How should turrets get ammo?
 
@@ -57,6 +58,7 @@ not available at the start, so early defense still depends on production lines.
 | Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research, or escaping once |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
+| Q-14 | **Phase order:** food factories (phase 3) or the escape ship and win condition (phase 4) next? | The ship gives the stash a purpose and the game an ending |
 | Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
 
 Answered: Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).

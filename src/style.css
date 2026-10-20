@@ -706,6 +706,77 @@ body.in-menu #toasts {
   font-variant-numeric: tabular-nums;
 }
 
+/* ------------------------------------------------------ black market */
+
+#suspicion-btn {
+  font-variant-numeric: tabular-nums;
+}
+#suspicion-btn.sus-mid {
+  border-color: #f2c14e;
+  color: #ffe2a0;
+}
+#suspicion-btn.sus-high {
+  border-color: var(--danger);
+  color: #ffb3bd;
+  animation: sus-pulse 1s ease-in-out infinite;
+}
+@keyframes sus-pulse {
+  50% {
+    background: #4a1a26;
+  }
+}
+.card.bm {
+  border-color: #6a2a3a;
+  --sky: #e8a04e; /* the black market's own accent */
+}
+.sus-bar {
+  position: relative;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--navy-ink);
+  overflow: hidden;
+  margin: 6px 0;
+}
+.sus-bar > div {
+  height: 100%;
+  background: var(--good);
+}
+.sus-bar.mid > div {
+  background: #f2c14e;
+}
+.sus-bar.high > div {
+  background: var(--danger);
+}
+.sus-bar span {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font: 700 12px/18px var(--display);
+  color: var(--white);
+}
+.stash-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.tool.contraband .icon::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+  border: 1px solid var(--navy-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  #suspicion-btn.sus-high {
+    animation: none;
+  }
+}
+
 /* -------------------------------------------------------- main menu */
 
 #mainmenu {
@@ -916,6 +987,7 @@ button.quiet {
   #research-btn,
   #contract-btn,
   #mail-btn,
+  #suspicion-btn,
   #menu-btn,
   .seg button {
     padding: 5px 7px;
