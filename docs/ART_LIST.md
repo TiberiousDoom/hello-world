@@ -66,7 +66,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 |---|---|---|---|---|---|
 | Hub | 3×3 (192×192) | Centrepiece. A damaged variant is a nice extra | 1 (+idle loop) | P1 | Placeholder |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Placeholder |
-| Belt (corner) | 1×1 | Not drawn yet; would make turns look right | 8 | P3 | Needed |
+| Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). A sprite could replace it | 8 | P3 | Code |
+| Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code |
 | Extractor | 1×1 | Drill; the output side should be obvious | 4–8 working | P1 | Placeholder |
 | Furnace | 1×1 | Idle and working (glow) | 1 + 4 | P1 | Placeholder |
 | Workshop | 1×1 | Idle and working | 1 + 4 | P2 | Placeholder |

@@ -30,7 +30,7 @@ quality and business work don't get left until the end.
 6. 🚧 **Playtest batch 2** (a play-tester's notes, 2026-10-21), in this order:
    1. ✅ More time between attacks (first wave 4:00, then every 2:00). ✅ Spread-out resource nodes (new games only, D-029). ✅ Hub stock shown over the hub instead of along the top.
    2. ✅ Soft placement: a blueprint preview with confirm (✓), rotate (⟳) and cancel (✕). On by default on touch; on desktop only when dragging out a belt or wall line (D-030).
-   3. ⬜ Belt visuals: corners and elbows, proper joins with splitters and tunnels, more detail.
+   3. ✅ Belt visuals: corners and elbows, proper joins with splitters and tunnels, more detail.
    4. ⬜ Forest look (D-028): grass, flowers and trees around the map, fireflies and drifting leaves. More detailed bugs with walk animations.
 7. **Then:** story phase 3 (food factories) or phase 4 (escape ship and win condition). Owner's choice; see Q-14. Wood as a resource (Q-15) could join the forest work.
 

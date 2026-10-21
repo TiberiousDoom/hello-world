@@ -28,6 +28,7 @@ import {
 import { Building, Shot, World } from '../sim/world';
 import { Plan, UIState, planDirs } from '../ui/state';
 import { planStatus } from '../ui/plan';
+import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
@@ -35,6 +36,10 @@ const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+// Belt colours, matching the belt sprite.
+const BELT_SURFACE = '#20242d';
+const BELT_RAIL = '#5a6478';
+const BELT_SLAT = 'rgba(138,150,168,0.5)';
 
 interface Effect {
   kind: 'puff' | 'blast' | 'shockwave';
@@ -124,13 +129,22 @@ export class Renderer {
     ctx.lineWidth = 2 / z;
     ctx.strokeRect(0, 0, s.width, s.height);
 
-    // Belts first so everything else sits on top.
-    for (const b of s.buildings) if (b.type === 'belt' && visible(b.x, b.y)) this.drawBelt(b, now, z);
+    // Paired tunnels: a faint dotted line where the belt runs underground.
+    for (const b of s.buildings) {
+      if (b.type !== 'tunnel' || b.link == null || world.isTunnelExit(b)) continue;
+      const exit = world.byId.get(b.link);
+      if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
+    }
+    // Belts first so everything else sits on top, then the flanges where belts meet buildings.
+    const belts = s.buildings.filter((b) => b.type === 'belt' && visible(b.x, b.y));
+    const looks = belts.map((b) => beltLook(world, b));
+    belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
     for (const b of s.buildings) {
       if (b.type === 'belt') continue;
       const size = b.type === 'hub' ? HUB_SIZE : 1;
       if (visible(b.x, b.y, size)) this.drawBuilding(world, b, now, z);
     }
+    belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
     // Spawn warnings: pulsing rings with a warning sign.
     if (s.nextWaveAt - s.time <= WAVE_WARNING) {
@@ -234,29 +248,153 @@ export class Renderer {
 
   // ----------------------------------------------------------- buildings
 
-  private drawBelt(b: Building, now: number, z: number): void {
+  private drawBelt(b: Building, look: BeltLook, now: number, z: number): void {
+    if (look.curved) return this.drawCurvedBelt(b, look.from, now, z);
     const ctx = this.ctx;
     const angle = (b.dir * Math.PI) / 2;
     if (!this.drawSprite('buildings/belt', b.x, b.y, 1, angle)) {
-      ctx.fillStyle = BUILDINGS.belt.color;
-      ctx.fillRect(b.x + 0.06, b.y + 0.06, 0.88, 0.88);
+      ctx.fillStyle = BELT_SURFACE;
+      ctx.fillRect(b.x, b.y + 0.06, 1, 0.88);
     }
-    // Moving slats show the direction of travel.
+    const dx = DX[b.dir];
+    const dy = DY[b.dir];
+    // Along the belt (u) and across it (v), from the tile's centre.
+    const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
+    // Moving chevrons show the direction of travel.
     const phase = ((now / 1000) * BELT_SPEED) % 0.25;
-    ctx.strokeStyle = 'rgba(138,150,168,0.45)';
+    ctx.strokeStyle = BELT_SLAT;
+    ctx.lineWidth = 2.5 / z;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let t = phase; t < 1; t += 0.25) {
+      const u = t - 0.5;
+      ctx.moveTo(...at(u - 0.1, -0.24));
+      ctx.lineTo(...at(u + 0.04, 0));
+      ctx.lineTo(...at(u - 0.1, 0.24));
+    }
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    // Caps where a line starts or stops: a lip at the start, a hazard bumper at the end.
+    if (!look.fed) {
+      ctx.fillStyle = BELT_RAIL;
+      this.beltBar(at, -0.5, 0.09);
+    }
+    if (!look.joined) {
+      ctx.fillStyle = '#d9a93a';
+      this.beltBar(at, 0.41, 0.09);
+      ctx.fillStyle = '#20242d';
+      for (const v of [-0.22, 0.02]) {
+        ctx.beginPath();
+        const p = [at(0.41, v), at(0.41, v + 0.1), at(0.5, v + 0.18), at(0.5, v + 0.08)];
+        ctx.moveTo(...p[0]);
+        for (const q of p.slice(1)) ctx.lineTo(...q);
+        ctx.fill();
+      }
+    }
+    for (const it of b.belt) {
+      const t = it.pos - 0.5;
+      this.drawItem(it.item, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t, 0.42);
+    }
+  }
+
+  /** A bar across the belt from `u` to `u + depth` along it. */
+  private beltBar(at: (u: number, v: number) => [number, number], u: number, depth: number): void {
+    const ctx = this.ctx;
+    const p = [at(u, -0.44), at(u + depth, -0.44), at(u + depth, 0.44), at(u, 0.44)];
+    ctx.beginPath();
+    ctx.moveTo(...p[0]);
+    for (const q of p.slice(1)) ctx.lineTo(...q);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** A quarter-turn belt: items come in from side `from` and leave towards the belt's facing. */
+  private drawCurvedBelt(b: Building, from: Dir, now: number, z: number): void {
+    const ctx = this.ctx;
+    // The curve turns about the tile corner shared by its entry and exit sides.
+    const px = b.x + 0.5 + (DX[from] + DX[b.dir]) * 0.5;
+    const py = b.y + 0.5 + (DY[from] + DY[b.dir]) * 0.5;
+    const a0 = Math.atan2(b.y + 0.5 + DY[from] * 0.5 - py, b.x + 0.5 + DX[from] * 0.5 - px);
+    let sweep = Math.atan2(b.y + 0.5 + DY[b.dir] * 0.5 - py, b.x + 0.5 + DX[b.dir] * 0.5 - px) - a0;
+    if (sweep > Math.PI) sweep -= Math.PI * 2;
+    if (sweep < -Math.PI) sweep += Math.PI * 2;
+    const ccw = sweep < 0;
+    const a1 = a0 + sweep;
+    const ring = (r0: number, r1: number) => {
+      ctx.beginPath();
+      ctx.arc(px, py, r1, a0, a1, ccw);
+      ctx.arc(px, py, r0, a1, a0, !ccw);
+      ctx.closePath();
+    };
+    ctx.fillStyle = BELT_SURFACE;
+    ring(0.09, 0.91);
+    ctx.fill();
+    ctx.lineWidth = 1.5 / z;
+    ctx.strokeStyle = '#0f1a2e';
+    // Rails line up with the straight belt sprite's (4–11 and 53–60 px of 64).
+    for (const [r0, r1] of [[0.06, 0.17], [0.83, 0.94]]) {
+      ctx.fillStyle = BELT_RAIL;
+      ring(r0, r1);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Rivets on the outer rail.
+    ctx.fillStyle = '#8a96a8';
+    for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
+    // Slats fan out around the bend.
+    const phase = ((now / 1000) * BELT_SPEED) % 0.25;
+    ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.beginPath();
     for (let t = phase; t < 1; t += 0.25) {
-      const cx = b.x + 0.5 + DX[b.dir] * (t - 0.5);
-      const cy = b.y + 0.5 + DY[b.dir] * (t - 0.5);
-      ctx.moveTo(cx - DY[b.dir] * 0.3, cy + DX[b.dir] * 0.3);
-      ctx.lineTo(cx + DY[b.dir] * 0.3, cy - DX[b.dir] * 0.3);
+      const a = a0 + sweep * t;
+      ctx.moveTo(px + Math.cos(a) * 0.22, py + Math.sin(a) * 0.22);
+      ctx.lineTo(px + Math.cos(a) * 0.8, py + Math.sin(a) * 0.8);
     }
     ctx.stroke();
     for (const it of b.belt) {
-      const t = it.pos - 0.5;
-      this.drawItem(it.item, b.x + 0.5 + DX[b.dir] * t, b.y + 0.5 + DY[b.dir] * t, 0.42);
+      const a = a0 + sweep * it.pos;
+      this.drawItem(it.item, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5, 0.42);
     }
+  }
+
+  /** Metal flanges where a belt meets a building, so the line reads as plugged in. */
+  private drawJoins(world: World, b: Building, look: BeltLook, z: number): void {
+    const sides: Dir[] = [];
+    const feeder = look.fed ? world.buildingAt(b.x + DX[look.from], b.y + DY[look.from]) : undefined;
+    if (feeder && feeder.type !== 'belt') sides.push(look.from);
+    const front = world.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
+    if (look.joined && front && front.type !== 'belt') sides.push(b.dir);
+    const ctx = this.ctx;
+    for (const d of sides) {
+      const ex = b.x + 0.5 + DX[d] * 0.5;
+      const ey = b.y + 0.5 + DY[d] * 0.5;
+      const w = DX[d] ? 0.16 : 0.66;
+      const h = DX[d] ? 0.66 : 0.16;
+      ctx.fillStyle = BELT_RAIL;
+      ctx.strokeStyle = '#0f1a2e';
+      ctx.lineWidth = 1.5 / z;
+      roundRect(ctx, ex - w / 2, ey - h / 2, w, h, 0.04);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#8a96a8';
+      for (const s of [-0.24, 0.24]) dot(ctx, ex + DY[d] * s, ey + DX[d] * s, 0.025);
+    }
+  }
+
+  /** A faint dotted line between paired tunnels, where the belt runs underground. */
+  private drawTunnelTrace(a: Building, b: Building, z: number): void {
+    const ctx = this.ctx;
+    ctx.strokeStyle = 'rgba(138,150,168,0.35)';
+    ctx.lineWidth = 3 / z;
+    ctx.setLineDash([2 / z, 7 / z]);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a.x + 0.5, a.y + 0.5);
+    ctx.lineTo(b.x + 0.5, b.y + 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineCap = 'butt';
   }
 
   private spriteKey(world: World, b: Building): string {
