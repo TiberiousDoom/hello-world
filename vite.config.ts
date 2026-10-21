@@ -6,5 +6,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig(({ mode }) => ({
   base: './',
   plugins: mode === 'single' ? [viteSingleFile()] : [],
+  // The single page can't carry the music, so it plays silently.
+  publicDir: mode === 'single' ? false : 'public',
   build: { outDir: mode === 'single' ? 'dist-single' : 'dist' },
 }));

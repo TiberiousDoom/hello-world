@@ -7,7 +7,8 @@
 // The spotlight darkens everything except a circle or rounded box around the
 // thing being explained.
 
-import { storeOpen } from '../sim/company';
+import { STORE_OPEN_SUBJECT, mailRead, storeOpen } from '../sim/company';
+import { introduced } from '../sim/blackmarket';
 import { BLACK_MARKET, BREACH, BuildingType, HUB_SIZE, ItemId, WAVE_WARNING } from '../sim/data';
 import { World } from '../sim/world';
 import { Camera } from '../render/camera';
@@ -189,7 +190,8 @@ export const LESSONS: Lesson[] = [
   {
     id: 'blackmarket',
     title: 'Black market',
-    trigger: (w) => w.state.blackMarket.contacted,
+    // After A Friend's email has been read, so the lesson doesn't spoil it.
+    trigger: (w) => introduced(w),
     steps: [
       {
         target: () => ({ el: '#suspicion-btn' }),
@@ -209,7 +211,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'store',
     title: 'Company Store',
-    trigger: (w) => storeOpen(w),
+    trigger: (w) => storeOpen(w) && mailRead(w, STORE_OPEN_SUBJECT),
     steps: [
       {
         target: () => ({ el: '#mail-btn', shape: 'circle' }),
@@ -298,6 +300,8 @@ export class Tutorial {
   /** Starts any lesson whose moment has come. Call every frame while playing. */
   check(): void {
     if (this.active || this.profile.tipsOff()) return;
+    // Wait until the player closes whatever window they're reading (e.g. the email that set this off).
+    if (document.querySelector('.modal:not([hidden])')) return;
     const world = this.getWorld();
     const next = LESSONS.find((l) => !this.profile.seen(l.id) && l.trigger(world));
     if (next) this.start(next.id);

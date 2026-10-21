@@ -136,7 +136,11 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 
 Sound effects for: building placed, demolished, machine working (loop),
 turret shot, cannon shot, explosion, enemy death, hub hit, breach, research
-complete, wave incoming, UI click. Plus 1–2 music loops (calm build, wave).
+complete, wave incoming, UI click.
+
+**Music: done.** Nine tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
+tracks for play, a corporate theme for the main menu, and "Groove" for the win screen. See
+[GAME_DESIGN.md](GAME_DESIGN.md#music).
 
 ## Not needed
 

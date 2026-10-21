@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased: playtest batch 3
+- Music: the Company's corporate theme on the main menu and a shuffled set of lo-fi tracks in game, crossfading from one to the next. Volume is in the pause menu. Tracks by velariomusic (Pixabay).
+- New game has a "Start with the Essentials tutorial" box, so the basics can be replayed on any device.
+- The Company Store and black-market lessons wait until you've read the email that announces them, and the black market (the eye button and the Stash) appears only once A Friend's email is read. Lessons no longer open over a window you're reading.
+- The current contract is always on screen: each item's delivered / needed, under the top bar. Tap it for details.
+- The How to play page describes blueprints and credits the music.
+
 ## Unreleased: playtest batch 2
 - More time to build: the first wave now comes at 4:00 (was 3:00), then one every 2:00 (was 75 s).
 - New games spread resource nodes out: node tiles never touch side by side, and patches are kept apart, so every node can be reached. Existing saves keep their maps.

@@ -32,7 +32,9 @@ quality and business work don't get left until the end.
    2. ✅ Soft placement: a blueprint preview with confirm (✓), rotate (⟳) and cancel (✕). On by default on touch; on desktop only when dragging out a belt or wall line (D-030).
    3. ✅ Belt visuals: corners and elbows, proper joins with splitters and tunnels, more detail.
    4. ✅ Forest look (D-028): grass, flowers and trees around the map, fireflies and drifting leaves. More detailed bugs with walk animations.
-7. **Then:** story phase 3 (food factories) or phase 4 (escape ship and win condition). Owner's choice; see Q-14. Wood as a resource (Q-15) could join the forest work.
+7. ✅ **Playtest batch 3** (owner, 2026-10-21): the Essentials tutorial can be chosen on New game; the store and black-market lessons wait for their emails to be read; an on-screen contract tracker; music with crossfades.
+8. ❓ **Rework suspicion** (owner doesn't like the current mechanic). Brainstorm in progress; see Q-16.
+9. **Then:** story phase 3 (food factories) or phase 4 (escape ship and win condition). Owner's choice; see Q-14. Wood as a resource (Q-15) could join the forest work.
 
 ---
 

@@ -8,6 +8,7 @@
 | [STORY.md](STORY.md) | Story and side-objective proposal: quotas, black market, escape | the story direction changes |
 | [DECISIONS.md](DECISIONS.md) | Choices we've made and why, plus open questions | a choice is made or a question is raised |
 | [ART_LIST.md](ART_LIST.md) | Every art asset the game needs, with specs and status | an asset is added, delivered or changes |
+| [CREDITS.md](CREDITS.md) | Music and other third-party assets, with sources and licences | a third-party asset is added |
 | [../CHANGELOG.md](../CHANGELOG.md) | What changed in each release | every merge to `master` |
 
 ## Working agreement

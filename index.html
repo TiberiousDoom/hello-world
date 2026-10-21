@@ -31,6 +31,7 @@
     </header>
 
     <div id="inventory" class="hud"></div>
+    <button id="contract-tracker" class="hud" title="Contract: open the details" hidden></button>
     <div id="toasts"></div>
     <div id="plan-bar" class="hud" hidden>
       <span class="plan-count" hidden></span>
@@ -105,6 +106,7 @@
           <button data-mode="standard"><i data-icon="factory"></i><span><b>Standard</b><small id="standard-note"></small></span></button>
           <button data-mode="hardcore" id="btn-hardcore"><i data-icon="skull"></i><span><b>Hardcore</b><small id="hardcore-note"></small></span></button>
         </div>
+        <label class="toggle"><input type="checkbox" id="newgame-tutorial" /> Start with the Essentials tutorial</label>
         <button data-close>Cancel</button>
       </div>
     </div>
@@ -121,6 +123,7 @@
           <button id="btn-new" class="danger"><i data-icon="new"></i>New game</button>
         </div>
         <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
+        <label class="toggle volume">Music <input type="range" id="music-volume" min="0" max="100" step="5" /></label>
         <p class="muted small">Progress saves automatically in this browser.</p>
       </div>
     </div>
@@ -149,9 +152,11 @@
         </ul>
         <h3>Controls</h3>
         <ul>
-          <li><b>Desktop:</b> click to build or select, drag to lay belts, right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9 picks buildings, Space pauses and Esc cancels.</li>
-          <li><b>Touch:</b> tap to build or select, drag with a tool to lay belts, drag with no tool to pan, pinch to zoom.</li>
+          <li><b>Desktop:</b> click to build or select. Drag out a line of belts or walls, then press ✓ or Enter to build it (⟳ or R reverses or rotates it, ✕ or Esc cancels). Right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9 picks buildings, Space pauses and Esc cancels.</li>
+          <li><b>Touch:</b> tap to place a blueprint, then ✓ to build it (or tap the same spot again). Drag with a tool to lay a line, drag with no tool to pan, pinch to zoom. Menu → "Confirm before building" switches blueprints off.</li>
         </ul>
+        <h3>Credits</h3>
+        <p class="muted small">Music by <a href="https://pixabay.com/users/velariomusic-54515099/" target="_blank" rel="noopener">velariomusic</a> on Pixabay.</p>
         <button data-close>Close</button>
       </div>
     </div>

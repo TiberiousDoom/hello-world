@@ -25,6 +25,17 @@ function itemImg(item: ItemId, size = 20): string {
     : `<span class="swatch" style="background:${ITEMS[item].color}"></span>`;
 }
 
+/** The contract on screen: each item's delivered / needed, ticked off when done. */
+function trackerRows(items: ItemCounts, delivered: ItemCounts): string {
+  return Object.entries(items)
+    .map(([k, n]) => {
+      const have = Math.min(n!, delivered[k as ItemId] ?? 0);
+      const done = have >= n!;
+      return `<span class="ct-row${done ? ' done' : ''}" title="${ITEMS[k as ItemId].name}">${itemImg(k as ItemId, 18)}<b>${have}</b>/${n}<i style="width:${Math.round((have / n!) * 100)}%"></i></span>`;
+    })
+    .join('');
+}
+
 function itemsInline(items: ItemCounts): string {
   return Object.entries(items)
     .map(([k, n]) => `${itemImg(k as ItemId, 16)} ${n} ${ITEMS[k as ItemId].name}`)
@@ -34,6 +45,7 @@ function itemsInline(items: ItemCounts): string {
 export class CompanyPanel {
   private tab: Tab = 'contract';
   private bodyKey = '';
+  private trackerHtml = '';
   /** Emails the player has expanded, kept open across re-renders. */
   private openMail = new Set<number>();
 
@@ -44,6 +56,7 @@ export class CompanyPanel {
     $('company-name').textContent = COMPANY_NAME;
     $('contract-btn').addEventListener('click', () => this.open('contract'));
     $('mail-btn').addEventListener('click', () => this.open('inbox'));
+    $('contract-tracker').addEventListener('click', () => this.open('contract'));
     $('company').addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       const tab = target.closest<HTMLElement>('[data-tab]');
@@ -95,6 +108,23 @@ export class CompanyPanel {
   }
 
   /** Refreshes the top-bar buttons and, when open, the window. */
+  /** The small always-visible contract tracker under the top bar. */
+  private updateTracker(world: World): void {
+    const contract = world.state.company.contract;
+    const el = $('contract-tracker');
+    el.hidden = !contract;
+    // Just under the top bar, which wraps to more rows on narrow screens. Pop-up
+    // messages go under the tracker on phones, where it spans the width.
+    const below = Math.round($('topbar').getBoundingClientRect().bottom + 6);
+    el.style.top = `${below}px`;
+    const toasts = $('toasts');
+    if (!contract || window.innerWidth > 600) toasts.style.removeProperty('top');
+    else toasts.style.top = `${Math.round(el.getBoundingClientRect().bottom + 6)}px`;
+    if (!contract) return;
+    const html = `<span class="ct-title">Contract #${contract.id}</span>` + trackerRows(contract.items, contract.delivered);
+    if (html !== this.trackerHtml) el.innerHTML = this.trackerHtml = html;
+  }
+
   update(world: World): void {
     const s = world.state;
     const c = s.company;
@@ -112,6 +142,7 @@ export class CompanyPanel {
       label.textContent = `Next ${clock(c.nextContractAt - s.time)}`;
       btn.classList.remove('urgent', 'done');
     }
+    this.updateTracker(world);
     const unread = unreadCount(world);
     const badge = $('mail-badge');
     badge.hidden = unread === 0;

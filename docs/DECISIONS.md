@@ -37,6 +37,8 @@ one; don't edit the old entry.
 | D-029 | 2026-10-21 | **Spread-out resource nodes**, for new games only. Node tiles never touch side by side, and patches keep a gap between them. Saves keep their maps | Play-tester's notes: every node should be reachable. Saves already store the map, so no migration is needed | Accepted (built) |
 | D-030 | 2026-10-21 | **Soft placement:** a blueprint preview you confirm (✓), rotate (⟳) or cancel (✕). On by default on touch. On desktop, only for belt and wall lines that you drag out; single clicks still place at once. Touch players can switch it off in the menu | Play-tester's notes, scoped by the owner so desktop stays fast | Accepted (built) |
 | D-031 | 2026-10-21 | **Wave timing:** first wave at 4:00 (was 3:00), then every 2:00 (was 75 s) | Play-tester's notes: more prep time before getting overwhelmed | Accepted (built). Tune in playtesting |
+| D-032 | 2026-10-21 | **Music:** corporate theme on the main menu, shuffled lo-fi in game, "Groove" for the win screen; tracks crossfade. Played through Web Audio so iOS respects the volume. 128 kbps copies are shipped; the originals stay in `audio/source/` | Owner supplied the tracks and asked for blending rather than editing | Accepted (built) |
+| D-033 | 2026-10-21 | **Story reveals follow the inbox:** a lesson tied to an email (Company Store, black market) waits until that email is read, and the black market itself appears only then. Lessons never open over a window | Owner's playtest: the lessons were spoiling the emails | Accepted (built) |
 
 ## D-006: How should turrets get ammo?
 
@@ -64,6 +66,7 @@ not available at the start, so early defense still depends on production lines.
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
 | Q-14 | **Phase order:** food factories (phase 3) or the escape ship and win condition (phase 4) next? | The ship gives the stash a purpose and the game an ending |
 | Q-15 | **Wood as a resource?** Proposal: trees (part of the forest look) that a Lumber Camp harvests into logs; trees regrow. A sawmill makes planks for early walls and the stash, and the escape ship's hull. The Company charges a "deforestation permit fee" | Changes the economy and the art at once, so it waits until after playtest batch 2 |
+| Q-16 | **Rework suspicion.** The owner doesn't like the current meter-and-audit mechanic. Options are being brainstormed | Blocks further black-market work |
 | Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
 
 Answered: Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).

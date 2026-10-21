@@ -1,3 +1,4 @@
+import { Music } from './audio/music';
 import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
@@ -31,10 +32,11 @@ interface Profile {
   tipsOff: boolean;
   hardcoreUnlocked: boolean;
   confirmTouch: boolean;
+  musicVolume: number; // 0–1
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5 };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -102,6 +104,7 @@ function play(world: World): void {
   centreOnHub(world);
   hud.closeModals();
   hud.refresh();
+  music.setMood('game');
 }
 
 function showMainMenu(): void {
@@ -113,6 +116,7 @@ function showMainMenu(): void {
   if (tutorial.active) tutorial.abort();
   hud.closeModals();
   refreshMainMenu();
+  music.setMood('menu');
 }
 
 function refreshMainMenu(): void {
@@ -146,10 +150,17 @@ const hud = new Hud(ui, {
     const hub = active().hub;
     if (hub) [camera.x, camera.y] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
   },
-  newGame: (mode) => {
+  newGame: (mode, withTutorial) => {
     play(World.create(undefined, mode));
     save();
+    // Ticked: show the basics even if they were seen (or lessons are off). Unticked: skip them.
+    if (withTutorial) tutorial.start('essentials');
+    else if (!profile.lessonsSeen.includes('essentials')) {
+      profile.lessonsSeen.push('essentials');
+      saveProfile();
+    }
   },
+  essentialsSeen: () => profile.lessonsSeen.includes('essentials'),
 });
 
 const tutorial = new Tutorial(camera, active, ui, {
@@ -175,6 +186,15 @@ const planBar = new PlanBar(camera, ui, {
   rotate: () => input.rotatePlan(),
   cancel: () => input.cancelPlan(),
 });
+
+const music = new Music(profile.musicVolume);
+const volume = document.getElementById('music-volume') as HTMLInputElement;
+volume.value = String(Math.round(profile.musicVolume * 100));
+volume.addEventListener('input', () => {
+  profile.musicVolume = Number(volume.value) / 100;
+  music.setVolume(profile.musicVolume);
+});
+volume.addEventListener('change', saveProfile);
 
 const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
 confirmToggle.checked = profile.confirmTouch;
@@ -257,4 +277,5 @@ requestAnimationFrame(frame);
   },
   camera,
   ui,
+  music,
 };

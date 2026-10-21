@@ -59,7 +59,9 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
 
 export interface HudActions {
   getWorld(): World;
-  newGame(mode: GameMode): void;
+  newGame(mode: GameMode, tutorial: boolean): void;
+  /** Whether the Essentials lesson has been shown on this device. */
+  essentialsSeen(): boolean;
   save(): void;
   hardcoreUnlocked(): boolean;
   lessons(): { id: string; title: string; seen: boolean }[];
@@ -183,7 +185,7 @@ export class Hud {
     $('newgame').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
       if (!btn || btn.disabled) return;
-      actions.newGame(btn.dataset.mode as GameMode);
+      actions.newGame(btn.dataset.mode as GameMode, $<HTMLInputElement>('newgame-tutorial').checked);
       this.closeModals();
     });
     for (const el of document.querySelectorAll<HTMLElement>('.modal [data-close]')) {
@@ -563,6 +565,8 @@ export class Hud {
 
   openNewGame(): void {
     $('newgame-warning').hidden = !this.actions.hasGame();
+    // On by default until the player has been through the basics once.
+    $<HTMLInputElement>('newgame-tutorial').checked = !this.actions.essentialsSeen();
     const unlocked = this.actions.hardcoreUnlocked();
     const hc = $<HTMLButtonElement>('btn-hardcore');
     hc.disabled = !unlocked;

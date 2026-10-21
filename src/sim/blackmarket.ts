@@ -1,7 +1,7 @@
 // The black market: your stash, skimming, suspicion and Company audits.
 // Pure simulation, like world.ts and company.ts.
 
-import { COMPANY_NAME, money, sendMail } from './company';
+import { COMPANY_NAME, mailRead, money, sendMail } from './company';
 import { BLACK_MARKET, BLACK_MARKET_RESEARCH, BUILDINGS, BuildingType, HUB_SIZE, ItemCounts, ItemId } from './data';
 import { ResearchState, createResearchState, drawResearch } from './research';
 import type { Building, World } from './world';
@@ -45,9 +45,16 @@ const FRIEND = 'A Friend <no-reply@unlisted>';
 
 export const isContraband = (type: BuildingType) => !!BUILDINGS[type].contraband;
 
+export const FRIEND_SUBJECT = 'You don’t have to stay';
+
+/** A Friend's first email has arrived and been read: the black market is revealed. */
+export function introduced(w: World): boolean {
+  return w.state.blackMarket.contacted && mailRead(w, FRIEND_SUBJECT);
+}
+
 export function isBlackMarketUnlocked(w: World, type: BuildingType): boolean {
   const bm = w.state.blackMarket;
-  if (type === 'stash') return bm.contacted;
+  if (type === 'stash') return introduced(w);
   return bm.researched.some((id) => BLACK_MARKET_BY_ID[id]?.unlocks.includes(type));
 }
 
@@ -227,7 +234,7 @@ export function tickBlackMarket(w: World, dt: number): void {
       sendMail(
         w,
         FRIEND,
-        'You don’t have to stay',
+        FRIEND_SUBJECT,
         `They will never let you pay it off. You know that by now.\n\nSome of us are getting out. You'll need parts of your own, kept where the Company can't count them. Build a Stash, well away from the hub where they're watching, and belt things into it. What's in a stash is yours.\n\nKeep your numbers up so they don't look too closely. If they start asking questions, they send a drone.\n\nI'll be in touch. Open "Black market" (the eye at the top) when you're ready.`,
         'good',
       );

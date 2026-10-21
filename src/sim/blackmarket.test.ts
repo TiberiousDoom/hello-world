@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BLACK_MARKET, ItemId } from './data';
-import { auditSweep, startBlackMarketResearch, stashCapacity, stashTotal, watchedContraband } from './blackmarket';
+import { FRIEND_SUBJECT, auditSweep, startBlackMarketResearch, stashCapacity, stashTotal, watchedContraband } from './blackmarket';
 import { COMPANY } from './company';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
@@ -30,7 +30,7 @@ function far(w: World): [number, number] {
 }
 
 describe('Black market', () => {
-  it('A Friend gets in touch after the first contract closes, unlocking the stash', () => {
+  it('A Friend gets in touch after the first contract closes; reading the email unlocks the stash', () => {
     const w = World.create(3);
     w.state.nextWaveAt = 1e9;
     expect(w.isUnlocked('stash')).toBe(false);
@@ -38,6 +38,8 @@ describe('Black market', () => {
     expect(w.state.blackMarket.contacted).toBe(false);
     run(w, BLACK_MARKET.contactDelay + 1);
     expect(w.state.blackMarket.contacted).toBe(true);
+    expect(w.isUnlocked('stash')).toBe(false); // not until the email is read
+    w.state.company.inbox.find((m) => m.subject === FRIEND_SUBJECT)!.read = true;
     expect(w.isUnlocked('stash')).toBe(true);
     expect(w.isUnlocked('skimmer')).toBe(false);
     expect(w.state.company.inbox.some((m) => m.from.startsWith('A Friend'))).toBe(true);
