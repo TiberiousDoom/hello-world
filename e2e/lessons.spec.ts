@@ -1,8 +1,7 @@
-import { build, calm, cameraSettled, expect, isTouch, newGame, settled, stepLabel, test, uncoveredTile } from './helpers';
+import { build, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, test, uncoveredTile } from './helpers';
 
-test('the Essentials, Contracts and Defense lessons run, then can be replayed and switched off', async ({ page }, info) => {
+test('the Essentials and Bugs lessons run, then can be replayed and switched off', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: [] });
-  await calm(page); // the test brings the first contract and wave in when it's ready for them
   const step = stepLabel(page);
   const speed = () => page.evaluate(() => window.game.ui.speed);
 
@@ -11,20 +10,24 @@ test('the Essentials, Contracts and Defense lessons run, then can be replayed an
   await page.click('.tip-next');
   await expect.poll(speed).toBe(1); // action steps let it run
 
-  // Pick the extractor, then build on the highlighted node.
+  // Pick the extractor, then build it over the highlighted ore.
   await page.click('[data-tool="extractor"]');
   if (isTouch(info)) await expect(page.locator('#tutorial .tip-text')).toContainText('tap ✓');
-  await expect(page.locator('#tutorial .tip-text')).toContainText('tap the iron ore node');
-  await settled(page.locator('#tutorial .spot')); // it glides to the node
-  // Let the camera finish gliding too, then aim at the node the lesson picked (the nearest free iron).
+  await expect(page.locator('#tutorial .tip-text')).toContainText('tap the iron ore');
+  await settled(page.locator('#tutorial .spot')); // it glides to the ore
   await cameraSettled(page);
+  // The nearest iron ore with clear ground east of it for the belts and the furnace (maps are random).
   const node = await page.evaluate(() => {
     const w = window.game.world;
+    const roomEast = (x: number, y: number) => {
+      for (let dy = -2; dy <= 2; dy++) for (let dx = 1; dx <= 8; dx++) if (w.checkPlace('belt', x + dx, y + dy)) return false;
+      return true;
+    };
     let best: [number, number] = [0, 0];
     let bestD = Infinity;
     for (let y = 0; y < w.state.height; y++)
       for (let x = 0; x < w.state.width; x++) {
-        if (w.resourceAt(x, y) !== 'iron_ore' || w.buildingAt(x, y)) continue;
+        if (w.resourceAt(x, y) !== 'iron_ore' || w.buildingAt(x, y) || !roomEast(x, y)) continue;
         const d = Math.abs(x - w.hub.x) + Math.abs(y - w.hub.y);
         if (d < bestD) [bestD, best] = [d, [x, y]];
       }
@@ -33,36 +36,25 @@ test('the Essentials, Contracts and Defense lessons run, then can be replayed an
   await build(page, info, ...(await uncoveredTile(page, ...node)));
   await expect(step).toContainText('3 of');
 
-  // Three belts and a furnace in a free line next to the extractor.
+  // Three belts east from the extractor's output, then a 2×2 furnace.
   await page.click('[data-tool="belt"]');
   await settled(page.locator('#tutorial .tip')); // the card moves out of the way
-  // Centre on the extractor once the lesson's camera glide is over, let a frame
-  // place the overlays, then pick the line.
   await cameraSettled(page);
-  await page.evaluate(() => {
-    const ex = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'extractor');
-    window.game.camera.x = ex.x + 0.5;
-    window.game.camera.y = ex.y + 0.5;
-  });
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-  const line = await page.evaluate(() => {
+  const tiles = await page.evaluate(() => {
     const w = window.game.world;
-    const c = window.game.camera;
     const ex = w.state.buildings.find((b: { type: string }) => b.type === 'extractor');
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const tiles = [1, 2, 3, 4].map((i) => [ex.x + dx * i, ex.y + dy * i]);
-      const pts = tiles.map(([x, y]) => c.toScreen(x + 0.5, y + 0.5) as [number, number]);
-      // On screen and not under the tutorial card, the info panel or a toast.
-      const onScreen = pts.every(([sx, sy]) => sx > 20 && sx < innerWidth - 20 && document.elementFromPoint(sx, sy)?.id === 'game');
-      if (onScreen && tiles.every(([x, y]) => !w.checkPlace('belt', x, y))) return pts;
-    }
-    return null;
+    const o = w.outputTile(ex);
+    const belts = [0, 1, 2].map((i) => [o.x + i, o.y]);
+    const furnace = [o.x + 3, o.y];
+    const free = belts.every(([x, y]) => !w.checkPlace('belt', x, y)) && !w.checkPlace('furnace', furnace[0], furnace[1]);
+    return free ? { belts, furnace } : null;
   });
-  expect(line, 'a free line next to the extractor').not.toBeNull();
-  for (const p of line!.slice(0, 3)) await build(page, info, ...p);
+  expect(tiles, 'room east of the extractor').not.toBeNull();
+  for (const [x, y] of tiles!.belts) await build(page, info, ...(await uncoveredTile(page, x, y)));
   await expect(step).toContainText('4 of');
   await page.click('[data-tool="furnace"]');
-  await build(page, info, ...line![3]);
+  await settled(page.locator('#tutorial .tip'));
+  await build(page, info, ...(await uncoveredTile(page, tiles!.furnace[0], tiles!.furnace[1])));
   await expect(step).toContainText('5 of');
   await page.evaluate(() => {
     const w = window.game.world;
@@ -70,27 +62,28 @@ test('the Essentials, Contracts and Defense lessons run, then can be replayed an
   });
   await expect(step).toContainText('6 of');
   await page.click('.tip-next');
+  await expect(step).toContainText('7 of'); // Research lives in the hub
+  await page.click('.tip-next');
   await expect(page.locator('#tutorial')).toBeHidden();
 
-  // Contracts: when the first contract arrives.
-  await page.evaluate(() => (window.game.world.state.company.nextContractAt = window.game.world.state.time + 0.5));
-  await expect(step).toHaveText(/^Contracts/);
+  // Bugs: the first time a nest is provoked. It waits for Basic Defense, researched from the hub.
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.nests[0].angryUntil = w.state.time + 600;
+  });
+  await expect(step).toHaveText(/^Bugs/);
   await page.click('.tip-next');
-  await page.click('.tip-next');
-
-  // Defense: at the first wave warning; it waits for Basic Defense.
-  await page.evaluate(() => (window.game.world.state.nextWaveAt = window.game.world.state.time + 25));
-  await expect(step).toHaveText(/^Defense/);
-  await page.click('.tip-next');
-  await page.click('#research-btn');
+  await page.evaluate(() => {
+    const w = window.game.world;
+    for (const n of w.state.nests) n.angryUntil = 0;
+  });
+  await selectHub(page, info); // with the furnace still in hand: tapping the hub selects it
+  await page.click('#info [data-action="research"]');
   await page.click('[data-research="defense"]');
   await expect(page.locator('#research-body')).toContainText('Researching');
   await page.click('#research [data-close]');
-  await expect(page.locator('#research-label')).toHaveText(/Research · \d+%/);
   await page.evaluate(() => {
-    const s = window.game.world.state;
-    s.research.paid.defense = { iron_plate: 999 }; // finish it now
-    s.nextWaveAt = 1e9;
+    window.game.world.state.research.paid.defense = { iron_plate: 999 }; // finish it now
   });
   await expect.poll(() => page.evaluate(() => window.game.world.state.researched.includes('defense'))).toBe(true);
   await expect(page.locator('#tutorial')).toBeHidden();
@@ -98,7 +91,7 @@ test('the Essentials, Contracts and Defense lessons run, then can be replayed an
   // Replay from the menu, then switch lessons off.
   await page.click('#menu-btn');
   await page.click('#btn-tutorial');
-  await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(3);
+  await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(2);
   await page.click('[data-lesson="essentials"]');
   await expect(step).toHaveText(/^Essentials/);
   await page.click('.tip-hide');

@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M2 12 C5 6.5 8.5 5 12 5 C15.5 5 19 6.5 22 12 C19 17.5 15.5 19 12 19 C8.5 19 5 17.5 2 12 Z" fill="currentColor"/>
-<circle cx="12" cy="12" r="4.2" fill="var(--icon-accent, #3fa9f5)"/>
-<circle cx="12" cy="12" r="1.8" fill="var(--icon-ink, #1d3b6e)"/>
-</svg>

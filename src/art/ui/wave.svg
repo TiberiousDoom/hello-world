@@ -1,3 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<ellipse cx="11" cy="13" rx="6" ry="4.5" fill="currentColor"/><circle cx="18" cy="13" r="3" fill="var(--icon-accent, #3fa9f5)"/><path d="M8 9 l-2 -4 M12 9 l0 -4 M8 17 l-2 4 M12 17 l0 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-</svg>

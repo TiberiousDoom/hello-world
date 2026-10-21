@@ -14,17 +14,22 @@ for (const [path, url] of Object.entries(files)) {
 
 /** Pixels per tile that sprites are pre-rendered at. */
 const PX_PER_TILE = 128;
-const TILES: Record<string, number> = {
-  'buildings/hub': 3,
-  'buildings/shipyard': 3,
-  'buildings/ship_hull': 3,
-  'buildings/ship_engine': 3,
-  'buildings/ship_life': 3,
-  'buildings/ship_nav': 3,
-  'terrain/tree_round': 2,
-  'terrain/tree_autumn': 2,
-  'terrain/tree_pine': 2,
-  'terrain/bush': 2,
+/** Sprites bigger than one tile: [width, height] in tiles, as drawn facing east. */
+const TILES: Record<string, [number, number]> = {
+  'buildings/hub': [5, 5],
+  'buildings/extractor': [2, 2],
+  'buildings/furnace': [2, 2],
+  'buildings/workshop': [3, 2],
+  'buildings/assembler': [4, 2],
+  'buildings/shipyard': [3, 3],
+  'buildings/ship_hull': [3, 3],
+  'buildings/ship_engine': [3, 3],
+  'buildings/ship_life': [3, 3],
+  'buildings/ship_nav': [3, 3],
+  'terrain/tree_round': [2, 2],
+  'terrain/tree_autumn': [2, 2],
+  'terrain/tree_pine': [2, 2],
+  'terrain/bush': [2, 2],
 };
 const cache = new Map<string, HTMLCanvasElement>();
 
@@ -50,10 +55,12 @@ export async function loadArt(): Promise<void> {
         new Promise<void>((resolve) => {
           const img = new Image();
           img.onload = () => {
-            const px = (key.startsWith('items/') ? PX_PER_TILE / 2 : PX_PER_TILE) * (TILES[key] ?? 1);
+            const unit = key.startsWith('items/') ? PX_PER_TILE / 2 : PX_PER_TILE;
+            const [tw, th] = TILES[key] ?? [1, 1];
             const canvas = document.createElement('canvas');
-            canvas.width = canvas.height = px;
-            canvas.getContext('2d')!.drawImage(img, 0, 0, px, px);
+            canvas.width = unit * tw;
+            canvas.height = unit * th;
+            canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
             cache.set(key, canvas);
             resolve();
           };

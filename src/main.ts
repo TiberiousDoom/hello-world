@@ -1,11 +1,13 @@
 import { Music } from './audio/music';
+import { Sfx } from './audio/sfx';
+import { SoundWatcher } from './audio/sounds';
 import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { loadArt } from './art';
-import { HARDCORE_UNLOCK_WAVE, HUB_SIZE } from './sim/data';
+import { HUB_SIZE } from './sim/data';
 import { createDemoWorld, sustainDemo } from './sim/demo';
-import { TICK, World } from './sim/world';
+import { OldSaveError, TICK, World } from './sim/world';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
@@ -17,14 +19,22 @@ const PROFILE_KEY = 'foundry-front-profile';
 const AUTOSAVE_MS = 20_000;
 const MAX_TICKS_PER_FRAME = 20;
 
-function loadWorld(): World {
+/** The saved game, or null. A save from before the new map (v8) can't be loaded, so it's cleared. */
+function loadWorld(): World | null {
   try {
     const json = localStorage.getItem(SAVE_KEY);
     if (json) return World.fromJSON(json);
   } catch (err) {
-    console.warn('Could not load save, starting fresh.', err);
+    if (err instanceof OldSaveError) {
+      localStorage.removeItem(SAVE_KEY);
+      const note = document.getElementById('mm-note');
+      if (note) {
+        note.textContent = 'Your saved factory was from an earlier version of the game, which used a different map. Start a new game to try the new one.';
+        note.hidden = false;
+      }
+    } else console.warn('Could not load save.', err);
   }
-  return World.create();
+  return null;
 }
 
 interface Profile {
@@ -34,10 +44,11 @@ interface Profile {
   escapes: number;
   confirmTouch: boolean;
   musicVolume: number; // 0–1
+  sfxVolume: number; // 0–1
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, escapes: 0 };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0 };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -128,7 +139,8 @@ function refreshMainMenu(): void {
   if (saved) {
     const s = saved.state;
     const mode = s.mode === 'hardcore' ? 'Hardcore' : 'Standard';
-    const where = s.ship.endless ? `Endless · wave ${s.wave + 1} next` : s.ship.escaped ? 'escaped!' : `wave ${s.wave + 1} next`;
+    const mins = Math.floor(s.time / 60);
+    const where = s.ship.endless ? 'Endless' : s.ship.escaped ? 'escaped!' : `${mins} min played`;
     document.getElementById('mm-continue-sub')!.textContent = s.gameOver ? `${mode} · run over` : `${mode} · ${where}`;
     if (s.gameOver) btn.hidden = true;
   }
@@ -155,17 +167,18 @@ const hud = new Hud(ui, {
     if (game && !escapesCounted.has(game.state.seed)) {
       escapesCounted.add(game.state.seed);
       profile.escapes++;
+      // Escaping in Standard unlocks Hardcore.
+      if (game.state.mode === 'standard' && !profile.hardcoreUnlocked) {
+        profile.hardcoreUnlocked = true;
+        hud.toast('Hardcore mode unlocked! Start it from Menu → New game.');
+      }
       saveProfile();
     }
     save();
   },
-  cameBack: () => {
+  keptPlaying: () => {
     music.setMood('game');
     save();
-  },
-  centreOnHub: () => {
-    const hub = active().hub;
-    if (hub) [camera.x, camera.y] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
   },
   newGame: (mode, withTutorial) => {
     play(World.create(undefined, mode));
@@ -195,7 +208,10 @@ const tutorial = new Tutorial(camera, active, ui, {
 
 const input = new Input(canvas, camera, ui, {
   getWorld: active,
-  onPlaceError: (err) => hud.placeError(err),
+  onPlaceError: (err) => {
+    hud.placeError(err);
+    sfx.play('error');
+  },
   onChange: () => hud.refresh(),
 });
 const planBar = new PlanBar(camera, ui, {
@@ -213,6 +229,23 @@ volume.addEventListener('input', () => {
 });
 volume.addEventListener('change', saveProfile);
 
+const sfx = new Sfx(profile.sfxVolume);
+const sounds = new SoundWatcher(sfx, camera);
+const sfxVolume = document.getElementById('sfx-volume') as HTMLInputElement;
+sfxVolume.value = String(Math.round(profile.sfxVolume * 100));
+sfxVolume.addEventListener('input', () => {
+  profile.sfxVolume = Number(sfxVolume.value) / 100;
+  sfx.setVolume(profile.sfxVolume);
+});
+sfxVolume.addEventListener('change', () => {
+  saveProfile();
+  sfx.play('click'); // a sample at the new volume
+});
+// Every button clicks.
+document.addEventListener('click', (e) => {
+  if ((e.target as Element).closest?.('button')) sfx.play('click');
+});
+
 const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
 confirmToggle.checked = profile.confirmTouch;
 confirmToggle.addEventListener('change', () => {
@@ -220,7 +253,11 @@ confirmToggle.addEventListener('change', () => {
   saveProfile();
 });
 
-document.getElementById('mm-continue')!.addEventListener('click', () => play(game ?? loadWorld()));
+document.getElementById('mm-continue')!.addEventListener('click', () => {
+  const world = game ?? loadWorld();
+  if (world) play(world);
+  else refreshMainMenu();
+});
 document.getElementById('mm-new')!.addEventListener('click', () => hud.openNewGame());
 document.getElementById('mm-help')!.addEventListener('click', () => hud.openModal('help'));
 
@@ -236,18 +273,6 @@ renderer.resize();
 showMainMenu();
 loadArt(); // sprites appear as they finish loading; shapes are drawn until then
 
-/** Surviving enough waves in standard mode unlocks hardcore. */
-function checkUnlocks(): void {
-  if (!game || inMenu) return;
-  const s = game.state;
-  const cleared = s.wave >= HARDCORE_UNLOCK_WAVE && !s.enemies.length && !s.spawnQueue.length;
-  if (s.mode === 'standard' && cleared && !profile.hardcoreUnlocked) {
-    profile.hardcoreUnlocked = true;
-    saveProfile();
-    hud.toast('Hardcore mode unlocked! Start it from Menu → New game.');
-  }
-}
-setInterval(checkUnlocks, 1000);
 
 let last = performance.now();
 let acc = 0;
@@ -277,6 +302,7 @@ function frame(now: number): void {
   if (!inMenu) {
     hud.update(world, now);
     hud.placeStock(world, camera);
+    sounds.update(world);
     tutorial.check();
   }
   tutorial.update();
@@ -295,4 +321,5 @@ requestAnimationFrame(frame);
   camera,
   ui,
   music,
+  sfx,
 };

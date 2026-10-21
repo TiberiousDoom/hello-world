@@ -1,4 +1,5 @@
-import { BuildingType, Dir, sizeOfType } from '../sim/data';
+import { BuildingType, Dir, footprint } from '../sim/data';
+import type { World } from '../sim/world';
 
 export type Tool = BuildingType | 'demolish' | null;
 
@@ -46,8 +47,30 @@ export function planDirs(plan: Plan, dir: Dir): Dir[] {
   return t.map((p, i) => (i < t.length - 1 ? dirBetween(p, t[i + 1]) : dirBetween(t[i - 1], p)));
 }
 
-/** Where a building goes when placed at tile `t`: big buildings (the shipyard) centre on it. */
-export function anchorAt(type: BuildingType, t: { x: number; y: number }): { x: number; y: number } {
-  const off = Math.floor((sizeOfType(type) - 1) / 2);
-  return { x: t.x - off, y: t.y - off };
+/** Where a building's top-left goes when placed at tile `t` facing `dir`: bigger buildings centre on it. */
+export function anchorAt(type: BuildingType, t: { x: number; y: number }, dir: Dir = 0): { x: number; y: number } {
+  const [w, h] = footprint(type, dir);
+  return { x: t.x - Math.floor((w - 1) / 2), y: t.y - Math.floor((h - 1) / 2) };
+}
+
+/** Whether a building takes more than one tile (placed one at a time, never dragged out in a line). */
+export const isBig = (type: BuildingType): boolean => {
+  const [w, h] = footprint(type);
+  return w * h > 1;
+};
+
+/**
+ * Where a building goes when the player taps tile `t` with it: its top-left
+ * and facing. Tapped onto a belt (when allowed), it faces the way the belt runs.
+ */
+export function placementAt(
+  world: World,
+  type: BuildingType,
+  t: { x: number; y: number },
+  dir: Dir,
+  replaceBelt: boolean,
+): { x: number; y: number; dir: Dir } {
+  const belt = replaceBelt ? world.beltToReplace(type, t.x, t.y) : undefined;
+  if (belt && type !== 'port') dir = belt.dir;
+  return { ...anchorAt(type, t, dir), dir };
 }

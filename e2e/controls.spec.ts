@@ -39,22 +39,26 @@ test('wheel, right-click and menu backdrops', async ({ page }) => {
   // Selecting the hub; right-click clears the selection.
   const hub = await page.evaluate(() => {
     const h = window.game.world.hub;
-    return window.game.camera.toScreen(h.x + 1.5, h.y + 1.5) as [number, number];
+    return window.game.camera.toScreen(h.x + 2.5, h.y + 2.5) as [number, number];
   });
   await page.mouse.click(...hub);
   expect(await page.evaluate(() => window.game.ui.selected)).not.toBeNull();
   await page.mouse.click(...hub, { button: 'right' });
   expect(await page.evaluate(() => window.game.ui.selected)).toBeNull();
 
+  // With a tool in hand, clicking a different kind of building selects it and puts the tool down.
+  await page.click('[data-tool="belt"]');
+  await page.mouse.click(...hub);
+  expect(await page.evaluate(() => window.game.ui.tool)).toBeNull();
+  expect(await page.evaluate(() => window.game.world.byId.get(window.game.ui.selected)?.type)).toBe('hub');
+
   // Menus close on a backdrop click, not on a click inside.
-  await page.click('#research-btn');
+  await page.click('#info [data-action="research"]');
   await page.locator('#research h2').click();
   await expect(page.locator('#research')).toBeVisible();
   await page.mouse.click(15, 740);
   await expect(page.locator('#research')).toBeHidden();
-  await page.click('#mail-btn');
-  await page.click('[data-tab="store"]');
-  await expect(page.locator('#company-body')).toContainText('Closed');
+  await page.click('#menu-btn');
   await page.mouse.click(15, 740);
-  await expect(page.locator('#company')).toBeHidden();
+  await expect(page.locator('#menu')).toBeHidden();
 });

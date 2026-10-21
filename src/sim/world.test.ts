@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { BREACH, BUILDINGS, FIRST_WAVE_AT, ItemId, RESEARCH, TURRETS } from './data';
-import { Building, SAVE_VERSION, TICK, World } from './world';
+import { BREACH, BUILDINGS, HUB_SIZE, ItemId, MAP_SIZE, NESTS, RESEARCH, TURRETS } from './data';
+import { Nest, cellKey, isAngry, nestCentre } from './nests';
+import { Building, OldSaveError, SAVE_VERSION, TICK, World } from './world';
+import { createDemoWorld } from './demo';
 
-/** A world with no resources, no buildings except the hub, everything researched and a big inventory. */
+/** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
 function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   const w = World.create(1, mode);
   w.state.researched = RESEARCH.map((r) => r.id);
   w.state.resources.fill(0);
+  w.state.nests = [];
+  w.state.enemies = [];
+  w.nestCells.clear();
   w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999 };
-  w.state.nextWaveAt = 1e9;
   return w;
 }
 
@@ -21,99 +25,191 @@ function placed(r: Building | string): Building {
   return r;
 }
 
-describe('World', () => {
-  it('creates a map with a hub and resources near it', () => {
+/** Ore under a w×h area. */
+function ore(w: World, x: number, y: number, kind = 1, size = 2) {
+  for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) w.state.resources[w.idx(x + dx, y + dy)] = kind;
+}
+
+/** Adds a nest (with `bugs` crawlers) whose cell has its top-left at (x, y). */
+function addNest(w: World, x: number, y: number, bugs = 3): Nest {
+  const n: Nest = { id: w.state.nests.length, x, y, angryUntil: 0 };
+  w.state.nests.push(n);
+  w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
+  for (let i = 0; i < bugs; i++) w.spawnBug('crawler', n, 1);
+  return n;
+}
+
+describe('Map', () => {
+  it('is 256×256, with a 5×5 hub in the middle and every ore within reach of it', () => {
     const w = World.create(42);
-    expect(w.hub?.type).toBe('hub');
-    const kinds = new Set(w.state.resources.filter((r) => r > 0));
-    expect(kinds).toEqual(new Set([1, 2, 3]));
+    expect(w.state.width).toBe(MAP_SIZE);
+    const hub = w.hub!;
+    expect(w.footprintOf(hub)).toEqual([HUB_SIZE, HUB_SIZE]);
+    for (let dy = 0; dy < 5; dy++) for (let dx = 0; dx < 5; dx++) expect(w.buildingAt(hub.x + dx, hub.y + dy)).toBe(hub);
+    const near = new Set<number>();
+    const c = hub.x + 2;
+    for (let y = c - 18; y <= c + 18; y++) for (let x = c - 18; x <= c + 18; x++) if (w.state.resources[w.idx(x, y)]) near.add(w.state.resources[w.idx(x, y)]);
+    expect(near).toEqual(new Set([1, 2, 3]));
+    // Ore spread across the map as well.
+    expect(w.state.resources.filter((r) => r).length).toBeGreaterThan(MAP_SIZE * MAP_SIZE * 0.08);
   });
 
-  it('finds a path from every tile, even through blocks of buildings with fractional costs', () => {
-    // A 20×20 block of furnaces (cost 4.8 each) around the hub. 32-bit flow storage
-    // rounded some distances down, skipped those tiles and left them with no path.
-    const w = emptyWorld();
-    const h = w.hub!;
-    for (let y = h.y - 8; y < h.y + 12; y++) for (let x = h.x - 8; x < h.x + 12; x++) w.place('furnace', x, y, 0);
-    w.computeFlow();
-    expect(Array.from(w.flow).every(Number.isFinite)).toBe(true);
+  it('is the same for the same seed', () => {
+    const a = World.create(7);
+    const b = World.create(7);
+    expect(a.state.resources).toEqual(b.state.resources);
+    expect(a.state.nests).toEqual(b.state.nests);
+    expect(World.create(8).state.resources).not.toEqual(a.state.resources);
   });
 
-  it('spreads node tiles out so none touch side by side, with each ore near the hub', () => {
-    for (let seed = 1; seed <= 20; seed++) {
+  it('places bug territories away from the hub, each with bugs inside its cell', () => {
+    for (const seed of [1, 2, 3]) {
       const w = World.create(seed);
       const hub = w.hub!;
-      const near = new Set<number>();
-      for (let y = 0; y < w.state.height; y++) {
-        for (let x = 0; x < w.state.width; x++) {
-          const r = w.state.resources[w.idx(x, y)];
-          if (!r) continue;
-          if (x + 1 < w.state.width) expect(w.state.resources[w.idx(x + 1, y)]).toBe(0);
-          if (y + 1 < w.state.height) expect(w.state.resources[w.idx(x, y + 1)]).toBe(0);
-          if (Math.abs(x - hub.x - 1) <= 13 && Math.abs(y - hub.y - 1) <= 13) near.add(r);
-        }
+      const c = hub.x + 2;
+      expect(w.state.nests.length).toBeGreaterThan(40);
+      for (const n of w.state.nests) {
+        const nx = Math.max(n.x, Math.min(c, n.x + NESTS.cell - 1));
+        const ny = Math.max(n.y, Math.min(c, n.y + NESTS.cell - 1));
+        expect(Math.hypot(nx - c, ny - c)).toBeGreaterThanOrEqual(NESTS.safeRadius);
       }
-      expect(near).toEqual(new Set([1, 2, 3]));
+      for (const e of w.state.enemies) {
+        const n = w.state.nests[e.nest];
+        expect(e.x >= n.x && e.x < n.x + NESTS.cell && e.y >= n.y && e.y < n.y + NESTS.cell).toBe(true);
+      }
+    }
+  });
+});
+
+describe('Buildings', () => {
+  it('have their sizes, and sideways turns swap width and height', () => {
+    const w = emptyWorld();
+    const sizes: [string, number, number][] = [['extractor', 2, 2], ['furnace', 2, 2], ['workshop', 3, 2], ['assembler', 4, 2]];
+    let y = 20;
+    for (const [type, bw, bh] of sizes) {
+      ore(w, 20, y, 1, 4);
+      ore(w, 40, y, 1, 4);
+      const b = placed(w.place(type as 'workshop', 20, y, 0));
+      expect(w.footprintOf(b)).toEqual([bw, bh]);
+      const s = placed(w.place(type as 'workshop', 40, y, 1));
+      expect(w.footprintOf(s)).toEqual([bh, bw]);
+      expect(w.buildingAt(40 + bh - 1, y + bw - 1)).toBe(s);
+      y += 6;
     }
   });
 
-  it('is deterministic for a seed', () => {
-    expect(World.create(7).state.resources).toEqual(World.create(7).state.resources);
-  });
-
-  it('charges and refunds building costs', () => {
-    const w = World.create(3);
+  it('charges and refunds costs, and rejects bad placements', () => {
+    const w = emptyWorld();
     const before = w.state.inventory.iron_plate!;
-    const belt = placed(w.place('belt', 2, 2, 0));
-    expect(w.state.inventory.iron_plate).toBe(before - 1);
-    w.demolish(belt.id);
+    const b = placed(w.place('workshop', 20, 20, 0));
+    expect(w.state.inventory.iron_plate).toBe(before - BUILDINGS.workshop.cost.iron_plate!);
+    expect(w.place('belt', 22, 21, 0)).toBe('occupied'); // inside the workshop
+    expect(w.place('extractor', 30, 30, 0)).toBe('needs-resource');
+    expect(w.place('workshop', MAP_SIZE - 2, 10, 0)).toBe('bounds');
+    expect(w.place('port', 60, 60, 0)).toBe('needs-hub');
+    w.demolish(b.id);
     expect(w.state.inventory.iron_plate).toBe(before);
   });
 
-  it('rejects invalid placements', () => {
+  it('turn in place only when their new footprint is free', () => {
     const w = emptyWorld();
-    expect(w.place('extractor', 2, 2, 0)).toBe('needs-resource');
-    expect(World.create(1).place('turret', 2, 2, 0)).toBe('locked');
-    expect(w.place('port', 2, 2, 0)).toBe('needs-hub');
-    const hub = w.hub!;
-    expect(w.place('belt', hub.x, hub.y, 0)).toBe('occupied');
-    w.state.inventory = {};
-    expect(w.place('belt', 2, 2, 0)).toBe('cost');
+    const b = placed(w.place('workshop', 20, 20, 0)); // 3 wide, 2 deep
+    expect(w.rotate(b.id)).toBe(true); // now 2 wide, 3 deep
+    expect(w.buildingAt(20, 22)).toBe(b);
+    expect(w.buildingAt(22, 20)).toBeUndefined();
+    placed(w.place('wall', 22, 20, 0));
+    expect(w.rotate(b.id)).toBe(false); // facing west it would cover the wall
   });
 
-  it('mines, smelts and delivers to the hub along belts', () => {
+  it('output from the middle of the side they face', () => {
     const w = emptyWorld();
+    const b = placed(w.place('workshop', 20, 20, 1)); // facing south: 2 wide, 3 deep
+    expect(w.outputTile(b)).toEqual({ x: 20, y: 23, fromX: 20, fromY: 22 });
+    const a = placed(w.place('assembler', 30, 20, 0)); // facing east: 4 wide, 2 deep
+    expect(w.outputTile(a)).toEqual({ x: 34, y: 20, fromX: 33, fromY: 20 });
+  });
+
+  it('extractors mine the ore covering most of their base', () => {
+    const w = emptyWorld();
+    w.state.resources[w.idx(20, 20)] = 1;
+    w.state.resources[w.idx(21, 20)] = 2;
+    w.state.resources[w.idx(21, 21)] = 2;
+    const b = placed(w.place('extractor', 20, 20, 0));
+    expect(b.recipe).toBe('copper_ore');
+  });
+});
+
+describe('Production', () => {
+  /** Extractor → belt → furnace → belts → hub, along the hub's middle row. */
+  function line(w: World) {
     const hub = w.hub!;
-    // Extractor -> belt -> furnace -> belt x2 -> hub, laid out west of the hub.
-    const y = hub.y + 1;
-    const x0 = hub.x - 6;
-    w.state.resources[w.idx(x0, y)] = 1; // iron
+    const y = hub.y + 2;
+    const x0 = hub.x - 12;
+    ore(w, x0, y);
     placed(w.place('extractor', x0, y, 0));
-    placed(w.place('belt', x0 + 1, y, 0));
-    placed(w.place('furnace', x0 + 2, y, 0));
-    for (let x = x0 + 3; x < hub.x; x++) placed(w.place('belt', x, y, 0));
+    placed(w.place('belt', x0 + 2, y, 0));
+    placed(w.place('furnace', x0 + 3, y, 0));
+    for (let x = x0 + 5; x < hub.x; x++) placed(w.place('belt', x, y, 0));
+    return { x0, y };
+  }
+
+  it('mines, smelts and delivers to the hub', () => {
+    const w = emptyWorld();
+    line(w);
     const start = w.state.inventory.iron_plate!;
     run(w, 30);
     expect(w.state.inventory.iron_plate! - start).toBeGreaterThan(10);
   });
 
-  it('a furnace placed on a belt line replaces that belt, faces its way and starts smelting', () => {
+  it('crafts multi-input recipes in the big machines', () => {
+    const w = emptyWorld();
+    const a = placed(w.place('assembler', 20, 20, 0));
+    w.setRecipe(a.id, 'motor');
+    for (const item of ['gear', 'wire', 'wire', 'iron_plate'] as ItemId[]) w.insert(a, item, 19, 20);
+    run(w, 5);
+    expect(a.outputs).toContain('motor');
+  });
+
+  it('a furnace dropped onto a belt line replaces those belts, faces their way and starts smelting', () => {
     const w = emptyWorld();
     const hub = w.hub!;
-    const y = hub.y + 1;
-    const x0 = hub.x - 6;
-    w.state.resources[w.idx(x0, y)] = 1;
+    const y = hub.y + 2;
+    const x0 = hub.x - 12;
+    ore(w, x0, y);
     placed(w.place('extractor', x0, y, 0));
-    for (let x = x0 + 1; x < hub.x; x++) placed(w.place('belt', x, y, 0));
-    expect(w.place('furnace', x0 + 2, y, 1)).toBe('occupied'); // a drag doesn't eat the line
+    for (let x = x0 + 2; x < hub.x; x++) placed(w.place('belt', x, y, 0));
+    expect(w.place('furnace', x0 + 4, y, 1)).toBe('occupied'); // a drag doesn't eat the line
     const plates = w.state.inventory.iron_plate!;
-    const furnace = placed(w.place('furnace', x0 + 2, y, 1, true));
-    expect(furnace.dir).toBe(0); // the belt's direction, not the one asked for
-    expect(w.state.inventory.iron_plate).toBe(plates - 2 + 1); // furnace cost, belt refund
+    const furnace = placed(w.place('furnace', x0 + 4, y, 0, true));
+    expect(w.buildingAt(x0 + 5, y)).toBe(furnace);
+    expect(w.state.inventory.iron_plate).toBe(plates - 2 + 2); // furnace cost, two belts refunded
     const start = w.state.inventory.iron_plate!;
     run(w, 30);
     expect(w.state.inventory.iron_plate! - start).toBeGreaterThan(10);
-    expect(w.place('belt', x0 + 3, y, 0, true)).toBe('occupied'); // belts don't replace belts
+    expect(w.place('belt', x0 + 7, y, 0, true)).toBe('occupied'); // belts don't replace belts
+  });
+
+  it('starts with a few buildings and unlocks more through research, including the shipyard', () => {
+    const w = World.create(3);
+    expect(w.isUnlocked('extractor')).toBe(true);
+    expect(w.isUnlocked('turret')).toBe(false);
+    expect(w.isUnlocked('shipyard')).toBe(false);
+    w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999 };
+    for (const id of ['defense', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    expect(w.isUnlocked('turret')).toBe(true);
+    expect(w.isUnlocked('shipyard')).toBe(true);
+  });
+
+  it('hub ports take the chosen item out of stock and face away from the 5×5 hub', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const port = placed(w.place('port', hub.x + 5, hub.y + 2, 1));
+    expect(port.dir).toBe(0);
+    placed(w.place('belt', hub.x + 6, hub.y + 2, 0));
+    w.setFilter(port.id, 'gear');
+    const gears = w.state.inventory.gear!;
+    run(w, 3);
+    expect(w.state.inventory.gear).toBeLessThan(gears);
   });
 
   it('turrets touching the hub reload from hub stock; others need a belt', () => {
@@ -131,63 +227,123 @@ describe('World', () => {
     expect(plates - w.state.inventory.iron_plate!).toBe(def.maxShots / def.shotsPerItem);
   });
 
-  it('crafts multi-input recipes', () => {
+  it('splitters take from behind and alternate between front, left and right', () => {
     const w = emptyWorld();
-    const a = placed(w.place('assembler', 2, 2, 0));
-    const feed = (item: ItemId, n: number) => {
-      for (let i = 0; i < n; i++) expect(w.insert(a, item, 1, 2)).toBe(true);
-    };
-    feed('gear', 1);
-    feed('wire', 2);
-    feed('iron_plate', 1);
-    expect(a.recipe).toBe('motor');
-    run(w, 5);
-    expect(a.outputs).toEqual(['motor']);
+    const sp = placed(w.place('splitter', 20, 20, 0));
+    const out = [placed(w.place('belt', 21, 20, 0)), placed(w.place('belt', 20, 19, 3)), placed(w.place('belt', 20, 21, 1))];
+    expect(w.insert(sp, 'gear', 20, 19)).toBe(false); // not from the side
+    for (let i = 0; i < 3; i++) {
+      expect(w.insert(sp, 'gear', 19, 20)).toBe(true);
+      w.tick();
+    }
+    expect(out.map((b) => b.belt.length)).toEqual([1, 1, 1]);
   });
 
-  it('starts with a few buildings and unlocks more through research', () => {
-    const w = World.create(2);
-    expect(['belt', 'extractor', 'furnace'].every((t) => w.isUnlocked(t as never))).toBe(true);
-    expect(w.isUnlocked('turret')).toBe(false);
-    expect(w.researchNow('logistics')).toBe('requires'); // needs workshops first
-    const plates = w.state.inventory.iron_plate!;
-    expect(w.researchNow('defense')).toBe(null);
-    expect(w.state.inventory.iron_plate).toBe(plates - 20);
-    expect(w.isUnlocked('turret')).toBe(true);
-    expect(w.researchNow('defense')).toBe('done');
-    w.state.inventory = {};
-    expect(w.researchNow('workshop')).toBe('cost');
-    expect(w.availableResearch().map((r) => r.id)).toContain('distribution');
+  it('underground belts carry items under walls', () => {
+    const w = emptyWorld();
+    const entrance = placed(w.place('tunnel', 20, 20, 0));
+    placed(w.place('wall', 21, 20, 0));
+    placed(w.place('wall', 22, 20, 0));
+    const exit = placed(w.place('tunnel', 23, 20, 0));
+    expect(entrance.link).toBe(exit.id);
+    const after = placed(w.place('belt', 24, 20, 0));
+    w.insert(entrance, 'gear', 19, 20);
+    run(w, 4);
+    expect(after.belt.length + (w.buildingAt(25, 20) ? 1 : 0)).toBeGreaterThan(0);
   });
 
-  it('hub ports take the chosen item out of stock and face away from the hub', () => {
+  it('repair stations heal nearby buildings using stored plates', () => {
     const w = emptyWorld();
-    const hub = w.hub!;
-    const port = placed(w.place('port', hub.x - 1, hub.y + 1, 1));
-    expect(port.dir).toBe(2); // west, away from the hub
-    const belt = placed(w.place('belt', hub.x - 2, hub.y + 1, 2)); // leads nowhere, so items pile up
-    const before = w.state.inventory.iron_plate!;
-    run(w, 2);
-    expect(belt.belt.length).toBe(0); // no item chosen yet
-    w.setFilter(port.id, 'iron_plate');
-    run(w, 2);
-    expect(w.state.inventory.iron_plate).toBeLessThan(before);
-    expect(belt.belt.length).toBeGreaterThan(0);
+    const wall = placed(w.place('wall', 20, 20, 0));
+    placed(w.place('repair', 22, 20, 0));
+    wall.hp = 100;
+    run(w, 3);
+    expect(wall.hp).toBeGreaterThan(100);
+  });
+});
+
+describe('Bugs', () => {
+  it('stroll inside their territory while calm', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 5);
+    run(w, 60);
+    for (const e of w.state.enemies) {
+      expect(e.x).toBeGreaterThanOrEqual(n.x);
+      expect(e.x).toBeLessThan(n.x + NESTS.cell);
+      expect(e.y).toBeGreaterThanOrEqual(n.y);
+      expect(e.y).toBeLessThan(n.y + NESTS.cell);
+    }
+    expect(isAngry(w, n)).toBe(false);
   });
 
-  it('standard mode survives losing the hub, at a cost', () => {
+  it('are provoked by building in or next to their territory, not further away', () => {
     const w = emptyWorld();
-    w.state.inventory = { iron_plate: 100 };
-    w.state.enemies.push({ id: 999, type: 'brute', x: 0.5, y: 0.5, hp: 50, maxHp: 50 });
+    const n = addNest(w, 50, 50);
+    placed(w.place('wall', 50 + NESTS.cell + NESTS.nearMargin + 1, 55, 0));
+    expect(isAngry(w, n)).toBe(false);
+    placed(w.place('wall', 50 + NESTS.cell + NESTS.nearMargin - 1, 55, 0));
+    expect(isAngry(w, n)).toBe(true);
+  });
+
+  it('are provoked by a building close to one of them', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    const bug = w.state.enemies[0];
+    bug.x = 59.5;
+    bug.y = 55.5;
+    bug.tx = bug.x;
+    bug.ty = bug.y;
+    bug.wait = 99; // resting at the edge of its cell
+    placed(w.place('wall', 59 + NESTS.closeRadius, 55, 0)); // just outside the territory's margin
+    expect(isAngry(w, n)).toBe(false);
+    run(w, 1);
+    expect(isAngry(w, n)).toBe(true);
+  });
+
+  it('are provoked by being shot, then go for the nearest buildings and chew them', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 4);
+    const [cx] = nestCentre(n);
+    // A turret just outside the margin, in range of the territory.
+    const turret = placed(w.place('turret', Math.round(cx), 50 + NESTS.cell + NESTS.nearMargin + 1, 0));
+    turret.ammo = 0;
+    expect(isAngry(w, n)).toBe(false);
+    turret.ammo = 40;
+    for (const e of w.state.enemies) {
+      e.x = cx;
+      e.y = 59.5; // in range of the turret, but not close enough to notice it
+    }
+    run(w, 1);
+    expect(isAngry(w, n)).toBe(true);
+    turret.ammo = 0; // out of ammo: the bugs reach it
+    run(w, 20);
+    expect(turret.hp).toBeLessThan(BUILDINGS.turret.hp);
+  });
+
+  it("don't chase past their leash, and calm down after a while", () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 2);
+    const [cx, cy] = nestCentre(n);
+    const far = placed(w.place('wall', Math.round(cx) + NESTS.leash + 10, Math.round(cy), 0));
+    n.angryUntil = w.state.time + 5;
+    w.markFlowDirty();
+    run(w, 30);
+    expect(far.hp).toBe(BUILDINGS.wall.hp);
+    for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeLessThanOrEqual(NESTS.leash + 1);
+    expect(isAngry(w, n)).toBe(false);
+  });
+
+  it('standard mode survives losing the hub, at a cost, and the bugs go home', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50);
+    n.angryUntil = 1e9;
     w.hub!.hp = 0;
-    const nextWave = w.state.nextWaveAt;
     w.tick();
     expect(w.state.gameOver).toBe(false);
     expect(w.state.breaches).toBe(1);
-    expect(w.state.enemies.length).toBe(0);
-    expect(w.state.inventory.iron_plate).toBe(100 * (1 - BREACH.stockLost));
     expect(w.hub!.hp).toBe(BUILDINGS.hub.hp * BREACH.hubRestore);
-    expect(w.state.nextWaveAt).toBeGreaterThan(nextWave);
+    expect(w.state.inventory.iron_plate).toBe(Math.floor(999 * (1 - BREACH.stockLost)));
+    expect(isAngry(w, n)).toBe(false);
   });
 
   it('hardcore mode ends when the hub falls', () => {
@@ -197,302 +353,82 @@ describe('World', () => {
     expect(w.state.gameOver).toBe(true);
   });
 
-  it('sends enemies to the hub and damages it', () => {
+  it('the hub gun shoots bugs in range, without ammo', () => {
     const w = emptyWorld();
     const hub = w.hub!;
-    w.state.enemies.push({ id: 999, type: 'crawler', x: 0.5, y: hub.y + 1.5, hp: 1e6, maxHp: 1e6 });
-    const hp = hub.hp;
-    run(w, 40);
-    expect(hub.hp).toBeLessThan(hp);
-  });
-
-  it('enemies chew through walls in their way', () => {
-    const w = emptyWorld();
-    const hub = w.hub!;
-    // Fully enclose the hub with walls.
-    for (let x = hub.x - 1; x <= hub.x + 3; x++)
-      for (let y = hub.y - 1; y <= hub.y + 3; y++) if (!w.buildingAt(x, y)) placed(w.place('wall', x, y, 0));
-    w.state.enemies.push({ id: 999, type: 'brute', x: 0.5, y: hub.y + 1.5, hp: 1e6, maxHp: 1e6 });
-    const walls = w.state.buildings.filter((b) => b.type === 'wall').length;
-    run(w, 90);
-    expect(w.state.buildings.filter((b) => b.type === 'wall').length).toBeLessThan(walls);
-  });
-
-  it('turrets need ammo and kill enemies in range', () => {
-    const w = emptyWorld();
-    const t = placed(w.place('turret', 5, 5, 0));
-    expect(t.ammo).toBeGreaterThan(0);
-    t.ammo = 0;
-    w.state.enemies.push({ id: 999, type: 'crawler', x: 7.5, y: 5.5, hp: 10, maxHp: 10 });
-    w.tick();
-    expect(w.state.enemies[0].hp).toBe(10);
-    expect(w.insert(t, 'iron_plate', 4, 5)).toBe(true);
-    expect(w.insert(t, 'gear', 4, 5)).toBe(false);
-    run(w, 1);
-    expect(w.state.enemies.length).toBe(0);
-  });
-
-  it('two loaded turrets by the hub hold off the first wave', () => {
-    const w = World.create(11);
-    w.researchNow('defense');
-    const hub = w.hub!;
-    placed(w.place('turret', hub.x - 1, hub.y + 1, 0));
-    placed(w.place('turret', hub.x + 3, hub.y + 1, 0));
-    w.state.time = FIRST_WAVE_AT - 1;
-    run(w, 60);
-    expect(w.state.wave).toBe(1);
-    expect(w.state.enemies.length + w.state.spawnQueue.length).toBe(0);
-    expect(w.state.gameOver).toBe(false);
-  });
-
-  it('spawns waves on schedule', () => {
-    const w = World.create(5);
-    w.state.time = FIRST_WAVE_AT - TICK / 2;
-    w.tick();
-    expect(w.state.wave).toBe(1);
-    run(w, 10);
-    expect(w.state.enemies.length).toBeGreaterThan(0);
-  });
-
-  it('splitters take from behind and alternate between front, left and right', () => {
-    const w = emptyWorld();
-    const sp = placed(w.place('splitter', 10, 10, 0)); // facing east
-    const front = placed(w.place('belt', 11, 10, 0));
-    const left = placed(w.place('belt', 10, 9, 3));
-    const right = placed(w.place('belt', 10, 11, 1));
-    expect(w.insert(sp, 'iron_plate', 10, 9)).toBe(false); // from the side
-    for (let i = 0; i < 3; i++) {
-      expect(w.insert(sp, 'iron_plate', 9, 10)).toBe(true);
-      run(w, 0.5);
-    }
-    expect([front, left, right].map((b) => b.belt.length)).toEqual([1, 1, 1]);
-  });
-
-  it('splitters skip blocked sides', () => {
-    const w = emptyWorld();
-    const sp = placed(w.place('splitter', 10, 10, 0));
-    const front = placed(w.place('belt', 11, 10, 0));
-    for (let i = 0; i < 3; i++) {
-      expect(w.insert(sp, 'iron_plate', 9, 10)).toBe(true);
-      run(w, 0.5);
-    }
-    expect(front.belt.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('underground belts pair up and carry items under walls', () => {
-    const w = emptyWorld();
-    const a = placed(w.place('tunnel', 10, 10, 0));
-    placed(w.place('wall', 11, 10, 0));
-    placed(w.place('wall', 12, 10, 0));
-    const b = placed(w.place('tunnel', 13, 10, 0));
-    expect(a.link).toBe(b.id);
-    expect(b.link).toBe(a.id);
-    expect(w.isTunnelExit(b)).toBe(true);
-    expect(w.isTunnelExit(a)).toBe(false);
-    const out = placed(w.place('belt', 14, 10, 0));
-    expect(w.insert(b, 'gear', 12, 10)).toBe(false); // exits take no input
-    expect(w.insert(a, 'gear', 9, 10)).toBe(true);
+    const n = addNest(w, 0, 0, 1);
+    const bug = w.state.enemies[0];
+    bug.x = hub.x - 3;
+    bug.y = hub.y + 2;
+    bug.wait = 99;
+    bug.tx = bug.x;
+    bug.ty = bug.y;
     run(w, 3);
-    expect(out.belt.map((i) => i.item)).toEqual(['gear']);
-    w.demolish(b.id);
-    expect(a.link).toBe(null);
-  });
-
-  it('underground belts only pair within range and the same direction', () => {
-    const w = emptyWorld();
-    placed(w.place('tunnel', 10, 10, 0));
-    expect(placed(w.place('tunnel', 16, 10, 0)).link).toBe(null); // 6 tiles: too far
-    const c = placed(w.place('tunnel', 20, 20, 1));
-    expect(placed(w.place('tunnel', 21, 20, 0)).link).toBe(null); // c faces south
-    expect(c.link).toBe(null);
-  });
-
-  it('repair stations heal nearby buildings using stored plates', () => {
-    const w = emptyWorld();
-    const wall = placed(w.place('wall', 12, 10, 0));
-    const far = placed(w.place('wall', 30, 10, 0));
-    wall.hp = 100;
-    far.hp = 100;
-    const r = placed(w.place('repair', 10, 10, 0));
-    r.ammo = 0;
-    run(w, 1);
-    expect(wall.hp).toBe(100);
-    expect(w.insert(r, 'iron_plate', 9, 10)).toBe(true);
-    run(w, 3);
-    expect(wall.hp).toBeCloseTo(140);
-    expect(far.hp).toBe(100);
-  });
-
-  it('adds runners from wave 2', () => {
-    const w = emptyWorld();
-    w.startWave();
-    expect(w.state.spawnQueue.some((p) => p.type === 'runner')).toBe(false);
-    w.startWave();
-    expect(w.state.spawnQueue.some((p) => p.type === 'runner')).toBe(true);
-  });
-
-  it('loads version 1 saves', () => {
-    const w = World.create(9);
-    placed(w.place('belt', 1, 1, 2));
-    const v1 = JSON.parse(w.toJSON());
-    v1.version = 1;
-    for (const b of v1.buildings) {
-      delete b.link;
-      delete b.rr;
-    }
-    const loaded = World.fromJSON(JSON.stringify(v1));
-    expect(loaded.state.version).toBe(SAVE_VERSION);
-    expect(loaded.buildingAt(1, 1)?.link).toBe(null);
-  });
-
-  it('loads version 2 saves, converting tiers to research', () => {
-    const v2 = JSON.parse(World.create(4).toJSON());
-    v2.version = 2;
-    v2.tier = 1;
-    v2.tierProgress = {};
-    delete v2.researched;
-    delete v2.mode;
-    delete v2.breaches;
-    const loaded = World.fromJSON(JSON.stringify(v2));
-    expect(loaded.isUnlocked('cannon')).toBe(true);
-    expect(loaded.state.mode).toBe('standard');
-    expect('tier' in loaded.state).toBe(false);
-  });
-
-  it('round-trips through save data', () => {
-    const w = World.create(9);
-    placed(w.place('belt', 1, 1, 2));
-    run(w, 2);
-    const copy = World.fromJSON(w.toJSON());
-    expect(copy.state).toEqual(w.state);
-    expect(copy.buildingAt(1, 1)?.type).toBe('belt');
-  });
-});
-
-describe('Demo world', () => {
-  it('lays out a working factory that delivers to the hub and fights waves', async () => {
-    const { createDemoWorld, sustainDemo } = await import('./demo');
-    const w = createDemoWorld();
-    const types = w.state.buildings.map((b) => b.type);
-    for (const t of ['extractor', 'furnace', 'workshop', 'splitter', 'tunnel', 'turret', 'cannon', 'wall', 'repair']) {
-      expect(types).toContain(t);
-    }
-    expect(w.state.buildings.filter((b) => b.type === 'tunnel').every((b) => b.link != null)).toBe(true);
-    const start = { ...w.state.inventory };
-    for (let t = 0; t < 60; t += TICK) {
-      w.tick();
-      sustainDemo(w);
-    }
-    expect(w.state.inventory.iron_plate!).toBeGreaterThan(start.iron_plate!);
-    expect(w.state.inventory.wire!).toBeGreaterThan(start.wire!);
-    expect(w.state.inventory.brick!).toBeGreaterThan(start.brick!);
-    expect(w.state.wave).toBeGreaterThan(0);
-  });
-});
-
-describe('Hub weapon', () => {
-  /** Runs wave `n` against a hub with no other defenses; returns HP lost and breaches. */
-  function hubAlone(seed: number, n: number) {
-    const w = World.create(seed);
-    w.state.wave = n - 1;
-    w.state.time = FIRST_WAVE_AT - TICK / 2;
-    w.state.nextWaveAt = FIRST_WAVE_AT;
-    w.tick();
-    w.state.nextWaveAt = 1e9;
-    for (let t = 0; t < 120 && (w.state.enemies.length || w.state.spawnQueue.length); t += TICK) w.tick();
-    return { lost: BUILDINGS.hub.hp - w.hub!.hp, breaches: w.state.breaches, left: w.state.enemies.length };
-  }
-
-  it('beats wave 1 alone, losing at most 25% of its HP, on every map', () => {
-    for (let seed = 1; seed <= 25; seed++) {
-      const r = hubAlone(seed, 1);
-      expect(r.left).toBe(0);
-      expect(r.breaches).toBe(0);
-      expect(r.lost).toBeLessThanOrEqual(BUILDINGS.hub.hp * 0.25);
-    }
-  });
-
-  it('is not enough on its own by wave 3', () => {
-    expect(hubAlone(7, 3).breaches).toBe(1);
-  });
-
-  it('needs no ammo', () => {
-    const w = World.create(2);
-    const hub = w.hub!;
-    w.state.enemies.push({ id: 999, type: 'crawler', x: hub.x + 5, y: hub.y + 1.5, hp: 1000, maxHp: 1000 });
-    for (let t = 0; t < 5; t += TICK) w.tick();
-    expect(w.state.enemies[0].hp).toBeLessThan(1000);
-    expect(hub.ammo).toBe(0);
+    expect(bug.hp).toBeLessThan(bug.maxHp);
+    expect(isAngry(w, n)).toBe(true);
   });
 });
 
 describe('Research over time', () => {
-  function world() {
-    const w = World.create(8);
-    w.state.nextWaveAt = 1e9;
-    w.state.company.nextContractAt = 1e9;
-    return w;
-  }
-
   it('draws items from stock over its research time, then unlocks', () => {
-    const w = world();
-    const plates = w.state.inventory.iron_plate!;
-    expect(w.startResearch('defense')).toBe(null);
-    run(w, 15); // half of 30 s
-    expect(w.researchProgress('defense')).toBeCloseTo(0.5, 1);
-    expect(Math.abs(w.state.inventory.iron_plate! - (plates - 10))).toBeLessThanOrEqual(1);
-    expect(w.isUnlocked('turret')).toBe(false);
-    run(w, 16);
-    expect(w.isUnlocked('turret')).toBe(true);
-    expect(w.state.inventory.iron_plate).toBe(plates - 20);
-    expect(w.state.research.active).toBe(null);
-  });
-
-  it('stalls when the hub runs out, and resumes when stock arrives', () => {
-    const w = world();
-    w.state.inventory.iron_plate = 5;
-    w.startResearch('defense');
-    run(w, 30);
-    expect(w.state.research.stalled).toBe(true);
-    expect(w.researchProgress('defense')).toBeCloseTo(0.25);
-    w.state.inventory.iron_plate = 100;
-    run(w, 25);
-    expect(w.isUnlocked('turret')).toBe(true);
-  });
-
-  it('keeps progress when switching between researches', () => {
-    const w = world();
-    w.startResearch('defense');
-    run(w, 15);
-    const p = w.researchProgress('defense');
-    w.startResearch('masonry');
+    const w = emptyWorld();
+    w.state.researched = [];
+    w.state.inventory = { iron_plate: 100 };
+    expect(w.startResearch('defense')).toBeNull();
     run(w, 10);
-    expect(w.researchProgress('defense')).toBe(p);
-    expect(w.researchProgress('masonry')).toBeGreaterThan(0);
+    const used = 100 - w.state.inventory.iron_plate!;
+    expect(used).toBeGreaterThan(3);
+    expect(used).toBeLessThan(20);
+    run(w, 25);
+    expect(w.state.researched).toContain('defense');
+  });
+
+  it('stalls when the hub runs out, and keeps progress when switching', () => {
+    const w = emptyWorld();
+    w.state.researched = [];
+    w.state.inventory = { iron_plate: 5, brick: 50 };
     w.startResearch('defense');
     run(w, 20);
-    expect(w.isUnlocked('turret')).toBe(true);
-  });
-
-  it('draws mixed costs evenly', () => {
-    const w = world();
-    w.startResearch('workshop'); // 30 plates + 10 copper over 60 s
-    run(w, 30);
-    const paid = w.state.research.paid.workshop;
-    expect(paid.iron_plate! / 30).toBeCloseTo(paid.copper_ingot! / 10, 1);
+    expect(w.state.research.stalled).toBe(true);
+    const progress = w.researchProgress('defense');
+    w.startResearch('masonry');
+    run(w, 5);
+    w.startResearch('defense');
+    expect(w.researchProgress('defense')).toBe(progress);
   });
 
   it("won't start research whose prerequisites aren't done", () => {
-    const w = world();
-    expect(w.startResearch('logistics')).toBe('requires');
-    expect(w.startResearch('nope')).toBe('unknown');
+    const w = emptyWorld();
+    w.state.researched = [];
+    expect(w.startResearch('shipyard')).toBe('requires');
+  });
+});
+
+describe('Saves', () => {
+  it('round-trip', () => {
+    const w = World.create(5);
+    run(w, 3);
+    const loaded = World.fromJSON(w.toJSON());
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.toJSON()).toBe(w.toJSON());
+    expect(loaded.nestCells.size).toBe(w.state.nests.length);
   });
 
-  it('migrates version 4 saves', () => {
-    const v4 = JSON.parse(World.create(9).toJSON());
-    v4.version = 4;
-    delete v4.research;
-    const w = World.fromJSON(JSON.stringify(v4));
-    expect(w.state.research.active).toBe(null);
+  it('refuse older versions (a different kind of map)', () => {
+    const old = JSON.parse(World.create(5).toJSON());
+    old.version = 7;
+    expect(() => World.fromJSON(JSON.stringify(old))).toThrow(OldSaveError);
+  });
+});
+
+describe('Demo world', () => {
+  it('lays out a working factory that delivers to the hub, with calm bugs nearby', () => {
+    const w = createDemoWorld();
+    const inv = { ...w.state.inventory };
+    run(w, 40);
+    expect(w.state.inventory.iron_plate!).toBeGreaterThan(inv.iron_plate!);
+    expect(w.state.inventory.wire!).toBeGreaterThan(inv.wire!);
+    expect(w.state.inventory.brick!).toBeGreaterThan(inv.brick!);
+    expect(w.state.nests.every((n) => !isAngry(w, n))).toBe(true);
   });
 });

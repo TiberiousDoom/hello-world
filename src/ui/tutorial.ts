@@ -1,5 +1,5 @@
 // Tutorial lessons. Each lesson starts by itself the first time something
-// happens in a game (a new game, the first contract, the first wave warning…),
+// happens in a game (a new game, the first bugs provoked, a research done…),
 // plays once, and can be replayed from the menu. Steps either explain
 // (the game pauses and the screen is blocked until Next) or ask the player to
 // do something (the game keeps running and the step finishes when it's done).
@@ -7,10 +7,9 @@
 // The spotlight darkens everything except a circle or rounded box around the
 // thing being explained.
 
-import { STORE_OPEN_SUBJECT, mailRead, storeOpen } from '../sim/company';
-import { introduced } from '../sim/blackmarket';
 import { shipyard } from '../sim/ship';
-import { BLACK_MARKET, BREACH, BuildingType, HUB_SIZE, ItemId, SHIP, WAVE_WARNING } from '../sim/data';
+import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
+import { BREACH, BuildingType, HUB_SIZE, ItemId, NESTS, SHIP } from '../sim/data';
 import { World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -80,6 +79,37 @@ function shipTarget(w: World): TileTarget | null {
   return b ? { tx: b.x, ty: b.y, size: 3 } : null;
 }
 
+/** The nest the Bugs lesson is about: an angry one, else the live one nearest any building. */
+function lessonNest(w: World): Nest | undefined {
+  const live = w.state.nests.filter((n) => nestAlive(w, n));
+  const angry = live.find((n) => isAngry(w, n));
+  if (angry) return angry;
+  let best: Nest | undefined;
+  let bestD = Infinity;
+  for (const n of live) {
+    const [cx, cy] = nestCentre(n);
+    for (const b of w.state.buildings) {
+      const d = Math.hypot(b.x - cx, b.y - cy);
+      if (d < bestD) [bestD, best] = [d, n];
+    }
+  }
+  return best;
+}
+
+/** True once the player has built within this many tiles of a live nest's centre. */
+function builtNearNest(w: World, range: number): boolean {
+  return w.state.nests.some((n) => {
+    if (!nestAlive(w, n)) return false;
+    const [cx, cy] = nestCentre(n);
+    return w.state.buildings.some((b) => b.type !== 'hub' && Math.hypot(b.x - cx, b.y - cy) < range);
+  });
+}
+
+function nestTarget(w: World): TileTarget | null {
+  const n = lessonNest(w);
+  return n ? { tx: n.x, ty: n.y, size: NESTS.cell } : null;
+}
+
 function nearestNode(w: World, item: ItemId): TileTarget | null {
   const hub = w.hub;
   if (!hub) return null;
@@ -117,14 +147,14 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         text: () =>
-          'This is your hub. Everything you deliver here goes into its stock, which pays for buildings and research. It has a small gun of its own, but it can only hold off the first attacks.',
+          'This is your hub. Everything you deliver here goes into its stock, which pays for buildings and research. It has a small gun of its own.',
       },
       {
         target: (c) => toolThen(c, 'extractor', { tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
         done: (c) => built(c, 'extractor'),
         text: (c) =>
           c.ui.tool === 'extractor'
-            ? 'Now tap the iron ore node to place the extractor. Its arrow shows where ore comes out; turn it with Rotate (or the mouse wheel) first.' +
+            ? 'Now tap the iron ore to place the extractor over it. Its arrow shows the side ore comes out of; turn it with Rotate (or the mouse wheel) first.' +
               confirmHint(c)
             : 'Iron ore never runs out. Pick the Extractor to mine it.',
       },
@@ -142,7 +172,7 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'furnace'),
         text: (c) =>
           c.ui.tool === 'furnace'
-            ? 'Place the furnace on your belt line, so ore runs into it. It takes input from any side and outputs where its arrow points.'
+            ? 'Tap a belt in your line to drop the furnace into it, so ore runs in. It takes input from any side and outputs from the side its arrow marks.'
             : 'Ore needs smelting into plates. Pick the Furnace.',
       },
       {
@@ -155,74 +185,32 @@ export const LESSONS: Lesson[] = [
         text: () =>
           'Your stock, shown above the hub, went up. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
       },
-    ],
-  },
-  {
-    id: 'contracts',
-    title: 'Contracts',
-    trigger: (w) => w.state.company.contract != null,
-    steps: [
       {
-        target: () => ({ el: '#contract-btn' }),
-        text: () =>
-          "You owe the Company for your passage here, and the debt only grows. Contracts are your wages: deliver the listed items to the hub before the timer runs out. Once complete they ship out of your stock, so don't spend them. Missing one means a fine.",
-      },
-      {
-        target: () => ({ el: '#mail-btn', shape: 'circle' }),
-        text: () => 'The Company keeps in touch by email: contracts, payslips (after deductions), fines and invoices. Tap here to read them.',
+        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
+        text: () => 'Select the hub any time to open Research. Research uses hub stock to unlock new buildings.',
       },
     ],
   },
   {
     id: 'defense',
-    title: 'Defense',
-    trigger: (w) => w.state.wave === 0 && w.state.nextWaveAt - w.state.time <= WAVE_WARNING,
+    title: 'Bugs',
+    // The first time a nest is provoked, or the factory grows close to one.
+    trigger: (w) => w.state.nests.some((n) => isAngry(w, n)) || builtNearNest(w, NESTS.cell + 6),
     steps: [
       {
-        target: (c) => {
-          const p = c.world.state.nextSpawnPoints[0];
-          return { tiles: p ? { tx: p.x - 1, ty: p.y - 1, size: 3 } : null, shape: 'circle' };
-        },
-        text: () => 'Wildlife is coming. Red markers show where each wave will come from, 30 seconds ahead.',
+        target: (c) => ({ tiles: nestTarget(c.world), shape: 'circle' }),
+        text: () =>
+          'Bugs live in territories like this one, around a nest mound. They ignore you unless provoked: building in or next to their territory, a building coming close to one, or shooting them. Then they go for your nearest buildings until things calm down.',
       },
       {
-        target: () => ({ el: '#research-btn' }),
+        // Once the hub is selected, point at its Research button instead (and keep the card off it).
+        target: (c) =>
+          document.querySelector('#info:not([hidden]) [data-action="research"]')
+            ? { el: '#info [data-action="research"]' }
+            : { tiles: hubTarget(c.world), shape: 'circle' },
         done: (c) => c.world.state.researched.includes('defense'),
         text: () =>
-          'The hub gun can handle this first wave, but not many more. Open Research and start Basic Defense: it draws 20 iron plates from the hub over 30 seconds, then unlocks turrets. Turrets fire iron plates, so feed them by belt.',
-      },
-    ],
-  },
-  {
-    id: 'blackmarket',
-    title: 'Black market',
-    // After A Friend's email has been read, so the lesson doesn't spoil it.
-    trigger: (w) => introduced(w),
-    steps: [
-      {
-        target: () => ({ el: '#suspicion-btn' }),
-        text: () =>
-          "Someone wants to help you get out. This is the black market, and the number is how suspicious the Company is. Keep it low: miss contracts or flaunt contraband and they'll send an audit drone.",
-      },
-      {
-        target: (c) => toolThen(c, 'stash'),
-        done: (c) => built(c, 'stash'),
-        text: (c) =>
-          c.ui.tool === 'stash'
-            ? `Build it more than ${BLACK_MARKET.watchRadius} tiles from the hub: outside the red ring the Company is watching. Then belt items into it.`
-            : 'A Stash hides items from the Company. What goes in is yours, and it pays for black-market research. Pick the Stash.',
-      },
-    ],
-  },
-  {
-    id: 'store',
-    title: 'Company Store',
-    trigger: (w) => storeOpen(w) && mailRead(w, STORE_OPEN_SUBJECT),
-    steps: [
-      {
-        target: () => ({ el: '#mail-btn', shape: 'circle' }),
-        text: () =>
-          "The Company Store is open (in the Company window). It sells emergency supplies on credit. It's handy in a pinch, but every crate adds to your debt.",
+          'Select the hub, open Research and start Basic Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.',
       },
     ],
   },
@@ -248,18 +236,18 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'shipyard'),
         text: (c) =>
           c.ui.tool === 'shipyard'
-            ? `Build it far from the hub, well outside the red ring (${BLACK_MARKET.watchRadius} tiles). It's the biggest secret you'll keep.`
-            : 'The shipyard plans are in. Pick the Shipyard.',
+            ? `Build it where you can defend it. When it launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles.`
+            : 'You can build a ship to get off this planet. Pick the Shipyard.',
       },
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
         text: () =>
-          "The ship goes up in four stages: hull, engine, life support and navigation. Belt each stage's parts into the shipyard; select it to see what it still needs. Everything you send here is something the Company never gets.",
+          "The ship goes up in four stages: hull, engine, life support and navigation. Belt each stage's parts into the shipyard; select it to see what it still needs.",
       },
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
         text: () =>
-          `When the ship is finished, select the shipyard and press Launch. The engines bring every bug on the planet down on it for ${SHIP.launchTime} seconds. Defend it, and you're free.`,
+          `When the ship is finished, select the shipyard and press Launch. Every nest within ${SHIP.wakeRadius} tiles comes for your buildings for ${SHIP.launchTime} seconds. Hold the shipyard, and you're free.`,
       },
     ],
   },
@@ -269,9 +257,9 @@ export const LESSONS: Lesson[] = [
     trigger: (w) => w.state.breaches > 0,
     steps: [
       {
-        target: () => ({ el: '#hub-stat' }),
-        text: (c) =>
-          `The hub was breached. In Standard mode you lose ${BREACH.stockLost * 100}% of your stock and get a repair bill, but the attack ends. ${c.world.state.mode === 'hardcore' ? '' : 'Build more turrets and walls before the next wave.'}`,
+        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
+        text: () =>
+          `The hub was breached. In Standard mode you lose ${BREACH.stockLost * 100}% of your stock, but the bugs go home. Build turrets and walls before you provoke them again.`,
       },
     ],
   },

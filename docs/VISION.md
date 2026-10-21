@@ -5,13 +5,11 @@
 ## Pitch
 
 A factory-automation game in the spirit of Builderment, where the factory is
-also the fortress. You mine, smelt and assemble, and waves of enemies test
-whether your production can keep your defenses fed.
+also the fortress. You mine, smelt and assemble across a large, generated map, and
+bug territories test whether your production can keep your defenses fed as you expand.
 
-**Story ([STORY.md](STORY.md)):** you signed up for a job, and it turned out to be
-indentured servitude. The Company bills you for everything and docks your
-pay by email. Keep its shipping contracts flowing to keep up appearances,
-while you quietly build your way off the planet.
+**Goal:** build an escape ship and get off the planet. (The Company story was dropped,
+D-040; how the ship ties in is open, Q-17.)
 
 ## Pillars
 

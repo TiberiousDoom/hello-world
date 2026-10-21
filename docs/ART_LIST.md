@@ -27,7 +27,7 @@ They show the intended size, facing and silhouette.
 | **Format** | PNG with transparency. Keep layered source files (PSD, Aseprite, Krita…) |
 | **Facing** | Directional sprites face **east (right)**; the game rotates them. If the lighting looks wrong rotated, provide all four directions as `_e`, `_s`, `_w`, `_n` |
 | **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png`. The loader doesn't read strips yet, so a single frame is the most useful first delivery. The game animates belts, glows and bobbing in code for now. **Exception, enemy walk cycles:** two separate files, `crawler.png` and `crawler_b.png`; the game swaps them as the bug walks |
-| **Art direction** | A whimsical forest clearing (D-028): grassy ground, flowers and mushrooms, trees around the edge, fireflies and drifting leaves. The Company's machines stay navy, steel and hazard-yellow, so they stand out from the greenery |
+| **Art direction** | A whimsical forest clearing (D-028): grassy ground, flowers and mushrooms, trees around the edge, fireflies and drifting leaves. The machines stay navy, steel and hazard-yellow, so they stand out from the greenery |
 | **Padding** | Building art should leave about 4 px clear at each tile edge, so neighbours read as separate |
 | **Naming** | Match the placeholder: `src/art/category/name.png`, e.g. `src/art/items/iron_plate.png` |
 | **Palette** | Item colours must stay distinct for colour-blind players. Give each item a distinct **shape** as well |
@@ -68,14 +68,14 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 | Asset | Tiles | Notes | Frames | Priority | Status |
 |---|---|---|---|---|---|
-| Hub | 3×3 (192×192) | Centrepiece. A damaged variant is a nice extra | 1 (+idle loop) | P1 | Placeholder |
+| Hub | 5×5 (320×320) | Centrepiece. A damaged variant is a nice extra | 1 (+idle loop) | P1 | Placeholder |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Placeholder |
 | Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). A sprite could replace it | 8 | P3 | Code |
 | Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code |
-| Extractor | 1×1 | Drill; the output side should be obvious | 4–8 working | P1 | Placeholder |
-| Furnace | 1×1 | Idle and working (glow) | 1 + 4 | P1 | Placeholder |
-| Workshop | 1×1 | Idle and working | 1 + 4 | P2 | Placeholder |
-| Assembler | 1×1 | Idle and working | 1 + 4 | P2 | Placeholder |
+| Extractor | 2×2 (128×128) | Drill, facing east. The game draws an output port at the middle of the east edge | 4–8 working | P1 | Placeholder |
+| Furnace | 2×2 (128×128) | Idle and working (glow), facing east | 1 + 4 | P1 | Placeholder |
+| Workshop | 3×2 (192×128) | Idle and working, facing east (3 tiles wide along the facing) | 1 + 4 | P2 | Placeholder |
+| Assembler | 4×2 (256×128) | Idle and working, facing east (4 tiles wide along the facing) | 1 + 4 | P2 | Placeholder |
 | Splitter | 1×1 | Should read as "one in, three out" | 1 | P2 | Placeholder |
 | Underground belt entrance | 1×1 | Mouth on the east side | 1 | P2 | Placeholder |
 | Underground belt exit | 1×1 | Mouth on the west side | 1 | P2 | Placeholder |
@@ -85,10 +85,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Cannon base | 1×1 | | 1 | P2 | Placeholder |
 | Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Placeholder |
 | Repair station | 1×1 | | 1 + 4 working | P2 | Placeholder |
-| Stash | 1×1 | Contraband. Hidden crate under a tarp | 1 | P2 | Placeholder |
-| Shipyard | 3×3 (192×192) | Contraband. A hidden landing pad under camouflage netting, with gantries | 1 | P2 | Placeholder |
+| Shipyard | 3×3 (192×192) | A landing pad under camouflage netting, with gantries | 1 | P2 | Placeholder |
 | Ship stages | 3×3 overlays | The ship, pointing north, drawn over the pad stage by stage: `ship_hull`, `ship_engine`, `ship_life`, `ship_nav`. Each overlay holds only its own parts. The game draws engine flames at launch | 1 each | P2 | Placeholder |
-| Skimmer | 1×1 | Contraband belt piece with a side chute to the right | 1 | P2 | Placeholder |
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
@@ -114,8 +112,7 @@ tripod poses); the game swaps them as the bug moves, so a bug standing still to 
 | Hit spark | 32×32 | 3 | P3 | Needed |
 | Repair sparkle | 32×32 | 4 | P3 | Needed |
 | Building destroyed (debris) | 64×64 | 5 | P3 | Needed |
-| Spawn warning marker | 128×128 | 4 (pulse) | P2 | Code |
-| Audit drone | 64×64 | 2–4 (rotors) | P2 | Placeholder (`buildings/drone`) |
+| Nest mound and territory outline | 64×64 mound; outline in code | 1 (+ cleared) | P2 | Code |
 | Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 
 ## UI
@@ -130,18 +127,19 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 | App icon master | 1024×1024 (no transparency, for the stores) | P3 | Needed (after naming). Can start from `ui/logo.svg` |
 | Favicon / PWA icons | 512×512 and 192×192 | P3 | Placeholder |
 | Logo / wordmark | Vector (SVG) | P3 | Placeholder mark `ui/logo.svg`; the wordmark is text for now |
-| UI icons (`src/art/ui/`): health, wave, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory, mail, contract, coin, store, eye | 24×24 grid, SVG preferred | P3 | Placeholder |
-| Research icons (one per research, 9 today) | 64×64 | P3 | Optional |
+| UI icons (`src/art/ui/`): health, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory | 24×24 grid, SVG preferred | P3 | Placeholder |
+| Research icons (one per research, 10 today) | 64×64 | P3 | Optional |
 | Toolbar building icons | Uses the building sprites; no extra art needed | — | — |
 
 ## Audio (not art, but listed so it isn't forgotten)
 
-Sound effects for: building placed, demolished, machine working (loop),
-turret shot, cannon shot, explosion, enemy death, hub hit, breach, research
-complete, wave incoming, UI click.
+**Sound effects: done** (synthesized in code, D-043): building placed, belt placed, demolished,
+blocked placement, turret shot, cannon shot, hub gun, enemy death, building destroyed, hub hit,
+breach, research complete, ship stage, launch, nest provoked, UI click. Still to come: a machine
+working loop. Recorded sounds can replace any of them.
 
 **Music: done.** Nine tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
-tracks for play, a corporate theme for the main menu, and "Groove" for the win screen. See
+tracks for play, a corporate-style theme for the main menu, and "Groove" for the win screen. See
 [GAME_DESIGN.md](GAME_DESIGN.md#music).
 
 ## Not needed

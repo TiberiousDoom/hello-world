@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased: sound effects
+- Sound effects for building, demolishing, blocked placements, turret and cannon fire, the hub gun, bugs dying, buildings destroyed, hub hits, breaches, research, ship stages, the launch, and an angry chitter when you provoke a nest. Buttons click.
+- Sounds come from where they happen: full volume on screen, fading out past its edges, panned left or right. A provoked nest is always heard, quietly if it's far away.
+- Menu → Sound effects sets their volume.
+
+## Unreleased: the open map
+- **A much larger, generated map:** 256×256 tiles from a seed, with irregular ore fields and a starter patch of each ore near the hub, which now sits in the middle.
+- **No more waves or wave timer.** Bugs live in nests scattered across the map, each in its own 10×10 territory. They wander inside it and leave you alone unless provoked: building in or next to a territory, a building coming close to a bug, or shooting one. Provoked bugs go for your nearest buildings (up to 22 tiles from home) and calm down 30 s after the last provocation. Killed bugs don't come back, so nests can be cleared. Nests further out are bigger and tougher.
+- **New building sizes:** extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5. Machines output from the middle of the side their arrow marks, shown by a small port. Extractors mine whichever ore covers most of their base. Any building, whatever its size, can be dropped onto a belt line and lines up with it.
+- **The Company is gone:** no contracts, balance owed, emails, store, black market or suspicion. The Shipyard is now a normal research, and launching the ship wakes every nest within 48 tiles for the countdown. Hardcore unlocks by escaping once in Standard.
+- **Research lives in the hub:** select the hub and press Research.
+- **A cleaner screen:** the top bar holds only speed and the menu. Hub stock stays above the hub on the map and scrolls away with it. The info panel only opens for buildings you've placed, not for toolbar picks.
+- **Tapping a different building while holding a tool selects it** (and puts the tool down), so you can work on what you tapped. Dropping a building onto a belt still builds.
+- Saves move to v8. Older saves can't be converted: the main menu says so and starts fresh.
+
 ## Unreleased: round 4
 - Fixed a crash ("Invalid array length") in enemy pathfinding. Path costs were stored at lower precision than they were computed, so rounding could add the same tile over and over until the queue overflowed, or skip tiles and leave enemies with no path.
 - Place a furnace (or any one-tile building) straight onto a belt: it replaces the belt, faces along the line and starts working. Drags still go around belts.

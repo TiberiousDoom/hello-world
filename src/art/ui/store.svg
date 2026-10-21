@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-<path d="M3 9 L5 4 H19 L21 9 Z" fill="var(--icon-accent, #3fa9f5)"/>
-<rect x="4" y="9" width="16" height="11" rx="1" fill="currentColor"/>
-<rect x="9.5" y="13" width="5" height="7" fill="var(--icon-ink, #1d3b6e)"/>
-</svg>

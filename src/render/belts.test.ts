@@ -61,4 +61,13 @@ describe('belt looks', () => {
     expect(exit.link).not.toBeNull();
     expect(beltLook(w, after).fed).toBe(true);
   });
+
+  it('a big machine feeds only the belt at the middle of its front edge', () => {
+    const w = emptyWorld();
+    put(w, 'workshop', 20, 20, 0); // 3 wide, 2 deep: outputs from (22, 20) to (23, 20)
+    const fed = put(w, 'belt', 23, 20, 0);
+    const beside = put(w, 'belt', 23, 21, 0);
+    expect(beltLook(w, fed).fed).toBe(true);
+    expect(beltLook(w, beside).fed).toBe(false);
+  });
 });

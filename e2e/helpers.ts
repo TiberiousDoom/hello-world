@@ -3,7 +3,7 @@
 
 import { Locator, Page, TestInfo, expect, test as base } from '@playwright/test';
 
-export const ALL_LESSONS = ['essentials', 'contracts', 'defense', 'store', 'logistics', 'breach', 'blackmarket', 'shipyard'];
+export const ALL_LESSONS = ['essentials', 'defense', 'logistics', 'breach', 'shipyard'];
 
 /** Fails any test whose page throws an uncaught error. */
 export const test = base.extend<{ pageErrors: string[] }>({
@@ -44,13 +44,27 @@ export async function newGame(page: Page, opts: { lessonsSeen?: string[]; tipsOf
   await expect(page.locator('#mainmenu')).toBeHidden();
 }
 
-/** Stops waves and contracts so a test controls the clock. */
+/** Removes every bug territory, so nothing a test builds provokes an attack. */
 export async function calm(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const s = window.game.world.state;
-    s.nextWaveAt = 1e9;
-    s.company.nextContractAt = 1e9;
+    const w = window.game.world;
+    w.state.nests = [];
+    w.state.enemies = [];
+    w.nestCells.clear();
   });
+}
+
+/** Selects the hub by clicking or tapping its middle. */
+export async function selectHub(page: Page, info: TestInfo): Promise<void> {
+  const [x, y] = await page.evaluate(() => {
+    const h = window.game.world.hub;
+    const c = window.game.camera;
+    c.x = h.x + 2.5;
+    c.y = h.y + 2.5;
+    return c.toScreen(h.x + 2.5, h.y + 2.5) as [number, number];
+  });
+  await tap(page, info, x, y);
+  await expect(page.locator('#info')).toContainText('Hub');
 }
 
 /** In the page: what's on top at (x, y): 'game' for the map, otherwise a short description. */

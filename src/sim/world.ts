@@ -4,7 +4,6 @@
 import {
   BELT_SPACING,
   BELT_SPEED,
-  BLACK_MARKET,
   BREACH,
   BUILDINGS,
   BuildingType,
@@ -14,13 +13,13 @@ import {
   ENEMIES,
   EXTRACTOR_PERIOD,
   EnemyType,
-  FIRST_WAVE_AT,
   GameMode,
-  sizeOfType,
+  HUB_SIZE,
   HUB_WEAPON,
   ItemCounts,
   ItemId,
   MAP_SIZE,
+  NESTS,
   OUTPUT_BUFFER,
   PORT_PERIOD,
   RECIPES,
@@ -29,54 +28,26 @@ import {
   RESEARCH,
   RESEARCH_BY_ID,
   RESOURCE_ITEMS,
-  SPAWN_GAP,
   STARTING_BUILDINGS,
   START_INVENTORY,
   TUNNEL_RANGE,
   TURRETS,
-  WAVE_INTERVAL,
+  footprint,
   isMachine,
-  waveComposition,
 } from './data';
-import {
-  COMPANY,
-  CompanyState,
-  createCompanyState,
-  onBreach,
-  onDelivered,
-  onFirstWave,
-  onResearched,
-  tickCompany,
-  welcomeMail,
-} from './company';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
-import {
-  BlackMarketState,
-  createBlackMarketState,
-  insertStash,
-  isBlackMarketUnlocked,
-  isContraband,
-  onPortWithdrawal,
-  onSkim,
-  onStashRemoved,
-  tickBlackMarket,
-} from './blackmarket';
-import {
-  ShipState,
-  awaitingReturn,
-  createShipState,
-  insertShip,
-  launching,
-  onShipyardRemoved,
-  shipyard,
-  tickShip,
-  waveMultiplier,
-} from './ship';
+import { generateNests, generateResources } from './mapgen';
+import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs } from './nests';
+import { ShipState, awaitingChoice, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
 export type { ResearchState };
 
-export const SAVE_VERSION = 7;
+/**
+ * v8 (D-038) is a new kind of map (bigger, with bug territories and larger
+ * buildings), so older saves can't be converted and start over.
+ */
+export const SAVE_VERSION = 8;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -110,14 +81,10 @@ export interface Enemy {
   y: number;
   hp: number;
   maxHp: number;
-}
-
-export interface PendingSpawn {
-  type: EnemyType;
-  x: number;
-  y: number;
-  hpMult: number;
-  at: number;
+  nest: number; // home territory (Nest.id)
+  tx: number; // where it's strolling to while calm
+  ty: number;
+  wait: number; // seconds left resting while calm
 }
 
 export interface GameState {
@@ -137,13 +104,8 @@ export interface GameState {
   breaches: number; // standard mode: times the hub has fallen
   inventory: ItemCounts;
   hubId: number;
-  wave: number;
-  nextWaveAt: number;
-  spawnQueue: PendingSpawn[];
-  nextSpawnPoints: { x: number; y: number }[];
+  nests: Nest[];
   gameOver: boolean;
-  company: CompanyState;
-  blackMarket: BlackMarketState;
   ship: ShipState;
 }
 
@@ -159,6 +121,13 @@ export interface Shot {
 export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
+/** A save from before v8: it can't be loaded into the new kind of map. */
+export class OldSaveError extends Error {}
+
+/** Attack paths reach this far from buildings (bugs never chase further than their leash anyway). */
+const FLOW_RANGE = 80;
+/** Attack paths are recomputed at most this often (seconds), while any nest is angry. */
+const FLOW_REFRESH = 0.5;
 
 export class World {
   state: GameState;
@@ -166,14 +135,19 @@ export class World {
   tiles: Int32Array;
   byId = new Map<number, Building>();
   /**
-   * Cost for an enemy on each tile to reach its target. 64-bit, like the sums
-   * compared against it: with 32-bit storage, rounding made equal paths look
-   * shorter (duplicates that could pile up until the heap overflowed) or longer
-   * (tiles skipped, so enemies there had no path).
+   * Cost for an angry bug on each tile to reach the nearest building. 64-bit,
+   * like the sums compared against it: with 32-bit storage, rounding made equal
+   * paths look shorter (duplicates that could pile up until the heap overflowed)
+   * or longer (tiles skipped, so bugs there had no path).
    */
   flow: Float64Array;
   private flowDirty = true;
+  private flowAt = -Infinity;
+  /** The nest owning each territory cell (see cellKey). */
+  nestCells = new Map<number, Nest>();
   shots: Shot[] = [];
+  /** Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing. */
+  lost: { id: number; age: number }[] = [];
   events: string[] = [];
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
@@ -183,6 +157,7 @@ export class World {
     this.tiles = new Int32Array(state.width * state.height);
     this.flow = new Float64Array(state.width * state.height);
     for (const b of state.buildings) this.index(b);
+    for (const n of state.nests) this.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
   }
 
   static create(seed = Math.floor(Math.random() * 2 ** 31), mode: GameMode = 'standard'): World {
@@ -204,75 +179,26 @@ export class World {
       breaches: 0,
       inventory: { ...START_INVENTORY },
       hubId: 0,
-      wave: 0,
-      nextWaveAt: FIRST_WAVE_AT,
-      spawnQueue: [],
-      nextSpawnPoints: [],
+      nests: [],
       gameOver: false,
-      company: createCompanyState(),
-      blackMarket: createBlackMarketState(),
       ship: createShipState(),
     };
     const world = new World(state);
-    welcomeMail(world);
-    const hx = Math.floor(size / 2) - 1;
-    const hy = Math.floor(size / 2) - 1;
-    world.generateResources(hx + 1, hy + 1);
+    const hx = Math.floor((size - HUB_SIZE) / 2);
+    const hy = hx;
+    const centre = hx + Math.floor(HUB_SIZE / 2);
+    generateResources(world, centre, centre, HUB_SIZE / 2);
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
-    state.nextSpawnPoints = world.pickSpawnPoints(waveComposition(1).spawnPoints);
+    state.nests = generateNests(world, centre, centre);
+    for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
     return world;
   }
 
   static fromJSON(json: string): World {
     const state = JSON.parse(json) as GameState;
-    if (state.version === 1) {
-      // v2 added tunnels and splitters.
-      for (const b of state.buildings) Object.assign(b, { link: null, rr: 0 });
-      state.version = 2;
-    }
-    if (state.version === 2) {
-      // v3 replaced tiers with research and added modes and hub ports.
-      const old = state as unknown as { tier?: number; tierProgress?: unknown };
-      const byTier = [
-        ['defense', 'masonry', 'workshop', 'logistics', 'underground'],
-        ['distribution', 'assembly', 'repair', 'ordnance'],
-      ];
-      state.researched = byTier.slice(0, (old.tier ?? 0) + 1).flat();
-      delete old.tier;
-      delete old.tierProgress;
-      state.mode = 'standard';
-      state.breaches = 0;
-      for (const b of state.buildings) b.filter = null;
-      state.version = 3;
-    }
-    let addedCompany = false;
-    if (state.version === 3) {
-      // v4 added the Company: contracts, debt and the inbox.
-      state.company = createCompanyState();
-      state.company.nextContractAt = state.time + COMPANY.firstContractAt;
-      state.version = 4;
-      addedCompany = true;
-    }
-    if (state.version === 4) {
-      // v5 made research take time.
-      state.research = createResearchState();
-      state.version = 5;
-    }
-    if (state.version === 5) {
-      // v6 added the black market: stash, skimmer, suspicion and audits.
-      state.blackMarket = createBlackMarketState();
-      state.version = 6;
-    }
-    if (state.version === 6) {
-      // v7 added the escape ship.
-      state.ship = createShipState();
-      state.version = 7;
-    }
-    if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
-    const world = new World(state);
-    if (addedCompany) welcomeMail(world);
-    return world;
+    if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
+    return new World(state);
   }
 
   toJSON(): string {
@@ -308,13 +234,32 @@ export class World {
     return RESOURCE_ITEMS[this.state.resources[this.idx(x, y)]];
   }
 
-  sizeOf(type: BuildingType): number {
-    return sizeOfType(type);
+  /** A placed building's width and height on the map. */
+  footprintOf(b: Building): [number, number] {
+    return footprint(b.type, b.dir);
   }
 
-  /** Recomputes enemy paths on the next tick (e.g. when a launch makes the shipyard a target). */
+  /** A placed building's centre, in tile units. */
+  centreOf(b: Building): [number, number] {
+    const [w, h] = this.footprintOf(b);
+    return [b.x + w / 2, b.y + h / 2];
+  }
+
+  /** Recomputes attack paths soon (buildings changed, or a nest got angry). */
   markFlowDirty(): void {
     this.flowDirty = true;
+    this.flowAt = -Infinity;
+  }
+
+  /** Adds a calm bug at a random spot in its nest's territory. */
+  spawnBug(type: EnemyType, nest: Nest, hpMult: number): Enemy {
+    const c = NESTS.cell;
+    const x = nest.x + 0.5 + this.random() * (c - 1);
+    const y = nest.y + 0.5 + this.random() * (c - 1);
+    const hp = Math.round(ENEMIES[type].hp * hpMult);
+    const e: Enemy = { id: this.state.nextId++, type, x, y, hp, maxHp: hp, nest: nest.id, tx: x, ty: y, wait: this.random() * NESTS.pause[1] };
+    this.state.enemies.push(e);
+    return e;
   }
 
   get hub(): Building | undefined {
@@ -323,7 +268,6 @@ export class World {
 
   isUnlocked(type: BuildingType): boolean {
     if (STARTING_BUILDINGS.includes(type)) return true;
-    if (isContraband(type)) return isBlackMarketUnlocked(this, type);
     return this.state.researched.some((id) => RESEARCH_BY_ID[id]?.unlocks.includes(type));
   }
 
@@ -382,7 +326,6 @@ export class World {
     if (rs.active === id) this.pauseResearch();
     this.state.researched.push(id);
     this.events.push(`Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked`);
-    onResearched(this, r.name);
   }
 
   /** Draws the active research's items from hub stock at a steady pace. */
@@ -415,15 +358,15 @@ export class World {
 
   private index(b: Building): void {
     this.byId.set(b.id, b);
-    const s = this.sizeOf(b.type);
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
+    const [w, h] = this.footprintOf(b);
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
     this.flowDirty = true;
   }
 
   private unindex(b: Building): void {
     this.byId.delete(b.id);
-    const s = this.sizeOf(b.type);
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
+    const [w, h] = this.footprintOf(b);
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
     this.flowDirty = true;
   }
 
@@ -452,119 +395,56 @@ export class World {
     return b;
   }
 
-  // ------------------------------------------------------------ map setup
-
-  private generateResources(hubCx: number, hubCy: number): void {
-    // Patches are spaced apart, and no two node tiles touch side by side, so
-    // every node has free sides for a belt or a neighbouring machine.
-    const centres: [number, number][] = [];
-    const baseAngle = this.random() * Math.PI * 2;
-    [1, 2, 3].forEach((kind, i) => {
-      const a = baseAngle + (i * Math.PI * 2) / 3;
-      const d = 8 + this.random() * 3;
-      const cx = Math.round(hubCx + Math.cos(a) * d);
-      const cy = Math.round(hubCy + Math.sin(a) * d);
-      centres.push([cx, cy]);
-      this.patch(cx, cy, kind, 8);
-    });
-    const counts: [number, number][] = [
-      [1, 7],
-      [2, 6],
-      [3, 5],
-    ];
-    for (const [kind, n] of counts) {
-      for (let i = 0, tries = 0; i < n && tries < n * 20; tries++) {
-        const x = 3 + Math.floor(this.random() * (this.state.width - 6));
-        const y = 3 + Math.floor(this.random() * (this.state.height - 6));
-        if (Math.abs(x - hubCx) < 8 && Math.abs(y - hubCy) < 8) continue;
-        if (centres.some(([cx, cy]) => Math.abs(x - cx) < 9 && Math.abs(y - cy) < 9)) continue;
-        centres.push([x, y]);
-        this.patch(x, y, kind, 6 + Math.floor(this.random() * 6));
-        i++;
-      }
-    }
-  }
-
-  /** Scatters up to `size` node tiles within 3 tiles of a centre, none touching side by side. */
-  private patch(cx: number, cy: number, kind: number, size: number): void {
-    const spots: [number, number][] = [];
-    for (let dy = -3; dy <= 3; dy++) {
-      for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 10) spots.push([cx + dx, cy + dy]);
-    }
-    // Closest spots first, with some jitter so patches aren't perfect diamonds.
-    const order = spots
-      .map(([x, y]) => ({ x, y, k: Math.hypot(x - cx, y - cy) + this.random() * 2 }))
-      .sort((a, b) => a.k - b.k);
-    let placed = 0;
-    for (const { x, y } of order) {
-      if (placed >= size) break;
-      if (!this.inBounds(x, y) || this.state.resources[this.idx(x, y)]) continue;
-      const touching = [0, 1, 2, 3].some((d) => {
-        const nx = x + DX[d];
-        const ny = y + DY[d];
-        return this.inBounds(nx, ny) && this.state.resources[this.idx(nx, ny)] !== 0;
-      });
-      if (touching) continue;
-      this.state.resources[this.idx(x, y)] = kind;
-      placed++;
-    }
-  }
-
-  pickSpawnPoints(n: number): { x: number; y: number }[] {
-    const { width: w, height: h } = this.state;
-    const points: { x: number; y: number }[] = [];
-    for (let i = 0; i < n; i++) {
-      const side = Math.floor(this.random() * 4);
-      const along = 3 + Math.floor(this.random() * (Math.min(w, h) - 6));
-      if (side === 0) points.push({ x: w - 1, y: along });
-      else if (side === 1) points.push({ x: along, y: h - 1 });
-      else if (side === 2) points.push({ x: 0, y: along });
-      else points.push({ x: along, y: 0 });
-    }
-    return points;
-  }
-
   // ------------------------------------------------------- player actions
 
   /**
-   * The belt a building placed at (x, y) would replace: any one-tile building
-   * except another belt can go straight onto a belt and take over its line.
+   * The belt at tile (x, y), if a `type` building placed there would replace
+   * it. Any building except another belt can be dropped onto a belt line: it
+   * takes over the belts under it and faces the way they ran (D-037).
    */
   beltToReplace(type: BuildingType, x: number, y: number): Building | undefined {
-    if (type === 'belt' || this.sizeOf(type) !== 1) return undefined;
+    if (type === 'belt') return undefined;
     const b = this.buildingAt(x, y);
     return b?.type === 'belt' ? b : undefined;
   }
 
-  /** `replaceBelt`: allow building over a belt (single placements, not drags across a line). */
-  checkPlace(type: BuildingType, x: number, y: number, replaceBelt = false): PlaceError | null {
-    const size = this.sizeOf(type);
-    const under = replaceBelt ? this.beltToReplace(type, x, y) : undefined;
-    for (let dy = 0; dy < size; dy++) {
-      for (let dx = 0; dx < size; dx++) {
+  /**
+   * Whether a building can go with its top-left at (x, y), facing `dir`.
+   * `replaceBelt`: allow building over a belt (single placements, not drags across a line).
+   */
+  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false): PlaceError | null {
+    const [w, h] = footprint(type, dir);
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
         const b = this.buildingAt(x + dx, y + dy);
-        if (b && b !== under) return 'occupied';
+        if (b && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
       }
     }
     if (type === 'shipyard' && (shipyard(this) || this.state.ship.escaped)) return 'unique';
     if (!this.isUnlocked(type)) return 'locked';
-    if (type === 'extractor' && !this.resourceAt(x, y)) return 'needs-resource';
+    if (type === 'extractor' && !this.oreUnder(x, y, w, h)) return 'needs-resource';
     if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
     if (!this.canAfford(BUILDINGS[type].cost)) return 'cost';
     return null;
   }
 
   place(type: BuildingType, x: number, y: number, dir: Dir, replaceBelt = false): Building | PlaceError {
-    const err = this.checkPlace(type, x, y, replaceBelt);
+    const err = this.checkPlace(type, x, y, dir, replaceBelt);
     if (err) return err;
     this.pay(BUILDINGS[type].cost);
-    // Replacing a belt: refund it, and face the way it ran so the line carries on through.
-    const under = replaceBelt ? this.beltToReplace(type, x, y) : undefined;
-    const carried = under ? under.belt.map((it) => it.item) : [];
-    if (under) {
-      dir = under.dir;
-      this.demolish(under.id);
+    // Replacing belts: refund them, keeping what they carried for the new building.
+    const carried: ItemId[] = [];
+    if (replaceBelt) {
+      const [w, h] = footprint(type, dir);
+      for (let dy = 0; dy < h; dy++) {
+        for (let dx = 0; dx < w; dx++) {
+          const belt = this.beltToReplace(type, x + dx, y + dy);
+          if (!belt) continue;
+          carried.push(...belt.belt.map((it) => it.item));
+          this.demolish(belt.id);
+        }
+      }
     }
     if (type === 'port') dir = this.awayFromHub(x, y)!;
     const entrance = type === 'tunnel' ? this.findTunnelEntrance(x, y, dir) : undefined;
@@ -575,7 +455,24 @@ export class World {
     }
     // Items that were on the belt go into the new building if it takes them.
     for (const item of carried) this.insert(b, item, x - DX[dir], y - DY[dir]);
+    if (type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(type, dir));
+    onBuilt(this, b);
     return b;
+  }
+
+  /** The ore covering most of a w×h area at (x, y), if any. */
+  oreUnder(x: number, y: number, w: number, h: number): ItemId | null {
+    const counts = new Map<ItemId, number>();
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const r = this.resourceAt(x + dx, y + dy);
+        if (r) counts.set(r, (counts.get(r) ?? 0) + 1);
+      }
+    }
+    let best: ItemId | null = null;
+    let most = 0;
+    for (const [r, n] of counts) if (n > most) [best, most] = [r, n];
+    return best;
   }
 
   /** The unpaired tunnel entrance a new tunnel at (x, y) facing `dir` would become the exit of. */
@@ -612,15 +509,10 @@ export class World {
     return true;
   }
 
-  /** Removes a building with no refund (an audit confiscating contraband). */
-  confiscate(b: Building): void {
-    this.remove(b, true);
-  }
-
-  /** Takes a building off the map. `destroyed`: lost to enemies or an audit, not taken down by the player. */
+  /** Takes a building off the map. `destroyed`: lost to bugs, not taken down by the player. */
   remove(b: Building, destroyed = false): void {
-    if (b.type === 'stash') onStashRemoved(this);
     if (b.type === 'shipyard') onShipyardRemoved(this, destroyed);
+    if (destroyed) this.lost.push({ id: b.id, age: 0 });
     const partner = b.link != null ? this.byId.get(b.link) : undefined;
     if (partner) {
       partner.link = null;
@@ -631,11 +523,23 @@ export class World {
     if (i >= 0) this.state.buildings.splice(i, 1);
   }
 
-  rotate(id: number, dir?: Dir): void {
+  /** Turns a building in place. Bigger buildings turn only if their new footprint is free. */
+  rotate(id: number, dir?: Dir): boolean {
     const b = this.byId.get(id);
     // Tunnels would lose their pair, and ports always face away from the hub.
-    if (!b || b.type === 'hub' || b.type === 'tunnel' || b.type === 'port') return;
-    b.dir = dir ?? (((b.dir + 1) % 4) as Dir);
+    if (!b || b.type === 'hub' || b.type === 'tunnel' || b.type === 'port') return false;
+    const next = dir ?? (((b.dir + 1) % 4) as Dir);
+    const [w, h] = footprint(b.type, next);
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const o = this.buildingAt(b.x + dx, b.y + dy);
+        if (!this.inBounds(b.x + dx, b.y + dy) || (o && o !== b)) return false;
+      }
+    }
+    this.unindex(b);
+    b.dir = next;
+    this.index(b);
+    return true;
   }
 
   setRecipe(id: number, recipeId: string | null): void {
@@ -669,11 +573,8 @@ export class World {
         target.belt.push({ item, pos: 0 });
         return true;
       }
-      case 'stash':
-        return insertStash(this, item);
       case 'shipyard':
         return insertShip(this, item);
-      case 'skimmer':
       case 'splitter': {
         // Only from directly behind.
         if (target.x - DX[target.dir] !== fromX || target.y - DY[target.dir] !== fromY) return false;
@@ -728,20 +629,33 @@ export class World {
     const inv = this.state.inventory;
     inv[item] = (inv[item] ?? 0) + 1;
     this.delivered[item] = (this.delivered[item] ?? 0) + 1;
-    onDelivered(this, item);
+  }
+
+  /**
+   * Where a building sends items facing `dir`: the tile just past the middle of
+   * that edge (`x, y`), and its own tile on that edge (`fromX, fromY`).
+   */
+  outputTile(b: Building, dir: Dir = b.dir): { x: number; y: number; fromX: number; fromY: number } {
+    const [w, h] = this.footprintOf(b);
+    const midX = b.x + Math.floor((w - 1) / 2);
+    const midY = b.y + Math.floor((h - 1) / 2);
+    const fromX = dir === 0 ? b.x + w - 1 : dir === 2 ? b.x : midX;
+    const fromY = dir === 1 ? b.y + h - 1 : dir === 3 ? b.y : midY;
+    return { x: fromX + DX[dir], y: fromY + DY[dir], fromX, fromY };
   }
 
   private pushOutput(b: Building): void {
     if (!b.outputs.length) return;
-    const target = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-    if (target && target !== b && this.insert(target, b.outputs[0], b.x, b.y)) b.outputs.shift();
+    const o = this.outputTile(b);
+    const target = this.buildingAt(o.x, o.y);
+    if (target && target !== b && this.insert(target, b.outputs[0], o.fromX, o.fromY)) b.outputs.shift();
   }
 
   // ------------------------------------------------------------- the tick
 
   tick(dt = TICK): void {
     const s = this.state;
-    if (s.gameOver || awaitingReturn(this)) return; // lost, or won and waiting on the player
+    if (s.gameOver || awaitingChoice(this)) return; // lost, or won and waiting on the player
     s.time += dt;
 
     for (const b of s.buildings) {
@@ -751,9 +665,6 @@ export class World {
           break;
         case 'splitter':
           this.tickSplitter(b);
-          break;
-        case 'skimmer':
-          this.tickSkimmer(b);
           break;
         case 'tunnel':
           this.tickTunnel(b, dt);
@@ -781,12 +692,11 @@ export class World {
     }
 
     this.tickResearch(dt);
-    this.tickWaves();
     tickShip(this);
-    tickCompany(this);
-    tickBlackMarket(this, dt);
-    if (this.flowDirty) this.computeFlow();
-    this.tickEnemies(dt);
+    // Attack paths matter only while a nest is angry; buildings change often, so refresh them at most twice a second.
+    if (this.flowDirty && s.time - this.flowAt >= FLOW_REFRESH && anyAngry(this)) this.computeFlow();
+    tickBugs(this, dt);
+    s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {
       if (b.hp > 0) continue;
@@ -804,6 +714,8 @@ export class World {
 
     for (const shot of this.shots) shot.age += dt;
     this.shots = this.shots.filter((sh) => sh.age < 0.12);
+    for (const l of this.lost) l.age += dt;
+    this.lost = this.lost.filter((l) => l.age < 2);
   }
 
   /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */
@@ -840,28 +752,6 @@ export class World {
     }
   }
 
-  /** Passes items straight on, except every Nth, which slips out of the right side. */
-  private tickSkimmer(b: Building): void {
-    if (!b.outputs.length) return;
-    const item = b.outputs[0];
-    const skimTurn = b.rr % BLACK_MARKET.skimEvery === BLACK_MARKET.skimEvery - 1;
-    if (skimTurn) {
-      const right = ((b.dir + 1) % 4) as Dir;
-      const side = this.buildingAt(b.x + DX[right], b.y + DY[right]);
-      if (side && this.insert(side, item, b.x, b.y)) {
-        b.outputs.shift();
-        b.rr++;
-        onSkim(this);
-        return;
-      }
-    }
-    const front = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-    if (front && this.insert(front, item, b.x, b.y)) {
-      b.outputs.shift();
-      b.rr++;
-    }
-  }
-
   private tickTunnel(b: Building, dt: number): void {
     this.pushOutput(b); // exits, or a former exit whose entrance was removed
     if (this.isTunnelExit(b)) return;
@@ -882,7 +772,6 @@ export class World {
         b.progress = 0;
         inv[b.filter]!--;
         b.outputs.push(b.filter);
-        onPortWithdrawal(this);
       }
     }
     this.pushOutput(b);
@@ -895,9 +784,10 @@ export class World {
     for (const o of this.state.buildings) {
       const frac = o.hp / BUILDINGS[o.type].hp;
       if (frac >= worstFrac) continue;
-      const size = this.sizeOf(o.type);
-      const d = Math.hypot(o.x + size / 2 - (b.x + 0.5), o.y + size / 2 - (b.y + 0.5));
-      if (d <= REPAIR.range + size / 2 - 0.5) {
+      const [cx, cy] = this.centreOf(o);
+      const [ow, oh] = this.footprintOf(o);
+      const d = Math.hypot(cx - (b.x + 0.5), cy - (b.y + 0.5));
+      if (d <= REPAIR.range + Math.max(ow, oh) / 2 - 0.5) {
         worst = o;
         worstFrac = frac;
       }
@@ -909,7 +799,7 @@ export class World {
   }
 
   private tickExtractor(b: Building, dt: number): void {
-    const item = this.resourceAt(b.x, b.y);
+    const item = b.recipe as ItemId | null; // the ore it was placed over
     if (item && b.outputs.length < OUTPUT_BUFFER) {
       b.progress = Math.max(b.progress, 0) + dt;
       if (b.progress >= EXTRACTOR_PERIOD) {
@@ -947,9 +837,7 @@ export class World {
     if (!hub) this.supplyFromHub(b);
     b.cooldown = Math.max(0, b.cooldown - dt);
     if (b.cooldown > 0 || (!hub && b.ammo <= 0)) return; // the hub's gun needs no ammo
-    const half = this.sizeOf(b.type) / 2;
-    const cx = b.x + half;
-    const cy = b.y + half;
+    const [cx, cy] = this.centreOf(b);
     let target: Enemy | undefined;
     let best = def.range * def.range;
     for (const e of this.state.enemies) {
@@ -964,10 +852,13 @@ export class World {
     b.cooldown = 1 / def.rate;
     if (def.splash > 0) {
       for (const e of this.state.enemies) {
-        if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 <= def.splash ** 2) e.hp -= def.damage;
+        if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > def.splash ** 2) continue;
+        e.hp -= def.damage;
+        onBugHurt(this, e);
       }
     } else {
       target.hp -= def.damage;
+      onBugHurt(this, target);
     }
     this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0 });
   }
@@ -987,98 +878,47 @@ export class World {
     return this.awayFromHub(x, y) != null;
   }
 
-  /** Standard mode's softer fail: the attack ends, but it costs stock and time. */
+  /** Standard mode's softer fail: the bugs go home, but it costs stock. */
   private breach(hub: Building): void {
     const s = this.state;
     s.breaches++;
-    s.enemies = [];
-    s.spawnQueue = [];
+    for (const n of s.nests) n.angryUntil = 0;
     for (const item of Object.keys(s.inventory) as ItemId[]) {
       s.inventory[item] = Math.floor(s.inventory[item]! * (1 - BREACH.stockLost));
     }
     hub.hp = BUILDINGS.hub.hp * BREACH.hubRestore;
-    s.nextWaveAt = Math.max(s.nextWaveAt, s.time) + BREACH.waveDelay;
-    this.events.push(`The hub was breached! The attack is over, but ${BREACH.stockLost * 100}% of hub stock was lost.`);
-    onBreach(this);
+    this.events.push(`The hub was breached! The bugs went home, but ${BREACH.stockLost * 100}% of hub stock was lost.`);
   }
 
-  // ---------------------------------------------------------------- waves
+  // -------------------------------------------------------------- bugs
 
-  private tickWaves(): void {
-    const s = this.state;
-    if (s.time >= s.nextWaveAt) this.startWave();
-    if (!s.spawnQueue.length) return;
-    const due = s.spawnQueue.filter((p) => p.at <= s.time);
-    if (!due.length) return;
-    s.spawnQueue = s.spawnQueue.filter((p) => p.at > s.time);
-    for (const p of due) {
-      const def = ENEMIES[p.type];
-      const hp = Math.round(def.hp * p.hpMult);
-      s.enemies.push({ id: s.nextId++, type: p.type, x: p.x, y: p.y, hp, maxHp: hp });
-    }
-  }
-
-  startWave(): void {
-    const s = this.state;
-    s.wave++;
-    if (s.wave === 1) onFirstWave(this);
-    const comp = waveComposition(s.wave);
-    const mult = waveMultiplier(this); // a launch brings everything
-    const points = s.nextSpawnPoints.length ? s.nextSpawnPoints : this.pickSpawnPoints(comp.spawnPoints);
-    const types: EnemyType[] = [
-      ...Array(comp.crawlers * mult).fill('crawler'),
-      ...Array(comp.runners * mult).fill('runner'),
-      ...Array(comp.brutes * mult).fill('brute'),
-    ];
-    types.forEach((type, i) => {
-      const p = points[i % points.length];
-      const jitter = () => (this.random() - 0.5) * 1.5;
-      s.spawnQueue.push({
-        type,
-        x: Math.min(s.width - 0.01, Math.max(0, p.x + 0.5 + jitter())),
-        y: Math.min(s.height - 0.01, Math.max(0, p.y + 0.5 + jitter())),
-        hpMult: comp.hpMult,
-        at: s.time + Math.floor(i / points.length) * SPAWN_GAP,
-      });
-    });
-    s.nextWaveAt += WAVE_INTERVAL;
-    s.nextSpawnPoints = this.pickSpawnPoints(waveComposition(s.wave + 1).spawnPoints);
-    this.events.push(`Wave ${s.wave} incoming!`);
-  }
-
-  // -------------------------------------------------------------- enemies
-
-  /** Cost for an enemy to step onto a tile; blocking buildings must be chewed through. */
+  /** Cost for a bug to step onto a tile; blocking buildings must be chewed through. */
   private enterCost(i: number): number {
     const id = this.tiles[i];
     if (!id) return 1;
     const b = this.byId.get(id)!;
-    if (b.type === 'hub' || !BUILDINGS[b.type].blocking) return 1;
-    if (b.type === 'shipyard' && launching(this)) return 1; // a target, like the hub
+    if (!BUILDINGS[b.type].blocking) return 1;
     return 1 + BUILDINGS[b.type].hp / 25;
   }
 
-  /** Dijkstra from the targets (the hub, and a launching shipyard) over the whole map. */
+  /** Dijkstra from every building tile outwards, up to FLOW_RANGE: angry bugs follow it downhill. */
   computeFlow(): void {
     const { width: w, height: h } = this.state;
     const flow = this.flow;
     flow.fill(Infinity);
     const heap = new MinHeap();
-    // Enemies head for the hub, and for the shipyard while it's launching.
-    const targets = [this.hub, launching(this) ? shipyard(this) : undefined];
-    for (const t of targets) {
-      if (!t) continue;
-      const size = this.sizeOf(t.type);
-      for (let dy = 0; dy < size; dy++)
-        for (let dx = 0; dx < size; dx++) {
-          const i = this.idx(t.x + dx, t.y + dy);
+    for (const b of this.state.buildings) {
+      const [bw, bh] = this.footprintOf(b);
+      for (let dy = 0; dy < bh; dy++)
+        for (let dx = 0; dx < bw; dx++) {
+          const i = this.idx(b.x + dx, b.y + dy);
           flow[i] = 0;
           heap.push(i, 0);
         }
     }
     while (heap.size) {
       const [i, d] = heap.pop();
-      if (d > flow[i]) continue;
+      if (d > flow[i] || d > FLOW_RANGE) continue;
       const x = i % w;
       const y = (i - x) / w;
       const step = this.enterCost(i);
@@ -1095,46 +935,7 @@ export class World {
       }
     }
     this.flowDirty = false;
-  }
-
-  private tickEnemies(dt: number): void {
-    const s = this.state;
-    for (const e of s.enemies) {
-      if (e.hp <= 0) continue;
-      const def = ENEMIES[e.type];
-      const tx = Math.floor(e.x);
-      const ty = Math.floor(e.y);
-      let bestTile = -1;
-      let bestCost = Infinity;
-      for (let k = 0; k < 4; k++) {
-        const nx = tx + DX[k];
-        const ny = ty + DY[k];
-        if (!this.inBounds(nx, ny)) continue;
-        const n = this.idx(nx, ny);
-        const c = this.flow[n] + this.enterCost(n);
-        if (c < bestCost) {
-          bestCost = c;
-          bestTile = n;
-        }
-      }
-      if (bestTile < 0) continue;
-      const nx = bestTile % s.width;
-      const ny = (bestTile - nx) / s.width;
-      const blocker = this.buildingAt(nx, ny);
-      const gx = nx + 0.5;
-      const gy = ny + 0.5;
-      const dist = Math.hypot(gx - e.x, gy - e.y);
-      if (blocker && BUILDINGS[blocker.type].blocking && dist <= 0.55 + def.radius) {
-        blocker.hp -= def.dps * dt;
-        continue;
-      }
-      const step = Math.min(dist, def.speed * dt);
-      if (dist > 0) {
-        e.x += ((gx - e.x) / dist) * step;
-        e.y += ((gy - e.y) / dist) * step;
-      }
-    }
-    s.enemies = s.enemies.filter((e) => e.hp > 0);
+    this.flowAt = this.state.time;
   }
 }
 

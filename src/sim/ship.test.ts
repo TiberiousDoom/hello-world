@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BLACK_MARKET, ItemId, SHIP, waveComposition } from './data';
-import { awaitingReturn, comeBack, insertShip, launch, shipyard } from './ship';
-import { Building, SAVE_VERSION, TICK, World } from './world';
+import { ItemId, NESTS, RESEARCH, SHIP } from './data';
+import { Nest, cellKey, isAngry } from './nests';
+import { awaitingChoice, insertShip, keepPlaying, launch, shipyard } from './ship';
+import { Building, TICK, World } from './world';
 
 function run(w: World, seconds: number) {
   for (let t = 0; t < seconds; t += TICK) w.tick();
@@ -12,23 +13,22 @@ function placed(r: Building | string): Building {
   return r;
 }
 
-/** A quiet world with the shipyard plans researched and plenty of stock. */
-function withPlans(mode: 'standard' | 'hardcore' = 'standard'): World {
+/** A quiet world (no bugs) with everything researched and plenty of stock. */
+function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   const w = World.create(21, mode);
   const s = w.state;
-  s.nextWaveAt = 1e9;
-  s.company.nextContractAt = 1e9;
-  s.blackMarket.contacted = true;
-  s.blackMarket.researched.push('shipyard');
+  s.researched = RESEARCH.map((r) => r.id);
   s.resources.fill(0);
-  s.inventory = { iron_plate: 999, brick: 999 };
+  s.nests = [];
+  s.enemies = [];
+  w.nestCells.clear();
+  s.inventory = { iron_plate: 999, brick: 999, gear: 999, wire: 999, motor: 999 };
   return w;
 }
 
-/** Places the shipyard well outside the Company's watch radius. */
 function yard(w: World): Building {
   const hub = w.hub!;
-  return placed(w.place('shipyard', hub.x - BLACK_MARKET.watchRadius - 8, hub.y, 0));
+  return placed(w.place('shipyard', hub.x - 20, hub.y, 0));
 }
 
 /** Feeds every stage's items straight into the shipyard. */
@@ -38,85 +38,75 @@ function finishShip(w: World): void {
   }
 }
 
+function addNest(w: World, x: number, y: number): Nest {
+  const n: Nest = { id: w.state.nests.length, x, y, angryUntil: 0 };
+  w.state.nests.push(n);
+  w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
+  w.spawnBug('crawler', n, 1);
+  return n;
+}
+
 describe('Escape ship', () => {
-  it('the shipyard is unlocked by black-market research, takes 3×3 tiles, and only one can be built', () => {
-    const w = World.create(21);
-    w.state.inventory = { iron_plate: 999, brick: 999 };
+  it('the shipyard is researched, takes 3×3 tiles, and only one can be built', () => {
+    const w = quiet();
+    w.state.researched = w.state.researched.filter((r) => r !== 'shipyard');
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.blackMarket.contacted = true;
-    w.state.blackMarket.researched.push('shipyard');
-    w.state.resources.fill(0);
-    expect(w.isUnlocked('shipyard')).toBe(true);
+    w.state.researched.push('shipyard');
     const b = yard(w);
     for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) expect(w.buildingAt(b.x + dx, b.y + dy)).toBe(b);
     expect(w.place('shipyard', b.x + 10, b.y, 0)).toBe('unique');
-    expect(w.checkPlace('belt', b.x + 2, b.y + 2)).toBe('occupied');
   });
 
-  it('stages take only the parts they still need, in order, and a Friend writes as each one is done', () => {
-    const w = withPlans();
+  it('stages take only the parts they still need, in order', () => {
+    const w = quiet();
     const b = yard(w);
     const from = [b.x - 1, b.y] as const;
     expect(w.insert(b, 'motor', ...from)).toBe(false); // the hull comes first
-    expect(w.insert(b, 'iron_plate', ...from)).toBe(true);
-    expect(w.state.ship.delivered.iron_plate).toBe(1);
-    for (let i = 1; i < 150; i++) w.insert(b, 'iron_plate', ...from);
+    for (let i = 0; i < 150; i++) w.insert(b, 'iron_plate', ...from);
     expect(w.insert(b, 'iron_plate', ...from)).toBe(false); // enough plates
     for (let i = 0; i < 80; i++) w.insert(b, 'brick', ...from);
     expect(w.state.ship.stage).toBe(1);
-    expect(w.state.ship.delivered).toEqual({});
-    expect(w.state.company.inbox[0].subject).toBe('Re: Hull');
+    expect(w.events.some((e) => e.includes('Hull done'))).toBe(true);
     expect(w.insert(b, 'motor', ...from)).toBe(true); // now the engine
   });
 
-  it('launching needs a finished ship and brings an early, doubled wave that also targets the shipyard', () => {
-    const w = withPlans();
+  it('launching needs a finished ship and wakes the nests within reach', () => {
+    const w = quiet();
     const b = yard(w);
+    const near = addNest(w, Math.floor((b.x - 30) / 10) * 10, Math.floor(b.y / 10) * 10);
+    const far = addNest(w, 0, 0);
     expect(launch(w)).toBe('not-ready');
     finishShip(w);
-    w.state.nextWaveAt = w.state.time + 500;
     expect(launch(w)).toBeNull();
     expect(w.state.ship.launchAt).toBeCloseTo(w.state.time + SHIP.launchTime);
-    expect(w.state.nextWaveAt).toBeCloseTo(w.state.time + SHIP.launchWaveIn);
+    expect(isAngry(w, near)).toBe(true);
+    expect(isAngry(w, far)).toBe(false);
+    expect(near.angryUntil).toBeGreaterThan(w.state.ship.launchAt!);
     expect(launch(w)).toBe('launching');
-    run(w, SHIP.launchWaveIn + 0.5);
-    const queued = w.state.spawnQueue.length + w.state.enemies.length;
-    const comp = waveComposition(w.state.wave);
-    expect(queued).toBe(SHIP.finaleMultiplier * (comp.crawlers + comp.runners + comp.brutes));
-    // The shipyard is a destination for enemies while it launches.
-    expect(w.flow[w.idx(b.x + 1, b.y + 1)]).toBe(0);
   });
 
-  it('holding the shipyard until lift-off wins; the game waits, then coming back is endless mode', () => {
-    const w = withPlans();
+  it('holding the shipyard until lift-off wins; the game waits, then keeps going on request', () => {
+    const w = quiet();
     yard(w);
     finishShip(w);
     launch(w);
-    w.state.enemies = [];
-    w.state.spawnQueue = [];
-    w.state.nextWaveAt = 1e9;
     run(w, SHIP.launchTime + 1);
     expect(w.state.ship.escaped).toBe(true);
-    expect(awaitingReturn(w)).toBe(true);
+    expect(awaitingChoice(w)).toBe(true);
     const t = w.state.time;
     run(w, 5);
     expect(w.state.time).toBe(t); // frozen on the victory screen
-
-    const debt = w.state.company.debt;
-    comeBack(w);
+    keepPlaying(w);
     expect(w.state.ship.endless).toBe(true);
     expect(shipyard(w)).toBeUndefined();
-    expect(w.state.company.debt).toBe(debt + SHIP.returnDebt);
-    expect(w.state.company.inbox[0].subject).toBe('Welcome back!');
-    expect(w.state.nextWaveAt).toBeCloseTo(t + SHIP.endlessGrace);
-    expect(w.place('shipyard', w.hub!.x - 30, w.hub!.y, 0)).toBe('unique'); // no second escape
+    expect(w.place('shipyard', w.hub!.x - 40, w.hub!.y, 0)).toBe('unique'); // no second escape
     run(w, 1);
-    expect(w.state.time).toBeGreaterThan(t); // the game goes on
+    expect(w.state.time).toBeGreaterThan(t);
   });
 
   it('losing the shipyard stops a launch; Standard keeps the stages built, Hardcore loses the ship', () => {
     for (const mode of ['standard', 'hardcore'] as const) {
-      const w = withPlans(mode);
+      const w = quiet(mode);
       const b = yard(w);
       finishShip(w);
       launch(w);
@@ -129,20 +119,10 @@ describe('Escape ship', () => {
   });
 
   it('demolishing the shipyard yourself keeps the ship in either mode', () => {
-    const w = withPlans('hardcore');
+    const w = quiet('hardcore');
     const b = yard(w);
     for (let i = 0; i < 20; i++) insertShip(w, 'iron_plate');
     w.demolish(b.id);
     expect(w.state.ship.delivered.iron_plate).toBe(20);
-  });
-
-  it('migrates v6 saves', () => {
-    const w = World.create(5);
-    const old = JSON.parse(w.toJSON());
-    old.version = 6;
-    delete old.ship;
-    const loaded = World.fromJSON(JSON.stringify(old));
-    expect(loaded.state.version).toBe(SAVE_VERSION);
-    expect(loaded.state.ship.stage).toBe(0);
   });
 });

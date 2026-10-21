@@ -1,8 +1,10 @@
 # Story proposal: "Keep up appearances"
 
-**Status:** Adopted (D-014). Phase 1 (contracts and the inbox) and phase 2 (suspicion, audits and the black market) are built. Suspicion is being reworked (Q-16). Phase 4 (the escape ship and win condition) is built. The
-idea came from a conversation the project owner had with a friend. The
-related decisions are D-014 to D-022 in [DECISIONS.md](DECISIONS.md).
+**Status:** Mostly dropped (D-040, 2026-10-21). Phases 1 and 2 (contracts, the inbox, the black market and
+suspicion) were built and then removed: there is no Company in the game any more. The escape ship (phase 4)
+stays as the win condition, and the owner plans to tie it into the game differently (Q-17). Food (phase 3)
+is still a candidate. The rest of this page is kept as the record of the original proposal. It
+came from a conversation the project owner had with a friend; the related decisions are D-014 to D-022.
 
 ## The pitch
 
@@ -76,8 +78,8 @@ These are what break up the factory loop.
 
 ## Rough phasing
 
-1. ✅ **Quota and inbox.** Contracts, wages and deductions, fines, debt, the Company Store on credit, licence fees and repair invoices. See [GAME_DESIGN.md](GAME_DESIGN.md#the-company).
-2. ✅ **Suspicion and the black market.** A Friend, stash, skimmer, black-market research (skimmer, disguise kit), suspicion, audits with mode-specific penalties. The hidden workshop moves to phase 4, where it builds ship parts. See [GAME_DESIGN.md](GAME_DESIGN.md#the-black-market).
+1. ✖ **Quota and inbox.** Built, then dropped (D-040).
+2. ✖ **Suspicion and the black market.** Built, then dropped (D-040).
 3. **Food.** A new resource chain with meal buffs.
 4. ✅ **Escape ship.** Shipyard, four stages, a launch to defend, a victory screen with the run's numbers, and endless mode afterwards. See [GAME_DESIGN.md](GAME_DESIGN.md#the-escape-ship).
 5. **Vehicles.** On hold (D-021).

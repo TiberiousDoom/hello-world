@@ -1,21 +1,22 @@
 // Soft placement (D-030): the ✓ / ⟳ / ✕ bar that floats beside a blueprint.
 
-import { BUILDINGS, ItemCounts, ItemId } from '../sim/data';
+import { BUILDINGS, Dir, ItemCounts, ItemId } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { Plan, UIState, anchorAt } from './state';
+import { Plan, UIState, placementAt, planDirs } from './state';
 
 /**
  * Whether each planned tile can be built, counting the cost of the tiles
  * before it, so a line longer than the stock allows shows where it runs out.
  */
-export function planStatus(world: World, plan: Plan): (PlaceError | null)[] {
+export function planStatus(world: World, plan: Plan, dir: Dir): (PlaceError | null)[] {
   const spent: ItemCounts = {};
   const cost = Object.entries(BUILDINGS[plan.tool].cost) as [ItemId, number][];
   const single = plan.tiles.length === 1; // only a single placement may go over a belt
-  return plan.tiles.map((t) => {
-    const { x, y } = anchorAt(plan.tool, t);
-    const err = world.checkPlace(plan.tool, x, y, single);
+  const dirs = planDirs(plan, dir);
+  return plan.tiles.map((t, i) => {
+    const at = placementAt(world, plan.tool, t, dirs[i], single);
+    const err = world.checkPlace(plan.tool, at.x, at.y, at.dir, single);
     if (err && err !== 'cost') return err;
     if (!cost.every(([i, n]) => (world.state.inventory[i] ?? 0) - (spent[i] ?? 0) >= n)) return 'cost';
     for (const [i, n] of cost) spent[i] = (spent[i] ?? 0) + n;
@@ -53,7 +54,7 @@ export class PlanBar {
     const show = visible && !!this.ui.plan;
     this.el.hidden = !show;
     if (!show || !plan) return;
-    const status = planStatus(world, plan);
+    const status = planStatus(world, plan, this.ui.dir);
     const ok = status.filter((s) => s === null).length;
     this.count.textContent = plan.tiles.length > 1 ? `${ok} of ${plan.tiles.length}` : '';
     this.count.hidden = plan.tiles.length < 2;

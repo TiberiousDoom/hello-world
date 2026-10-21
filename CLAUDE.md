@@ -1,0 +1,86 @@
+# CLAUDE.md
+
+Guidance for Claude (and other agents) working in this repo.
+
+## The project
+
+**Foundry Front** (working title): a Builderment-inspired factory game with a tower-defense twist,
+for the browser on desktop and phones. TypeScript, Vite 7, Canvas 2D, no framework.
+`master` deploys to GitHub Pages (https://tiberiousdoom.github.io/hello-world/).
+
+Start with [docs/README.md](docs/README.md); [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) describes the
+game as it is on `master`.
+
+## Commands
+
+```bash
+npm run dev          # dev server
+npm test             # unit tests (Vitest, src/**/*.test.ts)
+npm run typecheck    # tsc --noEmit (tests included: CI fails on type errors in tests too)
+npm run build        # static site in dist/
+npm run build:single # one self-contained HTML file (no music, no public/)
+npm run test:e2e     # Playwright, desktop and phone viewports; builds and serves on :4173
+npx playwright test e2e/lessons.spec.ts   # one suite
+```
+
+Before every push, run `npm run typecheck`, `npm test`, `npm run build` and `npm run test:e2e`.
+CI (`.github/workflows/deploy.yml`) runs all of them on every PR. Browser tests can be flaky under
+load, so run the full suite twice after touching input, the HUD or the tutorial.
+
+## Code layout and rules
+
+- `src/sim/`: the rules. **No DOM, no rendering, no audio**: it must stay reusable by a future 3D
+  front end. Deterministic: fixed tick (`TICK` = 1/20 s) and a seeded RNG (`w.random()`); don't use
+  `Math.random()` in the rules (only `World.create` uses it, to pick a seed when none is given).
+  - `data.ts` holds all balance numbers and content. It is the source of truth; docs follow it.
+  - `world.ts` (simulation), `mapgen.ts` (256×256 map, ore noise, nests), `nests.ts` (bug territories),
+    `ship.ts` (escape ship), `research.ts`, `demo.ts` (the main-menu factory).
+- `src/render/`: Canvas 2D renderer and camera. Visual effects come from diffing world state each frame.
+- `src/audio/`: music (crossfading tracks), synthesized sound effects (`sfx.ts`) and `sounds.ts`, which
+  turns each frame's world changes into sounds (like the renderer's effects).
+- `src/ui/`: the HTML overlay (HUD, toolbar, dialogs, tutorial lessons, blueprint bar).
+- `src/input/`: mouse, touch and keyboard.
+- `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`.
+- `main.ts`: wiring, the game loop, save/load and the player profile (localStorage).
+- Buildings have rectangular footprints (`size` in `BUILDINGS`, width along the facing); use
+  `footprint(type, dir)`, `world.footprintOf(b)`, `world.outputTile(b)` instead of assuming 1×1.
+- Saves are versioned (`SAVE_VERSION` in `world.ts`). If you change saved state, bump the version and
+  add a migration with a test (v8 deliberately can't load older saves; see D-038).
+- Match the surrounding style: short doc comments explaining *why*, and no `any`.
+
+## Tests
+
+- Unit tests sit next to the code (`world.test.ts`, `ship.test.ts`, `belts.test.ts`, `sounds.test.ts`).
+  Build test worlds with everything researched and nests cleared, then place what you need.
+- Browser tests are in `e2e/`, with shared helpers in `e2e/helpers.ts`. The `test` fixture fails on
+  any page error. Use the helpers instead of raw clicks on the map: `newGame`, `calm` (removes bugs),
+  `selectHub`, `uncoveredTile` (pans so a tile isn't under a panel), `build` (handles the touch
+  blueprint ✓), `settled` and `cameraSettled` (wait for animations). Don't depend on game time
+  passing; trigger states directly through `window.game`.
+- `window.game` exposes `world`, `camera`, `ui`, `music` and `sfx` for tests and debugging.
+
+## Docs: keep them true
+
+Every change that alters the game updates, in the same PR:
+- `docs/GAME_DESIGN.md` (mechanics, numbers, controls),
+- `docs/ROADMAP.md` (status),
+- `CHANGELOG.md` (player-facing summary at the top),
+- `docs/DECISIONS.md` for any real choice: add a new `D-0xx` row at the bottom of the table and
+  never edit old rows (supersede them). Open questions are `Q-xx`.
+- `docs/ART_LIST.md` when sprites or their sizes change; `docs/CREDITS.md` for third-party assets.
+
+Write docs in plain, short sentences. The owner prefers not to see the word "honest" used needlessly.
+
+## Gotchas
+
+- Never `pkill -f "vite preview"` (or similar `-f` patterns) from a shell: it can match and kill the
+  shell itself. Find the PID via `/proc` and kill that.
+- Pathfinding costs use `Float64Array` on purpose; 32-bit storage caused a heap blow-up (see the
+  comment on `World.flow`).
+- Browsers only allow audio after a click or key press; `Music` and `Sfx` wait for it.
+- The single-file build has no `public/` folder, so no music there (sound effects still work).
+
+## Git
+
+- The default branch is `master`. Work on a feature branch and open a PR; CI must be green to merge.
+- When merging through the API, pass the exact head SHA (`git rev-parse HEAD`).

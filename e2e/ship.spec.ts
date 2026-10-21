@@ -1,16 +1,15 @@
 import { ALL_LESSONS, build, calm, cameraSettled, expect, newGame, settled, stepLabel, test, tilePoint, uncoveredTile } from './helpers';
 
-test('build the escape ship, launch it, escape, and come back for endless mode', async ({ page }, info) => {
+test('build the escape ship, launch it, escape, and keep playing in endless mode', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: ALL_LESSONS.filter((l) => l !== 'shipyard') });
   await calm(page);
 
-  // A Friend is in touch, the email is read, and the shipyard plans are researched.
+  // The shipyard is researched.
   const spot = await page.evaluate(() => {
     const w = window.game.world;
     const s = w.state;
     s.inventory = { iron_plate: 999, brick: 999 };
-    s.blackMarket.contacted = true;
-    s.blackMarket.researched.push('shipyard');
+    s.researched.push('defense', 'workshop', 'assembly', 'shipyard');
     const x = w.hub.x - 22;
     const y = w.hub.y + 1;
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) s.resources[w.idx(x + dx, y + dy)] = 0;
@@ -63,20 +62,17 @@ test('build the escape ship, launch it, escape, and come back for endless mode',
   await expect(page.locator('#launch-banner')).toContainText('Lift-off in');
   expect(await page.evaluate(() => window.game.world.state.ship.launchAt)).not.toBeNull();
 
-  // Hold out until lift-off (skipped ahead, with the wave cleared).
+  // Hold out until lift-off (skipped ahead).
   await page.evaluate(() => {
     const s = window.game.world.state;
-    s.enemies = [];
-    s.spawnQueue = [];
-    s.nextWaveAt = 1e9;
     s.ship.launchAt = s.time + 0.3;
   });
   await expect(page.locator('#victory')).toBeVisible();
-  await expect(page.locator('#victory-stats')).toContainText('Waves survived');
+  await expect(page.locator('#victory-stats')).toContainText('Bug nests cleared');
   await expect(page.locator('#launch-banner')).toBeHidden();
   expect(await page.evaluate(() => window.game.music.state.mood)).toBe('win');
 
-  await page.click('#btn-comeback');
+  await page.click('#btn-keep-playing');
   await expect(page.locator('#victory')).toBeHidden();
   const ship = await page.evaluate(() => ({ ...window.game.world.state.ship, yards: window.game.world.state.buildings.filter((b: { type: string }) => b.type === 'shipyard').length }));
   expect(ship.endless).toBe(true);
