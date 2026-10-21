@@ -1,6 +1,6 @@
 # Story proposal: "Keep up appearances"
 
-**Status:** Adopted (D-014). Phase 1 (contracts and the inbox) and phase 2 (suspicion, audits and the black market) are built. The
+**Status:** Adopted (D-014). Phase 1 (contracts and the inbox) and phase 2 (suspicion, audits and the black market) are built. Suspicion is being reworked (Q-16). The
 idea came from a conversation the project owner had with a friend. The
 related decisions are D-014 to D-022 in [DECISIONS.md](DECISIONS.md).
 

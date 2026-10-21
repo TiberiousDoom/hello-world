@@ -6,13 +6,19 @@
 // (Ctrl+wheel, which is also a trackpad pinch, always zooms).
 // Touch: one finger builds/selects like the left mouse button, or pans when
 // no tool is selected; two fingers pan and pinch-zoom.
+//
+// Soft placement (D-030): on touch (unless switched off), and on desktop when
+// dragging out a belt or wall line, building first shows a blueprint to
+// confirm (✓, Enter), rotate (⟳, R, wheel) or cancel (✕, Esc, right-click).
+// Dragging back along a blueprint shortens it. On touch, tapping the same
+// single-tile blueprint again builds it.
 
 import { Dir } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { UIState } from '../ui/state';
+import { Plan, UIState, isBeltPath, planDirs } from '../ui/state';
 
-type Mode = 'none' | 'pending' | 'right' | 'pan' | 'paint' | 'pinch';
+type Mode = 'none' | 'pending' | 'right' | 'pan' | 'paint' | 'plan' | 'pinch';
 
 interface Tile {
   x: number;
@@ -37,6 +43,7 @@ export class Input {
   private reportedError = false;
   private pinch = { dist: 0, midX: 0, midY: 0 };
   private wheelTurn = 0;
+  private prevPlan: Plan | null = null; // the blueprint before this gesture started a new one
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -77,14 +84,17 @@ export class Input {
       turns += step;
       this.wheelTurn -= step * WHEEL_STEP;
     }
-    if (turns) {
+    if (turns && this.ui.plan && isBeltPath(this.ui.plan)) {
+      if (turns % 2) this.rotatePlan(); // a belt line can only be reversed
+    } else if (turns) {
       this.ui.dir = ((((this.ui.dir + turns) % 4) + 4) % 4) as Dir;
       this.cb.onChange();
     }
   }
 
-  /** Right-click: put down the tool and clear the selection (same as Esc). */
+  /** Right-click: cancel the blueprint, or put down the tool and clear the selection (same as Esc). */
   private clearSelection(): void {
+    if (this.ui.plan) return this.cancelPlan();
     this.ui.tool = null;
     this.ui.selected = null;
     this.cb.onChange();
@@ -107,6 +117,7 @@ export class Input {
     this.ui.hover = this.tileAt(x, y);
 
     if (this.pointers.size === 2) {
+      if (this.mode === 'plan') this.ui.plan = this.prevPlan; // that finger was the start of a pinch
       this.mode = 'pinch';
       this.startPinch();
       return;
@@ -118,6 +129,10 @@ export class Input {
       this.mode = 'right'; // a click clears; a drag pans
     } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
+    } else if (this.ui.tool && this.ui.tool !== 'demolish' && this.softPlace(e.pointerType, this.ui.tool)) {
+      this.mode = 'plan';
+      this.prevPlan = this.ui.plan;
+      this.ui.plan = { tool: this.ui.tool, tiles: [this.ui.hover] };
     } else if (this.ui.tool) {
       this.mode = 'paint';
       this.lastPlacedId = null;
@@ -147,6 +162,7 @@ export class Input {
     if ((this.mode === 'pending' || this.mode === 'right') && moved) this.mode = 'pan';
     if (this.mode === 'pan') this.camera.pan(x - prev.x, y - prev.y);
     if (this.mode === 'paint') this.paintTo(this.ui.hover);
+    if (this.mode === 'plan') this.extendPlan(this.ui.hover);
   }
 
   private up(e: PointerEvent, completed: boolean): void {
@@ -155,6 +171,7 @@ export class Input {
     this.pointers.delete(e.pointerId);
     if (completed && this.mode === 'pending') this.select(this.tileAt(x, y));
     if (completed && this.mode === 'right') this.clearSelection();
+    if (this.mode === 'plan') this.endPlanGesture(e.pointerType, completed);
     if (e.pointerType !== 'mouse') this.ui.hover = null;
     // After a pinch, the remaining finger pans rather than building.
     this.mode = this.pointers.size === 1 ? 'pan' : 'none';
@@ -173,6 +190,84 @@ export class Input {
     this.camera.pan(midX - this.pinch.midX, midY - this.pinch.midY);
     if (this.pinch.dist > 0) this.camera.zoomAt(midX, midY, dist / this.pinch.dist);
     this.pinch = { dist, midX, midY };
+  }
+
+  private softPlace(pointerType: string, tool: string): boolean {
+    if (pointerType === 'mouse') return tool === 'belt' || tool === 'wall';
+    return this.ui.confirmTouch;
+  }
+
+  /** Grows the blueprint along a 4-connected line to `t`; dragging back over it shortens it. */
+  private extendPlan(t: Tile): void {
+    const plan = this.ui.plan;
+    if (!plan || plan.tool === 'tunnel') return; // entrances and exits are placed one at a time
+    let { x, y } = plan.tiles[plan.tiles.length - 1];
+    while (x !== t.x || y !== t.y) {
+      const dx = t.x - x;
+      const dy = t.y - y;
+      if (Math.abs(dx) >= Math.abs(dy)) x += Math.sign(dx);
+      else y += Math.sign(dy);
+      const at = plan.tiles.findIndex((p) => p.x === x && p.y === y);
+      if (at >= 0) plan.tiles.length = at + 1;
+      else plan.tiles.push({ x, y });
+    }
+    this.syncDir();
+  }
+
+  private endPlanGesture(pointerType: string, completed: boolean): void {
+    const plan = this.ui.plan;
+    if (!completed || !plan) {
+      this.ui.plan = this.prevPlan;
+      return;
+    }
+    const prev = this.prevPlan;
+    const single = plan.tiles.length === 1;
+    // A desktop click (no drag) builds at once.
+    if (pointerType === 'mouse' && single) return this.confirmPlan();
+    // Tapping a single-tile blueprint again builds it.
+    const t = plan.tiles[0];
+    if (single && prev?.tool === plan.tool && prev.tiles.length === 1 && prev.tiles[0].x === t.x && prev.tiles[0].y === t.y) {
+      return this.confirmPlan();
+    }
+    this.cb.onChange();
+  }
+
+  /** Builds the blueprint. Tiles that can't be built are skipped, and one reason is reported. */
+  confirmPlan(): void {
+    const plan = this.ui.plan;
+    if (!plan) return;
+    const dirs = planDirs(plan, this.ui.dir);
+    this.reportedError = false;
+    plan.tiles.forEach((t, i) => this.paintTile(t, dirs[i]));
+    this.ui.dir = dirs[dirs.length - 1];
+    this.ui.plan = null;
+    this.cb.onChange();
+  }
+
+  /** Turns a single building or a line of them; reverses a belt line. */
+  rotatePlan(): void {
+    const plan = this.ui.plan;
+    if (!plan) return;
+    if (isBeltPath(plan)) plan.tiles.reverse();
+    else this.ui.dir = ((this.ui.dir + 1) % 4) as Dir;
+    this.syncDir();
+    this.cb.onChange();
+  }
+
+  cancelPlan(): void {
+    this.ui.plan = null;
+    this.cb.onChange();
+  }
+
+  /** Along a belt line, the tool's facing follows the line's end. */
+  private syncDir(): void {
+    const plan = this.ui.plan;
+    if (!plan || !isBeltPath(plan)) return;
+    const dirs = planDirs(plan, this.ui.dir);
+    if (this.ui.dir !== dirs[dirs.length - 1]) {
+      this.ui.dir = dirs[dirs.length - 1];
+      this.cb.onChange();
+    }
   }
 
   private select(t: Tile): void {
@@ -241,6 +336,13 @@ export class Input {
     if (e.target instanceof HTMLInputElement || document.body.classList.contains('in-menu')) return;
     const k = e.key.toLowerCase();
     const pan = 40;
+    if (this.ui.plan && (k === 'enter' || k === 'r' || k === 'escape')) {
+      if (k === 'enter') this.confirmPlan();
+      else if (k === 'r') this.rotatePlan();
+      else this.cancelPlan();
+      e.preventDefault();
+      return;
+    }
     if (k === 'r') {
       if (this.ui.tool) this.ui.dir = ((this.ui.dir + (e.shiftKey ? 3 : 1)) % 4) as Dir;
       else if (this.ui.selected != null) this.cb.getWorld().rotate(this.ui.selected);

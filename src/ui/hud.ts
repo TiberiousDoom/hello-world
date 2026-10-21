@@ -6,6 +6,7 @@ import {
   BuildingType,
   GameMode,
   HARDCORE_UNLOCK_WAVE,
+  HUB_SIZE,
   HUB_WEAPON,
   ITEMS,
   ITEM_IDS,
@@ -21,6 +22,7 @@ import {
 import { artUrl, icon } from '../art';
 import { money } from '../sim/company';
 import { PlaceError, World } from '../sim/world';
+import { Camera } from '../render/camera';
 import { CompanyPanel } from './company';
 import { BlackMarketPanel } from './blackmarket';
 import { Tool, UIState } from './state';
@@ -57,7 +59,9 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
 
 export interface HudActions {
   getWorld(): World;
-  newGame(mode: GameMode): void;
+  newGame(mode: GameMode, tutorial: boolean): void;
+  /** Whether the Essentials lesson has been shown on this device. */
+  essentialsSeen(): boolean;
   save(): void;
   hardcoreUnlocked(): boolean;
   lessons(): { id: string; title: string; seen: boolean }[];
@@ -66,6 +70,8 @@ export interface HudActions {
   setTipsOff(off: boolean): void;
   toMainMenu(): void;
   hasGame(): boolean;
+  centreOnHub(): void;
+  rotatePlan(): void;
 }
 
 /** Fills every empty `[data-icon]` element under `root` with its inline SVG. */
@@ -145,6 +151,9 @@ export class Hud {
         this.refresh();
       }
     });
+    $('inventory').addEventListener('click', () => {
+      if ($('inventory').classList.contains('edge')) actions.centreOnHub();
+    });
     $('menu-btn').addEventListener('click', () => this.openModal('menu'));
     $('btn-resume').addEventListener('click', () => this.closeModals());
     $('btn-help').addEventListener('click', () => this.openModal('help'));
@@ -176,7 +185,7 @@ export class Hud {
     $('newgame').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
       if (!btn || btn.disabled) return;
-      actions.newGame(btn.dataset.mode as GameMode);
+      actions.newGame(btn.dataset.mode as GameMode, $<HTMLInputElement>('newgame-tutorial').checked);
       this.closeModals();
     });
     for (const el of document.querySelectorAll<HTMLElement>('.modal [data-close]')) {
@@ -261,7 +270,8 @@ export class Hud {
   }
 
   private rotate(): void {
-    if (this.ui.tool) this.ui.dir = ((this.ui.dir + 1) % 4) as UIState['dir'];
+    if (this.ui.plan) this.actions.rotatePlan();
+    else if (this.ui.tool) this.ui.dir = ((this.ui.dir + 1) % 4) as UIState['dir'];
     else if (this.ui.selected != null) this.actions.getWorld().rotate(this.ui.selected);
     this.refresh();
   }
@@ -277,6 +287,28 @@ export class Hud {
     $('toasts').appendChild(el);
     setTimeout(() => el.classList.add('fade'), 2600);
     setTimeout(() => el.remove(), 3200);
+  }
+
+  /**
+   * Keeps the stock panel floating just above the hub. When the hub is off
+   * screen, the panel is pinned to the nearest edge; tapping it goes back.
+   */
+  placeStock(world: World, camera: Camera): void {
+    const el = $('inventory');
+    const hub = world.hub;
+    if (!hub) return;
+    const [sx, top] = camera.toScreen(hub.x + HUB_SIZE / 2, hub.y);
+    const [, bottom] = camera.toScreen(0, hub.y + HUB_SIZE);
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const minY = $('topbar').getBoundingClientRect().bottom + 6;
+    const tb = $('toolbar').getBoundingClientRect();
+    const maxY = (tb.height ? tb.top : window.innerHeight) - h - 6;
+    const x = Math.min(window.innerWidth - w - 6, Math.max(6, sx - w / 2));
+    // Above the hub, or over its body when the top bar covers the space above.
+    const y = Math.min(maxY, Math.max(minY, top - h - 6));
+    el.classList.toggle('edge', sx < 0 || sx > window.innerWidth || bottom < minY || top > maxY + h);
+    el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   }
 
   /** Forces the next update() to redraw everything. */
@@ -533,6 +565,8 @@ export class Hud {
 
   openNewGame(): void {
     $('newgame-warning').hidden = !this.actions.hasGame();
+    // On by default until the player has been through the basics once.
+    $<HTMLInputElement>('newgame-tutorial').checked = !this.actions.essentialsSeen();
     const unlocked = this.actions.hardcoreUnlocked();
     const hc = $<HTMLButtonElement>('btn-hardcore');
     hc.disabled = !unlocked;

@@ -1,0 +1,92 @@
+// How belts connect to their neighbours, for drawing corners, end caps and
+// joins. Mirrors the side rules in World.insert, without capacity checks.
+
+import { DX, DY, Dir } from '../sim/data';
+import { Building, World } from '../sim/world';
+
+const turn = (d: Dir, by: number) => ((((d + by) % 4) + 4) % 4) as Dir;
+
+/** The directions a building sends items out of. */
+export function outputDirs(world: World, b: Building): Dir[] {
+  switch (b.type) {
+    case 'belt':
+    case 'extractor':
+    case 'furnace':
+    case 'workshop':
+    case 'assembler':
+    case 'port':
+      return [b.dir];
+    case 'tunnel':
+      return world.isTunnelExit(b) ? [b.dir] : [];
+    case 'splitter':
+      return [b.dir, turn(b.dir, 3), turn(b.dir, 1)];
+    case 'skimmer':
+      return [b.dir, turn(b.dir, 1)];
+    default:
+      return [];
+  }
+}
+
+/** Whether `b` takes items from the tile at (fromX, fromY). */
+export function acceptsFrom(world: World, b: Building, fromX: number, fromY: number): boolean {
+  const front = b.x + DX[b.dir] === fromX && b.y + DY[b.dir] === fromY;
+  switch (b.type) {
+    case 'belt':
+      return !front;
+    case 'tunnel':
+      return !front && !world.isTunnelExit(b);
+    case 'splitter':
+    case 'skimmer':
+      return b.x - DX[b.dir] === fromX && b.y - DY[b.dir] === fromY;
+    case 'stash':
+    case 'repair':
+    case 'hub':
+    case 'furnace':
+    case 'workshop':
+    case 'assembler':
+    case 'turret':
+    case 'cannon':
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** The building on the side `d` of `b`, if it sends items into `b`. */
+export function feederOn(world: World, b: Building, d: Dir): Building | undefined {
+  const n = world.buildingAt(b.x + DX[d], b.y + DY[d]);
+  if (!n || n === b) return undefined;
+  const back = turn(d, 2); // the direction from n to b
+  return outputDirs(world, n).includes(back) && acceptsFrom(world, b, n.x, n.y) ? n : undefined;
+}
+
+export interface BeltLook {
+  /** The side items come in from, as a direction from the belt. Straight belts: behind. */
+  from: Dir;
+  curved: boolean;
+  /** Something feeds in (draws no start cap). */
+  fed: boolean;
+  /** The tile in front takes items from this belt (draws no end cap). */
+  joined: boolean;
+}
+
+/**
+ * A belt curves when its only feeder is on one side. With a feeder behind, or
+ * feeders on both sides, it stays straight (side feeders merge onto it).
+ */
+export function beltLook(world: World, b: Building): BeltLook {
+  const back = turn(b.dir, 2);
+  const left = turn(b.dir, 3);
+  const right = turn(b.dir, 1);
+  const fb = !!feederOn(world, b, back);
+  const fl = !!feederOn(world, b, left);
+  const fr = !!feederOn(world, b, right);
+  const curved = !fb && fl !== fr;
+  const front = world.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
+  return {
+    from: curved ? (fl ? left : right) : back,
+    curved,
+    fed: fb || fl || fr,
+    joined: !!front && acceptsFrom(world, front, b.x, b.y),
+  };
+}

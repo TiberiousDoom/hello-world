@@ -121,11 +121,22 @@ const DEDUCTIONS: [string, number][] = [
   ['Morale committee subscription', 0.04],
 ];
 
+export const STORE_OPEN_SUBJECT = 'The Company Store is now open!';
+
 export function sendMail(w: World, from: string, subject: string, body: string, tone: MailTone = 'info'): void {
   const c = w.state.company;
   c.inbox.unshift({ id: c.nextMailId++, at: w.state.time, from, subject, body, tone, read: false });
   c.inbox.length = Math.min(c.inbox.length, COMPANY.inboxLimit);
   w.events.push(`New email: ${subject}`);
+}
+
+/**
+ * Whether the email with this subject has been opened. A mail that isn't in
+ * the inbox (never sent, or pushed out by newer mail) counts as read.
+ */
+export function mailRead(w: World, subject: string): boolean {
+  const m = w.state.company.inbox.find((x) => x.subject === subject);
+  return !m || m.read;
 }
 
 export function unreadCount(w: World): number {
@@ -285,7 +296,7 @@ export function tickCompany(w: World): void {
     sendMail(
       w,
       SENDERS.store,
-      'The Company Store is now open!',
+      STORE_OPEN_SUBJECT,
       `Now that you've settled in, the Company Store is pleased to offer you emergency supplies on credit. Iron, bricks, copper and gears are delivered straight to your hub.
 
 Prices include a convenience fee. Credit limit: ${money(COMPANY.creditLimit)}.`,

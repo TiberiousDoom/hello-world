@@ -174,15 +174,45 @@ body.in-menu #toasts {
   color: #fff;
 }
 
+/* Hub stock: floats above the hub (positioned each frame by Hud.placeStock). */
 #inventory {
   position: fixed;
-  top: calc(54px + var(--safe-top));
-  left: 8px;
+  top: 0;
+  left: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  max-width: min(560px, calc(100% - 16px));
+  justify-content: center;
+  gap: 3px;
+  max-width: min(300px, calc(100% - 12px));
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(15, 26, 46, 0.55);
   pointer-events: none;
+  will-change: transform;
+}
+#inventory:empty {
+  display: none;
+}
+#inventory .chip {
+  padding: 1px 6px 1px 2px;
+  font-size: 12px;
+}
+#inventory .chip .item-icon {
+  width: 16px;
+  height: 16px;
+}
+/* Hub off screen: pinned to the edge; tap to go back to the hub. */
+#inventory.edge {
+  pointer-events: auto;
+  cursor: pointer;
+  outline: 2px solid var(--sky);
+}
+#inventory.edge::before {
+  content: 'Hub';
+  align-self: center;
+  padding: 0 4px;
+  font: 700 11px/1 var(--display);
+  color: #fff;
 }
 .chip {
   display: inline-flex;
@@ -996,9 +1026,6 @@ button.quiet {
   .seg button {
     min-width: 34px;
   }
-  #inventory {
-    top: calc(90px + var(--safe-top));
-  }
   #toasts {
     top: calc(126px + var(--safe-top));
   }
@@ -1016,4 +1043,121 @@ button.quiet {
     width: 66px !important;
     height: 66px !important;
   }
+}
+
+/* Soft placement: the blueprint's ✓ / ⟳ / ✕ bar (positioned each frame by PlanBar). */
+#plan-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+}
+#plan-bar[hidden] {
+  display: none;
+}
+#plan-bar button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  font: 700 22px/1 var(--display);
+  justify-content: center;
+}
+#plan-bar .plan-confirm {
+  background: var(--good);
+  border-color: var(--good);
+  color: var(--navy-ink);
+}
+#plan-bar .plan-confirm:disabled {
+  opacity: 0.4;
+}
+#plan-bar .plan-cancel {
+  color: #ffb3bd;
+}
+#plan-bar .plan-count {
+  padding: 0 4px 0 6px;
+  font: 700 13px/1 var(--display);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Contract tracker: what the current contract still needs, under the top bar. */
+#contract-tracker {
+  position: fixed;
+  top: calc(52px + var(--safe-top));
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--panel);
+  font: 700 13px/1.2 var(--display);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  min-width: 128px;
+}
+#contract-tracker[hidden] {
+  display: none;
+}
+#contract-tracker .ct-title {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+#contract-tracker .ct-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-bottom: 3px;
+  color: var(--muted);
+}
+#contract-tracker .ct-row b {
+  color: var(--text);
+}
+#contract-tracker .ct-row i {
+  position: absolute;
+  left: 23px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--sky);
+  max-width: calc(100% - 23px);
+}
+#contract-tracker .ct-row.done b,
+#contract-tracker .ct-row.done {
+  color: var(--good);
+}
+#contract-tracker .ct-row.done i {
+  background: var(--good);
+}
+@media (max-width: 600px) {
+  /* Phones: one compact row under the two-row top bar. */
+  #contract-tracker {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    min-width: 0;
+    max-width: calc(100% - 16px);
+  }
+  #contract-tracker .ct-title {
+    display: none;
+  }
+}
+.toggle.volume input {
+  flex: 1;
+  accent-color: var(--sky);
 }

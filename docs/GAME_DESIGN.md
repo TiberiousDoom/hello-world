@@ -14,9 +14,13 @@ How the game works on `master` today. Balance numbers live in
 ## Map
 
 - A 64×64 tile grid, generated from a seed (the same seed gives the same map).
-- The 3×3 hub sits in the centre. Iron, copper and stone clusters are guaranteed
-  7–10 tiles from the hub, with more clusters scattered across the map.
+- The 3×3 hub sits in the centre. Iron, copper and stone patches are guaranteed
+  8–11 tiles from the hub, with more patches scattered across the map.
+- Node tiles in a patch never touch side by side, and patches are kept apart, so every
+  node has free sides for a belt or a machine. (New games only: a save keeps the map it was made with.)
 - Resource nodes never run out.
+- Hub stock is shown just above the hub. When the hub is off screen, the stock panel is pinned
+  to the screen edge, and tapping it goes back to the hub.
 
 ## Items and recipes
 
@@ -129,7 +133,7 @@ They are fuelled by iron plates (1 plate = 40 HP, holding up to 400 HP), and arr
 
 ### Waves
 
-- The first wave arrives at 3:00, then one every 75 s.
+- The first wave arrives at 4:00, then one every 2:00 (from playtesting: more time to build between attacks).
 - Wave *n* has 4 + 2n crawlers, 2(n−1) runners from wave 2, and n−2 brutes from wave 3.
 - Waves come from 1 map-edge spawn point, or 2 from wave 4. The points are shown 30 s ahead.
 
@@ -176,8 +180,9 @@ top bar shows the time left and progress.
 
 Numbers live in `BLACK_MARKET` in `src/sim/data.ts` and in `src/sim/blackmarket.ts`.
 
-- **A Friend** emails you 45 s after your first contract closes (met or missed). That unlocks the
-  **Stash** and the black-market window (the eye button in the top bar, showing suspicion).
+- **A Friend** emails you 45 s after your first contract closes (met or missed). Reading that email
+  unlocks the **Stash** and the black-market window (the eye button in the top bar, showing suspicion).
+- *Suspicion and audits are under review (Q-16): the owner wants a different mechanic.*
 - **Stash** (contraband): hidden storage that accepts any item by belt, 150 items per stash, shared
   across all your stashes. Stashed items aren't hub stock. Losing a stash loses its share of the contents.
 - **Skimmer** (contraband, black-market research): a belt piece that accepts from behind and passes items
@@ -225,14 +230,17 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   |---|---|---|
   | Essentials | A game has no extractors or belts yet | The hub → pick the extractor → place it on iron ore → lay 3 belts → build a furnace → deliver a plate → hub stock |
   | Contracts | The first contract arrives | Contract button, inbox |
-  | Black market | A Friend gets in touch | Suspicion button → pick the stash → place it outside the watch ring |
+  | Black market | A Friend's first email has been read | Suspicion button → pick the stash → place it outside the watch ring |
   | Defense | The first wave warning | Spawn marker → research Basic Defense |
-  | Company Store | The store opens | Where to find it |
+  | Company Store | The "store is open" email has been read | Where to find it |
   | Splitters and tunnels | The splitter is unlocked | What splitters do |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
 - **Explanation steps** pause the game until you press Next.
+- A lesson waits while a window (inbox, research…) is open, so it never covers what the player is reading.
+- The black market (the eye button and the Stash) is revealed when A Friend's first email is read, not when it arrives.
+- The **New game** dialog has "Start with the Essentials tutorial", ticked until the player has seen it once. Ticking it shows Essentials even if lessons are switched off; unticking it skips them.
 - Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
 - Lessons play once. Menu → Tutorials lists them, replays any of them, and switches automatic lessons on or off.
 
@@ -240,8 +248,8 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 | | Desktop | Touch |
 |---|---|---|
-| Build / select | Left click | Tap |
-| Lay belts | Drag with the Belt tool | Drag with the Belt tool |
+| Build / select | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
+| Lay belts or walls | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
@@ -250,6 +258,30 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 | Pause | Space | ❚❚ button |
 | Put down the tool or clear the selection | Right-click or Esc | Tap the tool again |
 | Close a menu | Click outside it | Tap outside it |
+| Blueprint: rotate, reverse, cancel | ⟳, R or the wheel (reverses a belt line); ✕, Esc or right-click | ⟳ or Rotate; ✕ |
+
+**Soft placement (D-030).** Building can show a **blueprint** first: dashed ghosts, red where a
+tile can't be built (blocked, or past what your stock can pay for), and a bar with ✕, ⟳ and ✓
+beside its end. Dragging back along a blueprint shortens it, and tiles that already hold a building
+are skipped. On touch screens every placement is a blueprint; Menu → "Confirm before building on
+touch screens" switches it off. On desktop, single clicks build at once, and only a dragged-out belt
+or wall line becomes a blueprint.
+
+## On-screen contract
+
+While a contract is open, a tracker under the top bar lists each item as delivered / needed, with
+a thin progress line, and turns green as each one is met. Tapping it opens the contract. On phones
+it's a single row.
+
+## Music
+
+- Main menu: the Company's corporate theme, looping. In game: seven lo-fi tracks in a shuffled
+  order. Tracks crossfade over 4 s (1.5 s when switching between menu and game). The "Groove" track
+  is kept for the escape (win) screen.
+- Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
+- Menu → Music sets the volume (saved per device). Zero mutes it.
+- The game ships 128 kbps copies in `public/music/`. The originals and their Pixabay licences are in
+  `audio/source/`. The single-file build has no music.
 
 ## Saves
 

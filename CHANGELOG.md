@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased: playtest batch 3
+- Music: the Company's corporate theme on the main menu and a shuffled set of lo-fi tracks in game, crossfading from one to the next. Volume is in the pause menu. Tracks by velariomusic (Pixabay).
+- New game has a "Start with the Essentials tutorial" box, so the basics can be replayed on any device.
+- The Company Store and black-market lessons wait until you've read the email that announces them, and the black market (the eye button and the Stash) appears only once A Friend's email is read. Lessons no longer open over a window you're reading.
+- The current contract is always on screen: each item's delivered / needed, under the top bar. Tap it for details.
+- The How to play page describes blueprints and credits the music.
+
+## Unreleased: playtest batch 2
+- More time to build: the first wave now comes at 4:00 (was 3:00), then one every 2:00 (was 75 s).
+- New games spread resource nodes out: node tiles never touch side by side, and patches are kept apart, so every node can be reached. Existing saves keep their maps.
+- Soft placement: building can show a blueprint first, with ✓ (build), ⟳ (rotate, or reverse a belt line) and ✕ (cancel). Every placement on a touch screen is a blueprint; tap the same spot twice to build quickly, or switch it off in the menu. On desktop, single clicks still build at once, and dragging out a belt or wall line makes a blueprint (Enter builds, Esc or right-click cancels). Dragging back shortens a blueprint, and red tiles show where it's blocked or where your stock runs out.
+- Belts look more like belts: they curve round corners (items follow the bend), chevrons show the direction, a line's end gets a hazard bumper, and metal flanges show where belts plug into splitters, tunnels and machines. Paired underground belts show a faint dotted trace.
+- A whimsical forest look: grassy ground with tufts, flowers, mushrooms and pebbles; a band of trees around the map that the bugs crawl out from; fireflies and drifting leaves (switched off when the system asks for reduced motion). Ore nodes sit on dirt patches.
+- More detailed bugs: a red jewel beetle (crawler), a long-legged ant-wasp (runner) and a horned rhino beetle (brute), each with a two-frame walk cycle that plays as they move.
+- Hub stock is now shown just above the hub instead of along the top of the screen. When the hub is off screen, the stock is pinned to the edge; tap it to jump back.
+
+## Unreleased: fixes
+- Fixed a stretched picture and a misplaced tutorial spotlight on some iPhones. iOS Safari can change the visible area without telling the page (for example when the game is opened from a link in Messages). The game now re-measures the screen every frame.
+
 ## Unreleased: story phase 2, the black market
 - A Friend gets in touch after your first contract and opens the black market (the eye in the top bar).
 - Stash: hidden storage that the Company can't count. Skimmer: a belt piece that diverts every 4th item.

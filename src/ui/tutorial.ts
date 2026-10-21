@@ -7,7 +7,8 @@
 // The spotlight darkens everything except a circle or rounded box around the
 // thing being explained.
 
-import { storeOpen } from '../sim/company';
+import { STORE_OPEN_SUBJECT, mailRead, storeOpen } from '../sim/company';
+import { introduced } from '../sim/blackmarket';
 import { BLACK_MARKET, BREACH, BuildingType, HUB_SIZE, ItemId, WAVE_WARNING } from '../sim/data';
 import { World } from '../sim/world';
 import { Camera } from '../render/camera';
@@ -91,6 +92,10 @@ function nearestNode(w: World, item: ItemId): TileTarget | null {
   return best;
 }
 
+/** On touch screens (with confirming switched on), building shows a blueprint first. */
+const confirmHint = (c: StepContext) =>
+  c.ui.confirmTouch && matchMedia('(pointer: coarse)').matches ? ' A blueprint appears first: tap ✓ to build it, or tap the same spot again.' : '';
+
 /** Points at a toolbar button until that tool is picked, then at `then`. */
 function toolThen(ctx: StepContext, tool: BuildingType, then: Target = {}): Target {
   return ctx.ui.tool === tool ? then : { el: `[data-tool="${tool}"]` };
@@ -113,7 +118,8 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'extractor'),
         text: (c) =>
           c.ui.tool === 'extractor'
-            ? 'Now tap the iron ore node to place the extractor. Its arrow shows where ore comes out; turn it with Rotate (or the mouse wheel) first.'
+            ? 'Now tap the iron ore node to place the extractor. Its arrow shows where ore comes out; turn it with Rotate (or the mouse wheel) first.' +
+              confirmHint(c)
             : 'Iron ore never runs out. Pick the Extractor to mine it.',
       },
       {
@@ -121,7 +127,8 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'belt', 3),
         text: (c) =>
           c.ui.tool === 'belt'
-            ? "Drag from the extractor's arrow toward the hub to lay a line of belts. Each belt points the way you dragged."
+            ? "Drag from the extractor's arrow toward the hub to lay a line of belts. Each belt points the way you dragged. " +
+              'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
             : 'Belts carry items. Pick the Belt.',
       },
       {
@@ -140,7 +147,7 @@ export const LESSONS: Lesson[] = [
       {
         target: () => ({ el: '#inventory' }),
         text: () =>
-          'Your stock went up. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
+          'Your stock, shown above the hub, went up. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
       },
     ],
   },
@@ -183,7 +190,8 @@ export const LESSONS: Lesson[] = [
   {
     id: 'blackmarket',
     title: 'Black market',
-    trigger: (w) => w.state.blackMarket.contacted,
+    // After A Friend's email has been read, so the lesson doesn't spoil it.
+    trigger: (w) => introduced(w),
     steps: [
       {
         target: () => ({ el: '#suspicion-btn' }),
@@ -203,7 +211,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'store',
     title: 'Company Store',
-    trigger: (w) => storeOpen(w),
+    trigger: (w) => storeOpen(w) && mailRead(w, STORE_OPEN_SUBJECT),
     steps: [
       {
         target: () => ({ el: '#mail-btn', shape: 'circle' }),
@@ -292,6 +300,8 @@ export class Tutorial {
   /** Starts any lesson whose moment has come. Call every frame while playing. */
   check(): void {
     if (this.active || this.profile.tipsOff()) return;
+    // Wait until the player closes whatever window they're reading (e.g. the email that set this off).
+    if (document.querySelector('.modal:not([hidden])')) return;
     const world = this.getWorld();
     const next = LESSONS.find((l) => !this.profile.seen(l.id) && l.trigger(world));
     if (next) this.start(next.id);

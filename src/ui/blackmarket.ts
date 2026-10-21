@@ -4,6 +4,7 @@ import { artUrl, icon } from '../art';
 import {
   BLACK_MARKET_BY_ID,
   auditSweep,
+  introduced,
   pauseBlackMarketResearch,
   startBlackMarketResearch,
   stashCapacity,
@@ -66,8 +67,10 @@ export class BlackMarketPanel {
   update(world: World): void {
     const bm = world.state.blackMarket;
     const btn = $('suspicion-btn');
-    btn.hidden = !bm.contacted;
-    if (!bm.contacted) return;
+    // Revealed once A Friend's email has been read.
+    const shown = introduced(world);
+    btn.hidden = !shown;
+    if (!shown) return;
     const sus = Math.floor(bm.suspicion);
     $('suspicion-label').textContent = bm.audit ? (auditSweep(world) != null ? 'Audit!' : `Audit ${clock(bm.audit.at - world.state.time)}`) : `${sus}%`;
     btn.className = `sus-${bm.audit ? 'high' : level(bm.suspicion)}`;

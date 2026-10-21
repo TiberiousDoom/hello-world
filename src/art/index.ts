@@ -14,7 +14,13 @@ for (const [path, url] of Object.entries(files)) {
 
 /** Pixels per tile that sprites are pre-rendered at. */
 const PX_PER_TILE = 128;
-const TILES: Record<string, number> = { 'buildings/hub': 3 };
+const TILES: Record<string, number> = {
+  'buildings/hub': 3,
+  'terrain/tree_round': 2,
+  'terrain/tree_autumn': 2,
+  'terrain/tree_pine': 2,
+  'terrain/bush': 2,
+};
 const cache = new Map<string, HTMLCanvasElement>();
 
 /** URL for use in HTML (toolbar, menus). */

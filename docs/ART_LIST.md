@@ -26,7 +26,8 @@ They show the intended size, facing and silhouette.
 | **Grid** | 1 tile = **64×64 px** at 1×. Please also export **128×128 (@2x)** for phones |
 | **Format** | PNG with transparency. Keep layered source files (PSD, Aseprite, Krita…) |
 | **Facing** | Directional sprites face **east (right)**; the game rotates them. If the lighting looks wrong rotated, provide all four directions as `_e`, `_s`, `_w`, `_n` |
-| **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png`. The loader doesn't read strips yet, so a single frame is the most useful first delivery. The game animates belts, glows and bobbing in code for now |
+| **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png`. The loader doesn't read strips yet, so a single frame is the most useful first delivery. The game animates belts, glows and bobbing in code for now. **Exception, enemy walk cycles:** two separate files, `crawler.png` and `crawler_b.png`; the game swaps them as the bug walks |
+| **Art direction** | A whimsical forest clearing (D-028): grassy ground, flowers and mushrooms, trees around the edge, fireflies and drifting leaves. The Company's machines stay navy, steel and hazard-yellow, so they stand out from the greenery |
 | **Padding** | Building art should leave about 4 px clear at each tile edge, so neighbours read as separate |
 | **Naming** | Match the placeholder: `src/art/category/name.png`, e.g. `src/art/items/iron_plate.png` |
 | **Palette** | Item colours must stay distinct for colour-blind players. Give each item a distinct **shape** as well |
@@ -38,11 +39,14 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 
 | Asset | Size | Frames | Priority | Status |
 |---|---|---|---|---|
-| Ground tile (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Placeholder |
-| Map edge or boundary | 64×64 | 1 | P3 | Code |
-| Iron ore node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
+| Ground tile: grass, seamless, with a faint tile edge (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Placeholder (`terrain/ground`) |
+| Map edge: soft shadow where the clearing meets the forest | — | 1 | P3 | Code |
+| Iron ore node (2–3 variants), on a dirt patch with a transparent background | 64×64 | 1 | P1 | Placeholder |
 | Copper ore node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
 | Stone node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
+| Decorations, transparent: grass tuft, flowers (2 colourways), mushrooms, pebbles. Scattered on empty tiles | 64×64 | 1 | P2 | Placeholder (`terrain/tuft`, `flowers`, `flowers_blue`, `mushrooms`, `pebbles`) |
+| Trees, top-down canopies with a soft shadow: round, autumn, pine, berry bush. They fill a band around the map | 128×128 (2 tiles) | 1 | P2 | Placeholder (`terrain/tree_round`, `tree_autumn`, `tree_pine`, `bush`) |
+| Fireflies and drifting leaves | — | — | P3 | Code |
 
 ## Items
 
@@ -66,7 +70,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 |---|---|---|---|---|---|
 | Hub | 3×3 (192×192) | Centrepiece. A damaged variant is a nice extra | 1 (+idle loop) | P1 | Placeholder |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Placeholder |
-| Belt (corner) | 1×1 | Not drawn yet; would make turns look right | 8 | P3 | Needed |
+| Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). A sprite could replace it | 8 | P3 | Code |
+| Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code |
 | Extractor | 1×1 | Drill; the output side should be obvious | 4–8 working | P1 | Placeholder |
 | Furnace | 1×1 | Idle and working (glow) | 1 + 4 | P1 | Placeholder |
 | Workshop | 1×1 | Idle and working | 1 + 4 | P2 | Placeholder |
@@ -87,13 +92,14 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 ## Enemies
 
-All top-down and facing east, as walk cycles.
+All top-down and facing east. Each has two walk frames (`name` and `name_b`, legs in opposite
+tripod poses); the game swaps them as the bug moves, so a bug standing still to attack stops walking.
 
 | Asset | Size on screen | Frames | Priority | Status |
 |---|---|---|---|---|
-| Crawler | ~28 px (fits a 32×32 frame) | 4 walk + 4 attack | P1 | Placeholder |
-| Runner | ~22 px (32×32) | 4 walk + 4 attack | P2 | Placeholder |
-| Brute | ~46 px (64×64) | 4 walk + 4 attack | P2 | Placeholder |
+| Crawler: red jewel beetle | ~28 px (fits a 32×32 frame) | 2 walk (+4 attack later) | P1 | Placeholder (`crawler`, `crawler_b`) |
+| Runner: slender orange ant-wasp, long legs | ~22 px (32×32) | 2 walk (+4 attack later) | P2 | Placeholder (`runner`, `runner_b`) |
+| Brute: armoured rhino beetle with a horn | ~46 px (64×64) | 2 walk (+4 attack later) | P2 | Placeholder (`brute`, `brute_b`) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Code |
 
 ## Effects
@@ -130,9 +136,13 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 
 Sound effects for: building placed, demolished, machine working (loop),
 turret shot, cannon shot, explosion, enemy death, hub hit, breach, research
-complete, wave incoming, UI click. Plus 1–2 music loops (calm build, wave).
+complete, wave incoming, UI click.
+
+**Music: done.** Nine tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
+tracks for play, a corporate theme for the main menu, and "Groove" for the win screen. See
+[GAME_DESIGN.md](GAME_DESIGN.md#music).
 
 ## Not needed
 
 - Separate toolbar icons (the building sprites are reused)
-- Fonts (the system UI font is fine for now)
+- Fonts: Montserrat (SIL Open Font License) loads from Google Fonts for headings; body text uses the system UI font

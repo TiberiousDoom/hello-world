@@ -26,7 +26,9 @@ import {
   isMachine,
 } from '../sim/data';
 import { Building, Shot, World } from '../sim/world';
-import { UIState } from '../ui/state';
+import { Plan, UIState, planDirs } from '../ui/state';
+import { planStatus } from '../ui/plan';
+import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
@@ -34,6 +36,25 @@ const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+// The forest (D-028).
+const FOREST_FLOOR = '#1d3324';
+const FOREST_CANOPY = '#1f4a2e';
+const FIREFLIES = 70;
+const LEAVES = 9;
+const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
+const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** A cheap integer hash, for choosing decorations per tile. */
+function hash(x: number, y: number): number {
+  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+// Belt colours, matching the belt sprite.
+const BELT_SURFACE = '#20242d';
+const BELT_RAIL = '#5a6478';
+const BELT_SLAT = 'rgba(138,150,168,0.5)';
 
 interface Effect {
   kind: 'puff' | 'blast' | 'shockwave';
@@ -53,7 +74,7 @@ export class Renderer {
   private aims = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
   /** Last known enemy positions and headings, to face sprites and place death puffs. */
-  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType }>();
+  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number }>();
   private effects: Effect[] = [];
   private breaches = -1;
   private world: World | null = null;
@@ -76,6 +97,12 @@ export class Renderer {
   }
 
   draw(world: World, ui: UIState | null, now: number): void {
+    // iOS Safari can change the visible area (toolbars, opening from another app)
+    // without a resize event, which left the picture stretched. Check every frame.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (this.canvas.clientWidth !== this.camera.width || this.canvas.clientHeight !== this.camera.height || dpr !== this.dpr) {
+      this.resize();
+    }
     if (world !== this.world) {
       // A different game: forget per-game animation state.
       this.world = world;
@@ -105,25 +132,36 @@ export class Renderer {
 
     this.trackEffects(world, now);
 
-    // Ground and resources.
+    // Ground, decorations and resources. Beyond the map's edge is forest.
+    ctx.fillStyle = FOREST_FLOOR;
+    ctx.fillRect(Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f - x0f) + 3, Math.ceil(y1f - y0f) + 3);
     this.drawGround(s.width, s.height);
+    const decorate = z >= 14;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         const r = s.resources[world.idx(x, y)];
         if (r) this.drawNode(r, x, y);
+        else if (decorate && !world.tiles[world.idx(x, y)]) this.drawDecoration(x, y);
       }
     }
-    ctx.strokeStyle = '#3a4a68';
-    ctx.lineWidth = 2 / z;
-    ctx.strokeRect(0, 0, s.width, s.height);
+    this.drawMapEdge(s.width, s.height);
 
-    // Belts first so everything else sits on top.
-    for (const b of s.buildings) if (b.type === 'belt' && visible(b.x, b.y)) this.drawBelt(b, now, z);
+    // Paired tunnels: a faint dotted line where the belt runs underground.
+    for (const b of s.buildings) {
+      if (b.type !== 'tunnel' || b.link == null || world.isTunnelExit(b)) continue;
+      const exit = world.byId.get(b.link);
+      if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
+    }
+    // Belts first so everything else sits on top, then the flanges where belts meet buildings.
+    const belts = s.buildings.filter((b) => b.type === 'belt' && visible(b.x, b.y));
+    const looks = belts.map((b) => beltLook(world, b));
+    belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
     for (const b of s.buildings) {
       if (b.type === 'belt') continue;
       const size = b.type === 'hub' ? HUB_SIZE : 1;
       if (visible(b.x, b.y, size)) this.drawBuilding(world, b, now, z);
     }
+    belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
     // Spawn warnings: pulsing rings with a warning sign.
     if (s.nextWaveAt - s.time <= WAVE_WARNING) {
@@ -134,19 +172,24 @@ export class Renderer {
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
       const def = ENEMIES[e.type];
-      const angle = this.enemies.get(e.id)?.angle ?? 0;
-      // A small bob so they look alive.
-      const bob = 1 + 0.06 * Math.sin(now / 90 + e.id);
+      const track = this.enemies.get(e.id);
+      const angle = track?.angle ?? 0;
+      // Walk cycle: the legs swap every short stride, so bugs only scuttle while moving.
+      const stride = def.radius * 0.7;
+      const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
+      const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
       const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob;
-      if (!this.drawSprite(`enemies/${e.type}`, e.x - size / 2, e.y - size / 2, size, angle)) {
+      if (!this.drawSprite(`enemies/${e.type}${frame}`, e.x - size / 2, e.y - size / 2, size, angle)) {
         ctx.fillStyle = def.color;
         dot(ctx, e.x, e.y, def.radius);
       }
       if (e.hp < e.maxHp) bar(ctx, e.x - 0.3, e.y - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
     }
 
+    this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);
     this.drawEffects(now, z);
+    this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
     this.drawAudit(world, now, z, ui);
 
     if (!ui) return;
@@ -162,7 +205,19 @@ export class Renderer {
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
     }
-    if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
+    if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
+    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
+  }
+
+  /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
+  private drawPlan(world: World, plan: Plan, dir: Dir, z: number): void {
+    const status = planStatus(world, plan);
+    const dirs = planDirs(plan, dir);
+    const single = plan.tiles.length === 1;
+    plan.tiles.forEach((t, i) => {
+      if (status[i] === 'occupied') return;
+      this.drawGhost(world, plan.tool, t.x, t.y, dirs[i], z, { ok: status[i] === null, range: single, dashed: true });
+    });
   }
 
   // ------------------------------------------------------------- sprites
@@ -198,8 +253,109 @@ export class Renderer {
       this.groundPattern = ctx.createPattern(img, 'repeat');
       this.groundPattern?.setTransform(new DOMMatrix().scale(1 / img.width));
     }
-    ctx.fillStyle = this.groundPattern ?? '#1a1d23';
+    ctx.fillStyle = this.groundPattern ?? '#2e4d33';
     ctx.fillRect(0, 0, w, h);
+  }
+
+  /** Grass tufts, flowers, mushrooms and pebbles on some empty tiles, the same every time. */
+  private drawDecoration(x: number, y: number): void {
+    const h = hash(x, y);
+    const pick = h % 100;
+    const key = pick < 14 ? 'terrain/tuft' : pick < 18 ? 'terrain/flowers' : pick < 21 ? 'terrain/flowers_blue' : pick < 23 ? 'terrain/pebbles' : pick < 24 ? 'terrain/mushrooms' : '';
+    if (!key) return;
+    const jx = ((h >>> 8) % 40) / 100 - 0.2;
+    const jy = ((h >>> 16) % 40) / 100 - 0.2;
+    this.drawSprite(key, x + jx, y + jy, 1, (((h >>> 24) % 4) * Math.PI) / 2);
+  }
+
+  /** A soft shadow where the clearing meets the forest. */
+  private drawMapEdge(w: number, h: number): void {
+    const ctx = this.ctx;
+    const d = 1.2;
+    // Each side: a gradient from the edge (dark) inwards (clear).
+    const sides: [number, number, number, number, number, number, number, number][] = [
+      [0, 0, w, d, 0, 0, 0, d],
+      [0, h - d, w, d, 0, h, 0, h - d],
+      [0, 0, d, h, 0, 0, d, 0],
+      [w - d, 0, d, h, w, 0, w - d, 0],
+    ];
+    for (const [x, y, sw, sh, gx0, gy0, gx1, gy1] of sides) {
+      const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+      g.addColorStop(0, 'rgba(10,24,14,0.55)');
+      g.addColorStop(1, 'rgba(10,24,14,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, sw, sh);
+    }
+  }
+
+  /** Trees in a band around the map. Bugs come out from under them. */
+  private drawForest(w: number, h: number, x0f: number, y0f: number, x1f: number, y1f: number, z: number): void {
+    const BAND = 6;
+    const xa = Math.max(-BAND, Math.floor(x0f) - 2);
+    const ya = Math.max(-BAND, Math.floor(y0f) - 2);
+    const xb = Math.min(w + BAND, Math.ceil(x1f) + 2);
+    const yb = Math.min(h + BAND, Math.ceil(y1f) + 2);
+    const ctx = this.ctx;
+    if (z < 12) {
+      // Zoomed far out: a plain canopy colour is enough.
+      ctx.fillStyle = FOREST_CANOPY;
+      ctx.fillRect(-BAND, -BAND, w + 2 * BAND, BAND);
+      ctx.fillRect(-BAND, h, w + 2 * BAND, BAND);
+      ctx.fillRect(-BAND, 0, BAND, h);
+      ctx.fillRect(w, 0, BAND, h);
+      return;
+    }
+    for (let y = ya; y < yb; y++) {
+      for (let x = xa; x < xb; x++) {
+        if (x >= 0 && y >= 0 && x < w && y < h) continue;
+        const hv = hash(x + 1000, y + 1000);
+        const kind = hv % 10;
+        const key = kind < 4 ? 'terrain/tree_round' : kind < 7 ? 'terrain/tree_pine' : kind < 9 ? 'terrain/bush' : 'terrain/tree_autumn';
+        const size = (key === 'terrain/bush' ? 1.2 : 1.7) + ((hv >>> 8) % 40) / 100;
+        const jx = ((hv >>> 12) % 50) / 100 - 0.25;
+        const jy = ((hv >>> 20) % 50) / 100 - 0.25;
+        this.drawSprite(key, x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4);
+      }
+    }
+  }
+
+  /** Fireflies drifting over the map and a few leaves blowing across the view. */
+  private drawAmbient(w: number, h: number, x0f: number, y0f: number, x1f: number, y1f: number, now: number, z: number): void {
+    if (REDUCED_MOTION) return;
+    const ctx = this.ctx;
+    const t = now / 1000;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < FIREFLIES; i++) {
+      const hv = hash(i, 77);
+      const fx = ((hv % 10007) / 10007) * w + Math.sin(t * 0.3 + i) * 1.5 + Math.sin(t * 0.71 + i * 2.3) * 0.6;
+      const fy = (((hv >>> 13) % 10007) / 10007) * h + Math.cos(t * 0.27 + i * 1.7) * 1.5;
+      if (fx < x0f - 1 || fx > x1f + 1 || fy < y0f - 1 || fy > y1f + 1) continue;
+      const glow = Math.max(0, Math.sin(t * 1.3 + i * 0.9));
+      if (glow < 0.05) continue;
+      ctx.fillStyle = `rgba(214,255,120,${0.12 * glow})`;
+      dot(ctx, fx, fy, 0.18);
+      ctx.fillStyle = `rgba(240,255,170,${0.85 * glow})`;
+      dot(ctx, fx, fy, Math.max(0.035, 1.6 / z));
+    }
+    ctx.restore();
+    // Leaves wrap around the visible area as they blow across it.
+    const vw = x1f - x0f + 2;
+    const vh = y1f - y0f + 2;
+    for (let i = 0; i < LEAVES; i++) {
+      const hv = hash(i, 131);
+      const lx = x0f - 1 + ((((hv % 997) / 997) * vw + t * (0.5 + (i % 3) * 0.15)) % vw);
+      const ly = y0f - 1 + (((((hv >>> 10) % 997) / 997) * vh + t * 0.35 + Math.sin(t + i) * 0.4) % vh);
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(t * (1 + (i % 4) * 0.3) + i);
+      ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 2 + i)); // tumbling
+      ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length];
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 0.13, 0.06, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   private drawNode(kind: number, x: number, y: number): void {
@@ -215,29 +371,153 @@ export class Renderer {
 
   // ----------------------------------------------------------- buildings
 
-  private drawBelt(b: Building, now: number, z: number): void {
+  private drawBelt(b: Building, look: BeltLook, now: number, z: number): void {
+    if (look.curved) return this.drawCurvedBelt(b, look.from, now, z);
     const ctx = this.ctx;
     const angle = (b.dir * Math.PI) / 2;
     if (!this.drawSprite('buildings/belt', b.x, b.y, 1, angle)) {
-      ctx.fillStyle = BUILDINGS.belt.color;
-      ctx.fillRect(b.x + 0.06, b.y + 0.06, 0.88, 0.88);
+      ctx.fillStyle = BELT_SURFACE;
+      ctx.fillRect(b.x, b.y + 0.06, 1, 0.88);
     }
-    // Moving slats show the direction of travel.
+    const dx = DX[b.dir];
+    const dy = DY[b.dir];
+    // Along the belt (u) and across it (v), from the tile's centre.
+    const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
+    // Moving chevrons show the direction of travel.
     const phase = ((now / 1000) * BELT_SPEED) % 0.25;
-    ctx.strokeStyle = 'rgba(138,150,168,0.45)';
+    ctx.strokeStyle = BELT_SLAT;
+    ctx.lineWidth = 2.5 / z;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let t = phase; t < 1; t += 0.25) {
+      const u = t - 0.5;
+      ctx.moveTo(...at(u - 0.1, -0.24));
+      ctx.lineTo(...at(u + 0.04, 0));
+      ctx.lineTo(...at(u - 0.1, 0.24));
+    }
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    // Caps where a line starts or stops: a lip at the start, a hazard bumper at the end.
+    if (!look.fed) {
+      ctx.fillStyle = BELT_RAIL;
+      this.beltBar(at, -0.5, 0.09);
+    }
+    if (!look.joined) {
+      ctx.fillStyle = '#d9a93a';
+      this.beltBar(at, 0.41, 0.09);
+      ctx.fillStyle = '#20242d';
+      for (const v of [-0.22, 0.02]) {
+        ctx.beginPath();
+        const p = [at(0.41, v), at(0.41, v + 0.1), at(0.5, v + 0.18), at(0.5, v + 0.08)];
+        ctx.moveTo(...p[0]);
+        for (const q of p.slice(1)) ctx.lineTo(...q);
+        ctx.fill();
+      }
+    }
+    for (const it of b.belt) {
+      const t = it.pos - 0.5;
+      this.drawItem(it.item, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t, 0.42);
+    }
+  }
+
+  /** A bar across the belt from `u` to `u + depth` along it. */
+  private beltBar(at: (u: number, v: number) => [number, number], u: number, depth: number): void {
+    const ctx = this.ctx;
+    const p = [at(u, -0.44), at(u + depth, -0.44), at(u + depth, 0.44), at(u, 0.44)];
+    ctx.beginPath();
+    ctx.moveTo(...p[0]);
+    for (const q of p.slice(1)) ctx.lineTo(...q);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /** A quarter-turn belt: items come in from side `from` and leave towards the belt's facing. */
+  private drawCurvedBelt(b: Building, from: Dir, now: number, z: number): void {
+    const ctx = this.ctx;
+    // The curve turns about the tile corner shared by its entry and exit sides.
+    const px = b.x + 0.5 + (DX[from] + DX[b.dir]) * 0.5;
+    const py = b.y + 0.5 + (DY[from] + DY[b.dir]) * 0.5;
+    const a0 = Math.atan2(b.y + 0.5 + DY[from] * 0.5 - py, b.x + 0.5 + DX[from] * 0.5 - px);
+    let sweep = Math.atan2(b.y + 0.5 + DY[b.dir] * 0.5 - py, b.x + 0.5 + DX[b.dir] * 0.5 - px) - a0;
+    if (sweep > Math.PI) sweep -= Math.PI * 2;
+    if (sweep < -Math.PI) sweep += Math.PI * 2;
+    const ccw = sweep < 0;
+    const a1 = a0 + sweep;
+    const ring = (r0: number, r1: number) => {
+      ctx.beginPath();
+      ctx.arc(px, py, r1, a0, a1, ccw);
+      ctx.arc(px, py, r0, a1, a0, !ccw);
+      ctx.closePath();
+    };
+    ctx.fillStyle = BELT_SURFACE;
+    ring(0.09, 0.91);
+    ctx.fill();
+    ctx.lineWidth = 1.5 / z;
+    ctx.strokeStyle = '#0f1a2e';
+    // Rails line up with the straight belt sprite's (4–11 and 53–60 px of 64).
+    for (const [r0, r1] of [[0.06, 0.17], [0.83, 0.94]]) {
+      ctx.fillStyle = BELT_RAIL;
+      ring(r0, r1);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Rivets on the outer rail.
+    ctx.fillStyle = '#8a96a8';
+    for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
+    // Slats fan out around the bend.
+    const phase = ((now / 1000) * BELT_SPEED) % 0.25;
+    ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.beginPath();
     for (let t = phase; t < 1; t += 0.25) {
-      const cx = b.x + 0.5 + DX[b.dir] * (t - 0.5);
-      const cy = b.y + 0.5 + DY[b.dir] * (t - 0.5);
-      ctx.moveTo(cx - DY[b.dir] * 0.3, cy + DX[b.dir] * 0.3);
-      ctx.lineTo(cx + DY[b.dir] * 0.3, cy - DX[b.dir] * 0.3);
+      const a = a0 + sweep * t;
+      ctx.moveTo(px + Math.cos(a) * 0.22, py + Math.sin(a) * 0.22);
+      ctx.lineTo(px + Math.cos(a) * 0.8, py + Math.sin(a) * 0.8);
     }
     ctx.stroke();
     for (const it of b.belt) {
-      const t = it.pos - 0.5;
-      this.drawItem(it.item, b.x + 0.5 + DX[b.dir] * t, b.y + 0.5 + DY[b.dir] * t, 0.42);
+      const a = a0 + sweep * it.pos;
+      this.drawItem(it.item, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5, 0.42);
     }
+  }
+
+  /** Metal flanges where a belt meets a building, so the line reads as plugged in. */
+  private drawJoins(world: World, b: Building, look: BeltLook, z: number): void {
+    const sides: Dir[] = [];
+    const feeder = look.fed ? world.buildingAt(b.x + DX[look.from], b.y + DY[look.from]) : undefined;
+    if (feeder && feeder.type !== 'belt') sides.push(look.from);
+    const front = world.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
+    if (look.joined && front && front.type !== 'belt') sides.push(b.dir);
+    const ctx = this.ctx;
+    for (const d of sides) {
+      const ex = b.x + 0.5 + DX[d] * 0.5;
+      const ey = b.y + 0.5 + DY[d] * 0.5;
+      const w = DX[d] ? 0.16 : 0.66;
+      const h = DX[d] ? 0.66 : 0.16;
+      ctx.fillStyle = BELT_RAIL;
+      ctx.strokeStyle = '#0f1a2e';
+      ctx.lineWidth = 1.5 / z;
+      roundRect(ctx, ex - w / 2, ey - h / 2, w, h, 0.04);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#8a96a8';
+      for (const s of [-0.24, 0.24]) dot(ctx, ex + DY[d] * s, ey + DX[d] * s, 0.025);
+    }
+  }
+
+  /** A faint dotted line between paired tunnels, where the belt runs underground. */
+  private drawTunnelTrace(a: Building, b: Building, z: number): void {
+    const ctx = this.ctx;
+    ctx.strokeStyle = 'rgba(138,150,168,0.35)';
+    ctx.lineWidth = 3 / z;
+    ctx.setLineDash([2 / z, 7 / z]);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a.x + 0.5, a.y + 0.5);
+    ctx.lineTo(b.x + 0.5, b.y + 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineCap = 'butt';
   }
 
   private spriteKey(world: World, b: Building): string {
@@ -325,7 +605,15 @@ export class Renderer {
     this.drawItem(item, x + 0.8, y + 0.2, 0.28);
   }
 
-  private drawGhost(world: World, tool: BuildingType | 'demolish', x: number, y: number, dir: Dir, z: number): void {
+  private drawGhost(
+    world: World,
+    tool: BuildingType | 'demolish',
+    x: number,
+    y: number,
+    dir: Dir,
+    z: number,
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean } = {},
+  ): void {
     const ctx = this.ctx;
     if (tool === 'demolish') {
       ctx.strokeStyle = '#e0445a';
@@ -338,7 +626,7 @@ export class Renderer {
       ctx.stroke();
       return;
     }
-    const ok = !world.checkPlace(tool, x, y);
+    const ok = opts.ok ?? !world.checkPlace(tool, x, y);
     const turret = !!TURRETS[tool];
     const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
@@ -356,14 +644,20 @@ export class Renderer {
     }
     ctx.strokeStyle = ok ? '#3fa9f5' : '#ff6070';
     ctx.lineWidth = 2.5 / z;
+    if (opts.dashed) {
+      ctx.fillStyle = ok ? 'rgba(63,169,245,0.18)' : 'rgba(0,0,0,0)';
+      ctx.fillRect(x + 0.03, y + 0.03, 0.94, 0.94);
+      ctx.setLineDash([6 / z, 4 / z]);
+    }
     roundRect(ctx, x + 0.03, y + 0.03, 0.94, 0.94, 0.1);
     ctx.stroke();
+    ctx.setLineDash([]);
     if (directional) {
       ctx.fillStyle = '#ffffff';
       arrowHead(ctx, x + 0.5 + DX[dir] * 0.62, y + 0.5 + DY[dir] * 0.62, dir, 0.14);
     }
     const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : 0);
-    if (range) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
+    if (range && opts.range !== false) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
     if (tool === 'tunnel' && ok) {
       const entrance = world.findTunnelEntrance(x, y, dir);
       if (entrance) linkLine(ctx, entrance, { x, y }, z);
@@ -455,12 +749,14 @@ export class Renderer {
       alive.add(e.id);
       const prev = this.enemies.get(e.id);
       let angle = prev?.angle ?? 0;
+      let walked = prev?.walked ?? 0;
       if (prev) {
         const dx = e.x - prev.x;
         const dy = e.y - prev.y;
         if (dx * dx + dy * dy > 1e-6) angle = Math.atan2(dy, dx);
+        walked += Math.hypot(dx, dy);
       }
-      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type });
+      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked });
     }
     const breached = s.breaches !== this.breaches;
     for (const [id, e] of this.enemies) {

@@ -1,3 +1,4 @@
+import { Music } from './audio/music';
 import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
@@ -6,6 +7,7 @@ import { HARDCORE_UNLOCK_WAVE, HUB_SIZE } from './sim/data';
 import { createDemoWorld, sustainDemo } from './sim/demo';
 import { TICK, World } from './sim/world';
 import { Hud, hydrateIcons } from './ui/hud';
+import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
 import { LESSONS, Tutorial } from './ui/tutorial';
 
@@ -29,10 +31,12 @@ interface Profile {
   lessonsSeen: string[];
   tipsOff: boolean;
   hardcoreUnlocked: boolean;
+  confirmTouch: boolean;
+  musicVolume: number; // 0–1
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5 };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -78,6 +82,7 @@ const active = () => (inMenu || !game ? demo : game);
 
 const profile = loadProfile();
 const ui = createUIState();
+ui.confirmTouch = profile.confirmTouch;
 const camera = new Camera();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas, camera);
@@ -99,6 +104,7 @@ function play(world: World): void {
   centreOnHub(world);
   hud.closeModals();
   hud.refresh();
+  music.setMood('game');
 }
 
 function showMainMenu(): void {
@@ -110,6 +116,7 @@ function showMainMenu(): void {
   if (tutorial.active) tutorial.abort();
   hud.closeModals();
   refreshMainMenu();
+  music.setMood('menu');
 }
 
 function refreshMainMenu(): void {
@@ -138,10 +145,22 @@ const hud = new Hud(ui, {
   },
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
-  newGame: (mode) => {
+  rotatePlan: () => input.rotatePlan(),
+  centreOnHub: () => {
+    const hub = active().hub;
+    if (hub) [camera.x, camera.y] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
+  },
+  newGame: (mode, withTutorial) => {
     play(World.create(undefined, mode));
     save();
+    // Ticked: show the basics even if they were seen (or lessons are off). Unticked: skip them.
+    if (withTutorial) tutorial.start('essentials');
+    else if (!profile.lessonsSeen.includes('essentials')) {
+      profile.lessonsSeen.push('essentials');
+      saveProfile();
+    }
   },
+  essentialsSeen: () => profile.lessonsSeen.includes('essentials'),
 });
 
 const tutorial = new Tutorial(camera, active, ui, {
@@ -157,10 +176,31 @@ const tutorial = new Tutorial(camera, active, ui, {
   },
 });
 
-new Input(canvas, camera, ui, {
+const input = new Input(canvas, camera, ui, {
   getWorld: active,
   onPlaceError: (err) => hud.placeError(err),
   onChange: () => hud.refresh(),
+});
+const planBar = new PlanBar(camera, ui, {
+  confirm: () => input.confirmPlan(),
+  rotate: () => input.rotatePlan(),
+  cancel: () => input.cancelPlan(),
+});
+
+const music = new Music(profile.musicVolume);
+const volume = document.getElementById('music-volume') as HTMLInputElement;
+volume.value = String(Math.round(profile.musicVolume * 100));
+volume.addEventListener('input', () => {
+  profile.musicVolume = Number(volume.value) / 100;
+  music.setVolume(profile.musicVolume);
+});
+volume.addEventListener('change', saveProfile);
+
+const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
+confirmToggle.checked = profile.confirmTouch;
+confirmToggle.addEventListener('change', () => {
+  ui.confirmTouch = profile.confirmTouch = confirmToggle.checked;
+  saveProfile();
 });
 
 document.getElementById('mm-continue')!.addEventListener('click', () => play(game ?? loadWorld()));
@@ -216,8 +256,10 @@ function frame(now: number): void {
   }
   camera.clampTo(world.state.width, world.state.height);
   renderer.draw(world, inMenu ? null : ui, now);
+  planBar.update(world, !inMenu);
   if (!inMenu) {
     hud.update(world, now);
+    hud.placeStock(world, camera);
     tutorial.check();
   }
   tutorial.update();
@@ -235,4 +277,5 @@ requestAnimationFrame(frame);
   },
   camera,
   ui,
+  music,
 };

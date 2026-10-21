@@ -427,16 +427,17 @@ export class World {
   // ------------------------------------------------------------ map setup
 
   private generateResources(hubCx: number, hubCy: number): void {
-    const near: [number, number][] = [
-      [1, 0],
-      [2, 0],
-      [3, 0],
-    ];
+    // Patches are spaced apart, and no two node tiles touch side by side, so
+    // every node has free sides for a belt or a neighbouring machine.
+    const centres: [number, number][] = [];
     const baseAngle = this.random() * Math.PI * 2;
-    near.forEach(([kind], i) => {
-      const a = baseAngle + (i * Math.PI * 2) / near.length;
-      const d = 7 + this.random() * 3;
-      this.blob(Math.round(hubCx + Math.cos(a) * d), Math.round(hubCy + Math.sin(a) * d), kind, 10);
+    [1, 2, 3].forEach((kind, i) => {
+      const a = baseAngle + (i * Math.PI * 2) / 3;
+      const d = 8 + this.random() * 3;
+      const cx = Math.round(hubCx + Math.cos(a) * d);
+      const cy = Math.round(hubCy + Math.sin(a) * d);
+      centres.push([cx, cy]);
+      this.patch(cx, cy, kind, 8);
     });
     const counts: [number, number][] = [
       [1, 7],
@@ -444,27 +445,40 @@ export class World {
       [3, 5],
     ];
     for (const [kind, n] of counts) {
-      for (let i = 0; i < n; i++) {
-        const x = Math.floor(this.random() * this.state.width);
-        const y = Math.floor(this.random() * this.state.height);
-        if (Math.abs(x - hubCx) < 6 && Math.abs(y - hubCy) < 6) continue;
-        this.blob(x, y, kind, 6 + Math.floor(this.random() * 10));
+      for (let i = 0, tries = 0; i < n && tries < n * 20; tries++) {
+        const x = 3 + Math.floor(this.random() * (this.state.width - 6));
+        const y = 3 + Math.floor(this.random() * (this.state.height - 6));
+        if (Math.abs(x - hubCx) < 8 && Math.abs(y - hubCy) < 8) continue;
+        if (centres.some(([cx, cy]) => Math.abs(x - cx) < 9 && Math.abs(y - cy) < 9)) continue;
+        centres.push([x, y]);
+        this.patch(x, y, kind, 6 + Math.floor(this.random() * 6));
+        i++;
       }
     }
   }
 
-  private blob(cx: number, cy: number, kind: number, size: number): void {
-    let x = cx;
-    let y = cy;
-    for (let i = 0; i < size * 2; i++) {
-      if (this.inBounds(x, y)) this.state.resources[this.idx(x, y)] = kind;
-      const d = Math.floor(this.random() * 4);
-      x += DX[d];
-      y += DY[d];
-      if (Math.abs(x - cx) > 2 || Math.abs(y - cy) > 2) {
-        x = cx;
-        y = cy;
-      }
+  /** Scatters up to `size` node tiles within 3 tiles of a centre, none touching side by side. */
+  private patch(cx: number, cy: number, kind: number, size: number): void {
+    const spots: [number, number][] = [];
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 10) spots.push([cx + dx, cy + dy]);
+    }
+    // Closest spots first, with some jitter so patches aren't perfect diamonds.
+    const order = spots
+      .map(([x, y]) => ({ x, y, k: Math.hypot(x - cx, y - cy) + this.random() * 2 }))
+      .sort((a, b) => a.k - b.k);
+    let placed = 0;
+    for (const { x, y } of order) {
+      if (placed >= size) break;
+      if (!this.inBounds(x, y) || this.state.resources[this.idx(x, y)]) continue;
+      const touching = [0, 1, 2, 3].some((d) => {
+        const nx = x + DX[d];
+        const ny = y + DY[d];
+        return this.inBounds(nx, ny) && this.state.resources[this.idx(nx, ny)] !== 0;
+      });
+      if (touching) continue;
+      this.state.resources[this.idx(x, y)] = kind;
+      placed++;
     }
   }
 
