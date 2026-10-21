@@ -19,6 +19,7 @@ function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
   s.resources.fill(0);
+  s.trees.fill(0);
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();

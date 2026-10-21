@@ -3,7 +3,7 @@
 **Status:** Mostly dropped (D-040, 2026-10-21). Phases 1 and 2 (contracts, the inbox, the black market and
 suspicion) were built and then removed: there is no Company in the game any more. The escape ship (phase 4)
 stays as the win condition, and the owner plans to tie it into the game differently (Q-17). Food (phase 3)
-is still a candidate. The rest of this page is kept as the record of the original proposal. It
+is set aside in favour of wood (D-044). The rest of this page is kept as the record of the original proposal. It
 came from a conversation the project owner had with a friend; the related decisions are D-014 to D-022.
 
 ## The pitch

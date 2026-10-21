@@ -20,13 +20,14 @@ import {
   HUB_WEAPON,
   ITEMS,
   ItemId,
+  LUMBER,
   RECIPE_BY_ID,
   REPAIR,
   RESOURCE_ITEMS,
   TURRETS,
   isMachine,
 } from '../sim/data';
-import { Building, Shot, World } from '../sim/world';
+import { Building, STUMP, Shot, TREE, World } from '../sim/world';
 import { Plan, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
 import { Nest, isAngry, nestCentre } from '../sim/nests';
@@ -83,6 +84,7 @@ export class Renderer {
   private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number }>();
   private effects: Effect[] = [];
   private breaches = -1;
+  private seenFelled = new WeakSet<object>();
   private world: World | null = null;
 
   constructor(
@@ -145,9 +147,11 @@ export class Renderer {
     const decorate = z >= 14;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
-        const r = s.resources[world.idx(x, y)];
+        const i = world.idx(x, y);
+        const r = s.resources[i];
         if (r) this.drawNode(r, x, y);
-        else if (decorate && !world.tiles[world.idx(x, y)]) this.drawDecoration(x, y);
+        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
+        else if (decorate && !world.tiles[i] && !s.trees[i]) this.drawDecoration(x, y);
       }
     }
     this.drawMapEdge(s.width, s.height);
@@ -171,6 +175,8 @@ export class Renderer {
 
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
     for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
+
+    this.drawTrees(world, x0, y0, x1, y1, z);
 
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
@@ -202,7 +208,8 @@ export class Renderer {
       ctx.lineWidth = 3 / z;
       roundRect(ctx, sel.x - 0.04, sel.y - 0.04, fw + 0.08, fh + 0.08, 0.12);
       ctx.stroke();
-      const range = TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : 0);
+      const range =
+        TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : sel.type === 'lumber_camp' ? LUMBER.range : 0);
       if (range) rangeCircle(ctx, sel.x + fw / 2, sel.y + fh / 2, range, z);
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
@@ -369,6 +376,37 @@ export class Renderer {
         const jx = ((hv >>> 12) % 50) / 100 - 0.25;
         const jy = ((hv >>> 20) % 50) / 100 - 0.25;
         this.drawSprite(key, x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4);
+      }
+    }
+  }
+
+  /**
+   * Trees on the map (D-044). Canopies spill a little over neighbouring tiles,
+   * so a forest reads as one mass. Zoomed far out, each is a plain square.
+   */
+  private drawTrees(world: World, x0: number, y0: number, x1: number, y1: number, z: number): void {
+    const trees = world.state.trees;
+    const ctx = this.ctx;
+    if (z < 12) {
+      ctx.fillStyle = FOREST_CANOPY;
+      ctx.beginPath();
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (trees[world.idx(x, y)] === TREE) ctx.rect(x - 0.05, y - 0.05, 1.1, 1.1);
+      ctx.fill();
+      return;
+    }
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        if (trees[world.idx(x, y)] !== TREE) continue;
+        const hv = hash(x + 5000, y + 5000);
+        const kind = hv % 10;
+        const key = kind < 5 ? 'terrain/tree_round' : kind < 9 ? 'terrain/tree_pine' : 'terrain/tree_autumn';
+        const size = 1.35 + ((hv >>> 8) % 30) / 100;
+        const jx = ((hv >>> 12) % 20) / 100 - 0.1;
+        const jy = ((hv >>> 20) % 20) / 100 - 0.1;
+        if (!this.drawSprite(key, x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4)) {
+          ctx.fillStyle = FOREST_CANOPY;
+          dot(ctx, x + 0.5, y + 0.5, 0.55);
+        }
       }
     }
   }
@@ -585,7 +623,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'repair' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'palisade' && b.type !== 'repair' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -601,10 +639,11 @@ export class Renderer {
     if (big && directional) this.drawOutputPort(world, b, z);
 
     // Working machines glow and pulse.
-    const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0 && b.outputs.length < 3;
+    const working = (isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3;
     if (working) {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
-      const glow = b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' ? '160,220,90' : '120,190,255';
+      const glow =
+        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : '120,190,255';
       const [cx, cy] = world.centreOf(b);
       const r = Math.max(fw, fh) * 0.6;
       const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);
@@ -644,6 +683,10 @@ export class Renderer {
     if (b.type === 'extractor' && b.recipe) {
       if (b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / EXTRACTOR_PERIOD, '#8fd18f');
       this.drawBadge(b.recipe as ItemId, b.x + fw - 1, b.y);
+    }
+    if (b.type === 'lumber_camp') {
+      if (b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / LUMBER.period, '#8fd18f');
+      this.drawBadge('log', b.x + fw - 1, b.y);
     }
     if (isMachine(b.type)) {
       const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
@@ -800,7 +843,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && !turret;
+    const directional = tool !== 'wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
@@ -831,8 +874,8 @@ export class Renderer {
       ctx.fillStyle = '#ffffff';
       arrowHead(ctx, ox + DX[dir] * 0.62, oy + DY[dir] * 0.62, dir, 0.14);
     }
-    const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : 0);
-    if (range && opts.range !== false) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
+    const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : tool === 'lumber_camp' ? LUMBER.range : 0);
+    if (range && opts.range !== false) rangeCircle(ctx, x + fw / 2, y + fh / 2, range, z);
     if (tool === 'tunnel' && ok) {
       const entrance = world.findTunnelEntrance(x, y, dir);
       if (entrance) linkLine(ctx, entrance, { x, y }, z);
@@ -867,6 +910,13 @@ export class Renderer {
       }
       this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked });
     }
+    // Trees cut by a Lumber Camp: a burst of leaves.
+    for (const f of world.felled) {
+      if (this.seenFelled.has(f)) continue;
+      this.seenFelled.add(f);
+      this.effects.push({ kind: 'puff', x: f.x + 0.5, y: f.y + 0.5, r: 0.8, born: now, life: 500, color: '127,174,79' });
+    }
+
     const breached = s.breaches !== this.breaches;
     for (const [id, e] of this.enemies) {
       if (alive.has(id)) continue;

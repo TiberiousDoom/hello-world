@@ -15,6 +15,8 @@ export const ITEMS = {
   gear: { name: 'Gear', color: '#7f93ab' },
   wire: { name: 'Copper Wire', color: '#f2c14e' },
   motor: { name: 'Motor', color: '#9b7fe0' },
+  log: { name: 'Log', color: '#8a5a32' },
+  plank: { name: 'Plank', color: '#d9a866' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
@@ -23,7 +25,7 @@ export type ItemCounts = Partial<Record<ItemId, number>>;
 // Resource tiles on the map. Index 0 means "no resource".
 export const RESOURCE_ITEMS: (ItemId | null)[] = [null, 'iron_ore', 'copper_ore', 'stone'];
 
-export type MachineType = 'furnace' | 'workshop' | 'assembler';
+export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill';
 
 export interface Recipe {
   id: string;
@@ -40,6 +42,7 @@ export const RECIPES: Recipe[] = [
   { id: 'brick', machine: 'furnace', inputs: { stone: 2 }, output: 'brick', count: 1, time: 2 },
   { id: 'gear', machine: 'workshop', inputs: { iron_plate: 2 }, output: 'gear', count: 1, time: 2 },
   { id: 'wire', machine: 'workshop', inputs: { copper_ingot: 1 }, output: 'wire', count: 2, time: 1.5 },
+  { id: 'plank', machine: 'sawmill', inputs: { log: 1 }, output: 'plank', count: 2, time: 1.5 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -58,7 +61,10 @@ export type BuildingType =
   | 'repair'
   | 'port'
   | 'wall'
-  | 'shipyard';
+  | 'shipyard'
+  | 'lumber_camp'
+  | 'sawmill'
+  | 'palisade';
 
 export interface BuildingDef {
   name: string;
@@ -88,6 +94,18 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
+  lumber_camp: {
+    name: 'Lumber Camp',
+    short: 'LC',
+    color: '#6b4a2e',
+    hp: 100,
+    size: [2, 2],
+    cost: { iron_plate: 8 },
+    blocking: true,
+    description: 'Place near trees. It cuts the nearest one into logs; the stump grows back in time.',
+  },
+  sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { iron_plate: 6, brick: 2 }, blocking: true, description: 'Saws logs into planks.' },
+  palisade: { name: 'Palisade', short: '', color: '#8a6234', hp: 160, cost: { plank: 2 }, blocking: true, description: 'A cheap wooden wall. Weaker than stone.' },
   shipyard: {
     name: 'Shipyard',
     short: 'SHIP',
@@ -100,7 +118,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   },
 };
 
-export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler'];
+export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
 
 export interface TurretDef {
@@ -124,6 +142,22 @@ export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, maxCharge: 
 export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, maxShots: 0, range: 8, rate: 1.2, damage: 9, splash: 0 };
 
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
+
+/** Trees and the Lumber Camp (D-044). Unlike ore, wood runs out until the stumps grow back. */
+export const LUMBER = {
+  range: 4, // tiles from the camp's centre to a tree's centre
+  period: 3, // seconds to cut one tree
+  logsPerTree: 2,
+  regrow: 180, // seconds for a stump to become a tree again
+};
+
+/** Where map generation puts forest (D-044). */
+export const FOREST = {
+  share: 0.14, // of the map
+  scale: 16, // noise scale in tiles
+  clear: 20, // no trees this close to the hub's centre
+  grove: 3, // radius of the guaranteed grove just outside the clearing
+};
 export const BELT_SPEED = 1.5; // tiles per second
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
 export const OUTPUT_BUFFER = 3;
@@ -166,6 +200,8 @@ export const RESEARCH: Research[] = [
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to get off this planet.' },
+  { id: 'forestry', name: 'Forestry', cost: { iron_plate: 15 }, time: 30, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
+  { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
   { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
 ];
 export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));

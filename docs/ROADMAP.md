@@ -16,8 +16,9 @@ quality and business work don't get left until the end.
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; forest placeholders in; final sprites to come |
 | M3c: Playtest polish | Playtest notes: tutorial, store lock, hub weapon, controls; batch 2 (blueprints, belts, forest); batch 3 (music, tracker, lessons) | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
-| M4s: Story layer | Escape ship ✅ (to be tied in differently, Q-17); food ([STORY.md](STORY.md)). The Company, contracts and black market were dropped (D-040) | 🚧 |
+| M4s: Story layer | Escape ship ✅ (to be tied in differently, Q-17). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
+| M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phase 1 done |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -40,7 +41,7 @@ quality and business work don't get left until the end.
 11. ✅ **Owner's notes, round 4:** buildings onto belts (D-037), hub port collar, hub-touching turrets reload from stock (D-036), see-through stock panel, and a fix for a pathfinding crash.
 12. ✅ **The open map redesign:** a procedural 256×256 map, bug territories that attack only when provoked (no waves), building sizes (extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5), the Company and black market removed, research inside the hub, a leaner top bar, and tap-to-select with a tool in hand (D-038 to D-042).
 13. ✅ **Sound effects** (D-043).
-14. **Next:** playtest the open map (nest density, territory sizes, how far bugs chase); decide how the escape ship fits in (Q-17); then food or wood (Q-15).
+14. **Next:** playtest the open map and wood phase 1 (nest density, territory sizes, how far bugs chase, forest density and regrowth); decide how the escape ship fits in (Q-17); then wood phase 2 (D-044, see Gameplay → Wood).
 
 ---
 
@@ -60,18 +61,24 @@ quality and business work don't get left until the end.
 
 ### Story layer (M4s, [STORY.md](STORY.md))
 - ✖ Phases 1 and 2 (Company contracts, inbox, store, black market, suspicion) were built, then dropped (D-040)
-- ⬜ Phase 3: food factories and meal buffs
+- ⏸ Phase 3: food factories and meal buffs. Set aside for wood (D-044)
 - ✅ Phase 4: shipyard, four-stage escape ship, launch defence, victory screen and endless mode (D-019, D-034). Now unlocked by normal research; launching wakes nearby nests (D-040). ❓ How it fits the new game (Q-17)
 - ⏸ Vehicles and gear (D-021)
 
 ### Playtest polish (M3c)
 - ✅ **Hub weapon:** the hub has a built-in gun (range 8 from its centre) that needs no ammo and never upgrades (D-024)
 
+### Wood (M4w, D-044)
+Not the escape ship's hull. In this order:
+- ✅ **Phase 1, trees and the basics:** forest from map generation, saved (v9, with a v8 migration); trees block building and stumps don't. A Lumber Camp cuts the nearest tree in reach into logs, and stumps regrow. A Sawmill makes planks (D-045). Palisade walls made of planks. Forestry and Palisades research. Placeholder sprites, a chop sound and a leaf burst
+- ⬜ **Phase 2, wood in the economy:** a stake-firing turret with cheap wooden ammo; repair stations also burn planks; planks in some early building and research costs; charcoal (furnace, from logs), then steel (charcoal and iron plates) as the mid-game material for upgrades
+- ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a tree nursery that plants new forest
+
 ### Next (M4)
-- ⬜ Upgrades: faster belts and a mk2 tier for each machine
+- ⬜ Upgrades: faster belts and a mk2 tier for each machine (made with steel, D-044)
 - ⬜ Item filters on splitters
 - ⬜ More enemy types: flying (ignores walls) and armoured (resists turrets)
-- ⬜ A tesla turret fed by wire, and other ammo options
+- ⬜ A tesla turret fed by wire, and other ammo options (a wooden stake turret is planned under Wood)
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)

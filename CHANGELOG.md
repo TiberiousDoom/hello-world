@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased: wood (phase 1)
+- **Forests:** about a seventh of the map is now woods. Trees block building, so expanding means working around them or clearing them. There's a small grove just outside the hub's clearing.
+- **Forestry** research unlocks the **Lumber Camp**, which cuts the nearest tree in reach into logs, and the **Sawmill**, which saws logs into planks. Cut trees leave stumps that grow back after 3 minutes. Build over a stump to clear it for good.
+- **Palisades** research unlocks the **Palisade**: a cheap wooden wall made of planks, weaker than stone.
+- A chop sound and a burst of leaves when a tree comes down.
+- Saves move to v9. v8 saves load with forest grown around what you've built.
+
 ## Unreleased: sound effects
 - Sound effects for building, demolishing, blocked placements, turret and cannon fire, the hub gun, bugs dying, buildings destroyed, hub hits, breaches, research, ship stages, the launch, and an angry chitter when you provoke a nest. Buttons click.
 - Sounds come from where they happen: full volume on screen, fading out past its edges, panned left or right. A provoked nest is always heard, quietly if it's far away.

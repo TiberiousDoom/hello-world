@@ -3,7 +3,7 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { NESTS, nestComposition } from './data';
+import { FOREST, NESTS, nestComposition } from './data';
 import type { Nest } from './nests';
 import type { World } from './world';
 
@@ -77,6 +77,33 @@ function blob(w: World, cx: number, cy: number, kind: number, r: number): void {
     for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++) {
       if (!w.inBounds(x, y)) continue;
       if (Math.hypot(x - cx, y - cy) <= r + (w.random() - 0.5) * 0.8) w.state.resources[w.idx(x, y)] = kind;
+    }
+  }
+}
+
+/**
+ * Fills the tree layer (D-044): forest where noise is highest, never on ore,
+ * buildings or the hub's clearing, plus one small grove just outside the
+ * clearing so the first Lumber Camp has somewhere to go.
+ */
+export function generateTrees(w: World, hubCx: number, hubCy: number): void {
+  const { width, height } = w.state;
+  const trees = w.state.trees;
+  const free = (x: number, y: number) =>
+    w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && Math.hypot(x - hubCx, y - hubCy) >= FOREST.clear;
+  const noise = new ValueNoise(64, () => w.random());
+  const values = new Float32Array(width * height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) values[y * width + x] = noise.fbm(x / FOREST.scale, y / FOREST.scale);
+  const cut = [...values].sort((a, b) => b - a)[Math.floor(values.length * FOREST.share)];
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (values[y * width + x] > cut && free(x, y)) trees[w.idx(x, y)] = 1;
+  const a = w.random() * Math.PI * 2;
+  const d = FOREST.clear + FOREST.grove + 1;
+  const gx = Math.round(hubCx + Math.cos(a) * d);
+  const gy = Math.round(hubCy + Math.sin(a) * d);
+  const r = FOREST.grove;
+  for (let y = gy - r - 1; y <= gy + r + 1; y++) {
+    for (let x = gx - r - 1; x <= gx + r + 1; x++) {
+      if (free(x, y) && Math.hypot(x - gx, y - gy) <= r + (w.random() - 0.5) * 0.8) trees[w.idx(x, y)] = 1;
     }
   }
 }
