@@ -11,7 +11,8 @@ import {
   stashTotal,
   watchedContraband,
 } from '../sim/blackmarket';
-import { BLACK_MARKET, BLACK_MARKET_RESEARCH, ITEMS, ITEM_IDS, ItemId } from '../sim/data';
+import { BLACK_MARKET, BLACK_MARKET_RESEARCH, ITEMS, ITEM_IDS, ItemId, SHIP } from '../sim/data';
+import { currentStage, shipyard } from '../sim/ship';
 import { researchFraction } from '../sim/research';
 import { World } from '../sim/world';
 
@@ -134,6 +135,25 @@ export class BlackMarketPanel {
         <div><b>${esc(r.name)}</b><br><span class="muted">${esc(r.description)}</span><br>${items}${state}${bar}</div><div>${action}</div></div>`;
     }).join('');
 
-    return `${suspicion}${stash}<h3>Contacts</h3><p class="muted small">Paid from your stash, not hub stock.</p>${rows}`;
+    // The escape ship, once its plans are in.
+    const ship = s.ship;
+    const stage = currentStage(world);
+    const shipHtml = !bm.researched.includes('shipyard')
+      ? ''
+      : `<h3>Escape ship</h3><p class="muted small">${SHIP.stages
+          .map((st, i) => (i < ship.stage ? `✓ ${esc(st.name)}` : i === ship.stage ? `<b>${esc(st.name)}</b>` : esc(st.name)))
+          .join(' · ')}<br>${
+          ship.escaped
+            ? 'You got out.'
+            : stage
+              ? `${shipyard(world) ? 'Belt into the shipyard: ' : 'Build a Shipyard, then belt in: '}${Object.entries(stage.items)
+                  .map(([k, n]) => `${itemImg(k as ItemId)}${ship.delivered[k as ItemId] ?? 0}/${n}`)
+                  .join(' ')}`
+              : ship.launchAt != null
+                ? `<b>Lift-off in ${clock(ship.launchAt - s.time)}.</b>`
+                : 'Ready. Select the shipyard and press Launch.'
+        }</p>`;
+
+    return `${suspicion}${stash}${shipHtml}<h3>Contacts</h3><p class="muted small">Paid from your stash, not hub stock.</p>${rows}`;
   }
 }

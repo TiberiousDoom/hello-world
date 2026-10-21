@@ -15,12 +15,14 @@ import {
   RECIPE_BY_ID,
   REPAIR,
   RESEARCH,
+  SHIP,
   TUNNEL_RANGE,
   TURRETS,
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
 import { money } from '../sim/company';
+import { awaitingReturn, checkLaunch, comeBack, currentStage, launch, runStats } from '../sim/ship';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { CompanyPanel } from './company';
@@ -42,9 +44,10 @@ const TOOLBAR: BuildingType[] = [
   'wall',
   'stash',
   'skimmer',
+  'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port', 'stash'];
+const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port', 'stash', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -55,6 +58,7 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
   cost: 'Not enough materials in the hub.',
   'needs-resource': 'Extractors must go on a resource node.',
   'needs-hub': 'Hub ports must go right next to the hub.',
+  unique: 'You can only have one shipyard.',
 };
 
 export interface HudActions {
@@ -72,6 +76,10 @@ export interface HudActions {
   hasGame(): boolean;
   centreOnHub(): void;
   rotatePlan(): void;
+  /** The victory screen has opened. */
+  escaped(): void;
+  /** The player chose to come back (endless mode). */
+  cameBack(): void;
 }
 
 /** Fills every empty `[data-icon]` element under `root` with its inline SVG. */
@@ -96,6 +104,29 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** The shipyard's panel: every stage, what the current one still needs, and the launch. */
+function shipStats(world: World): string {
+  const ship = world.state.ship;
+  const stages = SHIP.stages
+    .map((st, i) => (i < ship.stage ? `✓ ${esc(st.name)}` : i === ship.stage ? `<b>${esc(st.name)}</b>` : esc(st.name)))
+    .join(' · ');
+  let html = `<br>${stages}`;
+  const stage = currentStage(world);
+  if (stage) {
+    const needs = Object.entries(stage.items)
+      .map(([k, n]) => `${swatch(k as ItemId)}${ship.delivered[k as ItemId] ?? 0}/${n}`)
+      .join(' ');
+    html += `<br>Belt in: ${needs}`;
+  } else if (ship.escaped) {
+    html += '<br>The ship is gone. You got out.';
+  } else if (ship.launchAt != null) {
+    html += `<br><b>Lift-off in ${formatTime(ship.launchAt - world.state.time)}.</b> Hold the shipyard!`;
+  } else {
+    html += `<br>The ship is ready. Launching draws every bug on the planet to the shipyard for ${SHIP.launchTime} seconds.`;
+  }
+  return html;
 }
 
 function swatch(item: ItemId): string {
@@ -172,6 +203,16 @@ export class Hud {
     });
     $('btn-new').addEventListener('click', () => this.openNewGame());
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
+    $('btn-comeback').addEventListener('click', () => {
+      comeBack(actions.getWorld());
+      this.closeModals();
+      actions.cameBack();
+      this.refresh();
+    });
+    $('btn-victory-menu').addEventListener('click', () => {
+      this.closeModals();
+      actions.toMainMenu();
+    });
     $('btn-tutorial').addEventListener('click', () => this.openLessons());
     $('lessons-list').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-lesson]');
@@ -195,7 +236,7 @@ export class Hud {
     // also started there, so dragging out of a card doesn't close it. Game over
     // stays up: it needs a choice.
     for (const modal of document.querySelectorAll<HTMLElement>('.modal')) {
-      if (modal.id === 'gameover') continue;
+      if (modal.id === 'gameover' || modal.id === 'victory') continue;
       let pressedBackdrop = false;
       modal.addEventListener('pointerdown', (e) => (pressedBackdrop = e.target === modal));
       modal.addEventListener('click', (e) => {
@@ -229,6 +270,9 @@ export class Hud {
           break;
         case 'demolish':
           if (id != null && world.demolish(id)) this.ui.selected = null;
+          break;
+        case 'launch':
+          launch(world);
           break;
         case 'close':
           this.ui.selected = null;
@@ -362,6 +406,19 @@ export class Hud {
     this.updateInfo(world);
 
     if (s.gameOver && $('gameover').hidden && $('newgame').hidden) $('gameover').hidden = false;
+    if (awaitingReturn(world) && $('victory').hidden && $('newgame').hidden) {
+      $('victory-stats').innerHTML = runStats(world)
+        .map((r) => `<dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd>`)
+        .join('');
+      $('victory').hidden = false;
+      this.actions.escaped();
+    }
+    const banner = $('launch-banner');
+    banner.hidden = s.ship.launchAt == null;
+    if (s.ship.launchAt != null) {
+      banner.textContent = `🚀 Lift-off in ${formatTime(s.ship.launchAt - s.time)}. Hold the shipyard!`;
+      banner.style.bottom = `${Math.round(window.innerHeight - $('toolbar').getBoundingClientRect().top + 10)}px`;
+    }
     if (s.gameOver) $('gameover-text').textContent = `You held out for ${s.wave} wave${s.wave === 1 ? '' : 's'}.`;
   }
 
@@ -401,7 +458,8 @@ export class Hud {
     const inv = world.state.inventory;
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
-    const key = tool ? `tool:${tool}` : `b:${b!.id}:${b!.recipe}:${b!.filter}`;
+    const ship = world.state.ship;
+    const key = tool ? `tool:${tool}` : `b:${b!.id}:${b!.recipe}:${b!.filter}:${b!.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -427,6 +485,9 @@ export class Hud {
             (i) =>
               `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
           ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
+        }
+        if (b!.type === 'shipyard' && checkLaunch(world) === null) {
+          actions += `<div class="row"><button data-action="launch" class="primary launch">🚀 Launch</button></div>`;
         }
         if (b!.type !== 'hub') {
           actions += `<div class="row">`;
@@ -490,6 +551,7 @@ export class Hud {
         stats += `<br>You owe the Company ${money(world.state.company.debt)}`;
         stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
       }
+      if (b.type === 'shipyard') stats += shipStats(world);
       if (b.type === 'belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
     }
     if (stats !== this.statsHtml) {

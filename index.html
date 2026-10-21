@@ -33,6 +33,7 @@
     <div id="inventory" class="hud"></div>
     <button id="contract-tracker" class="hud" title="Contract: open the details" hidden></button>
     <div id="toasts"></div>
+    <div id="launch-banner" class="hud" hidden></div>
     <div id="plan-bar" class="hud" hidden>
       <span class="plan-count" hidden></span>
       <button data-plan="cancel" class="plan-cancel" title="Cancel (Esc)" aria-label="Cancel">✕</button>
@@ -158,6 +159,18 @@
         <h3>Credits</h3>
         <p class="muted small">Music by <a href="https://pixabay.com/users/velariomusic-54515099/" target="_blank" rel="noopener">velariomusic</a> on Pixabay.</p>
         <button data-close>Close</button>
+      </div>
+    </div>
+
+    <div id="victory" class="modal" hidden>
+      <div class="card">
+        <h2>You got out.</h2>
+        <p class="muted">The ship clears the atmosphere. Below, the factory keeps running without you, and the Company's invoices keep coming.</p>
+        <dl id="victory-stats" class="stats-list"></dl>
+        <div class="modes">
+          <button id="btn-comeback" class="primary"><i data-icon="play"></i><span><b>Come back</b><small>Three weeks out, the food runs low. The only port in range is Halcyon's. Endless mode.</small></span></button>
+          <button id="btn-victory-menu"><i data-icon="home"></i><span><b>Main menu</b></span></button>
+        </div>
       </div>
     </div>
 

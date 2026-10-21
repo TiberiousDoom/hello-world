@@ -16,7 +16,7 @@ import {
   EnemyType,
   FIRST_WAVE_AT,
   GameMode,
-  HUB_SIZE,
+  sizeOfType,
   HUB_WEAPON,
   ItemCounts,
   ItemId,
@@ -61,11 +61,22 @@ import {
   onStashRemoved,
   tickBlackMarket,
 } from './blackmarket';
+import {
+  ShipState,
+  awaitingReturn,
+  createShipState,
+  insertShip,
+  launching,
+  onShipyardRemoved,
+  shipyard,
+  tickShip,
+  waveMultiplier,
+} from './ship';
 
 export { createResearchState };
 export type { ResearchState };
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 export const TICK = 1 / 20;
 
 export interface BeltItem {
@@ -133,6 +144,7 @@ export interface GameState {
   gameOver: boolean;
   company: CompanyState;
   blackMarket: BlackMarketState;
+  ship: ShipState;
 }
 
 export interface Shot {
@@ -144,7 +156,7 @@ export interface Shot {
   age: number;
 }
 
-export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub';
+export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 
@@ -194,6 +206,7 @@ export class World {
       gameOver: false,
       company: createCompanyState(),
       blackMarket: createBlackMarketState(),
+      ship: createShipState(),
     };
     const world = new World(state);
     welcomeMail(world);
@@ -246,6 +259,11 @@ export class World {
       state.blackMarket = createBlackMarketState();
       state.version = 6;
     }
+    if (state.version === 6) {
+      // v7 added the escape ship.
+      state.ship = createShipState();
+      state.version = 7;
+    }
     if (state.version !== SAVE_VERSION) throw new Error(`Unsupported save version ${state.version}`);
     const world = new World(state);
     if (addedCompany) welcomeMail(world);
@@ -286,7 +304,12 @@ export class World {
   }
 
   sizeOf(type: BuildingType): number {
-    return type === 'hub' ? HUB_SIZE : 1;
+    return sizeOfType(type);
+  }
+
+  /** Recomputes enemy paths on the next tick (e.g. when a launch makes the shipyard a target). */
+  markFlowDirty(): void {
+    this.flowDirty = true;
   }
 
   get hub(): Building | undefined {
@@ -499,8 +522,14 @@ export class World {
   // ------------------------------------------------------- player actions
 
   checkPlace(type: BuildingType, x: number, y: number): PlaceError | null {
-    if (!this.inBounds(x, y)) return 'bounds';
-    if (this.buildingAt(x, y)) return 'occupied';
+    const size = this.sizeOf(type);
+    for (let dy = 0; dy < size; dy++) {
+      for (let dx = 0; dx < size; dx++) {
+        if (!this.inBounds(x + dx, y + dy)) return 'bounds';
+        if (this.buildingAt(x + dx, y + dy)) return 'occupied';
+      }
+    }
+    if (type === 'shipyard' && (shipyard(this) || this.state.ship.escaped)) return 'unique';
     if (!this.isUnlocked(type)) return 'locked';
     if (type === 'extractor' && !this.resourceAt(x, y)) return 'needs-resource';
     if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
@@ -558,11 +587,13 @@ export class World {
 
   /** Removes a building with no refund (an audit confiscating contraband). */
   confiscate(b: Building): void {
-    this.remove(b);
+    this.remove(b, true);
   }
 
-  private remove(b: Building): void {
+  /** Takes a building off the map. `destroyed`: lost to enemies or an audit, not taken down by the player. */
+  remove(b: Building, destroyed = false): void {
     if (b.type === 'stash') onStashRemoved(this);
+    if (b.type === 'shipyard') onShipyardRemoved(this, destroyed);
     const partner = b.link != null ? this.byId.get(b.link) : undefined;
     if (partner) {
       partner.link = null;
@@ -613,6 +644,8 @@ export class World {
       }
       case 'stash':
         return insertStash(this, item);
+      case 'shipyard':
+        return insertShip(this, item);
       case 'skimmer':
       case 'splitter': {
         // Only from directly behind.
@@ -681,7 +714,7 @@ export class World {
 
   tick(dt = TICK): void {
     const s = this.state;
-    if (s.gameOver) return;
+    if (s.gameOver || awaitingReturn(this)) return; // lost, or won and waiting on the player
     s.time += dt;
 
     for (const b of s.buildings) {
@@ -722,6 +755,7 @@ export class World {
 
     this.tickResearch(dt);
     this.tickWaves();
+    tickShip(this);
     tickCompany(this);
     tickBlackMarket(this, dt);
     if (this.flowDirty) this.computeFlow();
@@ -737,7 +771,7 @@ export class World {
           this.breach(b);
         }
       } else {
-        this.remove(b);
+        this.remove(b, true);
       }
     }
 
@@ -946,11 +980,12 @@ export class World {
     s.wave++;
     if (s.wave === 1) onFirstWave(this);
     const comp = waveComposition(s.wave);
+    const mult = waveMultiplier(this); // a launch brings everything
     const points = s.nextSpawnPoints.length ? s.nextSpawnPoints : this.pickSpawnPoints(comp.spawnPoints);
     const types: EnemyType[] = [
-      ...Array(comp.crawlers).fill('crawler'),
-      ...Array(comp.runners).fill('runner'),
-      ...Array(comp.brutes).fill('brute'),
+      ...Array(comp.crawlers * mult).fill('crawler'),
+      ...Array(comp.runners * mult).fill('runner'),
+      ...Array(comp.brutes * mult).fill('brute'),
     ];
     types.forEach((type, i) => {
       const p = points[i % points.length];
@@ -976,20 +1011,24 @@ export class World {
     if (!id) return 1;
     const b = this.byId.get(id)!;
     if (b.type === 'hub' || !BUILDINGS[b.type].blocking) return 1;
+    if (b.type === 'shipyard' && launching(this)) return 1; // a target, like the hub
     return 1 + BUILDINGS[b.type].hp / 25;
   }
 
-  /** Dijkstra from the hub over the whole map. */
+  /** Dijkstra from the targets (the hub, and a launching shipyard) over the whole map. */
   computeFlow(): void {
     const { width: w, height: h } = this.state;
     const flow = this.flow;
     flow.fill(Infinity);
     const heap = new MinHeap();
-    const hub = this.hub;
-    if (hub) {
-      for (let dy = 0; dy < HUB_SIZE; dy++)
-        for (let dx = 0; dx < HUB_SIZE; dx++) {
-          const i = this.idx(hub.x + dx, hub.y + dy);
+    // Enemies head for the hub, and for the shipyard while it's launching.
+    const targets = [this.hub, launching(this) ? shipyard(this) : undefined];
+    for (const t of targets) {
+      if (!t) continue;
+      const size = this.sizeOf(t.type);
+      for (let dy = 0; dy < size; dy++)
+        for (let dx = 0; dx < size; dx++) {
+          const i = this.idx(t.x + dx, t.y + dy);
           flow[i] = 0;
           heap.push(i, 0);
         }

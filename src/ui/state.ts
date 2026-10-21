@@ -1,4 +1,4 @@
-import { BuildingType, Dir } from '../sim/data';
+import { BuildingType, Dir, sizeOfType } from '../sim/data';
 
 export type Tool = BuildingType | 'demolish' | null;
 
@@ -44,4 +44,10 @@ export function planDirs(plan: Plan, dir: Dir): Dir[] {
   const t = plan.tiles;
   if (!isBeltPath(plan)) return t.map(() => dir);
   return t.map((p, i) => (i < t.length - 1 ? dirBetween(p, t[i + 1]) : dirBetween(t[i - 1], p)));
+}
+
+/** Where a building goes when placed at tile `t`: big buildings (the shipyard) centre on it. */
+export function anchorAt(type: BuildingType, t: { x: number; y: number }): { x: number; y: number } {
+  const off = Math.floor((sizeOfType(type) - 1) / 2);
+  return { x: t.x - off, y: t.y - off };
 }

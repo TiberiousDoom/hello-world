@@ -16,6 +16,11 @@ for (const [path, url] of Object.entries(files)) {
 const PX_PER_TILE = 128;
 const TILES: Record<string, number> = {
   'buildings/hub': 3,
+  'buildings/shipyard': 3,
+  'buildings/ship_hull': 3,
+  'buildings/ship_engine': 3,
+  'buildings/ship_life': 3,
+  'buildings/ship_nav': 3,
   'terrain/tree_round': 2,
   'terrain/tree_autumn': 2,
   'terrain/tree_pine': 2,
