@@ -76,6 +76,12 @@ export class Renderer {
   }
 
   draw(world: World, ui: UIState | null, now: number): void {
+    // iOS Safari can change the visible area (toolbars, opening from another app)
+    // without a resize event, which left the picture stretched. Check every frame.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (this.canvas.clientWidth !== this.camera.width || this.canvas.clientHeight !== this.camera.height || dpr !== this.dpr) {
+      this.resize();
+    }
     if (world !== this.world) {
       // A different game: forget per-game animation state.
       this.world = world;

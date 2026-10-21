@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased: fixes
+- Fixed a stretched picture and a misplaced tutorial spotlight on some iPhones. iOS Safari can change the visible area without telling the page (for example when the game is opened from a link in Messages). The game now re-measures the screen every frame.
+
 ## Unreleased: story phase 2, the black market
 - A Friend gets in touch after your first contract and opens the black market (the eye in the top bar).
 - Stash: hidden storage that the Company can't count. Skimmer: a belt piece that diverts every 4th item.
