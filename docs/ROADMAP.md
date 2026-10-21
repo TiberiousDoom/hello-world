@@ -36,7 +36,8 @@ quality and business work don't get left until the end.
 8. ❓ **Rework suspicion** (owner doesn't like the current mechanic). Brainstorm in progress; see Q-16.
 9. ✅ **Browser tests in the repo and CI** (D-035).
 10. ✅ **Story phase 4: the escape ship**, victory screen and endless mode (D-034, D-019).
-11. **Next:** playtest the ship (stage sizes, the launch wave); rework suspicion (Q-16); then story phase 3 (food) or wood (Q-15).
+11. ✅ **Owner's notes, round 4:** buildings onto belts (D-037), hub port collar, hub-touching turrets reload from stock (D-036), see-through stock panel, and a fix for a pathfinding crash.
+12. **Next:** playtest the ship (stage sizes, the launch wave); rework suspicion (Q-16); then story phase 3 (food) or wood (Q-15).
 
 ---
 

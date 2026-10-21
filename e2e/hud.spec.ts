@@ -52,3 +52,27 @@ test('the store lesson waits until its email is read', async ({ page }) => {
   });
   await expect(page.locator('#tutorial .step')).toHaveText(/^Company Store/);
 });
+
+test('the stock panel fades while the pointer is over it', async ({ page }, info) => {
+  await newGame(page);
+  const stock = page.locator('#inventory');
+  const box = (await stock.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  if (info.project.name === 'phone') {
+    // A finger held down over it; lifting it brings the panel back.
+    await page.touchscreen.tap(x, y);
+    await expect(stock).not.toHaveClass(/peek/);
+    await page.evaluate(([x, y]) => {
+      window.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, pointerType: 'touch', isPrimary: true }));
+    }, [x, y] as const);
+    await expect(stock).toHaveClass(/peek/);
+    await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'touch' })));
+    await expect(stock).not.toHaveClass(/peek/);
+  } else {
+    await page.mouse.move(x, y);
+    await expect(stock).toHaveClass(/peek/);
+    await page.mouse.move(x, y + 200);
+    await expect(stock).not.toHaveClass(/peek/);
+  }
+});

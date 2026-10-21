@@ -165,8 +165,13 @@ export class World {
   /** Building id per tile, 0 when empty. */
   tiles: Int32Array;
   byId = new Map<number, Building>();
-  /** Cost for an enemy on each tile to reach the hub. */
-  flow: Float32Array;
+  /**
+   * Cost for an enemy on each tile to reach its target. 64-bit, like the sums
+   * compared against it: with 32-bit storage, rounding made equal paths look
+   * shorter (duplicates that could pile up until the heap overflowed) or longer
+   * (tiles skipped, so enemies there had no path).
+   */
+  flow: Float64Array;
   private flowDirty = true;
   shots: Shot[] = [];
   events: string[] = [];
@@ -176,7 +181,7 @@ export class World {
   constructor(state: GameState) {
     this.state = state;
     this.tiles = new Int32Array(state.width * state.height);
-    this.flow = new Float32Array(state.width * state.height);
+    this.flow = new Float64Array(state.width * state.height);
     for (const b of state.buildings) this.index(b);
   }
 
@@ -521,12 +526,25 @@ export class World {
 
   // ------------------------------------------------------- player actions
 
-  checkPlace(type: BuildingType, x: number, y: number): PlaceError | null {
+  /**
+   * The belt a building placed at (x, y) would replace: any one-tile building
+   * except another belt can go straight onto a belt and take over its line.
+   */
+  beltToReplace(type: BuildingType, x: number, y: number): Building | undefined {
+    if (type === 'belt' || this.sizeOf(type) !== 1) return undefined;
+    const b = this.buildingAt(x, y);
+    return b?.type === 'belt' ? b : undefined;
+  }
+
+  /** `replaceBelt`: allow building over a belt (single placements, not drags across a line). */
+  checkPlace(type: BuildingType, x: number, y: number, replaceBelt = false): PlaceError | null {
     const size = this.sizeOf(type);
+    const under = replaceBelt ? this.beltToReplace(type, x, y) : undefined;
     for (let dy = 0; dy < size; dy++) {
       for (let dx = 0; dx < size; dx++) {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
-        if (this.buildingAt(x + dx, y + dy)) return 'occupied';
+        const b = this.buildingAt(x + dx, y + dy);
+        if (b && b !== under) return 'occupied';
       }
     }
     if (type === 'shipyard' && (shipyard(this) || this.state.ship.escaped)) return 'unique';
@@ -537,10 +555,17 @@ export class World {
     return null;
   }
 
-  place(type: BuildingType, x: number, y: number, dir: Dir): Building | PlaceError {
-    const err = this.checkPlace(type, x, y);
+  place(type: BuildingType, x: number, y: number, dir: Dir, replaceBelt = false): Building | PlaceError {
+    const err = this.checkPlace(type, x, y, replaceBelt);
     if (err) return err;
     this.pay(BUILDINGS[type].cost);
+    // Replacing a belt: refund it, and face the way it ran so the line carries on through.
+    const under = replaceBelt ? this.beltToReplace(type, x, y) : undefined;
+    const carried = under ? under.belt.map((it) => it.item) : [];
+    if (under) {
+      dir = under.dir;
+      this.demolish(under.id);
+    }
     if (type === 'port') dir = this.awayFromHub(x, y)!;
     const entrance = type === 'tunnel' ? this.findTunnelEntrance(x, y, dir) : undefined;
     const b = this.addBuilding(type, x, y, dir);
@@ -548,6 +573,8 @@ export class World {
       entrance.link = b.id;
       b.link = entrance.id;
     }
+    // Items that were on the belt go into the new building if it takes them.
+    for (const item of carried) this.insert(b, item, x - DX[dir], y - DY[dir]);
     return b;
   }
 
@@ -917,6 +944,7 @@ export class World {
   private tickTurret(b: Building, dt: number): void {
     const hub = b.type === 'hub';
     const def = hub ? HUB_WEAPON : TURRETS[b.type]!;
+    if (!hub) this.supplyFromHub(b);
     b.cooldown = Math.max(0, b.cooldown - dt);
     if (b.cooldown > 0 || (!hub && b.ammo <= 0)) return; // the hub's gun needs no ammo
     const half = this.sizeOf(b.type) / 2;
@@ -942,6 +970,21 @@ export class World {
       target.hp -= def.damage;
     }
     this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0 });
+  }
+
+  /** A turret touching the hub reloads from hub stock, one item at a time. */
+  private supplyFromHub(b: Building): void {
+    const t = TURRETS[b.type];
+    if (!t || b.ammo + t.shotsPerItem > t.maxShots || this.awayFromHub(b.x, b.y) == null) return;
+    const inv = this.state.inventory;
+    if ((inv[t.ammoItem] ?? 0) <= 0) return;
+    inv[t.ammoItem]!--;
+    b.ammo += t.shotsPerItem;
+  }
+
+  /** Whether a building at (x, y) touches the hub's side. */
+  touchesHub(x: number, y: number): boolean {
+    return this.awayFromHub(x, y) != null;
   }
 
   /** Standard mode's softer fail: the attack ends, but it costs stock and time. */

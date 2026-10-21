@@ -20,7 +20,8 @@ How the game works on `master` today. Balance numbers live in
   node has free sides for a belt or a machine. (New games only: a save keeps the map it was made with.)
 - Resource nodes never run out.
 - Hub stock is shown just above the hub. When the hub is off screen, the stock panel is pinned
-  to the screen edge, and tapping it goes back to the hub.
+  to the screen edge, and tapping it goes back to the hub. While the mouse is over it (or a finger is
+  down on it), it fades almost completely, so it never hides the map above the hub.
 
 ## Items and recipes
 
@@ -71,6 +72,11 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   are lost if either end is removed.
 - **Hub ports** must touch the hub, and always face away from it. Each port
   takes a chosen item out of hub stock, one every 0.5 s, and puts it on a belt.
+  A docking collar joins it to the hub, with items visibly streaming out while it sends.
+- **Building onto a belt:** any one-tile building except a belt can be placed straight onto a
+  belt with a single click or tap (not a drag). It replaces that belt (refunded), faces the way the
+  belt ran, and takes any items that were on it, so a machine drops into a running line and starts
+  working (D-037).
 
 ## Research
 
@@ -108,12 +114,15 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 | Turret | iron plate | 4 | 40 | 5 | 3/s | 5 |
 | Cannon | gear | 3 | 24 | 6.5 | 0.7/s | 30, splash radius 1.3 |
 
-There are two ways to get ammo to a turret:
+There are three ways to get ammo to a turret:
 
 1. **From production:** branch a line with a splitter. Best for steady supply.
 2. **From the hub:** a hub port sends stock back out onto a belt. This lets
    stockpiled items defend the base, but every item it sends out leaves the stock you
    use for building and research. See [DECISIONS.md](DECISIONS.md) (D-006).
+3. **Touching the hub:** a turret or cannon placed against the hub's side reloads straight from
+   hub stock, one item at a time as it has room (D-036). It costs stock like a port does, but needs no
+   belt, so the hub can be ringed with a few defenders.
 
 **Repair stations** heal the most damaged building within 3.5 tiles, at 20 HP/s.
 They are fuelled by iron plates (1 plate = 40 HP, holding up to 400 HP), and arrive half full.
