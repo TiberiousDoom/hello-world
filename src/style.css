@@ -174,15 +174,45 @@ body.in-menu #toasts {
   color: #fff;
 }
 
+/* Hub stock: floats above the hub (positioned each frame by Hud.placeStock). */
 #inventory {
   position: fixed;
-  top: calc(54px + var(--safe-top));
-  left: 8px;
+  top: 0;
+  left: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  max-width: min(560px, calc(100% - 16px));
+  justify-content: center;
+  gap: 3px;
+  max-width: min(300px, calc(100% - 12px));
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(15, 26, 46, 0.55);
   pointer-events: none;
+  will-change: transform;
+}
+#inventory:empty {
+  display: none;
+}
+#inventory .chip {
+  padding: 1px 6px 1px 2px;
+  font-size: 12px;
+}
+#inventory .chip .item-icon {
+  width: 16px;
+  height: 16px;
+}
+/* Hub off screen: pinned to the edge; tap to go back to the hub. */
+#inventory.edge {
+  pointer-events: auto;
+  cursor: pointer;
+  outline: 2px solid var(--sky);
+}
+#inventory.edge::before {
+  content: 'Hub';
+  align-self: center;
+  padding: 0 4px;
+  font: 700 11px/1 var(--display);
+  color: #fff;
 }
 .chip {
   display: inline-flex;
@@ -995,9 +1025,6 @@ button.quiet {
   }
   .seg button {
     min-width: 34px;
-  }
-  #inventory {
-    top: calc(90px + var(--safe-top));
   }
   #toasts {
     top: calc(126px + var(--safe-top));

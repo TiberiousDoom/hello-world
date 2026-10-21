@@ -14,9 +14,13 @@ How the game works on `master` today. Balance numbers live in
 ## Map
 
 - A 64×64 tile grid, generated from a seed (the same seed gives the same map).
-- The 3×3 hub sits in the centre. Iron, copper and stone clusters are guaranteed
-  7–10 tiles from the hub, with more clusters scattered across the map.
+- The 3×3 hub sits in the centre. Iron, copper and stone patches are guaranteed
+  8–11 tiles from the hub, with more patches scattered across the map.
+- Node tiles in a patch never touch side by side, and patches are kept apart, so every
+  node has free sides for a belt or a machine. (New games only: a save keeps the map it was made with.)
 - Resource nodes never run out.
+- Hub stock is shown just above the hub. When the hub is off screen, the stock panel is pinned
+  to the screen edge, and tapping it goes back to the hub.
 
 ## Items and recipes
 
@@ -129,7 +133,7 @@ They are fuelled by iron plates (1 plate = 40 HP, holding up to 400 HP), and arr
 
 ### Waves
 
-- The first wave arrives at 3:00, then one every 75 s.
+- The first wave arrives at 4:00, then one every 2:00 (from playtesting: more time to build between attacks).
 - Wave *n* has 4 + 2n crawlers, 2(n−1) runners from wave 2, and n−2 brutes from wave 3.
 - Waves come from 1 map-edge spawn point, or 2 from wave 4. The points are shown 30 s ahead.
 

@@ -29,6 +29,24 @@ describe('World', () => {
     expect(kinds).toEqual(new Set([1, 2, 3]));
   });
 
+  it('spreads node tiles out so none touch side by side, with each ore near the hub', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const w = World.create(seed);
+      const hub = w.hub!;
+      const near = new Set<number>();
+      for (let y = 0; y < w.state.height; y++) {
+        for (let x = 0; x < w.state.width; x++) {
+          const r = w.state.resources[w.idx(x, y)];
+          if (!r) continue;
+          if (x + 1 < w.state.width) expect(w.state.resources[w.idx(x + 1, y)]).toBe(0);
+          if (y + 1 < w.state.height) expect(w.state.resources[w.idx(x, y + 1)]).toBe(0);
+          if (Math.abs(x - hub.x - 1) <= 13 && Math.abs(y - hub.y - 1) <= 13) near.add(r);
+        }
+      }
+      expect(near).toEqual(new Set([1, 2, 3]));
+    }
+  });
+
   it('is deterministic for a seed', () => {
     expect(World.create(7).state.resources).toEqual(World.create(7).state.resources);
   });

@@ -138,6 +138,10 @@ const hud = new Hud(ui, {
   },
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
+  centreOnHub: () => {
+    const hub = active().hub;
+    if (hub) [camera.x, camera.y] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
+  },
   newGame: (mode) => {
     play(World.create(undefined, mode));
     save();
@@ -218,6 +222,7 @@ function frame(now: number): void {
   renderer.draw(world, inMenu ? null : ui, now);
   if (!inMenu) {
     hud.update(world, now);
+    hud.placeStock(world, camera);
     tutorial.check();
   }
   tutorial.update();

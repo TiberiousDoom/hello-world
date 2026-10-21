@@ -140,7 +140,7 @@ export const LESSONS: Lesson[] = [
       {
         target: () => ({ el: '#inventory' }),
         text: () =>
-          'Your stock went up. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
+          'Your stock, shown above the hub, went up. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
       },
     ],
   },

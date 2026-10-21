@@ -214,8 +214,8 @@ export const BLACK_MARKET = {
 
 export const START_INVENTORY: ItemCounts = { iron_plate: 100, brick: 24, copper_ingot: 16 };
 
-export const FIRST_WAVE_AT = 180; // seconds
-export const WAVE_INTERVAL = 75;
+export const FIRST_WAVE_AT = 240; // seconds
+export const WAVE_INTERVAL = 120;
 export const WAVE_WARNING = 30; // spawn points are shown this long before a wave
 export const SPAWN_GAP = 0.6; // seconds between enemies in a wave
 

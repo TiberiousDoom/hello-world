@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased: playtest batch 2
+- More time to build: the first wave now comes at 4:00 (was 3:00), then one every 2:00 (was 75 s).
+- New games spread resource nodes out: node tiles never touch side by side, and patches are kept apart, so every node can be reached. Existing saves keep their maps.
+- Hub stock is now shown just above the hub instead of along the top of the screen. When the hub is off screen, the stock is pinned to the edge; tap it to jump back.
+
 ## Unreleased: fixes
 - Fixed a stretched picture and a misplaced tutorial spotlight on some iPhones. iOS Safari can change the visible area without telling the page (for example when the game is opened from a link in Messages). The game now re-measures the screen every frame.
 

@@ -33,6 +33,10 @@ one; don't edit the old entry.
 | D-025 | 2026-10-20 | **Tutorial as lessons** (supersedes D-009): short lessons triggered by game events, with action steps that wait for the player. The game runs during action steps and pauses during explanations. Seen lessons are stored in the browser profile; players can replay them or switch them off | Owner's playtest notes: split by priority, make it interactive, trigger it by events | Accepted (built) |
 | D-026 | 2026-10-20 | **How research takes time** (implements D-018): the active research draws its items from **hub stock** at a steady rate over its research time, stalls when stock runs out, and keeps its progress when you switch. No separate lab building | Simplest reading of D-018. It competes with contracts and building for stock. Alternative if wanted: a Research Lab building that you belt items into | Accepted (built). Owner may prefer the lab alternative |
 | D-027 | 2026-10-20 | **Black market (story phase 2):** A Friend makes contact after the first contract. Stash and skimmer are contraband. Suspicion builds from misses, skimming, port withdrawals and contraband within 14 tiles of the hub. Audits at 60%/100% fine (Standard) or confiscate (Hardcore) contraband in range. The hidden workshop moves to phase 4 | Gives hiding a spatial puzzle (keep contraband out of the ring) and ties suspicion to the contract loop | Accepted (built). Numbers to tune in playtesting |
+| D-028 | 2026-10-21 | **Art direction: whimsical forest.** Grass, flowers and trees around the map edges, fireflies and drifting leaves; the bugs become more detailed and animated | Play-tester's notes; owner likes it. It also contrasts nicely with the Company's grey industry | Accepted (not built yet) |
+| D-029 | 2026-10-21 | **Spread-out resource nodes**, for new games only. Node tiles never touch side by side, and patches keep a gap between them. Saves keep their maps | Play-tester's notes: every node should be reachable. Saves already store the map, so no migration is needed | Accepted (built) |
+| D-030 | 2026-10-21 | **Soft placement:** a blueprint preview you confirm (✓), rotate (⟳) or cancel (✕). On by default on touch. On desktop, only for belt and wall lines that you drag out; single clicks still place at once | Play-tester's notes, scoped by the owner so desktop stays fast | Accepted (not built yet) |
+| D-031 | 2026-10-21 | **Wave timing:** first wave at 4:00 (was 3:00), then every 2:00 (was 75 s) | Play-tester's notes: more prep time before getting overwhelmed | Accepted (built). Tune in playtesting |
 
 ## D-006: How should turrets get ammo?
 
@@ -59,6 +63,7 @@ not available at the start, so early defense still depends on production lines.
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
 | Q-14 | **Phase order:** food factories (phase 3) or the escape ship and win condition (phase 4) next? | The ship gives the stash a purpose and the game an ending |
+| Q-15 | **Wood as a resource?** Proposal: trees (part of the forest look) that a Lumber Camp harvests into logs; trees regrow. A sawmill makes planks for early walls and the stash, and the escape ship's hull. The Company charges a "deforestation permit fee" | Changes the economy and the art at once, so it waits until after playtest batch 2 |
 | Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
 
 Answered: Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).
