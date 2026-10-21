@@ -5,6 +5,8 @@
 - New games spread resource nodes out: node tiles never touch side by side, and patches are kept apart, so every node can be reached. Existing saves keep their maps.
 - Soft placement: building can show a blueprint first, with ✓ (build), ⟳ (rotate, or reverse a belt line) and ✕ (cancel). Every placement on a touch screen is a blueprint; tap the same spot twice to build quickly, or switch it off in the menu. On desktop, single clicks still build at once, and dragging out a belt or wall line makes a blueprint (Enter builds, Esc or right-click cancels). Dragging back shortens a blueprint, and red tiles show where it's blocked or where your stock runs out.
 - Belts look more like belts: they curve round corners (items follow the bend), chevrons show the direction, a line's end gets a hazard bumper, and metal flanges show where belts plug into splitters, tunnels and machines. Paired underground belts show a faint dotted trace.
+- A whimsical forest look: grassy ground with tufts, flowers, mushrooms and pebbles; a band of trees around the map that the bugs crawl out from; fireflies and drifting leaves (switched off when the system asks for reduced motion). Ore nodes sit on dirt patches.
+- More detailed bugs: a red jewel beetle (crawler), a long-legged ant-wasp (runner) and a horned rhino beetle (brute), each with a two-frame walk cycle that plays as they move.
 - Hub stock is now shown just above the hub instead of along the top of the screen. When the hub is off screen, the stock is pinned to the edge; tap it to jump back.
 
 ## Unreleased: fixes

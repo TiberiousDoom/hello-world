@@ -26,7 +26,8 @@ They show the intended size, facing and silhouette.
 | **Grid** | 1 tile = **64×64 px** at 1×. Please also export **128×128 (@2x)** for phones |
 | **Format** | PNG with transparency. Keep layered source files (PSD, Aseprite, Krita…) |
 | **Facing** | Directional sprites face **east (right)**; the game rotates them. If the lighting looks wrong rotated, provide all four directions as `_e`, `_s`, `_w`, `_n` |
-| **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png`. The loader doesn't read strips yet, so a single frame is the most useful first delivery. The game animates belts, glows and bobbing in code for now |
+| **Animation** | A horizontal strip of equal-size frames, with the frame count in the name, e.g. `belt_8f.png`. The loader doesn't read strips yet, so a single frame is the most useful first delivery. The game animates belts, glows and bobbing in code for now. **Exception, enemy walk cycles:** two separate files, `crawler.png` and `crawler_b.png`; the game swaps them as the bug walks |
+| **Art direction** | A whimsical forest clearing (D-028): grassy ground, flowers and mushrooms, trees around the edge, fireflies and drifting leaves. The Company's machines stay navy, steel and hazard-yellow, so they stand out from the greenery |
 | **Padding** | Building art should leave about 4 px clear at each tile edge, so neighbours read as separate |
 | **Naming** | Match the placeholder: `src/art/category/name.png`, e.g. `src/art/items/iron_plate.png` |
 | **Palette** | Item colours must stay distinct for colour-blind players. Give each item a distinct **shape** as well |
@@ -38,11 +39,14 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 
 | Asset | Size | Frames | Priority | Status |
 |---|---|---|---|---|
-| Ground tile (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Placeholder |
-| Map edge or boundary | 64×64 | 1 | P3 | Code |
-| Iron ore node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
+| Ground tile: grass, seamless, with a faint tile edge (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Placeholder (`terrain/ground`) |
+| Map edge: soft shadow where the clearing meets the forest | — | 1 | P3 | Code |
+| Iron ore node (2–3 variants), on a dirt patch with a transparent background | 64×64 | 1 | P1 | Placeholder |
 | Copper ore node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
 | Stone node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
+| Decorations, transparent: grass tuft, flowers (2 colourways), mushrooms, pebbles. Scattered on empty tiles | 64×64 | 1 | P2 | Placeholder (`terrain/tuft`, `flowers`, `flowers_blue`, `mushrooms`, `pebbles`) |
+| Trees, top-down canopies with a soft shadow: round, autumn, pine, berry bush. They fill a band around the map | 128×128 (2 tiles) | 1 | P2 | Placeholder (`terrain/tree_round`, `tree_autumn`, `tree_pine`, `bush`) |
+| Fireflies and drifting leaves | — | — | P3 | Code |
 
 ## Items
 
@@ -88,13 +92,14 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 ## Enemies
 
-All top-down and facing east, as walk cycles.
+All top-down and facing east. Each has two walk frames (`name` and `name_b`, legs in opposite
+tripod poses); the game swaps them as the bug moves, so a bug standing still to attack stops walking.
 
 | Asset | Size on screen | Frames | Priority | Status |
 |---|---|---|---|---|
-| Crawler | ~28 px (fits a 32×32 frame) | 4 walk + 4 attack | P1 | Placeholder |
-| Runner | ~22 px (32×32) | 4 walk + 4 attack | P2 | Placeholder |
-| Brute | ~46 px (64×64) | 4 walk + 4 attack | P2 | Placeholder |
+| Crawler: red jewel beetle | ~28 px (fits a 32×32 frame) | 2 walk (+4 attack later) | P1 | Placeholder (`crawler`, `crawler_b`) |
+| Runner: slender orange ant-wasp, long legs | ~22 px (32×32) | 2 walk (+4 attack later) | P2 | Placeholder (`runner`, `runner_b`) |
+| Brute: armoured rhino beetle with a horn | ~46 px (64×64) | 2 walk (+4 attack later) | P2 | Placeholder (`brute`, `brute_b`) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Code |
 
 ## Effects

@@ -36,6 +36,21 @@ const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+// The forest (D-028).
+const FOREST_FLOOR = '#1d3324';
+const FOREST_CANOPY = '#1f4a2e';
+const FIREFLIES = 70;
+const LEAVES = 9;
+const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
+const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** A cheap integer hash, for choosing decorations per tile. */
+function hash(x: number, y: number): number {
+  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
 // Belt colours, matching the belt sprite.
 const BELT_SURFACE = '#20242d';
 const BELT_RAIL = '#5a6478';
@@ -59,7 +74,7 @@ export class Renderer {
   private aims = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
   /** Last known enemy positions and headings, to face sprites and place death puffs. */
-  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType }>();
+  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number }>();
   private effects: Effect[] = [];
   private breaches = -1;
   private world: World | null = null;
@@ -117,17 +132,19 @@ export class Renderer {
 
     this.trackEffects(world, now);
 
-    // Ground and resources.
+    // Ground, decorations and resources. Beyond the map's edge is forest.
+    ctx.fillStyle = FOREST_FLOOR;
+    ctx.fillRect(Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f - x0f) + 3, Math.ceil(y1f - y0f) + 3);
     this.drawGround(s.width, s.height);
+    const decorate = z >= 14;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         const r = s.resources[world.idx(x, y)];
         if (r) this.drawNode(r, x, y);
+        else if (decorate && !world.tiles[world.idx(x, y)]) this.drawDecoration(x, y);
       }
     }
-    ctx.strokeStyle = '#3a4a68';
-    ctx.lineWidth = 2 / z;
-    ctx.strokeRect(0, 0, s.width, s.height);
+    this.drawMapEdge(s.width, s.height);
 
     // Paired tunnels: a faint dotted line where the belt runs underground.
     for (const b of s.buildings) {
@@ -155,19 +172,24 @@ export class Renderer {
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
       const def = ENEMIES[e.type];
-      const angle = this.enemies.get(e.id)?.angle ?? 0;
-      // A small bob so they look alive.
-      const bob = 1 + 0.06 * Math.sin(now / 90 + e.id);
+      const track = this.enemies.get(e.id);
+      const angle = track?.angle ?? 0;
+      // Walk cycle: the legs swap every short stride, so bugs only scuttle while moving.
+      const stride = def.radius * 0.7;
+      const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
+      const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
       const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob;
-      if (!this.drawSprite(`enemies/${e.type}`, e.x - size / 2, e.y - size / 2, size, angle)) {
+      if (!this.drawSprite(`enemies/${e.type}${frame}`, e.x - size / 2, e.y - size / 2, size, angle)) {
         ctx.fillStyle = def.color;
         dot(ctx, e.x, e.y, def.radius);
       }
       if (e.hp < e.maxHp) bar(ctx, e.x - 0.3, e.y - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
     }
 
+    this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);
     this.drawEffects(now, z);
+    this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
     this.drawAudit(world, now, z, ui);
 
     if (!ui) return;
@@ -231,8 +253,109 @@ export class Renderer {
       this.groundPattern = ctx.createPattern(img, 'repeat');
       this.groundPattern?.setTransform(new DOMMatrix().scale(1 / img.width));
     }
-    ctx.fillStyle = this.groundPattern ?? '#1a1d23';
+    ctx.fillStyle = this.groundPattern ?? '#2e4d33';
     ctx.fillRect(0, 0, w, h);
+  }
+
+  /** Grass tufts, flowers, mushrooms and pebbles on some empty tiles, the same every time. */
+  private drawDecoration(x: number, y: number): void {
+    const h = hash(x, y);
+    const pick = h % 100;
+    const key = pick < 14 ? 'terrain/tuft' : pick < 18 ? 'terrain/flowers' : pick < 21 ? 'terrain/flowers_blue' : pick < 23 ? 'terrain/pebbles' : pick < 24 ? 'terrain/mushrooms' : '';
+    if (!key) return;
+    const jx = ((h >>> 8) % 40) / 100 - 0.2;
+    const jy = ((h >>> 16) % 40) / 100 - 0.2;
+    this.drawSprite(key, x + jx, y + jy, 1, (((h >>> 24) % 4) * Math.PI) / 2);
+  }
+
+  /** A soft shadow where the clearing meets the forest. */
+  private drawMapEdge(w: number, h: number): void {
+    const ctx = this.ctx;
+    const d = 1.2;
+    // Each side: a gradient from the edge (dark) inwards (clear).
+    const sides: [number, number, number, number, number, number, number, number][] = [
+      [0, 0, w, d, 0, 0, 0, d],
+      [0, h - d, w, d, 0, h, 0, h - d],
+      [0, 0, d, h, 0, 0, d, 0],
+      [w - d, 0, d, h, w, 0, w - d, 0],
+    ];
+    for (const [x, y, sw, sh, gx0, gy0, gx1, gy1] of sides) {
+      const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+      g.addColorStop(0, 'rgba(10,24,14,0.55)');
+      g.addColorStop(1, 'rgba(10,24,14,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, sw, sh);
+    }
+  }
+
+  /** Trees in a band around the map. Bugs come out from under them. */
+  private drawForest(w: number, h: number, x0f: number, y0f: number, x1f: number, y1f: number, z: number): void {
+    const BAND = 6;
+    const xa = Math.max(-BAND, Math.floor(x0f) - 2);
+    const ya = Math.max(-BAND, Math.floor(y0f) - 2);
+    const xb = Math.min(w + BAND, Math.ceil(x1f) + 2);
+    const yb = Math.min(h + BAND, Math.ceil(y1f) + 2);
+    const ctx = this.ctx;
+    if (z < 12) {
+      // Zoomed far out: a plain canopy colour is enough.
+      ctx.fillStyle = FOREST_CANOPY;
+      ctx.fillRect(-BAND, -BAND, w + 2 * BAND, BAND);
+      ctx.fillRect(-BAND, h, w + 2 * BAND, BAND);
+      ctx.fillRect(-BAND, 0, BAND, h);
+      ctx.fillRect(w, 0, BAND, h);
+      return;
+    }
+    for (let y = ya; y < yb; y++) {
+      for (let x = xa; x < xb; x++) {
+        if (x >= 0 && y >= 0 && x < w && y < h) continue;
+        const hv = hash(x + 1000, y + 1000);
+        const kind = hv % 10;
+        const key = kind < 4 ? 'terrain/tree_round' : kind < 7 ? 'terrain/tree_pine' : kind < 9 ? 'terrain/bush' : 'terrain/tree_autumn';
+        const size = (key === 'terrain/bush' ? 1.2 : 1.7) + ((hv >>> 8) % 40) / 100;
+        const jx = ((hv >>> 12) % 50) / 100 - 0.25;
+        const jy = ((hv >>> 20) % 50) / 100 - 0.25;
+        this.drawSprite(key, x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4);
+      }
+    }
+  }
+
+  /** Fireflies drifting over the map and a few leaves blowing across the view. */
+  private drawAmbient(w: number, h: number, x0f: number, y0f: number, x1f: number, y1f: number, now: number, z: number): void {
+    if (REDUCED_MOTION) return;
+    const ctx = this.ctx;
+    const t = now / 1000;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < FIREFLIES; i++) {
+      const hv = hash(i, 77);
+      const fx = ((hv % 10007) / 10007) * w + Math.sin(t * 0.3 + i) * 1.5 + Math.sin(t * 0.71 + i * 2.3) * 0.6;
+      const fy = (((hv >>> 13) % 10007) / 10007) * h + Math.cos(t * 0.27 + i * 1.7) * 1.5;
+      if (fx < x0f - 1 || fx > x1f + 1 || fy < y0f - 1 || fy > y1f + 1) continue;
+      const glow = Math.max(0, Math.sin(t * 1.3 + i * 0.9));
+      if (glow < 0.05) continue;
+      ctx.fillStyle = `rgba(214,255,120,${0.12 * glow})`;
+      dot(ctx, fx, fy, 0.18);
+      ctx.fillStyle = `rgba(240,255,170,${0.85 * glow})`;
+      dot(ctx, fx, fy, Math.max(0.035, 1.6 / z));
+    }
+    ctx.restore();
+    // Leaves wrap around the visible area as they blow across it.
+    const vw = x1f - x0f + 2;
+    const vh = y1f - y0f + 2;
+    for (let i = 0; i < LEAVES; i++) {
+      const hv = hash(i, 131);
+      const lx = x0f - 1 + ((((hv % 997) / 997) * vw + t * (0.5 + (i % 3) * 0.15)) % vw);
+      const ly = y0f - 1 + (((((hv >>> 10) % 997) / 997) * vh + t * 0.35 + Math.sin(t + i) * 0.4) % vh);
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(t * (1 + (i % 4) * 0.3) + i);
+      ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 2 + i)); // tumbling
+      ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length];
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 0.13, 0.06, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   private drawNode(kind: number, x: number, y: number): void {
@@ -626,12 +749,14 @@ export class Renderer {
       alive.add(e.id);
       const prev = this.enemies.get(e.id);
       let angle = prev?.angle ?? 0;
+      let walked = prev?.walked ?? 0;
       if (prev) {
         const dx = e.x - prev.x;
         const dy = e.y - prev.y;
         if (dx * dx + dy * dy > 1e-6) angle = Math.atan2(dy, dx);
+        walked += Math.hypot(dx, dy);
       }
-      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type });
+      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked });
     }
     const breached = s.breaches !== this.breaches;
     for (const [id, e] of this.enemies) {
