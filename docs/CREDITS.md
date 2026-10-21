@@ -18,6 +18,11 @@ All tracks by [velariomusic](https://pixabay.com/users/velariomusic-54515099/), 
 | Lofi Jazz | In game | https://pixabay.com/music/smooth-jazz-lofi-jazz-596980/ |
 | Groove | Win screen (not built yet) | https://pixabay.com/music/funk-groove-591801/ |
 
+## Fonts
+
+[Montserrat](https://fonts.google.com/specimen/Montserrat) by Julieta Ulanovsky and contributors,
+under the SIL Open Font License 1.1, loaded from Google Fonts.
+
 ## Reference images
 
 `docs/reference/` holds a stock icon image the owner shared as a style reference for the menus
