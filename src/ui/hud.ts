@@ -156,6 +156,8 @@ export class Hud {
   private infoKey = '';
   private statsHtml = '';
   private invHtml = '';
+  /** Where the mouse is, or a finger while it's down: the stock panel fades out of its way. */
+  private pointer: { x: number; y: number } | null = null;
   private researchKey = '';
   readonly company: CompanyPanel;
   readonly blackMarket: BlackMarketPanel;
@@ -182,6 +184,16 @@ export class Hud {
         this.refresh();
       }
     });
+    const track = (e: PointerEvent) => (this.pointer = { x: e.clientX, y: e.clientY });
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse' || e.buttons) track(e);
+    });
+    window.addEventListener('pointerdown', track);
+    window.addEventListener('pointerup', (e) => {
+      if (e.pointerType !== 'mouse') this.pointer = null; // a lifted finger stops peeking
+    });
+    window.addEventListener('pointercancel', () => (this.pointer = null));
+    document.documentElement.addEventListener('pointerleave', () => (this.pointer = null));
     $('inventory').addEventListener('click', () => {
       if ($('inventory').classList.contains('edge')) actions.centreOnHub();
     });
@@ -351,7 +363,14 @@ export class Hud {
     const x = Math.min(window.innerWidth - w - 6, Math.max(6, sx - w / 2));
     // Above the hub, or over its body when the top bar covers the space above.
     const y = Math.min(maxY, Math.max(minY, top - h - 6));
-    el.classList.toggle('edge', sx < 0 || sx > window.innerWidth || bottom < minY || top > maxY + h);
+    const edge = sx < 0 || sx > window.innerWidth || bottom < minY || top > maxY + h;
+    el.classList.toggle('edge', edge);
+    // See-through while the pointer is over it (or near), so it never hides the map above the hub.
+    const p = this.pointer;
+    const r = el.getBoundingClientRect();
+    const near = 12;
+    const over = !!p && p.x > r.left - near && p.x < r.right + near && p.y > r.top - near && p.y < r.bottom + near;
+    el.classList.toggle('peek', over && !edge);
     el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   }
 

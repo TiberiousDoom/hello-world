@@ -12,9 +12,10 @@ import { Plan, UIState, anchorAt } from './state';
 export function planStatus(world: World, plan: Plan): (PlaceError | null)[] {
   const spent: ItemCounts = {};
   const cost = Object.entries(BUILDINGS[plan.tool].cost) as [ItemId, number][];
+  const single = plan.tiles.length === 1; // only a single placement may go over a belt
   return plan.tiles.map((t) => {
     const { x, y } = anchorAt(plan.tool, t);
-    const err = world.checkPlace(plan.tool, x, y);
+    const err = world.checkPlace(plan.tool, x, y, single);
     if (err && err !== 'cost') return err;
     if (!cost.every(([i, n]) => (world.state.inventory[i] ?? 0) - (spent[i] ?? 0) >= n)) return 'cost';
     for (const [i, n] of cost) spent[i] = (spent[i] ?? 0) + n;

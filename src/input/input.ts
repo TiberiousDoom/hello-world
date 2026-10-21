@@ -142,7 +142,7 @@ export class Input {
       this.lastPlacedId = null;
       this.reportedError = false;
       this.lastTile = this.ui.hover;
-      this.paintTile(this.ui.hover, this.ui.dir);
+      this.paintTile(this.ui.hover, this.ui.dir, true);
     } else {
       this.mode = 'pending';
     }
@@ -243,7 +243,8 @@ export class Input {
     if (!plan) return;
     const dirs = planDirs(plan, this.ui.dir);
     this.reportedError = false;
-    plan.tiles.forEach((t, i) => this.paintTile(t, dirs[i]));
+    const single = plan.tiles.length === 1;
+    plan.tiles.forEach((t, i) => this.paintTile(t, dirs[i], single));
     this.ui.dir = dirs[dirs.length - 1];
     this.ui.plan = null;
     this.cb.onChange();
@@ -314,7 +315,8 @@ export class Input {
     this.lastTile = t;
   }
 
-  private paintTile(t: Tile, dir: Dir): void {
+  /** `replaceBelt`: a single placement may go over a belt (not every tile of a drag). */
+  private paintTile(t: Tile, dir: Dir, replaceBelt = false): void {
     const world = this.cb.getWorld();
     const tool = this.ui.tool;
     this.lastPlacedId = null;
@@ -328,7 +330,7 @@ export class Input {
       return;
     }
     const at = anchorAt(tool, t);
-    const result = world.place(tool, at.x, at.y, dir);
+    const result = world.place(tool, at.x, at.y, dir, replaceBelt);
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {

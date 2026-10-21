@@ -76,6 +76,10 @@ test.describe('desktop', () => {
     await page.mouse.click(...(await tilePoint(page, x0 + 5, y0 + 2)));
     expect((await at(page, x0 + 5, y0 + 2))?.type).toBe('furnace');
 
+    // A furnace (still the tool) clicked onto a belt replaces it and faces along the line.
+    await page.mouse.click(...(await tilePoint(page, x0 + 1, y0)));
+    expect(await at(page, x0 + 1, y0)).toEqual({ type: 'furnace', dir: 2 });
+
     await page.click('[data-tool="wall"]');
     await drag(page, await tilePoint(page, x0 + 1, y0 + 2), await tilePoint(page, x0 + 4, y0 + 2));
     expect(await planLength(page)).toBe(4);
@@ -100,6 +104,13 @@ test.describe('touch', () => {
     await page.click('[data-plan="rotate"]');
     await page.click('[data-plan="confirm"]');
     await expect.poll(async () => (await at(page, x0, y0))?.dir).toBe(1);
+
+    // A furnace on that belt: a blueprint, then it replaces the belt and keeps its direction.
+    await page.click('[data-tool="furnace"]');
+    await page.touchscreen.tap(...(await tilePoint(page, x0, y0)));
+    await page.click('[data-plan="confirm"]');
+    await expect.poll(() => at(page, x0, y0)).toEqual({ type: 'furnace', dir: 1 });
+    await page.click('[data-tool="belt"]');
 
     // The same spot twice builds.
     await page.touchscreen.tap(...(await tilePoint(page, x0 + 2, y0)));

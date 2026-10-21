@@ -1,4 +1,4 @@
-import { ALL_LESSONS, build, calm, expect, newGame, stepLabel, test, tilePoint } from './helpers';
+import { ALL_LESSONS, build, calm, cameraSettled, expect, newGame, settled, stepLabel, test, tilePoint, uncoveredTile } from './helpers';
 
 test('build the escape ship, launch it, escape, and come back for endless mode', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: ALL_LESSONS.filter((l) => l !== 'shipyard') });
@@ -21,7 +21,10 @@ test('build the escape ship, launch it, escape, and come back for endless mode',
 
   await expect(stepLabel(page)).toHaveText(/^The escape ship/);
   await page.click('[data-tool="shipyard"]');
-  await build(page, info, ...(await tilePoint(page, spot.x, spot.y)));
+  await settled(page.locator('#tutorial .tip')); // the card moves once the tool is picked
+  await cameraSettled(page);
+  await build(page, info, ...(await uncoveredTile(page, spot.x, spot.y)));
+  await expect.poll(() => page.evaluate(() => window.game.world.state.buildings.some((b: { type: string }) => b.type === 'shipyard'))).toBe(true);
   await expect(stepLabel(page)).toHaveText(/2 of 3/);
   const yard = await page.evaluate(() => {
     const b = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'shipyard');

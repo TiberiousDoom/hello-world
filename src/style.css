@@ -1200,3 +1200,11 @@ button.quiet {
 .modes .primary small {
   color: var(--navy-ink);
 }
+
+/* The stock panel fades while the pointer is over it, so the map beneath stays usable. */
+#inventory {
+  transition: opacity 0.15s;
+}
+#inventory.peek {
+  opacity: 0.12;
+}

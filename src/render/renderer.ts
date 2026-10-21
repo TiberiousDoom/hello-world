@@ -220,7 +220,7 @@ export class Renderer {
     const single = plan.tiles.length === 1;
     plan.tiles.forEach((t, i) => {
       if (status[i] === 'occupied') return;
-      this.drawGhost(world, plan.tool, t.x, t.y, dirs[i], z, { ok: status[i] === null, range: single, dashed: true });
+      this.drawGhost(world, plan.tool, t.x, t.y, dirs[i], z, { ok: status[i] === null, range: single, dashed: true, replaceBelt: single });
     });
   }
 
@@ -585,6 +585,7 @@ export class Renderer {
       dot(ctx, b.x + 0.8, b.y + 0.2, 0.1);
     }
     if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / REPAIR.maxCharge, '#3fbf5f');
+    if (b.type === 'port') this.drawPortCollar(world, b, now, z);
     if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
 
     if (b.type === 'extractor' || isMachine(b.type)) {
@@ -604,6 +605,50 @@ export class Renderer {
     if (b.type === 'shipyard') this.drawShip(world, b, now);
     if (shake) ctx.translate(-shake, 0);
     if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.02, size - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+  }
+
+  /**
+   * A docking collar joining a hub port to the hub, with items streaming out
+   * through it while the port is sending.
+   */
+  private drawPortCollar(world: World, b: Building, now: number, z: number): void {
+    const ctx = this.ctx;
+    const back = ((b.dir + 2) % 4) as Dir; // towards the hub
+    const ax = DX[back];
+    const ay = DY[back];
+    // Along the port's axis (u, towards the hub) and across it (v).
+    const at = (u: number, v: number): [number, number] => [b.x + 0.5 + ax * u - ay * v, b.y + 0.5 + ay * u + ax * v];
+    const quad = (u0: number, u1: number, v0: number, v1: number) => {
+      ctx.beginPath();
+      ctx.moveTo(...at(u0, v0));
+      ctx.lineTo(...at(u1, v0));
+      ctx.lineTo(...at(u1, v1));
+      ctx.lineTo(...at(u0, v1));
+      ctx.closePath();
+    };
+    ctx.lineWidth = 2 / z;
+    ctx.strokeStyle = '#0f1a2e';
+    ctx.fillStyle = '#1d3b6e';
+    quad(0.3, 0.68, -0.3, 0.3);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#3fa9f5';
+    quad(0.3, 0.68, -0.07, 0.07);
+    ctx.fill();
+    // Clamps on either side.
+    ctx.fillStyle = '#5a6478';
+    for (const v of [-0.3, 0.22]) {
+      quad(0.44, 0.56, v, v + 0.08);
+      ctx.fill();
+      ctx.stroke();
+    }
+    const sending = b.filter && (world.state.inventory[b.filter] ?? 0) > 0;
+    if (!sending) return;
+    ctx.fillStyle = '#e8f6ff';
+    for (let k = 0; k < 3; k++) {
+      const t = (now / 600 + k / 3) % 1;
+      dot(ctx, ...at(0.68 - t * 0.6, 0), 0.05);
+    }
   }
 
   /** The ship on its pad: finished stages solid, the one being built faint, and engine flames at launch. */
@@ -656,7 +701,7 @@ export class Renderer {
     y: number,
     dir: Dir,
     z: number,
-    opts: { ok?: boolean; range?: boolean; dashed?: boolean } = {},
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean } = {},
   ): void {
     const ctx = this.ctx;
     if (tool === 'demolish') {
@@ -673,7 +718,11 @@ export class Renderer {
     // Big buildings centre on the hovered tile.
     const size = world.sizeOf(tool);
     ({ x, y } = anchorAt(tool, { x, y }));
-    const ok = opts.ok ?? !world.checkPlace(tool, x, y);
+    const replaceBelt = opts.replaceBelt ?? true;
+    const ok = opts.ok ?? !world.checkPlace(tool, x, y, replaceBelt);
+    // Going over a belt: the building will face the way the belt runs.
+    const under = replaceBelt ? world.beltToReplace(tool, x, y) : undefined;
+    if (under) dir = under.dir;
     const turret = !!TURRETS[tool];
     const directional = size === 1 && tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;

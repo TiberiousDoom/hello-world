@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BREACH, BUILDINGS, FIRST_WAVE_AT, ItemId, RESEARCH } from './data';
+import { BREACH, BUILDINGS, FIRST_WAVE_AT, ItemId, RESEARCH, TURRETS } from './data';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
 /** A world with no resources, no buildings except the hub, everything researched and a big inventory. */
@@ -27,6 +27,16 @@ describe('World', () => {
     expect(w.hub?.type).toBe('hub');
     const kinds = new Set(w.state.resources.filter((r) => r > 0));
     expect(kinds).toEqual(new Set([1, 2, 3]));
+  });
+
+  it('finds a path from every tile, even through blocks of buildings with fractional costs', () => {
+    // A 20×20 block of furnaces (cost 4.8 each) around the hub. 32-bit flow storage
+    // rounded some distances down, skipped those tiles and left them with no path.
+    const w = emptyWorld();
+    const h = w.hub!;
+    for (let y = h.y - 8; y < h.y + 12; y++) for (let x = h.x - 8; x < h.x + 12; x++) w.place('furnace', x, y, 0);
+    w.computeFlow();
+    expect(Array.from(w.flow).every(Number.isFinite)).toBe(true);
   });
 
   it('spreads node tiles out so none touch side by side, with each ore near the hub', () => {
@@ -85,6 +95,40 @@ describe('World', () => {
     const start = w.state.inventory.iron_plate!;
     run(w, 30);
     expect(w.state.inventory.iron_plate! - start).toBeGreaterThan(10);
+  });
+
+  it('a furnace placed on a belt line replaces that belt, faces its way and starts smelting', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const y = hub.y + 1;
+    const x0 = hub.x - 6;
+    w.state.resources[w.idx(x0, y)] = 1;
+    placed(w.place('extractor', x0, y, 0));
+    for (let x = x0 + 1; x < hub.x; x++) placed(w.place('belt', x, y, 0));
+    expect(w.place('furnace', x0 + 2, y, 1)).toBe('occupied'); // a drag doesn't eat the line
+    const plates = w.state.inventory.iron_plate!;
+    const furnace = placed(w.place('furnace', x0 + 2, y, 1, true));
+    expect(furnace.dir).toBe(0); // the belt's direction, not the one asked for
+    expect(w.state.inventory.iron_plate).toBe(plates - 2 + 1); // furnace cost, belt refund
+    const start = w.state.inventory.iron_plate!;
+    run(w, 30);
+    expect(w.state.inventory.iron_plate! - start).toBeGreaterThan(10);
+    expect(w.place('belt', x0 + 3, y, 0, true)).toBe('occupied'); // belts don't replace belts
+  });
+
+  it('turrets touching the hub reload from hub stock; others need a belt', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const touching = placed(w.place('turret', hub.x - 1, hub.y + 1, 0));
+    const apart = placed(w.place('turret', hub.x - 3, hub.y + 1, 0));
+    touching.ammo = 0;
+    apart.ammo = 0;
+    const plates = w.state.inventory.iron_plate!;
+    run(w, 1);
+    const def = TURRETS.turret!;
+    expect(touching.ammo).toBe(def.maxShots);
+    expect(apart.ammo).toBe(0);
+    expect(plates - w.state.inventory.iron_plate!).toBe(def.maxShots / def.shotsPerItem);
   });
 
   it('crafts multi-input recipes', () => {

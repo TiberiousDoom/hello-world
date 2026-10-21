@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased: round 4
+- Fixed a crash ("Invalid array length") in enemy pathfinding. Path costs were stored at lower precision than they were computed, so rounding could add the same tile over and over until the queue overflowed, or skip tiles and leave enemies with no path.
+- Place a furnace (or any one-tile building) straight onto a belt: it replaces the belt, faces along the line and starts working. Drags still go around belts.
+- Hub ports have a docking collar joining them to the hub, and you can see items streaming out while one sends.
+- Turrets and cannons touching the hub reload from hub stock.
+- The hub stock panel fades while the mouse is over it or a finger is down on it, so you can see and build above the hub.
+
 ## Unreleased: the escape ship (story phase 4)
 - Research **Shipyard Plans** on the black market to unlock the **Shipyard**: a hidden 3×3 dock (one only, keep it away from the hub).
 - Build the ship in four stages (hull, engine, life support, navigation) by belting parts into the shipyard. The ship takes shape on the pad as you go.
