@@ -16,13 +16,18 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   await expect(page.locator('#tutorial .tip-text')).toContainText('tap the iron ore');
   await settled(page.locator('#tutorial .spot')); // it glides to the ore
   await cameraSettled(page);
+  // The nearest iron ore with clear ground east of it for the belts and the furnace (maps are random).
   const node = await page.evaluate(() => {
     const w = window.game.world;
+    const roomEast = (x: number, y: number) => {
+      for (let dy = -2; dy <= 2; dy++) for (let dx = 1; dx <= 8; dx++) if (w.checkPlace('belt', x + dx, y + dy)) return false;
+      return true;
+    };
     let best: [number, number] = [0, 0];
     let bestD = Infinity;
     for (let y = 0; y < w.state.height; y++)
       for (let x = 0; x < w.state.width; x++) {
-        if (w.resourceAt(x, y) !== 'iron_ore' || w.buildingAt(x, y)) continue;
+        if (w.resourceAt(x, y) !== 'iron_ore' || w.buildingAt(x, y) || !roomEast(x, y)) continue;
         const d = Math.abs(x - w.hub.x) + Math.abs(y - w.hub.y);
         if (d < bestD) [bestD, best] = [d, [x, y]];
       }
