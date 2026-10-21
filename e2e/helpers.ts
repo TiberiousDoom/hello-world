@@ -53,11 +53,43 @@ export async function calm(page: Page): Promise<void> {
   });
 }
 
+/** In the page: what's on top at (x, y): 'game' for the map, otherwise a short description. */
+function coveredBy([x, y]: readonly [number, number]): string {
+  const el = document.elementFromPoint(x, y) as HTMLElement | null;
+  if (!el) return 'nothing';
+  if (el.id) return el.id;
+  const owner = el.closest('[id]');
+  return `${el.tagName.toLowerCase()}.${el.className} in #${owner?.id ?? '?'}`;
+}
+
+/**
+ * Screen point for a map tile that nothing covers, panning the camera if the
+ * tile sits under an overlay (the lesson card, the stock panel, a toast).
+ */
+export async function uncoveredTile(page: Page, tx: number, ty: number): Promise<[number, number]> {
+  for (const [ox, oy] of [[0, 0], [0, -3], [0, 3], [-3, 0], [3, 0], [0, -6], [0, 6]]) {
+    const pt = await page.evaluate(
+      ([tx, ty, ox, oy]) => {
+        const c = window.game.camera;
+        if (ox || oy) {
+          c.x = tx + 0.5 - ox;
+          c.y = ty + 0.5 - oy;
+        }
+        return c.toScreen(tx + 0.5, ty + 0.5) as [number, number];
+      },
+      [tx, ty, ox, oy] as const,
+    );
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    if ((await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.id, pt)) === 'game') return pt;
+  }
+  throw new Error(`tile ${tx},${ty} is covered wherever the camera puts it`);
+}
+
 /** A tap on touch screens, a click on desktop, on the map at (x, y). */
 export async function tap(page: Page, info: TestInfo, x: number, y: number): Promise<void> {
   // Wait for anything gliding over that spot (the tutorial card, a toast) to get out of the way.
   await expect
-    .poll(() => page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.id, [x, y] as const), { message: 'the map is uncovered at the tap point' })
+    .poll(() => page.evaluate(coveredBy, [x, y] as const), { message: 'the map is uncovered at the tap point' })
     .toBe('game');
   if (isTouch(info)) await page.touchscreen.tap(x, y);
   else await page.mouse.click(x, y);

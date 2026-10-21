@@ -1,4 +1,4 @@
-import { build, calm, cameraSettled, expect, isTouch, newGame, settled, stepLabel, test, tilePoint } from './helpers';
+import { build, calm, cameraSettled, expect, isTouch, newGame, settled, stepLabel, test, uncoveredTile } from './helpers';
 
 test('the Essentials, Contracts and Defense lessons run, then can be replayed and switched off', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: [] });
@@ -30,7 +30,7 @@ test('the Essentials, Contracts and Defense lessons run, then can be replayed an
       }
     return best;
   });
-  await build(page, info, ...(await tilePoint(page, ...node)));
+  await build(page, info, ...(await uncoveredTile(page, ...node)));
   await expect(step).toContainText('3 of');
 
   // Three belts and a furnace in a free line next to the extractor.
