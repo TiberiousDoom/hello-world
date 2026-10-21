@@ -1,4 +1,4 @@
-// Static game content: items, recipes, buildings, research, enemies and waves.
+// Static game content: items, recipes, buildings, research, enemies and bug territories.
 // Balance numbers live here so they can be tuned without touching the sim.
 
 export type Dir = 0 | 1 | 2 | 3; // East, South, West, North
@@ -57,8 +57,6 @@ export type BuildingType =
   | 'cannon'
   | 'repair'
   | 'port'
-  | 'stash'
-  | 'skimmer'
   | 'wall'
   | 'shipyard';
 
@@ -70,28 +68,24 @@ export interface BuildingDef {
   cost: ItemCounts;
   blocking: boolean; // enemies must break through it rather than walk over it
   description: string;
-  /** Black-market equipment the Company must not find. */
-  contraband?: boolean;
-  /** Width and height in tiles (default 1). */
-  size?: number;
+  /** Width (along its facing) and depth in tiles, when facing east. Default 1×1. */
+  size?: [number, number];
 }
 
 export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
-  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 600, size: 3, cost: {}, blocking: true, description: 'Receives items, and defends itself with a built-in gun. Protect it.' },
+  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [5, 5], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Takes items from behind and sends them out front, left and right in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
-  extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, cost: { iron_plate: 6 }, blocking: true, description: 'Place on a resource node to mine it.' },
-  furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, cost: { brick: 4, iron_plate: 2 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
-  workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, cost: { iron_plate: 8, copper_ingot: 4 }, blocking: true, description: 'Makes gears and wire.' },
-  assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
+  extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { iron_plate: 6 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
+  furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { brick: 4, iron_plate: 2 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
+  workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [3, 2], cost: { iron_plate: 8, copper_ingot: 4 }, blocking: true, description: 'Makes gears and wire.' },
+  assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [4, 2], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
   repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
-  stash: { name: 'Stash', short: 'ST', color: '#5a3a2a', hp: 100, cost: { brick: 10, iron_plate: 5 }, blocking: true, contraband: true, description: 'Hidden storage. Items you belt in here are yours, not the Company\'s. Keep it away from the hub.' },
-  skimmer: { name: 'Skimmer', short: 'SK', color: '#6a2a3a', hp: 40, cost: { iron_plate: 4, gear: 2 }, blocking: false, contraband: true, description: 'A belt that slips every 4th item out to its right side, toward a stash. Each skimmed item raises suspicion.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   shipyard: {
@@ -99,11 +93,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     short: 'SHIP',
     color: '#3a4a3a',
     hp: 900,
-    size: 3,
+    size: [3, 3],
     cost: { brick: 40, iron_plate: 40 },
     blocking: true,
-    contraband: true,
-    description: 'A hidden dock for your escape ship. Belt in the parts each stage needs, then launch. Only one.',
+    description: 'A dock for your escape ship. Belt in the parts each stage needs, then launch. Only one.',
   },
 };
 
@@ -127,11 +120,8 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
 
 export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, maxCharge: 400 };
 
-/**
- * The hub's built-in gun. It needs no ammo and never upgrades: strong enough
- * to beat wave 1 alone, weak enough that later waves need real defenses.
- */
-export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, maxShots: 0, range: 6, rate: 1.2, damage: 9, splash: 0 };
+/** The hub's built-in gun. It needs no ammo and never upgrades. */
+export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, maxShots: 0, range: 8, rate: 1.2, damage: 9, splash: 0 };
 
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
 export const BELT_SPEED = 1.5; // tiles per second
@@ -175,6 +165,7 @@ export const RESEARCH: Research[] = [
   { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
+  { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to get off this planet.' },
   { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
 ];
 export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));
@@ -185,21 +176,11 @@ export type GameMode = 'standard' | 'hardcore';
 export const BREACH = {
   stockLost: 0.25, // fraction of every item in hub stock
   hubRestore: 0.5, // fraction of hub HP restored
-  waveDelay: 60, // extra seconds before the next wave
 };
-/** Surviving this many waves in standard mode unlocks hardcore. */
-export const HARDCORE_UNLOCK_WAVE = 10;
 
 export const PORT_PERIOD = 0.5; // seconds per item a hub port puts out
 
-/** Black-market research, paid from your stash rather than hub stock. */
-export const BLACK_MARKET_RESEARCH: Research[] = [
-  { id: 'skimmer', name: 'Skimmer', cost: { iron_plate: 20, gear: 6 }, time: 60, requires: [], unlocks: ['skimmer'], description: 'A belt piece that quietly diverts every 4th item.' },
-  { id: 'shipyard', name: 'Shipyard Plans', cost: { iron_plate: 40, gear: 20, wire: 20 }, time: 120, requires: [], unlocks: ['shipyard'], description: 'Plans for a hidden shipyard, where you can build a ship to get off this planet.' },
-  { id: 'disguise', name: 'Disguise Kit', cost: { brick: 25, wire: 20 }, time: 90, requires: [], unlocks: [], description: 'Dresses contraband up as Company equipment: audits spot it only 1 time in 4, and it draws less attention near the hub.' },
-];
-
-/** The escape ship (story phase 4, D-034). Stages are built in order, from items belted into the shipyard. */
+/** The escape ship (D-034). Stages are built in order, from items belted into the shipyard. */
 export interface ShipStage {
   id: string;
   name: string;
@@ -214,64 +195,43 @@ export const SHIP = {
     { id: 'nav', name: 'Navigation', items: { motor: 20, wire: 80, gear: 40 } },
   ] as ShipStage[],
   launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
-  launchWaveIn: 15, // the Company's response arrives this soon after launch is pressed
-  finaleMultiplier: 2, // that wave is this much bigger than usual
-  returnDebt: 250_000, // billed when you come back (endless mode)
-  endlessGrace: 90, // seconds before the next wave after coming back
-};
-
-export const BLACK_MARKET = {
-  contactDelay: 45, // seconds after the first contract closes before A Friend writes
-  stashCapacity: 150, // items per stash
-  skimEvery: 4, // a skimmer diverts every Nth item
-  watchRadius: 14, // tiles from the hub's centre the Company watches and audits
-  suspicion: {
-    decayPerSecond: 0.04,
-    perContrabandPerSecond: 0.1, // each contraband building inside the watch radius (outweighs the decay)
-    disguisedFactor: 0.25,
-    perSkim: 0.3,
-    perPortItem: 0.05,
-    contractMissed: 10,
-    contractMet: -8,
-    warnAt: 30,
-    auditAt: 60,
-  },
-  audit: {
-    notice: 60, // seconds of warning before an audit
-    urgentNotice: 15, // at 100% suspicion
-    sweep: 8, // seconds the inspection drone takes
-    fee: 1_000,
-    finePerItem: 3_000, // Standard: per piece of contraband found
-    disguisedChance: 0.25, // chance an audit spots disguised contraband
-    after: 25, // suspicion after an audit that found something
-    afterClean: 15,
-  },
+  wakeRadius: 48, // the engines provoke every bug territory within this many tiles
 };
 
 export const START_INVENTORY: ItemCounts = { iron_plate: 100, brick: 24, copper_ingot: 16 };
 
-export const FIRST_WAVE_AT = 240; // seconds
-export const WAVE_INTERVAL = 120;
-export const WAVE_WARNING = 30; // spawn points are shown this long before a wave
-export const SPAWN_GAP = 0.6; // seconds between enemies in a wave
+export const MAP_SIZE = 256;
+export const HUB_SIZE = 5;
 
-export function waveComposition(n: number): {
-  crawlers: number;
-  runners: number;
-  brutes: number;
-  hpMult: number;
-  spawnPoints: number;
-} {
-  return {
-    crawlers: 4 + 2 * n,
-    runners: n >= 2 ? 2 * (n - 1) : 0,
-    brutes: n >= 3 ? n - 2 : 0,
-    hpMult: 1 + 0.15 * (n - 1),
-    spawnPoints: n >= 4 ? 2 : 1,
-  };
+/** A building's width and height on the map when facing `dir` (sideways turns swap them). */
+export function footprint(t: BuildingType, dir: Dir = 0): [number, number] {
+  const [w, h] = BUILDINGS[t].size ?? [1, 1];
+  return dir % 2 ? [h, w] : [w, h];
 }
 
-export const MAP_SIZE = 64;
-export const HUB_SIZE = 3;
-/** A building's width and height in tiles. */
-export const sizeOfType = (t: BuildingType): number => BUILDINGS[t].size ?? 1;
+/**
+ * Bug territories (D-038). The map is divided into square cells; some cells
+ * far from the hub hold a nest whose bugs roam only inside it. They attack
+ * when provoked: by building in or next to the cell, by a building coming
+ * close to one of them, or by being shot.
+ */
+export const NESTS = {
+  cell: 10, // a territory is one cell of this many tiles square
+  safeRadius: 30, // no territory has a tile this close to the hub's centre
+  chance: 0.18, // share of the other cells that hold a nest
+  nearMargin: 2, // building within this many tiles of a territory provokes it
+  closeRadius: 3, // a building this close to a calm bug provokes its nest
+  calmAfter: 30, // seconds without fresh provocation before a nest settles down
+  leash: 22, // provoked bugs chase no further than this from their territory's centre
+  pause: [1, 4] as [number, number], // seconds a roaming bug rests between strolls
+};
+
+/** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
+export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {
+  return {
+    crawlers: 3 + Math.floor(distance / 45),
+    runners: distance > 60 ? 1 + Math.floor((distance - 60) / 40) : 0,
+    brutes: distance > 100 ? 1 + Math.floor((distance - 100) / 50) : 0,
+    hpMult: 1 + distance / 150,
+  };
+}

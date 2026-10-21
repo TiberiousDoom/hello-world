@@ -43,6 +43,11 @@ one; don't edit the old entry.
 | D-035 | 2026-10-21 | **Browser tests in CI:** Playwright suites in `e2e/` run on a desktop and a phone viewport on every PR, against a production build served over HTTP | They were run by hand from a scratch folder; now every change is checked the same way | Accepted (built) |
 | D-036 | 2026-10-21 | **Turrets touching the hub reload from hub stock** (a narrow form of D-006 option C) | Owner's request. Limited to the few tiles around the hub, so defending the rest of the base is still a belt job | Accepted (built) |
 | D-037 | 2026-10-21 | **Buildings can be placed onto a belt**, replacing it (refunded) and facing its way. Only single placements, so dragging a line of buildings never eats a belt line | Owner's request: drop a furnace into a running line and have it work | Accepted (built) |
+| D-038 | 2026-10-21 | **Procedural map and bug territories** (supersede D-029, D-031 and the wave half of D-008/D-024): a seeded 256×256 map with noise-based ore fields and a 5×5 hub in the centre. No waves and no wave timer. Instead, about 18% of the 10×10 cells beyond 30 tiles from the hub hold a nest whose bugs stay inside their cell until provoked (building in or next to it, a building near a bug, or shooting one). Provoked bugs attack the nearest buildings, within 22 tiles of home, and calm down after 30 s; they don't respawn. Old saves can't be converted and are cleared with a note | Owner's request: a much larger, generated map and bugs as distant threats rather than a clock. Expansion becomes the risk you choose | Accepted (built). Densities and nest sizes to tune |
+| D-039 | 2026-10-21 | **Building sizes:** extractor 2×2, furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5 (belt, turret, wall, port, splitter, tunnel and repair stay 1×1; shipyard 3×3). Machines output from the middle of their front edge, marked by a port; extractors mine the ore covering most of their base. Any building can be dropped onto a belt line (extends D-037) | Owner's request. A marked, centred output keeps big machines easy to belt | Accepted (built) |
+| D-040 | 2026-10-21 | **The Company is dropped** (supersedes D-014, D-015, D-016, D-022, D-027 and D-033): no contracts, wages, balance owed, emails, store, licence fees, invoices, black market, suspicion or audits. The escape ship stays as the win condition (D-019), unlocked by normal research and launched against woken nests rather than a doubled wave (updates D-034). Hardcore unlocks by escaping once in Standard (answers Q-3) | Owner's request. The ship will be tied into the game differently later | Accepted (built) |
+| D-041 | 2026-10-21 | **Leaner screen:** the top bar holds only speed and the menu (no hub HP, wave timer or research button). Research opens from the selected hub. Hub stock is fixed above the hub in the world instead of following the screen. The info panel appears only for placed buildings, not toolbar picks | Owner's request: less clutter, and the panel shouldn't cover the map while building | Accepted (built) |
+| D-042 | 2026-10-21 | **Tapping a different building with a tool in hand selects it** and puts the tool down. Exceptions keep building: dropping a non-belt building onto a belt, and starting a belt drag on a belt | Owner's request: what you tap should be what you work on, without breaking D-037 | Accepted (built) |
 
 ## D-006: How should turrets get ammo?
 
@@ -64,12 +69,12 @@ not available at the start, so early defense still depends on production lines.
 
 | # | Question | Notes |
 |---|---|---|
-| Q-1 | Final **name** and art direction, including the Company's name (placeholder: Halcyon Extraction Co.) | Needed before store listings and the logo. Check trademarks |
-| Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research, or escaping once |
+| Q-1 | Final **name** and art direction | Needed before store listings and the logo. Check trademarks |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
-| Q-15 | **Wood as a resource?** Proposal: trees (part of the forest look) that a Lumber Camp harvests into logs; trees regrow. A sawmill makes planks for early walls and the stash, and the escape ship's hull. The Company charges a "deforestation permit fee" | Changes the economy and the art at once, so it waits until after playtest batch 2 |
-| Q-16 | **Rework suspicion.** The owner doesn't like the current meter-and-audit mechanic. Options are being brainstormed | Blocks further black-market work |
-| Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
+| Q-17 | **How does the escape ship fit the new game?** The owner plans to tie it in differently now the Company is gone (D-040) | Open |
+| Q-15 | **Wood as a resource?** Proposal: trees (part of the forest look) that a Lumber Camp harvests into logs; trees regrow. A sawmill makes planks for early walls and the escape ship's hull | Changes the economy and the art at once, so it waits until after playtest batch 2 |
 
-Answered: Q-14 (D-034), Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).
+Answered: Q-3 (D-040), Q-14 (D-034), Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).
+
+Closed without an answer: Q-12 (contract balance) and Q-16 (suspicion rework), since contracts and the black market were dropped (D-040).

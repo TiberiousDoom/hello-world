@@ -1,11 +1,10 @@
-// HTML overlay: top bar, inventory, build toolbar, info panel and dialogs.
+// HTML overlay: top bar, hub stock, build toolbar, info panel and dialogs.
 
 import {
   BREACH,
   BUILDINGS,
   BuildingType,
   GameMode,
-  HARDCORE_UNLOCK_WAVE,
   HUB_SIZE,
   HUB_WEAPON,
   ITEMS,
@@ -21,12 +20,9 @@ import {
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
-import { money } from '../sim/company';
-import { awaitingReturn, checkLaunch, comeBack, currentStage, launch, runStats } from '../sim/ship';
+import { awaitingChoice, checkLaunch, currentStage, keepPlaying, launch, runStats } from '../sim/ship';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { CompanyPanel } from './company';
-import { BlackMarketPanel } from './blackmarket';
 import { Tool, UIState } from './state';
 
 const TOOLBAR: BuildingType[] = [
@@ -42,12 +38,10 @@ const TOOLBAR: BuildingType[] = [
   'cannon',
   'repair',
   'wall',
-  'stash',
-  'skimmer',
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port', 'stash', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -56,7 +50,7 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
   occupied: 'That tile is taken.',
   locked: 'Research this first.',
   cost: 'Not enough materials in the hub.',
-  'needs-resource': 'Extractors must go on a resource node.',
+  'needs-resource': 'Extractors must go over ore.',
   'needs-hub': 'Hub ports must go right next to the hub.',
   unique: 'You can only have one shipyard.',
 };
@@ -74,12 +68,11 @@ export interface HudActions {
   setTipsOff(off: boolean): void;
   toMainMenu(): void;
   hasGame(): boolean;
-  centreOnHub(): void;
   rotatePlan(): void;
   /** The victory screen has opened. */
   escaped(): void;
-  /** The player chose to come back (endless mode). */
-  cameBack(): void;
+  /** The player chose to keep playing after escaping (endless mode). */
+  keptPlaying(): void;
 }
 
 /** Fills every empty `[data-icon]` element under `root` with its inline SVG. */
@@ -124,7 +117,7 @@ function shipStats(world: World): string {
   } else if (ship.launchAt != null) {
     html += `<br><b>Lift-off in ${formatTime(ship.launchAt - world.state.time)}.</b> Hold the shipyard!`;
   } else {
-    html += `<br>The ship is ready. Launching draws every bug on the planet to the shipyard for ${SHIP.launchTime} seconds.`;
+    html += `<br>The ship is ready. Launching wakes every bug nest within ${SHIP.wakeRadius} tiles, and the shipyard must hold for ${SHIP.launchTime} seconds.`;
   }
   return html;
 }
@@ -159,20 +152,15 @@ export class Hud {
   /** Where the mouse is, or a finger while it's down: the stock panel fades out of its way. */
   private pointer: { x: number; y: number } | null = null;
   private researchKey = '';
-  readonly company: CompanyPanel;
-  readonly blackMarket: BlackMarketPanel;
 
   constructor(
     private ui: UIState,
     private actions: HudActions,
   ) {
-    this.company = new CompanyPanel(actions.getWorld, () => this.refresh());
-    this.blackMarket = new BlackMarketPanel(actions.getWorld, () => this.refresh());
     $('speed').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-speed]');
       if (btn) this.setSpeed(Number(btn.dataset.speed));
     });
-    $('research-btn').addEventListener('click', () => this.openResearch());
     $('research-body').addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       const start = target.closest<HTMLElement>('[data-research]');
@@ -194,9 +182,6 @@ export class Hud {
     });
     window.addEventListener('pointercancel', () => (this.pointer = null));
     document.documentElement.addEventListener('pointerleave', () => (this.pointer = null));
-    $('inventory').addEventListener('click', () => {
-      if ($('inventory').classList.contains('edge')) actions.centreOnHub();
-    });
     $('menu-btn').addEventListener('click', () => this.openModal('menu'));
     $('btn-resume').addEventListener('click', () => this.closeModals());
     $('btn-help').addEventListener('click', () => this.openModal('help'));
@@ -215,10 +200,10 @@ export class Hud {
     });
     $('btn-new').addEventListener('click', () => this.openNewGame());
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
-    $('btn-comeback').addEventListener('click', () => {
-      comeBack(actions.getWorld());
+    $('btn-keep-playing').addEventListener('click', () => {
+      keepPlaying(actions.getWorld());
       this.closeModals();
-      actions.cameBack();
+      actions.keptPlaying();
       this.refresh();
     });
     $('btn-victory-menu').addEventListener('click', () => {
@@ -286,6 +271,9 @@ export class Hud {
         case 'launch':
           launch(world);
           break;
+        case 'research':
+          this.openResearch();
+          break;
         case 'close':
           this.ui.selected = null;
           this.ui.tool = null;
@@ -316,6 +304,7 @@ export class Hud {
 
   setTool(tool: Tool): void {
     this.ui.tool = tool;
+    this.ui.plan = null;
     if (tool) this.ui.selected = null;
     this.refresh();
   }
@@ -346,32 +335,22 @@ export class Hud {
   }
 
   /**
-   * Keeps the stock panel floating just above the hub. When the hub is off
-   * screen, the panel is pinned to the nearest edge; tapping it goes back.
+   * Keeps the stock panel just above the hub, part of the map: it scrolls away
+   * with the hub. It fades while the pointer is over it, so it never hides
+   * the map above the hub.
    */
   placeStock(world: World, camera: Camera): void {
     const el = $('inventory');
     const hub = world.hub;
     if (!hub) return;
     const [sx, top] = camera.toScreen(hub.x + HUB_SIZE / 2, hub.y);
-    const [, bottom] = camera.toScreen(0, hub.y + HUB_SIZE);
     const w = el.offsetWidth;
     const h = el.offsetHeight;
-    const minY = $('topbar').getBoundingClientRect().bottom + 6;
-    const tb = $('toolbar').getBoundingClientRect();
-    const maxY = (tb.height ? tb.top : window.innerHeight) - h - 6;
-    const x = Math.min(window.innerWidth - w - 6, Math.max(6, sx - w / 2));
-    // Above the hub, or over its body when the top bar covers the space above.
-    const y = Math.min(maxY, Math.max(minY, top - h - 6));
-    const edge = sx < 0 || sx > window.innerWidth || bottom < minY || top > maxY + h;
-    el.classList.toggle('edge', edge);
-    // See-through while the pointer is over it (or near), so it never hides the map above the hub.
     const p = this.pointer;
     const r = el.getBoundingClientRect();
     const near = 12;
-    const over = !!p && p.x > r.left - near && p.x < r.right + near && p.y > r.top - near && p.y < r.bottom + near;
-    el.classList.toggle('peek', over && !edge);
-    el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    el.classList.toggle('peek', !!p && p.x > r.left - near && p.x < r.right + near && p.y > r.top - near && p.y < r.bottom + near);
+    el.style.transform = `translate(${Math.round(sx - w / 2)}px, ${Math.round(top - h - 6)}px)`;
   }
 
   /** Forces the next update() to redraw everything. */
@@ -387,27 +366,6 @@ export class Hud {
     this.lastUpdate = now;
     const s = world.state;
 
-    // Top bar.
-    const hub = world.hub;
-    const hubHp = hub ? Math.ceil(hub.hp) : 0;
-    $('hub-hp').textContent = `${hubHp} / ${BUILDINGS.hub.hp}`;
-    $('hub-hp').parentElement!.classList.toggle('danger', hubHp < BUILDINGS.hub.hp * 0.35);
-    const active = s.enemies.length + s.spawnQueue.length;
-    $('wave').textContent = active
-      ? `Wave ${s.wave} · ${active} enemies`
-      : `Wave ${s.wave + 1} in ${formatTime(s.nextWaveAt - s.time)}`;
-    $('hub-hp').parentElement!.title = s.mode === 'hardcore' ? 'Hub health · Hardcore' : 'Hub health';
-    $('mode-badge').hidden = s.mode !== 'hardcore';
-    const rs = s.research;
-    const ready = RESEARCH.filter((r) => world.checkResearch(r.id) === null).length;
-    $('research-label').textContent = rs.active
-      ? `Research · ${rs.stalled ? 'stalled' : Math.floor(world.researchProgress(rs.active) * 100) + '%'}`
-      : ready
-        ? `Research · ${ready}`
-        : 'Research';
-    // Draw the eye when nothing is being researched but something could be.
-    $('research-btn').classList.toggle('ready', !rs.active && ready > 0);
-    $('research-btn').classList.toggle('stalled', rs.stalled);
     if (!$('research').hidden) this.renderResearch(world);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
       b.classList.toggle('active', Number(b.dataset.speed) === this.ui.speed);
@@ -419,13 +377,11 @@ export class Hud {
       .join('');
     if (inv !== this.invHtml) $('inventory').innerHTML = this.invHtml = inv;
 
-    this.company.update(world);
-    this.blackMarket.update(world);
     this.updateToolbar(world);
     this.updateInfo(world);
 
     if (s.gameOver && $('gameover').hidden && $('newgame').hidden) $('gameover').hidden = false;
-    if (awaitingReturn(world) && $('victory').hidden && $('newgame').hidden) {
+    if (awaitingChoice(world) && $('victory').hidden && $('newgame').hidden) {
       $('victory-stats').innerHTML = runStats(world)
         .map((r) => `<dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd>`)
         .join('');
@@ -438,7 +394,7 @@ export class Hud {
       banner.textContent = `🚀 Lift-off in ${formatTime(s.ship.launchAt - s.time)}. Hold the shipyard!`;
       banner.style.bottom = `${Math.round(window.innerHeight - $('toolbar').getBoundingClientRect().top + 10)}px`;
     }
-    if (s.gameOver) $('gameover-text').textContent = `You held out for ${s.wave} wave${s.wave === 1 ? '' : 's'}.`;
+    if (s.gameOver) $('gameover-text').textContent = `You lasted ${formatTime(s.time)} on the planet.`;
   }
 
   private updateToolbar(world: World): void {
@@ -449,7 +405,7 @@ export class Hud {
     this.toolbarKey = key;
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
-      const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor', def.contraband ? 'contraband' : ''].join(' ');
+      const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
       return `<button class="${cls}" data-tool="${t}" title="${esc(def.name)} (${i + 1})">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
@@ -462,34 +418,30 @@ export class Hud {
     $('toolbar').innerHTML = buttons.join('');
   }
 
+  /** The panel for the selected building. Only placed buildings get one, not the tool in hand. */
   private updateInfo(world: World): void {
     const panel = $('info');
-    const tool = this.ui.tool;
     const b = this.ui.selected != null ? world.byId.get(this.ui.selected) : undefined;
     if (this.ui.selected != null && !b) this.ui.selected = null;
 
-    if (!b && (!tool || tool === 'demolish')) {
+    if (!b) {
       panel.hidden = true;
       this.infoKey = '';
       return;
     }
     panel.hidden = false;
-    const inv = world.state.inventory;
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = tool ? `tool:${tool}` : `b:${b!.id}:${b!.recipe}:${b!.filter}:${b!.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
       let html = '';
-      if (tool) {
-        const def = BUILDINGS[tool as BuildingType];
-        html = `<div class="info-head"><span>${buildingIcon(tool as BuildingType, 'head-icon')}${esc(def.name)}</span><button data-action="close">${ico('close')}</button></div>
-          <p>${esc(def.description)}</p><div class="stats"></div>`;
-      } else {
+      {
         const def = BUILDINGS[b!.type];
         let actions = '';
+        if (b!.type === 'hub') actions += `<div class="row"><button data-action="research" class="primary">${ico('research')}<span class="research-label">Research</span></button></div>`;
         if (isMachine(b!.type)) {
           actions += `<div class="recipes">${world
             .recipesFor(b!.type)
@@ -520,23 +472,14 @@ export class Hud {
     }
 
     let stats = '';
-    if (tool) {
-      stats = `Cost: ${costHtml(BUILDINGS[tool as BuildingType].cost, inv)}`;
-      const t = TURRETS[tool as BuildingType];
-      if (t) stats += `<br>Ammo: ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name} · Range ${t.range}`;
-      if (tool === 'tunnel') {
-        const entrance = world.findTunnelEntrance(this.ui.hover?.x ?? -99, this.ui.hover?.y ?? -99, this.ui.dir);
-        stats += entrance ? '<br>Here: <b>exit</b> for the entrance behind' : '<br>Here: <b>entrance</b>';
-      }
-      if (!NO_ROTATE.includes(tool as BuildingType)) stats += `<br>Facing ${DIR_ARROWS[this.ui.dir]} · Rotate to turn`;
-    } else if (b) {
+    {
       const def = BUILDINGS[b.type];
       stats = `HP ${Math.ceil(b.hp)} / ${def.hp}`;
       const t = TURRETS[b.type];
       if (t) stats += `<br>Ammo ${b.ammo} / ${t.maxShots} ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name}`;
       if (b.type === 'extractor') {
-        const res = world.resourceAt(b.x, b.y);
-        stats += `<br>Mining ${res ? swatch(res) + ITEMS[res].name : 'nothing'}`;
+        const ore = b.recipe as ItemId | null;
+        stats += `<br>Mining ${ore ? swatch(ore) + ITEMS[ore].name : 'nothing'}`;
       }
       if (isMachine(b.type)) {
         const r = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
@@ -567,7 +510,10 @@ export class Hud {
       if (b.type === 'hub') {
         stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : 'Standard'}`;
         if (world.state.breaches) stats += `<br>Breached ${world.state.breaches}×`;
-        stats += `<br>You owe the Company ${money(world.state.company.debt)}`;
+        const rs = world.state.research;
+        stats += rs.active
+          ? `<br>Researching ${esc(RESEARCH.find((r) => r.id === rs.active)!.name)}: ${rs.stalled ? 'stalled, out of an item' : Math.floor(world.researchProgress(rs.active) * 100) + '%'}`
+          : `<br>${world.availableResearch().length} research available`;
         stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
       }
       if (b.type === 'shipyard') stats += shipStats(world);
@@ -629,7 +575,7 @@ export class Hud {
         <div>${action}</div></div>`;
     });
     $('research-body').innerHTML = `<h2>Research</h2>
-      <p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress. Each completed research also costs a Company licence fee.</p>${rows.join('')}`;
+      <p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}`;
   }
 
   private openLessons(): void {
@@ -653,8 +599,8 @@ export class Hud {
     hc.disabled = !unlocked;
     $('hardcore-note').textContent = unlocked
       ? 'Losing the hub ends the run.'
-      : `Locked: survive wave ${HARDCORE_UNLOCK_WAVE} in Standard to unlock.`;
-    $('standard-note').textContent = `If the hub falls, the attack ends but you lose ${BREACH.stockLost * 100}% of hub stock.`;
+      : 'Locked: escape the planet once in Standard to unlock.';
+    $('standard-note').textContent = `If the hub falls, the bugs go home but you lose ${BREACH.stockLost * 100}% of hub stock.`;
     this.openModal('newgame');
   }
 

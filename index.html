@@ -15,12 +15,6 @@
     <canvas id="game"></canvas>
 
     <header id="topbar" class="hud">
-      <div class="stat" id="hub-stat" title="Hub health"><i data-icon="health"></i><span id="hub-hp"></span><span id="mode-badge" class="badge" hidden>Hardcore</span></div>
-      <div class="stat" id="wave-stat"><i data-icon="wave"></i><span id="wave"></span></div>
-      <button id="contract-btn" title="Company contract"><i data-icon="contract"></i><span id="contract-label">Contract</span></button>
-      <button id="mail-btn" title="Inbox"><i data-icon="mail"></i><span id="mail-badge" class="count" hidden></span></button>
-      <button id="suspicion-btn" title="Black market · Company suspicion" hidden><i data-icon="eye"></i><span id="suspicion-label"></span></button>
-      <button id="research-btn" title="Research"><i data-icon="research"></i><span id="research-label">Research</span></button>
       <div id="speed" class="seg">
         <button data-speed="0" title="Pause (Space)"><i data-icon="pause"></i></button>
         <button data-speed="1" title="Normal speed"><i data-icon="play"></i></button>
@@ -31,7 +25,6 @@
     </header>
 
     <div id="inventory" class="hud"></div>
-    <button id="contract-tracker" class="hud" title="Contract: open the details" hidden></button>
     <div id="toasts"></div>
     <div id="launch-banner" class="hud" hidden></div>
     <div id="plan-bar" class="hud" hidden>
@@ -57,6 +50,7 @@
           <button id="mm-new"><i data-icon="new"></i><span>New game</span></button>
           <button id="mm-help"><i data-icon="help"></i><span>How to play</span></button>
         </div>
+        <p class="mm-note" id="mm-note" hidden></p>
         <p class="mm-foot">Prototype · placeholder art</p>
       </div>
     </section>
@@ -65,37 +59,6 @@
       <div class="card">
         <div id="research-body"></div>
         <button data-close>Close</button>
-      </div>
-    </div>
-
-    <div id="company" class="modal" hidden>
-      <div class="card wide">
-        <div class="company-head">
-          <div>
-            <h2 id="company-name"></h2>
-            <p class="debt"><i data-icon="coin"></i>Balance owed <b id="company-debt"></b></p>
-          </div>
-          <button data-close title="Close"><i data-icon="close"></i></button>
-        </div>
-        <div class="tabs" role="tablist">
-          <button data-tab="contract" role="tab"><i data-icon="contract"></i>Contract</button>
-          <button data-tab="inbox" role="tab"><i data-icon="mail"></i>Inbox<span id="tab-unread" class="count" hidden></span></button>
-          <button data-tab="store" role="tab"><i data-icon="store"></i>Store</button>
-        </div>
-        <div id="company-body"></div>
-      </div>
-    </div>
-
-    <div id="blackmarket" class="modal" hidden>
-      <div class="card wide bm">
-        <div class="company-head">
-          <div>
-            <h2>Black market</h2>
-            <p class="muted">Off the books. The Company can't see this window, but it can see what you build near the hub.</p>
-          </div>
-          <button data-close title="Close"><i data-icon="close"></i></button>
-        </div>
-        <div id="bm-body"></div>
       </div>
     </div>
 
@@ -143,13 +106,13 @@
       <div class="card">
         <h2>How to play</h2>
         <ul>
-          <li>Put <b>extractors</b> on resource nodes and run <b>belts</b> to <b>furnaces</b>, <b>workshops</b> and the <b>hub</b>.</li>
-          <li>Machines take input from any side and output where their arrow points.</li>
-          <li>Buildings and research are paid for from the hub's stock, so keep it supplied.</li>
+          <li>Put <b>extractors</b> over ore and run <b>belts</b> to <b>furnaces</b>, <b>workshops</b> and the <b>hub</b>.</li>
+          <li>Machines take input from any side and output from the middle of the side their arrow marks.</li>
+          <li>Buildings and research are paid for from the hub's stock, so keep it supplied. <b>Select the hub</b> to open Research.</li>
           <li><b>Splitters</b> take items from behind and send them out the other three sides in turn. <b>Underground belts</b> pass items under anything: place an entrance, then an exit ahead of it.</li>
-          <li>You owe <b>the Company</b>. Meet its shipping <b>contracts</b> (in your inbox) to earn wages. Miss them and you're fined. The <b>Company Store</b> sells emergency supplies on credit.</li>
-          <li>Once <b>A Friend</b> gets in touch, the <b>black market</b> (the eye at the top) opens. A <b>Stash</b> hides items from the Company, and a <b>Skimmer</b> diverts some from your belts. Keep contraband away from the hub: if <b>suspicion</b> gets high, an audit drone sweeps the area around it.</li>
-          <li>Enemies attack in waves. <b>Turrets</b> fire iron plates and <b>cannons</b> fire gears. Feed them by belt, or from the hub with a <b>hub port</b>.</li>
+          <li><b>Bugs</b> live in territories away from the hub, marked by a nest mound. They leave you alone unless provoked: by building in or next to their territory, by a building coming close to one of them, or by shooting them. Then they attack your nearest buildings until things calm down.</li>
+          <li><b>Turrets</b> fire iron plates and <b>cannons</b> fire gears. Feed them by belt, from the hub with a <b>hub port</b>, or place them touching the hub.</li>
+          <li>Research the <b>Shipyard</b>, build the ship stage by stage, and launch it to escape. The engines wake every nest nearby.</li>
         </ul>
         <h3>Controls</h3>
         <ul>
@@ -165,10 +128,10 @@
     <div id="victory" class="modal" hidden>
       <div class="card">
         <h2>You got out.</h2>
-        <p class="muted">The ship clears the atmosphere. Below, the factory keeps running without you, and the Company's invoices keep coming.</p>
+        <p class="muted">The ship clears the atmosphere. Below, your factory keeps running without you.</p>
         <dl id="victory-stats" class="stats-list"></dl>
         <div class="modes">
-          <button id="btn-comeback" class="primary"><i data-icon="play"></i><span><b>Come back</b><small>Three weeks out, the food runs low. The only port in range is Halcyon's. Endless mode.</small></span></button>
+          <button id="btn-keep-playing" class="primary"><i data-icon="play"></i><span><b>Keep playing</b><small>Stay on the planet and keep building. Endless mode.</small></span></button>
           <button id="btn-victory-menu"><i data-icon="home"></i><span><b>Main menu</b></span></button>
         </div>
       </div>

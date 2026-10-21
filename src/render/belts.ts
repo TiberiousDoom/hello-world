@@ -6,25 +6,31 @@ import { Building, World } from '../sim/world';
 
 const turn = (d: Dir, by: number) => ((((d + by) % 4) + 4) % 4) as Dir;
 
-/** The directions a building sends items out of. */
-export function outputDirs(world: World, b: Building): Dir[] {
-  switch (b.type) {
+/** Whether `n` sends items onto tile (x, y). Big machines output from the middle of their front edge. */
+export function outputsTo(world: World, n: Building, x: number, y: number): boolean {
+  let dirs: Dir[];
+  switch (n.type) {
     case 'belt':
     case 'extractor':
     case 'furnace':
     case 'workshop':
     case 'assembler':
     case 'port':
-      return [b.dir];
+      dirs = [n.dir];
+      break;
     case 'tunnel':
-      return world.isTunnelExit(b) ? [b.dir] : [];
+      dirs = world.isTunnelExit(n) ? [n.dir] : [];
+      break;
     case 'splitter':
-      return [b.dir, turn(b.dir, 3), turn(b.dir, 1)];
-    case 'skimmer':
-      return [b.dir, turn(b.dir, 1)];
+      dirs = [n.dir, turn(n.dir, 3), turn(n.dir, 1)];
+      break;
     default:
-      return [];
+      dirs = [];
   }
+  return dirs.some((d) => {
+    const o = world.outputTile(n, d);
+    return o.x === x && o.y === y;
+  });
 }
 
 /** Whether `b` takes items from the tile at (fromX, fromY). */
@@ -36,9 +42,8 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'tunnel':
       return !front && !world.isTunnelExit(b);
     case 'splitter':
-    case 'skimmer':
       return b.x - DX[b.dir] === fromX && b.y - DY[b.dir] === fromY;
-    case 'stash':
+    case 'shipyard':
     case 'repair':
     case 'hub':
     case 'furnace':
@@ -54,10 +59,11 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
 
 /** The building on the side `d` of `b`, if it sends items into `b`. */
 export function feederOn(world: World, b: Building, d: Dir): Building | undefined {
-  const n = world.buildingAt(b.x + DX[d], b.y + DY[d]);
+  const fx = b.x + DX[d];
+  const fy = b.y + DY[d];
+  const n = world.buildingAt(fx, fy);
   if (!n || n === b) return undefined;
-  const back = turn(d, 2); // the direction from n to b
-  return outputDirs(world, n).includes(back) && acceptsFrom(world, b, n.x, n.y) ? n : undefined;
+  return outputsTo(world, n, b.x, b.y) && acceptsFrom(world, b, fx, fy) ? n : undefined;
 }
 
 export interface BeltLook {

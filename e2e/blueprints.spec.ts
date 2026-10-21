@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 import { calm, expect, newGame, test, tilePoint } from './helpers';
 
-/** Finds a clear 6×3 area near the hub, centres the camera on it, and gives plenty of stock. */
+/** Finds a clear 8×5 area below the hub, centres the camera on it, and gives plenty of stock. */
 async function clearArea(page: Page): Promise<{ x0: number; y0: number }> {
   const area = await page.evaluate(() => {
     const w = window.game.world;
@@ -9,15 +9,15 @@ async function clearArea(page: Page): Promise<{ x0: number; y0: number }> {
     w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999 };
     w.state.researched.push('masonry', 'defense');
     const h = w.hub;
-    for (let oy = 4; oy < 20; oy++) {
-      for (let ox = -8; ox < 6; ox++) {
+    for (let oy = 7; oy < 30; oy++) {
+      for (let ox = -10; ox < 8; ox++) {
         const x0 = h.x + ox;
         const y0 = h.y + oy;
         let free = true;
-        for (let y = y0; y < y0 + 3; y++) for (let x = x0; x < x0 + 6; x++) if (w.checkPlace('belt', x, y) || w.resourceAt(x, y)) free = false;
+        for (let y = y0; y < y0 + 5; y++) for (let x = x0; x < x0 + 8; x++) if (w.checkPlace('belt', x, y) || w.resourceAt(x, y)) free = false;
         if (free) {
-          c.x = x0 + 3;
-          c.y = y0 + 1.5;
+          c.x = x0 + 4;
+          c.y = y0 + 2.5;
           return { x0, y0 };
         }
       }

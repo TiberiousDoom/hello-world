@@ -3,10 +3,8 @@
 // can replace it later behind the same draw() call.
 
 import { sprite } from '../art';
-import { auditSweep, isContraband } from '../sim/blackmarket';
 import {
   BELT_SPEED,
-  BLACK_MARKET,
   BUILDINGS,
   BuildingType,
   DX,
@@ -14,7 +12,10 @@ import {
   Dir,
   ENEMIES,
   EnemyType,
+  EXTRACTOR_PERIOD,
   HUB_SIZE,
+  NESTS,
+  footprint,
   SHIP,
   HUB_WEAPON,
   ITEMS,
@@ -23,12 +24,12 @@ import {
   REPAIR,
   RESOURCE_ITEMS,
   TURRETS,
-  WAVE_WARNING,
   isMachine,
 } from '../sim/data';
 import { Building, Shot, World } from '../sim/world';
-import { Plan, UIState, anchorAt, planDirs } from '../ui/state';
+import { Plan, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
+import { Nest, isAngry, nestCentre } from '../sim/nests';
 import { planStatus } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
@@ -163,15 +164,13 @@ export class Renderer {
     belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
     for (const b of s.buildings) {
       if (b.type === 'belt') continue;
-      if (visible(b.x, b.y, world.sizeOf(b.type))) this.drawBuilding(world, b, now, z);
+      const [fw, fh] = world.footprintOf(b);
+      if (visible(b.x, b.y, Math.max(fw, fh))) this.drawBuilding(world, b, now, z);
     }
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
-    // Spawn warnings: pulsing rings with a warning sign.
-    if (s.nextWaveAt - s.time <= WAVE_WARNING) {
-      const pulse = 0.5 + 0.5 * Math.sin(now / 150);
-      for (const p of s.nextSpawnPoints) this.drawSpawnMarker(p.x + 0.5, p.y + 0.5, pulse, z);
-    }
+    // Bug territories: a mound in each, and its outline while placing or while it's angry.
+    for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
 
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
@@ -194,18 +193,17 @@ export class Renderer {
     this.drawShots(world, now, z);
     this.drawEffects(now, z);
     this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
-    this.drawAudit(world, now, z, ui);
 
     if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
     if (sel) {
-      const size = world.sizeOf(sel.type);
+      const [fw, fh] = world.footprintOf(sel);
       ctx.strokeStyle = '#3fa9f5';
       ctx.lineWidth = 3 / z;
-      roundRect(ctx, sel.x - 0.04, sel.y - 0.04, size + 0.08, size + 0.08, 0.12);
+      roundRect(ctx, sel.x - 0.04, sel.y - 0.04, fw + 0.08, fh + 0.08, 0.12);
       ctx.stroke();
       const range = TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : 0);
-      if (range) rangeCircle(ctx, sel.x + size / 2, sel.y + size / 2, range, z);
+      if (range) rangeCircle(ctx, sel.x + fw / 2, sel.y + fh / 2, range, z);
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
     }
@@ -215,7 +213,7 @@ export class Renderer {
 
   /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
   private drawPlan(world: World, plan: Plan, dir: Dir, z: number): void {
-    const status = planStatus(world, plan);
+    const status = planStatus(world, plan, dir);
     const dirs = planDirs(plan, dir);
     const single = plan.tiles.length === 1;
     plan.tiles.forEach((t, i) => {
@@ -241,6 +239,58 @@ export class Renderer {
       ctx.drawImage(img, x, y, size, size);
     }
     return true;
+  }
+
+  /**
+   * Draws a building sprite over its footprint (fw × fh tiles at x, y), turned
+   * to face `dir`. Sprites are drawn facing east, so sideways turns swap width and height.
+   */
+  private drawSpriteRect(key: string, x: number, y: number, fw: number, fh: number, dir: Dir): boolean {
+    const img = sprite(key);
+    if (!img) return false;
+    const ctx = this.ctx;
+    const [w, h] = dir % 2 ? [fh, fw] : [fw, fh];
+    ctx.save();
+    ctx.translate(x + fw / 2, y + fh / 2);
+    if (dir) ctx.rotate((dir * Math.PI) / 2);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    return true;
+  }
+
+  /** A nest's mound, and its territory's outline while placing or while it's angry. */
+  private drawNest(world: World, n: Nest, now: number, z: number, placing: boolean): void {
+    const ctx = this.ctx;
+    const c = NESTS.cell;
+    const alive = world.state.enemies.some((e) => e.nest === n.id);
+    const angry = alive && isAngry(world, n);
+    if (alive && (placing || angry)) {
+      const m = NESTS.nearMargin;
+      ctx.fillStyle = angry ? `rgba(224,68,90,${0.08 + 0.05 * Math.sin(now / 200)})` : 'rgba(224,68,90,0.05)';
+      ctx.fillRect(n.x - m, n.y - m, c + 2 * m, c + 2 * m);
+      ctx.strokeStyle = angry ? 'rgba(255,96,112,0.9)' : 'rgba(224,68,90,0.55)';
+      ctx.lineWidth = 2 / z;
+      ctx.setLineDash([8 / z, 6 / z]);
+      ctx.strokeRect(n.x - m, n.y - m, c + 2 * m, c + 2 * m);
+      ctx.setLineDash([]);
+    }
+    // The mound: a dirt heap with burrows (flattened once the nest is cleared).
+    const [cx, cy] = nestCentre(n);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(cx + 0.15, cy + 0.2, 1.5, 1.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = alive ? '#6b4a2e' : '#4e4232';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 1.4, 1.0, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = alive ? '#83603c' : '#5c5040';
+    ctx.beginPath();
+    ctx.ellipse(cx - 0.2, cy - 0.2, 0.9, 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (!alive) return;
+    ctx.fillStyle = '#1e140c';
+    for (const [dx, dy, r] of [[-0.4, -0.1, 0.18], [0.35, 0.15, 0.15], [0.05, -0.45, 0.12]]) dot(ctx, cx + dx, cy + dy, r);
   }
 
   private drawItem(item: ItemId, cx: number, cy: number, size: number): void {
@@ -533,32 +583,35 @@ export class Renderer {
   private drawBuilding(world: World, b: Building, now: number, z: number): void {
     const ctx = this.ctx;
     const def = BUILDINGS[b.type];
-    const size = world.sizeOf(b.type);
-    const directional = size === 1 && b.type !== 'wall' && b.type !== 'repair' && b.type !== 'stash' && !TURRETS[b.type];
+    const [fw, fh] = world.footprintOf(b);
+    const big = fw * fh > 1;
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'repair' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
-    const angle = directional ? (b.dir * Math.PI) / 2 : 0;
 
-    if (!this.drawSprite(this.spriteKey(world, b), b.x, b.y, size, angle)) {
+    if (!this.drawSpriteRect(this.spriteKey(world, b), b.x, b.y, fw, fh, directional ? b.dir : 0)) {
       ctx.fillStyle = def.color;
-      ctx.fillRect(b.x + 0.08, b.y + 0.08, size - 0.16, size - 0.16);
-      if (directional) {
+      ctx.fillRect(b.x + 0.08, b.y + 0.08, fw - 0.16, fh - 0.16);
+      if (directional && !big) {
         ctx.fillStyle = 'rgba(255,255,255,0.75)';
         arrowHead(ctx, b.x + 0.5 + DX[b.dir] * 0.36, b.y + 0.5 + DY[b.dir] * 0.36, b.dir, 0.12);
       }
     }
+    if (big && directional) this.drawOutputPort(world, b, z);
 
     // Working machines glow and pulse.
     const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0 && b.outputs.length < 3;
     if (working) {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow = b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' ? '160,220,90' : '120,190,255';
-      const g = ctx.createRadialGradient(b.x + 0.5, b.y + 0.5, 0.05, b.x + 0.5, b.y + 0.5, 0.6);
+      const [cx, cy] = world.centreOf(b);
+      const r = Math.max(fw, fh) * 0.6;
+      const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);
       g.addColorStop(0, `rgba(${glow},${0.22 + 0.18 * pulse})`);
       g.addColorStop(1, `rgba(${glow},0)`);
       ctx.fillStyle = g;
-      ctx.fillRect(b.x - 0.1, b.y - 0.1, 1.2, 1.2);
+      ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
     }
 
     if (b.type === 'hub') {
@@ -578,7 +631,7 @@ export class Renderer {
       bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
 
-    if ((b.type === 'splitter' || b.type === 'skimmer') && b.outputs.length) this.drawItem(b.outputs[0], b.x + 0.5, b.y + 0.5, 0.34);
+    if (b.type === 'splitter' && b.outputs.length) this.drawItem(b.outputs[0], b.x + 0.5, b.y + 0.5, 0.34);
     if (b.type === 'tunnel' && b.link == null) {
       // Unpaired: flash a warning dot.
       ctx.fillStyle = `rgba(242,193,78,${0.5 + 0.5 * Math.sin(now / 200)})`;
@@ -588,23 +641,49 @@ export class Renderer {
     if (b.type === 'port') this.drawPortCollar(world, b, now, z);
     if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
 
-    if (b.type === 'extractor' || isMachine(b.type)) {
+    if (b.type === 'extractor' && b.recipe) {
+      if (b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / EXTRACTOR_PERIOD, '#8fd18f');
+      this.drawBadge(b.recipe as ItemId, b.x + fw - 1, b.y);
+    }
+    if (isMachine(b.type)) {
       const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
-      if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.progress / recipe.time, '#8fd18f');
-      if (recipe) this.drawBadge(recipe.output, b.x, b.y);
+      if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
+      if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
     }
 
     if (!sprite(this.spriteKey(world, b)) && z >= 18 && def.short) {
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = `bold ${b.type === 'hub' ? 0.6 : 0.3}px system-ui, sans-serif`;
+      ctx.font = `bold ${big ? 0.6 : 0.3}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(def.short, b.x + size / 2, b.y + size / 2);
+      ctx.fillText(def.short, b.x + fw / 2, b.y + fh / 2);
     }
 
     if (b.type === 'shipyard') this.drawShip(world, b, now);
     if (shake) ctx.translate(-shake, 0);
-    if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.02, size - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+    if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.02, fw - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+  }
+
+  /** Where a big machine sends its output: a port with an arrow on the middle of its front edge. */
+  private drawOutputPort(world: World, b: Building, z: number): void {
+    const ctx = this.ctx;
+    const o = world.outputTile(b);
+    const d = b.dir;
+    // The edge between the machine's front tile and the tile it outputs to.
+    const ex = o.fromX + 0.5 + DX[d] * 0.5;
+    const ey = o.fromY + 0.5 + DY[d] * 0.5;
+    const along = 0.5;
+    const depth = 0.22;
+    const w = DX[d] ? depth : along;
+    const h = DX[d] ? along : depth;
+    ctx.fillStyle = '#1b2230';
+    ctx.strokeStyle = '#0f1a2e';
+    ctx.lineWidth = 1.5 / z;
+    roundRect(ctx, ex - w / 2 - DX[d] * 0.08, ey - h / 2 - DY[d] * 0.08, w, h, 0.05);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#e8eef6';
+    arrowHead(ctx, ex - DX[d] * 0.06, ey - DY[d] * 0.06, d, 0.1);
   }
 
   /**
@@ -715,42 +794,42 @@ export class Renderer {
       ctx.stroke();
       return;
     }
-    // Big buildings centre on the hovered tile.
-    const size = world.sizeOf(tool);
-    ({ x, y } = anchorAt(tool, { x, y }));
+    // Big buildings centre on the hovered tile; dropped onto a belt, a building faces the way it runs.
     const replaceBelt = opts.replaceBelt ?? true;
-    const ok = opts.ok ?? !world.checkPlace(tool, x, y, replaceBelt);
-    // Going over a belt: the building will face the way the belt runs.
-    const under = replaceBelt ? world.beltToReplace(tool, x, y) : undefined;
-    if (under) dir = under.dir;
+    ({ x, y, dir } = placementAt(world, tool, { x, y }, dir, replaceBelt));
+    const [fw, fh] = footprint(tool, dir);
+    const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
     const turret = !!TURRETS[tool];
-    const directional = size === 1 && tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
+    const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
-    const drawn = this.drawSprite(key, x, y, size, directional ? (dir * Math.PI) / 2 : 0);
+    const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
     if (drawn && turret) this.drawSprite(`buildings/${tool}_barrel`, x, y, 1, -Math.PI / 2);
     if (!drawn) {
       ctx.fillStyle = BUILDINGS[tool].color;
-      ctx.fillRect(x + 0.06, y + 0.06, size - 0.12, size - 0.12);
+      ctx.fillRect(x + 0.06, y + 0.06, fw - 0.12, fh - 0.12);
     }
     ctx.globalAlpha = 1;
     if (!ok) {
       ctx.fillStyle = 'rgba(224,68,90,0.35)';
-      ctx.fillRect(x, y, size, size);
+      ctx.fillRect(x, y, fw, fh);
     }
     ctx.strokeStyle = ok ? '#3fa9f5' : '#ff6070';
     ctx.lineWidth = 2.5 / z;
     if (opts.dashed) {
       ctx.fillStyle = ok ? 'rgba(63,169,245,0.18)' : 'rgba(0,0,0,0)';
-      ctx.fillRect(x + 0.03, y + 0.03, size - 0.06, size - 0.06);
+      ctx.fillRect(x + 0.03, y + 0.03, fw - 0.06, fh - 0.06);
       ctx.setLineDash([6 / z, 4 / z]);
     }
-    roundRect(ctx, x + 0.03, y + 0.03, size - 0.06, size - 0.06, 0.1);
+    roundRect(ctx, x + 0.03, y + 0.03, fw - 0.06, fh - 0.06, 0.1);
     ctx.stroke();
     ctx.setLineDash([]);
     if (directional) {
+      // The arrow sits just outside the edge items come out of.
+      const ox = (dir === 0 ? x + fw - 1 : dir === 2 ? x : x + Math.floor((fw - 1) / 2)) + 0.5;
+      const oy = (dir === 1 ? y + fh - 1 : dir === 3 ? y : y + Math.floor((fh - 1) / 2)) + 0.5;
       ctx.fillStyle = '#ffffff';
-      arrowHead(ctx, x + 0.5 + DX[dir] * 0.62, y + 0.5 + DY[dir] * 0.62, dir, 0.14);
+      arrowHead(ctx, ox + DX[dir] * 0.62, oy + DY[dir] * 0.62, dir, 0.14);
     }
     const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : 0);
     if (range && opts.range !== false) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
@@ -760,72 +839,6 @@ export class Renderer {
     }
   }
 
-  /** The Company's watch radius (while placing or inspecting contraband, or during an audit) and the audit drone. */
-  private drawAudit(world: World, now: number, z: number, ui: UIState | null): void {
-    const ctx = this.ctx;
-    const hub = world.hub;
-    if (!hub) return;
-    const cx = hub.x + HUB_SIZE / 2;
-    const cy = hub.y + HUB_SIZE / 2;
-    const r = BLACK_MARKET.watchRadius;
-    const audit = world.state.blackMarket.audit;
-    const sel = ui?.selected != null ? world.byId.get(ui.selected) : undefined;
-    const showRing =
-      !!audit ||
-      (ui?.tool && ui.tool !== 'demolish' && isContraband(ui.tool)) ||
-      (sel && isContraband(sel.type));
-    if (showRing) {
-      ctx.strokeStyle = 'rgba(224,68,90,0.75)';
-      ctx.fillStyle = 'rgba(224,68,90,0.05)';
-      ctx.lineWidth = 2 / z;
-      ctx.setLineDash([8 / z, 6 / z]);
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    const sweep = auditSweep(world);
-    if (sweep == null) return;
-    // The drone spirals out from the hub to the edge of the watch radius.
-    const dist = 2 + (r - 2) * sweep;
-    const angle = sweep * Math.PI * 6;
-    const dx = cx + Math.cos(angle) * dist;
-    const dy = cy + Math.sin(angle) * dist;
-    const scan = 2.5;
-    const g = ctx.createRadialGradient(dx, dy, 0, dx, dy, scan);
-    g.addColorStop(0, 'rgba(255,90,110,0.35)');
-    g.addColorStop(1, 'rgba(255,90,110,0)');
-    ctx.fillStyle = g;
-    dot(ctx, dx, dy, scan);
-    const bob = 0.05 * Math.sin(now / 120);
-    if (!this.drawSprite('buildings/drone', dx - 0.6, dy - 0.6 + bob, 1.2, angle + Math.PI / 2)) {
-      ctx.fillStyle = '#1d3b6e';
-      dot(ctx, dx, dy, 0.4);
-    }
-  }
-
-  private drawSpawnMarker(x: number, y: number, pulse: number, z: number): void {
-    const ctx = this.ctx;
-    ctx.fillStyle = `rgba(224,68,90,${0.15 + 0.2 * pulse})`;
-    dot(ctx, x, y, 1.5 + 0.3 * pulse);
-    ctx.strokeStyle = '#e0445a';
-    ctx.lineWidth = 3 / z;
-    ctx.beginPath();
-    ctx.arc(x, y, 1.1, 0, Math.PI * 2);
-    ctx.stroke();
-    // Warning triangle.
-    ctx.fillStyle = '#e0445a';
-    ctx.beginPath();
-    ctx.moveTo(x, y - 0.55);
-    ctx.lineTo(x + 0.55, y + 0.4);
-    ctx.lineTo(x - 0.55, y + 0.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x - 0.05, y - 0.25, 0.1, 0.38);
-    ctx.fillRect(x - 0.05, y + 0.2, 0.1, 0.1);
-  }
 
   // ------------------------------------------------------------- effects
 

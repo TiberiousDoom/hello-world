@@ -16,8 +16,7 @@
 import { Dir } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { Plan, UIState, anchorAt, isBeltPath, planDirs } from '../ui/state';
-import { sizeOfType } from '../sim/data';
+import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs } from '../ui/state';
 
 type Mode = 'none' | 'pending' | 'right' | 'pan' | 'paint' | 'plan' | 'pinch';
 
@@ -133,6 +132,12 @@ export class Input {
       this.mode = 'right'; // a click clears; a drag pans
     } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
+    } else if (this.takesOver(this.ui.hover)) {
+      // Pressing on a different kind of building selects it instead of building there.
+      this.ui.tool = null;
+      this.ui.plan = null;
+      this.mode = 'pending';
+      this.cb.onChange();
     } else if (this.ui.tool && this.ui.tool !== 'demolish' && this.softPlace(e.pointerType, this.ui.tool)) {
       this.mode = 'plan';
       this.prevPlan = this.ui.plan;
@@ -196,6 +201,19 @@ export class Input {
     this.pinch = { dist, midX, midY };
   }
 
+  /**
+   * With a tool in hand, a press on an existing building of another kind
+   * selects that building. Except: a building pressed onto a belt replaces it.
+   */
+  private takesOver(t: Tile): boolean {
+    const tool = this.ui.tool;
+    if (!tool || tool === 'demolish') return false;
+    const world = this.cb.getWorld();
+    const b = world.buildingAt(t.x, t.y);
+    if (!b || b.type === tool) return false;
+    return !world.beltToReplace(tool, t.x, t.y);
+  }
+
   private softPlace(pointerType: string, tool: string): boolean {
     if (pointerType === 'mouse') return tool === 'belt' || tool === 'wall';
     return this.ui.confirmTouch;
@@ -205,7 +223,7 @@ export class Input {
   private extendPlan(t: Tile): void {
     const plan = this.ui.plan;
     // Tunnel ends and big buildings are placed one at a time.
-    if (!plan || plan.tool === 'tunnel' || sizeOfType(plan.tool) > 1) return;
+    if (!plan || plan.tool === 'tunnel' || isBig(plan.tool)) return;
     let { x, y } = plan.tiles[plan.tiles.length - 1];
     while (x !== t.x || y !== t.y) {
       const dx = t.x - x;
@@ -288,7 +306,7 @@ export class Input {
     if (!from || (from.x === t.x && from.y === t.y)) return;
     const tool = this.ui.tool;
     // Tunnel ends and big buildings are placed one tap at a time.
-    if (!tool || tool === 'tunnel' || (tool !== 'demolish' && sizeOfType(tool) > 1)) return;
+    if (!tool || tool === 'tunnel' || (tool !== 'demolish' && isBig(tool))) return;
     const world = this.cb.getWorld();
     let { x, y } = from;
     while (x !== t.x || y !== t.y) {
@@ -329,8 +347,8 @@ export class Input {
       }
       return;
     }
-    const at = anchorAt(tool, t);
-    const result = world.place(tool, at.x, at.y, dir, replaceBelt);
+    const at = placementAt(world, tool, t, dir, replaceBelt);
+    const result = world.place(tool, at.x, at.y, at.dir, replaceBelt);
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {

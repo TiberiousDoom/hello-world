@@ -275,6 +275,7 @@ body.in-menu #toasts {
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: contain; /* wide machines keep their shape */
 }
 .tool .icon img.barrel {
   transform: rotate(-90deg);
@@ -339,6 +340,7 @@ body.in-menu #toasts {
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 .head-icon img.barrel {
   transform: rotate(-90deg);
@@ -1207,4 +1209,17 @@ button.quiet {
 }
 #inventory.peek {
   opacity: 0.12;
+}
+
+.mm-note {
+  max-width: 360px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 13px;
+  color: var(--text);
+}
+.mm-note[hidden] {
+  display: none;
 }

@@ -1,56 +1,34 @@
-import { ALL_LESSONS, expect, newGame, test } from './helpers';
+import { calm, expect, newGame, selectHub, test } from './helpers';
 
-test('a new game: first wave at 4:00, hub stock floats above the hub and pins to the edge', async ({ page }) => {
+test('the top bar has only speed and the menu; hub stock sits above the hub and scrolls away with it', async ({ page }) => {
   await newGame(page);
-  expect(await page.evaluate(() => window.game.world.state.nextWaveAt)).toBe(240);
+  await expect(page.locator('#topbar > *')).toHaveCount(2);
+  for (const gone of ['#hub-hp', '#wave', '#contract-btn', '#mail-btn', '#research-btn']) await expect(page.locator(gone)).toHaveCount(0);
+
   const stock = page.locator('#inventory');
   const box = (await stock.boundingBox())!;
   const [hx, hy] = await page.evaluate(() => {
     const h = window.game.world.hub;
-    return window.game.camera.toScreen(h.x + 1.5, h.y);
+    return window.game.camera.toScreen(h.x + 2.5, h.y);
   });
   expect(box.y + box.height).toBeLessThanOrEqual(hy + 1);
   expect(Math.abs(box.x + box.width / 2 - hx)).toBeLessThan(4);
-  await expect(stock).not.toHaveClass(/edge/);
 
-  await page.evaluate(() => (window.game.camera.x += 40));
-  await expect(stock).toHaveClass(/edge/);
-  await stock.click();
-  await expect(stock).not.toHaveClass(/edge/);
+  // Scroll the hub off screen: the panel goes with it instead of sticking to an edge.
+  await page.evaluate(() => (window.game.camera.x += 60));
+  await expect.poll(async () => (await stock.boundingBox())!.x + (await stock.boundingBox())!.width).toBeLessThan(0);
 });
 
-test('the contract tracker shows what the contract needs', async ({ page }) => {
+test('picking a tool shows no panel; placed buildings do, and the hub holds Research', async ({ page }, info) => {
   await newGame(page);
-  await page.evaluate(() => {
-    const s = window.game.world.state;
-    s.nextWaveAt = 1e9;
-    s.time = 29.9;
-  });
-  const tracker = page.locator('#contract-tracker');
-  await expect(tracker).toBeVisible();
-  await expect(tracker).toContainText(/0\s*\/\d+/);
-  const [trackerBox, topbarBox] = [await tracker.boundingBox(), await page.locator('#topbar').boundingBox()];
-  expect(trackerBox!.y).toBeGreaterThanOrEqual(topbarBox!.y + topbarBox!.height);
-  await tracker.click();
-  await expect(page.locator('#company')).toBeVisible();
-});
-
-test('the store lesson waits until its email is read', async ({ page }) => {
-  await newGame(page, { lessonsSeen: ALL_LESSONS.filter((l) => l !== 'store') });
-  await page.evaluate(() => {
-    const s = window.game.world.state;
-    s.nextWaveAt = 1e9;
-    s.time = 29.9;
-  });
-  await expect.poll(() => page.evaluate(() => window.game.world.state.company.contract)).not.toBeNull();
-  await page.evaluate(() => (window.game.world.state.time = window.game.world.state.company.contract.dueAt - 0.05));
-  await expect.poll(() => page.evaluate(() => window.game.world.state.company.contract)).toBeNull();
-  await page.waitForTimeout(400);
-  await expect(page.locator('#tutorial')).toBeHidden();
-  await page.evaluate(() => {
-    window.game.world.state.company.inbox.find((m: { subject: string }) => m.subject.startsWith('The Company Store')).read = true;
-  });
-  await expect(page.locator('#tutorial .step')).toHaveText(/^Company Store/);
+  await calm(page);
+  await page.click('[data-tool="belt"]');
+  await expect(page.locator('#info')).toBeHidden();
+  await selectHub(page, info);
+  await expect(page.locator('#info')).toContainText('research available');
+  await page.click('#info [data-action="research"]');
+  await expect(page.locator('#research')).toBeVisible();
+  await expect(page.locator('#research-body')).toContainText('Basic Defense');
 });
 
 test('the stock panel fades while the pointer is over it', async ({ page }, info) => {
@@ -61,8 +39,6 @@ test('the stock panel fades while the pointer is over it', async ({ page }, info
   const y = box.y + box.height / 2;
   if (info.project.name === 'phone') {
     // A finger held down over it; lifting it brings the panel back.
-    await page.touchscreen.tap(x, y);
-    await expect(stock).not.toHaveClass(/peek/);
     await page.evaluate(([x, y]) => {
       window.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, pointerType: 'touch', isPrimary: true }));
     }, [x, y] as const);
