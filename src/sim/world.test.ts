@@ -125,9 +125,10 @@ describe('World', () => {
     apart.ammo = 0;
     const plates = w.state.inventory.iron_plate!;
     run(w, 1);
-    expect(touching.ammo).toBe(TURRETS.turret.maxShots);
+    const def = TURRETS.turret!;
+    expect(touching.ammo).toBe(def.maxShots);
     expect(apart.ammo).toBe(0);
-    expect(plates - w.state.inventory.iron_plate!).toBe(TURRETS.turret.maxShots / TURRETS.turret.shotsPerItem);
+    expect(plates - w.state.inventory.iron_plate!).toBe(def.maxShots / def.shotsPerItem);
   });
 
   it('crafts multi-input recipes', () => {
