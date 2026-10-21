@@ -146,6 +146,8 @@ export class World {
   /** The nest owning each territory cell (see cellKey). */
   nestCells = new Map<number, Nest>();
   shots: Shot[] = [];
+  /** Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing. */
+  lost: { id: number; age: number }[] = [];
   events: string[] = [];
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
@@ -510,6 +512,7 @@ export class World {
   /** Takes a building off the map. `destroyed`: lost to bugs, not taken down by the player. */
   remove(b: Building, destroyed = false): void {
     if (b.type === 'shipyard') onShipyardRemoved(this, destroyed);
+    if (destroyed) this.lost.push({ id: b.id, age: 0 });
     const partner = b.link != null ? this.byId.get(b.link) : undefined;
     if (partner) {
       partner.link = null;
@@ -711,6 +714,8 @@ export class World {
 
     for (const shot of this.shots) shot.age += dt;
     this.shots = this.shots.filter((sh) => sh.age < 0.12);
+    for (const l of this.lost) l.age += dt;
+    this.lost = this.lost.filter((l) => l.age < 2);
   }
 
   /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */

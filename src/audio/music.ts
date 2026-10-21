@@ -1,10 +1,12 @@
 // Music: tracks blend into one another with a crossfade.
 //
-// Main menu: the Company's corporate theme, looping. In game: the lo-fi tracks
-// in a shuffled order. Winning (not built yet): the groove. Volume goes through
+// Main menu: the corporate theme, looping. In game: the lo-fi tracks
+// in a shuffled order. Winning: the groove. Volume goes through
 // Web Audio gain nodes, because iOS ignores an <audio> element's volume.
 // Browsers only allow sound after the player has clicked or tapped, so nothing
 // plays until then.
+
+import { audioContext } from './context';
 
 export type Mood = 'menu' | 'game' | 'win';
 
@@ -75,9 +77,8 @@ export class Music {
 
   private ensureContext(): void {
     if (this.ctx) return;
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    this.ctx = new Ctx();
+    this.ctx = audioContext();
+    if (!this.ctx) return;
     this.master = this.ctx.createGain();
     this.master.gain.value = this.volume;
     this.master.connect(this.ctx.destination);

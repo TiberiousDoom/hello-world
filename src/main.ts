@@ -1,4 +1,6 @@
 import { Music } from './audio/music';
+import { Sfx } from './audio/sfx';
+import { SoundWatcher } from './audio/sounds';
 import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
@@ -42,10 +44,11 @@ interface Profile {
   escapes: number;
   confirmTouch: boolean;
   musicVolume: number; // 0–1
+  sfxVolume: number; // 0–1
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, escapes: 0 };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0 };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -205,7 +208,10 @@ const tutorial = new Tutorial(camera, active, ui, {
 
 const input = new Input(canvas, camera, ui, {
   getWorld: active,
-  onPlaceError: (err) => hud.placeError(err),
+  onPlaceError: (err) => {
+    hud.placeError(err);
+    sfx.play('error');
+  },
   onChange: () => hud.refresh(),
 });
 const planBar = new PlanBar(camera, ui, {
@@ -222,6 +228,23 @@ volume.addEventListener('input', () => {
   music.setVolume(profile.musicVolume);
 });
 volume.addEventListener('change', saveProfile);
+
+const sfx = new Sfx(profile.sfxVolume);
+const sounds = new SoundWatcher(sfx, camera);
+const sfxVolume = document.getElementById('sfx-volume') as HTMLInputElement;
+sfxVolume.value = String(Math.round(profile.sfxVolume * 100));
+sfxVolume.addEventListener('input', () => {
+  profile.sfxVolume = Number(sfxVolume.value) / 100;
+  sfx.setVolume(profile.sfxVolume);
+});
+sfxVolume.addEventListener('change', () => {
+  saveProfile();
+  sfx.play('click'); // a sample at the new volume
+});
+// Every button clicks.
+document.addEventListener('click', (e) => {
+  if ((e.target as Element).closest?.('button')) sfx.play('click');
+});
 
 const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
 confirmToggle.checked = profile.confirmTouch;
@@ -279,6 +302,7 @@ function frame(now: number): void {
   if (!inMenu) {
     hud.update(world, now);
     hud.placeStock(world, camera);
+    sounds.update(world);
     tutorial.check();
   }
   tutorial.update();
@@ -297,4 +321,5 @@ requestAnimationFrame(frame);
   camera,
   ui,
   music,
+  sfx,
 };

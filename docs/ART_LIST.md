@@ -133,9 +133,10 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 
 ## Audio (not art, but listed so it isn't forgotten)
 
-Sound effects for: building placed, demolished, machine working (loop),
-turret shot, cannon shot, explosion, enemy death, hub hit, breach, research
-complete, nest provoked, ship launch, UI click.
+**Sound effects: done** (synthesized in code, D-043): building placed, belt placed, demolished,
+blocked placement, turret shot, cannon shot, hub gun, enemy death, building destroyed, hub hit,
+breach, research complete, ship stage, launch, nest provoked, UI click. Still to come: a machine
+working loop. Recorded sounds can replace any of them.
 
 **Music: done.** Nine tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
 tracks for play, a corporate-style theme for the main menu, and "Groove" for the win screen. See

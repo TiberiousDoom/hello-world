@@ -267,9 +267,22 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   order. Tracks crossfade over 4 s (1.5 s when switching between menu and game). The "Groove" track
   plays on the escape (win) screen.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
-- Menu → Music sets the volume (saved per device). Zero mutes it.
+- Menu → Music sets the volume (saved per device). Zero mutes it. Sound effects have their own slider ([Sound effects](#sound-effects)).
 - The game ships 128 kbps copies in `public/music/`. The originals and their Pixabay licences are in
   `audio/source/`. The single-file build has no music.
+
+## Sound effects
+
+- Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
+- Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
+  blocked placement, turret and cannon shots, the hub gun, bugs dying, a building destroyed, the hub
+  being hit, a breach, research finished, a ship stage finished, the launch rumble, and an angry
+  chitter when a nest is provoked.
+- Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
+  right by where they happen. A provoked nest is a warning, so it's always heard, quietly if far away.
+- Busy fights are kept tidy: each sound has a shortest gap between plays, and at most 24 play at once.
+- Nothing plays on the main menu except button clicks. Menu → Sound effects sets the volume (saved per
+  device, default 60%); zero mutes it.
 
 ## Saves
 

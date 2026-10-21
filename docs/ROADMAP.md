@@ -13,7 +13,7 @@ quality and business work don't get left until the end.
 | M2a: Logistics and sustain | Branching lines, tunnels, repair | ✅ |
 | M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ |
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ |
-| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music done; forest placeholders in; final sprites and sound effects to come |
+| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; forest placeholders in; final sprites to come |
 | M3c: Playtest polish | Playtest notes: tutorial, store lock, hub weapon, controls; batch 2 (blueprints, belts, forest); batch 3 (music, tracker, lessons) | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
 | M4s: Story layer | Escape ship ✅ (to be tied in differently, Q-17); food ([STORY.md](STORY.md)). The Company, contracts and black market were dropped (D-040) | 🚧 |
@@ -39,7 +39,8 @@ quality and business work don't get left until the end.
 10. ✅ **Story phase 4: the escape ship**, victory screen and endless mode (D-034, D-019).
 11. ✅ **Owner's notes, round 4:** buildings onto belts (D-037), hub port collar, hub-touching turrets reload from stock (D-036), see-through stock panel, and a fix for a pathfinding crash.
 12. ✅ **The open map redesign:** a procedural 256×256 map, bug territories that attack only when provoked (no waves), building sizes (extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5), the Company and black market removed, research inside the hub, a leaner top bar, and tap-to-select with a tool in hand (D-038 to D-042).
-13. **Next:** playtest the open map (nest density, territory sizes, how far bugs chase); decide how the escape ship fits in (Q-17); sound effects; then food or wood (Q-15).
+13. ✅ **Sound effects** (D-043).
+14. **Next:** playtest the open map (nest density, territory sizes, how far bugs chase); decide how the escape ship fits in (Q-17); then food or wood (Q-15).
 
 ---
 
@@ -93,7 +94,7 @@ quality and business work don't get left until the end.
 - ⬜ Hotkeys beyond 9 tools, and a key-binding screen
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory
-- ⬜ A settings screen: sound effects volume, UI scale, reduced motion
+- ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)
 - ✅ **Tutorial rework (M3c, D-025):** five lessons, each starting the first time it's useful: *Essentials* (a fresh factory, or chosen on New game), *Bugs* (the first provoked nest, or building near one), *Splitters and tunnels* (when researched), *The escape ship* (when researched) and *Breaches* (the first breach). Lessons never open over a window.
   - Action steps wait for you to do the thing (place an extractor, lay belts, build a furnace, deliver a plate, research Basic Defense), and the game keeps running.
   - Explanation steps pause the game.
@@ -120,7 +121,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Loading animation strips (frame sheets) for belts, machines and enemies
 - ✅ Music: corporate menu theme, shuffled lo-fi in game with crossfades, a win track (D-032)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
-- ⬜ Sound effects (building placed, machine running, shot, explosion, breach, research done)
+- ✅ Sound effects, synthesized in the browser (D-043). A machine-running loop is still to come
 - 🚧 Animation: belts (chevrons, corners), turret aim and two-frame enemy walk cycles are in code; machine animations to come
 
 ## 5. Tech and quality

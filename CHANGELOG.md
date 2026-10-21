@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased: sound effects
+- Sound effects for building, demolishing, blocked placements, turret and cannon fire, the hub gun, bugs dying, buildings destroyed, hub hits, breaches, research, ship stages, the launch, and an angry chitter when you provoke a nest. Buttons click.
+- Sounds come from where they happen: full volume on screen, fading out past its edges, panned left or right. A provoked nest is always heard, quietly if it's far away.
+- Menu → Sound effects sets their volume.
+
 ## Unreleased: the open map
 - **A much larger, generated map:** 256×256 tiles from a seed, with irregular ore fields and a starter patch of each ore near the hub, which now sits in the middle.
 - **No more waves or wave timer.** Bugs live in nests scattered across the map, each in its own 10×10 territory. They wander inside it and leave you alone unless provoked: building in or next to a territory, a building coming close to a bug, or shooting one. Provoked bugs go for your nearest buildings (up to 22 tiles from home) and calm down 30 s after the last provocation. Killed bugs don't come back, so nests can be cleared. Nests further out are bigger and tougher.
