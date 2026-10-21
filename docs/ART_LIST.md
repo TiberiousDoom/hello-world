@@ -145,4 +145,4 @@ tracks for play, a corporate theme for the main menu, and "Groove" for the win s
 ## Not needed
 
 - Separate toolbar icons (the building sprites are reused)
-- Fonts (the system UI font is fine for now)
+- Fonts: Montserrat (SIL Open Font License) loads from Google Fonts for headings; body text uses the system UI font

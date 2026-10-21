@@ -180,8 +180,9 @@ top bar shows the time left and progress.
 
 Numbers live in `BLACK_MARKET` in `src/sim/data.ts` and in `src/sim/blackmarket.ts`.
 
-- **A Friend** emails you 45 s after your first contract closes (met or missed). That unlocks the
-  **Stash** and the black-market window (the eye button in the top bar, showing suspicion).
+- **A Friend** emails you 45 s after your first contract closes (met or missed). Reading that email
+  unlocks the **Stash** and the black-market window (the eye button in the top bar, showing suspicion).
+- *Suspicion and audits are under review (Q-16): the owner wants a different mechanic.*
 - **Stash** (contraband): hidden storage that accepts any item by belt, 150 items per stash, shared
   across all your stashes. Stashed items aren't hub stock. Losing a stash loses its share of the contents.
 - **Skimmer** (contraband, black-market research): a belt piece that accepts from behind and passes items

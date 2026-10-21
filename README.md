@@ -41,8 +41,11 @@ src/
   sim/       game rules, with no DOM: data.ts (balance/content), world.ts (simulation), demo.ts (menu factory)
   render/    Canvas 2D renderer and camera (swappable for 3D later)
   input/     mouse, touch and keyboard
-  ui/        HTML overlay (HUD, toolbar, dialogs)
+  ui/        HTML overlay (HUD, toolbar, dialogs, tutorial, blueprint bar)
+  audio/     music player (crossfades between tracks)
   main.ts    wiring, the fixed-timestep loop, save/load
+public/music/  the music the game plays (128 kbps copies)
+audio/source/  the original tracks and their licences
 ```
 
 The simulation runs at a fixed 20 ticks per second and is deterministic per
@@ -57,6 +60,6 @@ deploys `master` to Pages. To turn deployment on, go to
 ## Docs
 
 Project docs are in [`docs/`](docs/README.md): vision, game design, roadmap,
-decisions and the art list. The [changelog](CHANGELOG.md) records each release.
+decisions, the art list and [credits](docs/CREDITS.md). The [changelog](CHANGELOG.md) records each release.
 
 The earlier Godot project, *Fairy Tale Palace Adventure*, is still in the git history.
