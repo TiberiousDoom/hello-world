@@ -9,7 +9,8 @@
 
 import { STORE_OPEN_SUBJECT, mailRead, storeOpen } from '../sim/company';
 import { introduced } from '../sim/blackmarket';
-import { BLACK_MARKET, BREACH, BuildingType, HUB_SIZE, ItemId, WAVE_WARNING } from '../sim/data';
+import { shipyard } from '../sim/ship';
+import { BLACK_MARKET, BREACH, BuildingType, HUB_SIZE, ItemId, SHIP, WAVE_WARNING } from '../sim/data';
 import { World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -72,6 +73,11 @@ const built = (ctx: StepContext, type: BuildingType, n = 1) => count(ctx.world, 
 
 function hubTarget(w: World): TileTarget | null {
   return w.hub ? { tx: w.hub.x, ty: w.hub.y, size: HUB_SIZE } : null;
+}
+
+function shipTarget(w: World): TileTarget | null {
+  const b = shipyard(w);
+  return b ? { tx: b.x, ty: b.y, size: 3 } : null;
 }
 
 function nearestNode(w: World, item: ItemId): TileTarget | null {
@@ -229,6 +235,31 @@ export const LESSONS: Lesson[] = [
         target: () => ({ el: '[data-tool="splitter"]' }),
         text: () =>
           'Splitters take items from behind and send them out the front, left and right in turn. Use them to branch a line, for example plates to both the hub and a turret.',
+      },
+    ],
+  },
+  {
+    id: 'shipyard',
+    title: 'The escape ship',
+    trigger: (w) => w.isUnlocked('shipyard') && !w.state.ship.escaped,
+    steps: [
+      {
+        target: (c) => toolThen(c, 'shipyard'),
+        done: (c) => built(c, 'shipyard'),
+        text: (c) =>
+          c.ui.tool === 'shipyard'
+            ? `Build it far from the hub, well outside the red ring (${BLACK_MARKET.watchRadius} tiles). It's the biggest secret you'll keep.`
+            : 'The shipyard plans are in. Pick the Shipyard.',
+      },
+      {
+        target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
+        text: () =>
+          "The ship goes up in four stages: hull, engine, life support and navigation. Belt each stage's parts into the shipyard; select it to see what it still needs. Everything you send here is something the Company never gets.",
+      },
+      {
+        target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
+        text: () =>
+          `When the ship is finished, select the shipyard and press Launch. The engines bring every bug on the planet down on it for ${SHIP.launchTime} seconds. Defend it, and you're free.`,
       },
     ],
   },

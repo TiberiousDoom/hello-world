@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased: the escape ship (story phase 4)
+- Research **Shipyard Plans** on the black market to unlock the **Shipyard**: a hidden 3×3 dock (one only, keep it away from the hub).
+- Build the ship in four stages (hull, engine, life support, navigation) by belting parts into the shipyard. The ship takes shape on the pad as you go.
+- **Launch** when it's finished, then hold the shipyard for 90 seconds against a doubled wave that comes for it. Survive, and you escape: a victory screen shows your run.
+- **Come back** afterwards to keep playing in endless mode (the Company bills your return flight).
+- Losing the shipyard stops a launch. Standard keeps the ship; Hardcore loses it.
+- New "The escape ship" lesson. Saves move to v7.
+- Browser tests now live in the repo (`e2e/`) and run in CI on desktop and phone viewports.
+- Touch input guards against a lost finger-lift, which could have left later taps treated as a pinch.
+
 ## Unreleased: playtest batch 3
 - Music: the Company's corporate theme on the main menu and a shuffled set of lo-fi tracks in game, crossfading from one to the next. Volume is in the pause menu. Tracks by velariomusic (Pixabay).
 - New game has a "Start with the Essentials tutorial" box, so the basics can be replayed on any device.

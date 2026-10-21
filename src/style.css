@@ -1161,3 +1161,42 @@ button.quiet {
   flex: 1;
   accent-color: var(--sky);
 }
+
+/* The launch countdown, above the toolbar (positioned by the HUD). */
+#launch-banner {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: var(--danger);
+  color: #fff;
+  font: 800 15px/1.2 var(--display);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  pointer-events: none;
+}
+#launch-banner[hidden] {
+  display: none;
+}
+
+/* Victory screen numbers. */
+.stats-list {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  margin: 8px 0 16px;
+}
+.stats-list dt {
+  color: var(--muted);
+}
+.stats-list dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.modes .primary small {
+  color: var(--navy-ink);
+}

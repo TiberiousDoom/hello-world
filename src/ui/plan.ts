@@ -3,7 +3,7 @@
 import { BUILDINGS, ItemCounts, ItemId } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { Plan, UIState } from './state';
+import { Plan, UIState, anchorAt } from './state';
 
 /**
  * Whether each planned tile can be built, counting the cost of the tiles
@@ -12,7 +12,8 @@ import { Plan, UIState } from './state';
 export function planStatus(world: World, plan: Plan): (PlaceError | null)[] {
   const spent: ItemCounts = {};
   const cost = Object.entries(BUILDINGS[plan.tool].cost) as [ItemId, number][];
-  return plan.tiles.map(({ x, y }) => {
+  return plan.tiles.map((t) => {
+    const { x, y } = anchorAt(plan.tool, t);
     const err = world.checkPlace(plan.tool, x, y);
     if (err && err !== 'cost') return err;
     if (!cost.every(([i, n]) => (world.state.inventory[i] ?? 0) - (spent[i] ?? 0) >= n)) return 'cost';

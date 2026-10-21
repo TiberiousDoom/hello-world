@@ -95,3 +95,17 @@ export async function settled(locator: Locator): Promise<{ x: number; y: number;
     .toBeLessThan(0.5);
   return box;
 }
+
+/** Waits until the camera stops moving (lessons glide it to their targets). */
+export async function cameraSettled(page: Page): Promise<void> {
+  const where = () => page.evaluate(() => [window.game.camera.x, window.game.camera.y, window.game.camera.zoom]);
+  let cam = await where();
+  await page.waitForTimeout(150);
+  await expect
+    .poll(async () => {
+      const prev = cam;
+      cam = await where();
+      return Math.abs(cam[0] - prev[0]) + Math.abs(cam[1] - prev[1]) + Math.abs(cam[2] - prev[2]);
+    })
+    .toBeLessThan(0.001);
+}

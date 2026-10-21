@@ -16,7 +16,8 @@
 import { Dir } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { Plan, UIState, isBeltPath, planDirs } from '../ui/state';
+import { Plan, UIState, anchorAt, isBeltPath, planDirs } from '../ui/state';
+import { sizeOfType } from '../sim/data';
 
 type Mode = 'none' | 'pending' | 'right' | 'pan' | 'paint' | 'plan' | 'pinch';
 
@@ -112,6 +113,9 @@ export class Input {
 
   private down(e: PointerEvent): void {
     this.canvas.setPointerCapture(e.pointerId);
+    // The first finger of a new touch (or any mouse press): forget pointers whose
+    // release we never saw, or every later tap would look like a pinch.
+    if (e.isPrimary) this.pointers.clear();
     const [x, y] = this.local(e);
     this.pointers.set(e.pointerId, { x, y });
     this.ui.hover = this.tileAt(x, y);
@@ -200,7 +204,8 @@ export class Input {
   /** Grows the blueprint along a 4-connected line to `t`; dragging back over it shortens it. */
   private extendPlan(t: Tile): void {
     const plan = this.ui.plan;
-    if (!plan || plan.tool === 'tunnel') return; // entrances and exits are placed one at a time
+    // Tunnel ends and big buildings are placed one at a time.
+    if (!plan || plan.tool === 'tunnel' || sizeOfType(plan.tool) > 1) return;
     let { x, y } = plan.tiles[plan.tiles.length - 1];
     while (x !== t.x || y !== t.y) {
       const dx = t.x - x;
@@ -280,7 +285,9 @@ export class Input {
   private paintTo(t: Tile): void {
     const from = this.lastTile;
     if (!from || (from.x === t.x && from.y === t.y)) return;
-    if (this.ui.tool === 'tunnel') return; // entrances and exits are placed one tap at a time
+    const tool = this.ui.tool;
+    // Tunnel ends and big buildings are placed one tap at a time.
+    if (!tool || tool === 'tunnel' || (tool !== 'demolish' && sizeOfType(tool) > 1)) return;
     const world = this.cb.getWorld();
     let { x, y } = from;
     while (x !== t.x || y !== t.y) {
@@ -320,7 +327,8 @@ export class Input {
       }
       return;
     }
-    const result = world.place(tool, t.x, t.y, dir);
+    const at = anchorAt(tool, t);
+    const result = world.place(tool, at.x, at.y, dir);
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {

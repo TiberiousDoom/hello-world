@@ -24,7 +24,7 @@ one; don't edit the old entry.
 | D-016 | 2026-10-20 | **Getting caught (Q-11):** Standard mode fines you. Hardcore confiscates or destroys your unauthorized (black-market) equipment | Keeps hardcore harsh without ending the run on a single audit | Accepted (black market is phase 2) |
 | D-017 | 2026-10-20 | **Monetization (Q-2):** an optional purchase, plus donations or tips | Donations and tips allow repeat support from the same player. No ads | Accepted |
 | D-018 | 2026-10-20 | **Research takes time (Q-4):** items are delivered to the research and consumed by it over time, not paid all at once | Builderment-style, and makes research a logistics job | Accepted (not built yet) |
-| D-019 | 2026-10-20 | **Win condition (Q-5):** escaping wins the run and unlocks endless mode. Story beat: you couldn't survive on your own, so you came back | A satisfying ending that keeps the sandbox | Accepted (not built yet) |
+| D-019 | 2026-10-20 | **Win condition (Q-5):** escaping wins the run and unlocks endless mode. Story beat: you couldn't survive on your own, so you came back | A satisfying ending that keeps the sandbox | Accepted (built, D-034) |
 | D-020 | 2026-10-20 | **Enemy targeting (Q-6):** basic enemies attack the nearest building. Later enemies also attack the nearest, but switch to a turret that shoots them. Both still attack a wall in the way if they can't easily go around | Makes walls and turret placement matter | Accepted (not built yet) |
 | D-021 | 2026-10-20 | **Vehicles and gear (Q-8):** on hold | Decide after the story's core systems are in | Deferred |
 | D-022 | 2026-10-20 | **Contracts and the inbox** (story phase 1): timed contracts paid in wages minus deductions; missed contracts fined and the next one enlarged; a store on credit; licence fees for research; repair invoices for breaches. Placeholder company name: **Halcyon Extraction Co.** | Smallest slice that gives the game its voice and the factory a purpose | Accepted (built) |
@@ -39,6 +39,8 @@ one; don't edit the old entry.
 | D-031 | 2026-10-21 | **Wave timing:** first wave at 4:00 (was 3:00), then every 2:00 (was 75 s) | Play-tester's notes: more prep time before getting overwhelmed | Accepted (built). Tune in playtesting |
 | D-032 | 2026-10-21 | **Music:** corporate theme on the main menu, shuffled lo-fi in game, "Groove" for the win screen; tracks crossfade. Played through Web Audio so iOS respects the volume. 128 kbps copies are shipped; the originals stay in `audio/source/` | Owner supplied the tracks and asked for blending rather than editing | Accepted (built) |
 | D-033 | 2026-10-21 | **Story reveals follow the inbox:** a lesson tied to an email (Company Store, black market) waits until that email is read, and the black market itself appears only then. Lessons never open over a window | Owner's playtest: the lessons were spoiling the emails | Accepted (built) |
+| D-034 | 2026-10-21 | **Escape ship (story phase 4, Q-14):** black-market research unlocks one 3×3 contraband Shipyard. Four stages (hull, engine, life support, navigation) are built from items belted into it. Launch starts a 90 s countdown with a doubled wave that also targets the shipyard; surviving it wins. Losing the shipyard keeps the ship in Standard and loses it in Hardcore. Coming back afterwards is endless mode (D-019), billed ¢250,000. The planned hidden workshop and fuel stage are left out for now | Owner chose phase 4. Building from belted items keeps it a logistics job and makes diverting from the Company concrete, without depending on the suspicion mechanic under review (Q-16) | Accepted (built). Stage sizes to tune in playtesting |
+| D-035 | 2026-10-21 | **Browser tests in CI:** Playwright suites in `e2e/` run on a desktop and a phone viewport on every PR, against a production build served over HTTP | They were run by hand from a scratch folder; now every change is checked the same way | Accepted (built) |
 
 ## D-006: How should turrets get ammo?
 
@@ -64,9 +66,8 @@ not available at the start, so early defense still depends on production lines.
 | Q-3 | Is clearing wave 10 the right unlock for hardcore? | It could instead be finishing all research, or escaping once |
 | Q-7 | **Analytics and crash reporting**: which provider, if any, and how players consent | Needed before a public launch |
 | Q-8 | **Vehicles and gear**: should the player steer one around the map, or should vehicles go on off-screen expeditions? | On hold (D-021) |
-| Q-14 | **Phase order:** food factories (phase 3) or the escape ship and win condition (phase 4) next? | The ship gives the stash a purpose and the game an ending |
 | Q-15 | **Wood as a resource?** Proposal: trees (part of the forest look) that a Lumber Camp harvests into logs; trees regrow. A sawmill makes planks for early walls and the stash, and the escape ship's hull. The Company charges a "deforestation permit fee" | Changes the economy and the art at once, so it waits until after playtest batch 2 |
 | Q-16 | **Rework suspicion.** The owner doesn't like the current meter-and-audit mechanic. Options are being brainstormed | Blocks further black-market work |
 | Q-12 | **Contract balance:** are the sizes, the 6-minute deadline, fines and wages right? | Tune after playtesting |
 
-Answered: Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).
+Answered: Q-14 (D-034), Q-13 (D-023), Q-2 (D-017), Q-4 (D-018), Q-5 (D-019), Q-6 (D-020), Q-9 (D-014), Q-10 (D-015), Q-11 (D-016).

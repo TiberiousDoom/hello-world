@@ -31,12 +31,13 @@ interface Profile {
   lessonsSeen: string[];
   tipsOff: boolean;
   hardcoreUnlocked: boolean;
+  escapes: number;
   confirmTouch: boolean;
   musicVolume: number; // 0–1
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5 };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, escapes: 0 };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -127,11 +128,13 @@ function refreshMainMenu(): void {
   if (saved) {
     const s = saved.state;
     const mode = s.mode === 'hardcore' ? 'Hardcore' : 'Standard';
-    document.getElementById('mm-continue-sub')!.textContent = s.gameOver ? `${mode} · run over` : `${mode} · wave ${s.wave + 1} next`;
+    const where = s.ship.endless ? `Endless · wave ${s.wave + 1} next` : s.ship.escaped ? 'escaped!' : `wave ${s.wave + 1} next`;
+    document.getElementById('mm-continue-sub')!.textContent = s.gameOver ? `${mode} · run over` : `${mode} · ${where}`;
     if (s.gameOver) btn.hidden = true;
   }
 }
 
+const escapesCounted = new Set<number>();
 const hud = new Hud(ui, {
   getWorld: active,
   save,
@@ -146,6 +149,20 @@ const hud = new Hud(ui, {
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
   rotatePlan: () => input.rotatePlan(),
+  escaped: () => {
+    music.setMood('win');
+    // Count each run's escape once, however often its victory screen is reopened.
+    if (game && !escapesCounted.has(game.state.seed)) {
+      escapesCounted.add(game.state.seed);
+      profile.escapes++;
+      saveProfile();
+    }
+    save();
+  },
+  cameBack: () => {
+    music.setMood('game');
+    save();
+  },
   centreOnHub: () => {
     const hub = active().hub;
     if (hub) [camera.x, camera.y] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];

@@ -15,6 +15,7 @@ import {
   ENEMIES,
   EnemyType,
   HUB_SIZE,
+  SHIP,
   HUB_WEAPON,
   ITEMS,
   ItemId,
@@ -26,7 +27,8 @@ import {
   isMachine,
 } from '../sim/data';
 import { Building, Shot, World } from '../sim/world';
-import { Plan, UIState, planDirs } from '../ui/state';
+import { Plan, UIState, anchorAt, planDirs } from '../ui/state';
+import { launching } from '../sim/ship';
 import { planStatus } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
@@ -36,6 +38,9 @@ const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+/** The shipyard and its ship are drawn 3 tiles square. */
+const SHIP_SIZE = 3;
+
 // The forest (D-028).
 const FOREST_FLOOR = '#1d3324';
 const FOREST_CANOPY = '#1f4a2e';
@@ -158,8 +163,7 @@ export class Renderer {
     belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
     for (const b of s.buildings) {
       if (b.type === 'belt') continue;
-      const size = b.type === 'hub' ? HUB_SIZE : 1;
-      if (visible(b.x, b.y, size)) this.drawBuilding(world, b, now, z);
+      if (visible(b.x, b.y, world.sizeOf(b.type))) this.drawBuilding(world, b, now, z);
     }
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
@@ -195,7 +199,7 @@ export class Renderer {
     if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
     if (sel) {
-      const size = sel.type === 'hub' ? HUB_SIZE : 1;
+      const size = world.sizeOf(sel.type);
       ctx.strokeStyle = '#3fa9f5';
       ctx.lineWidth = 3 / z;
       roundRect(ctx, sel.x - 0.04, sel.y - 0.04, size + 0.08, size + 0.08, 0.12);
@@ -529,8 +533,11 @@ export class Renderer {
   private drawBuilding(world: World, b: Building, now: number, z: number): void {
     const ctx = this.ctx;
     const def = BUILDINGS[b.type];
-    const size = b.type === 'hub' ? HUB_SIZE : 1;
-    const directional = b.type !== 'hub' && b.type !== 'wall' && b.type !== 'repair' && b.type !== 'stash' && !TURRETS[b.type];
+    const size = world.sizeOf(b.type);
+    const directional = size === 1 && b.type !== 'wall' && b.type !== 'repair' && b.type !== 'stash' && !TURRETS[b.type];
+    // A launching ship shakes the whole shipyard.
+    const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
+    if (shake) ctx.translate(shake, 0);
     const angle = directional ? (b.dir * Math.PI) / 2 : 0;
 
     if (!this.drawSprite(this.spriteKey(world, b), b.x, b.y, size, angle)) {
@@ -594,7 +601,44 @@ export class Renderer {
       ctx.fillText(def.short, b.x + size / 2, b.y + size / 2);
     }
 
+    if (b.type === 'shipyard') this.drawShip(world, b, now);
+    if (shake) ctx.translate(-shake, 0);
     if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.02, size - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+  }
+
+  /** The ship on its pad: finished stages solid, the one being built faint, and engine flames at launch. */
+  private drawShip(world: World, b: Building, now: number): void {
+    const ctx = this.ctx;
+    const ship = world.state.ship;
+    SHIP.stages.forEach((st, i) => {
+      if (i > ship.stage) return;
+      let alpha = 1;
+      if (i === ship.stage) {
+        // In progress: fades in as its parts arrive.
+        const need = Object.values(st.items).reduce((a, n) => a + n!, 0);
+        const have = Object.entries(st.items).reduce((a, [k, n]) => a + Math.min(n!, ship.delivered[k as ItemId] ?? 0), 0);
+        alpha = 0.15 + 0.45 * (have / need);
+      }
+      ctx.globalAlpha = alpha;
+      this.drawSprite(`buildings/ship_${st.id}`, b.x, b.y, SHIP_SIZE);
+      ctx.globalAlpha = 1;
+    });
+    if (!launching(world)) return;
+    // Engine flames under the stern, flickering.
+    const cx = b.x + SHIP_SIZE / 2;
+    const base = b.y + SHIP_SIZE * 0.89;
+    for (const dx of [-0.28, 0.28]) {
+      const len = 0.35 + 0.15 * Math.sin(now / 37 + dx * 10) + 0.08 * Math.random();
+      const g = ctx.createLinearGradient(0, base, 0, base + len);
+      g.addColorStop(0, 'rgba(255,240,180,0.95)');
+      g.addColorStop(0.5, 'rgba(255,150,60,0.8)');
+      g.addColorStop(1, 'rgba(255,80,40,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx + dx - 0.12, base);
+      ctx.quadraticCurveTo(cx + dx, base + len * 1.4, cx + dx + 0.12, base);
+      ctx.fill();
+    }
   }
 
   /** Small item icon in a building's top-right corner (its product or chosen item). */
@@ -626,30 +670,33 @@ export class Renderer {
       ctx.stroke();
       return;
     }
+    // Big buildings centre on the hovered tile.
+    const size = world.sizeOf(tool);
+    ({ x, y } = anchorAt(tool, { x, y }));
     const ok = opts.ok ?? !world.checkPlace(tool, x, y);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
+    const directional = size === 1 && tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
-    const drawn = this.drawSprite(key, x, y, 1, directional ? (dir * Math.PI) / 2 : 0);
+    const drawn = this.drawSprite(key, x, y, size, directional ? (dir * Math.PI) / 2 : 0);
     if (drawn && turret) this.drawSprite(`buildings/${tool}_barrel`, x, y, 1, -Math.PI / 2);
     if (!drawn) {
       ctx.fillStyle = BUILDINGS[tool].color;
-      ctx.fillRect(x + 0.06, y + 0.06, 0.88, 0.88);
+      ctx.fillRect(x + 0.06, y + 0.06, size - 0.12, size - 0.12);
     }
     ctx.globalAlpha = 1;
     if (!ok) {
       ctx.fillStyle = 'rgba(224,68,90,0.35)';
-      ctx.fillRect(x, y, 1, 1);
+      ctx.fillRect(x, y, size, size);
     }
     ctx.strokeStyle = ok ? '#3fa9f5' : '#ff6070';
     ctx.lineWidth = 2.5 / z;
     if (opts.dashed) {
       ctx.fillStyle = ok ? 'rgba(63,169,245,0.18)' : 'rgba(0,0,0,0)';
-      ctx.fillRect(x + 0.03, y + 0.03, 0.94, 0.94);
+      ctx.fillRect(x + 0.03, y + 0.03, size - 0.06, size - 0.06);
       ctx.setLineDash([6 / z, 4 / z]);
     }
-    roundRect(ctx, x + 0.03, y + 0.03, 0.94, 0.94, 0.1);
+    roundRect(ctx, x + 0.03, y + 0.03, size - 0.06, size - 0.06, 0.1);
     ctx.stroke();
     ctx.setLineDash([]);
     if (directional) {

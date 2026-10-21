@@ -59,7 +59,8 @@ export type BuildingType =
   | 'port'
   | 'stash'
   | 'skimmer'
-  | 'wall';
+  | 'wall'
+  | 'shipyard';
 
 export interface BuildingDef {
   name: string;
@@ -71,12 +72,14 @@ export interface BuildingDef {
   description: string;
   /** Black-market equipment the Company must not find. */
   contraband?: boolean;
+  /** Width and height in tiles (default 1). */
+  size?: number;
 }
 
 export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
-  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 600, cost: {}, blocking: true, description: 'Receives items, and defends itself with a built-in gun. Protect it.' },
+  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 600, size: 3, cost: {}, blocking: true, description: 'Receives items, and defends itself with a built-in gun. Protect it.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Takes items from behind and sends them out front, left and right in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
@@ -91,6 +94,17 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   skimmer: { name: 'Skimmer', short: 'SK', color: '#6a2a3a', hp: 40, cost: { iron_plate: 4, gear: 2 }, blocking: false, contraband: true, description: 'A belt that slips every 4th item out to its right side, toward a stash. Each skimmed item raises suspicion.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
+  shipyard: {
+    name: 'Shipyard',
+    short: 'SHIP',
+    color: '#3a4a3a',
+    hp: 900,
+    size: 3,
+    cost: { brick: 40, iron_plate: 40 },
+    blocking: true,
+    contraband: true,
+    description: 'A hidden dock for your escape ship. Belt in the parts each stage needs, then launch. Only one.',
+  },
 };
 
 export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler'];
@@ -181,8 +195,30 @@ export const PORT_PERIOD = 0.5; // seconds per item a hub port puts out
 /** Black-market research, paid from your stash rather than hub stock. */
 export const BLACK_MARKET_RESEARCH: Research[] = [
   { id: 'skimmer', name: 'Skimmer', cost: { iron_plate: 20, gear: 6 }, time: 60, requires: [], unlocks: ['skimmer'], description: 'A belt piece that quietly diverts every 4th item.' },
+  { id: 'shipyard', name: 'Shipyard Plans', cost: { iron_plate: 40, gear: 20, wire: 20 }, time: 120, requires: [], unlocks: ['shipyard'], description: 'Plans for a hidden shipyard, where you can build a ship to get off this planet.' },
   { id: 'disguise', name: 'Disguise Kit', cost: { brick: 25, wire: 20 }, time: 90, requires: [], unlocks: [], description: 'Dresses contraband up as Company equipment: audits spot it only 1 time in 4, and it draws less attention near the hub.' },
 ];
+
+/** The escape ship (story phase 4, D-034). Stages are built in order, from items belted into the shipyard. */
+export interface ShipStage {
+  id: string;
+  name: string;
+  items: ItemCounts;
+}
+
+export const SHIP = {
+  stages: [
+    { id: 'hull', name: 'Hull', items: { iron_plate: 150, brick: 80 } },
+    { id: 'engine', name: 'Engine', items: { motor: 30, gear: 80 } },
+    { id: 'life', name: 'Life support', items: { wire: 120, copper_ingot: 60 } },
+    { id: 'nav', name: 'Navigation', items: { motor: 20, wire: 80, gear: 40 } },
+  ] as ShipStage[],
+  launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
+  launchWaveIn: 15, // the Company's response arrives this soon after launch is pressed
+  finaleMultiplier: 2, // that wave is this much bigger than usual
+  returnDebt: 250_000, // billed when you come back (endless mode)
+  endlessGrace: 90, // seconds before the next wave after coming back
+};
 
 export const BLACK_MARKET = {
   contactDelay: 45, // seconds after the first contract closes before A Friend writes
@@ -237,3 +273,5 @@ export function waveComposition(n: number): {
 
 export const MAP_SIZE = 64;
 export const HUB_SIZE = 3;
+/** A building's width and height in tiles. */
+export const sizeOfType = (t: BuildingType): number => BUILDINGS[t].size ?? 1;

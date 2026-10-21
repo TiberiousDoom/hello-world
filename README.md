@@ -28,6 +28,7 @@ Progress autosaves to the browser's local storage.
 npm install
 npm run dev          # dev server with hot reload
 npm test             # simulation unit tests (Vitest)
+npm run test:e2e     # browser tests on desktop and phone viewports (Playwright)
 npm run typecheck
 npm run build        # static site in dist/
 npm run build:single # one self-contained HTML file in dist-single/
@@ -44,6 +45,7 @@ src/
   ui/        HTML overlay (HUD, toolbar, dialogs, tutorial, blueprint bar)
   audio/     music player (crossfades between tracks)
   main.ts    wiring, the fixed-timestep loop, save/load
+e2e/           browser tests (Playwright), run in CI
 public/music/  the music the game plays (128 kbps copies)
 audio/source/  the original tracks and their licences
 ```

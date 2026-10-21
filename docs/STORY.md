@@ -1,6 +1,6 @@
 # Story proposal: "Keep up appearances"
 
-**Status:** Adopted (D-014). Phase 1 (contracts and the inbox) and phase 2 (suspicion, audits and the black market) are built. Suspicion is being reworked (Q-16). The
+**Status:** Adopted (D-014). Phase 1 (contracts and the inbox) and phase 2 (suspicion, audits and the black market) are built. Suspicion is being reworked (Q-16). Phase 4 (the escape ship and win condition) is built. The
 idea came from a conversation the project owner had with a friend. The
 related decisions are D-014 to D-022 in [DECISIONS.md](DECISIONS.md).
 
@@ -72,12 +72,12 @@ Secret buildings unlocked by black-market research:
 These are what break up the factory loop.
 - **Food factory:** farms, then kitchen, then meals. Company rations are free but bland. Your own meals give buffs (faster building, faster machines), and the Company charges you for "unauthorised catering".
 - **Personal gear and vehicles:** a jetpack, a rover or a small ship that you use. The form depends on Q-8 below.
-- **The escape ship:** a multi-stage project built at a hidden shipyard. Stages: hull, engine, life support, fuel, navigation. Each stage needs late-tier parts from the stash. Launching it wins the run.
+- **The escape ship:** a multi-stage project built at a hidden shipyard. Stages: hull, engine, life support and navigation (fuel is left out for now). Each stage is fed by belt straight into the shipyard, so every part is one the Company never sees. Launching it, and holding the shipyard while the planet comes for it, wins the run.
 
 ## Rough phasing
 
 1. ✅ **Quota and inbox.** Contracts, wages and deductions, fines, debt, the Company Store on credit, licence fees and repair invoices. See [GAME_DESIGN.md](GAME_DESIGN.md#the-company).
 2. ✅ **Suspicion and the black market.** A Friend, stash, skimmer, black-market research (skimmer, disguise kit), suspicion, audits with mode-specific penalties. The hidden workshop moves to phase 4, where it builds ship parts. See [GAME_DESIGN.md](GAME_DESIGN.md#the-black-market).
 3. **Food.** A new resource chain with meal buffs.
-4. **Escape ship.** The win condition, plus a victory screen and a stats summary.
+4. ✅ **Escape ship.** Shipyard, four stages, a launch to defend, a victory screen with the run's numbers, and endless mode afterwards. See [GAME_DESIGN.md](GAME_DESIGN.md#the-escape-ship).
 5. **Vehicles.** On hold (D-021).

@@ -86,6 +86,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Placeholder |
 | Repair station | 1×1 | | 1 + 4 working | P2 | Placeholder |
 | Stash | 1×1 | Contraband. Hidden crate under a tarp | 1 | P2 | Placeholder |
+| Shipyard | 3×3 (192×192) | Contraband. A hidden landing pad under camouflage netting, with gantries | 1 | P2 | Placeholder |
+| Ship stages | 3×3 overlays | The ship, pointing north, drawn over the pad stage by stage: `ship_hull`, `ship_engine`, `ship_life`, `ship_nav`. Each overlay holds only its own parts. The game draws engine flames at launch | 1 each | P2 | Placeholder |
 | Skimmer | 1×1 | Contraband belt piece with a side chute to the right | 1 | P2 | Placeholder |
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |

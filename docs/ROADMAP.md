@@ -16,7 +16,7 @@ quality and business work don't get left until the end.
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music done; forest placeholders in; final sprites and sound effects to come |
 | M3c: Playtest polish | Playtest notes: tutorial, store lock, hub weapon, controls; batch 2 (blueprints, belts, forest); batch 3 (music, tracker, lessons) | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
-| M4s: Story layer | Contracts and inbox ✅; suspicion and black market ✅; food; escape ship ([STORY.md](STORY.md)) | 🚧 |
+| M4s: Story layer | Contracts and inbox ✅; suspicion and black market ✅ (rework pending); escape ship ✅; food ([STORY.md](STORY.md)) | 🚧 |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -34,7 +34,9 @@ quality and business work don't get left until the end.
    4. ✅ Forest look (D-028): grass, flowers and trees around the map, fireflies and drifting leaves. More detailed bugs with walk animations.
 7. ✅ **Playtest batch 3** (owner, 2026-10-21): the Essentials tutorial can be chosen on New game; the store and black-market lessons wait for their emails to be read; an on-screen contract tracker; music with crossfades.
 8. ❓ **Rework suspicion** (owner doesn't like the current mechanic). Brainstorm in progress; see Q-16.
-9. **Then:** story phase 3 (food factories) or phase 4 (escape ship and win condition). Owner's choice; see Q-14. Wood as a resource (Q-15) could join the forest work.
+9. ✅ **Browser tests in the repo and CI** (D-035).
+10. ✅ **Story phase 4: the escape ship**, victory screen and endless mode (D-034, D-019).
+11. **Next:** playtest the ship (stage sizes, the launch wave); rework suspicion (Q-16); then story phase 3 (food) or wood (Q-15).
 
 ---
 
@@ -54,7 +56,7 @@ quality and business work don't get left until the end.
 - ✅ Phase 1: Company contracts, wages and deductions, debt, fines, Company Store, licence fees, inbox (D-022)
 - ✅ Phase 2: A Friend, stash, skimmer, black-market research, suspicion, audits with penalties by mode (D-016, D-027). ❓ Suspicion to be reworked (Q-16)
 - ⬜ Phase 3: food factories and meal buffs
-- ⬜ Phase 4: hidden workshop, escape ship and win screen, which unlocks endless mode (D-019)
+- ✅ Phase 4: shipyard, four-stage escape ship, launch defence, victory screen and endless mode (D-019, D-034). The hidden workshop and a fuel stage are left out for now
 - ⏸ Vehicles and gear (D-021)
 
 ### Playtest polish (M3c)
@@ -69,7 +71,7 @@ quality and business work don't get left until the end.
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
-- ⬜ Win condition: escape (D-019, story phase 4)
+- ✅ Win condition: escape (D-019, D-034)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (wave size and timer)
 - ⬜ Enemy nests on the map that players can clear (optional)
@@ -120,7 +122,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 ## 5. Tech and quality
 - ✅ Unit tests for the simulation, run in CI on every PR
 - ✅ Versioned saves with tested migrations
-- ⬜ Browser tests (Playwright) in CI. Suites exist and are run by hand before each PR (lessons, black market, blueprints, stock, controls, music); they still need to move into the repo and CI
+- ✅ Browser tests (Playwright, `e2e/`) in CI on desktop and phone viewports: lessons, blueprints, black market, HUD, controls, music and the escape ship (D-035)
 - ⬜ A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies
 - ⬜ Lint and format checks (ESLint, Prettier)
 - ⬜ Error reporting (Q-7)

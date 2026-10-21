@@ -209,6 +209,39 @@ Numbers live in `BLACK_MARKET` in `src/sim/data.ts` and in `src/sim/blackmarket.
   - **Standard:** a ¢3,000 fine for each piece found.
   - **Hardcore:** the pieces found are confiscated and destroyed.
 
+## The escape ship
+
+Story phase 4 and the win condition (D-019, D-034). Numbers live in `SHIP` in `src/sim/data.ts`;
+the rules are in `src/sim/ship.ts`.
+
+- **Shipyard Plans** is black-market research (40 iron plates, 20 gears, 20 wire from the stash, 120 s).
+  It unlocks the **Shipyard**: a 3×3 contraband building (900 HP; 40 bricks, 40 iron plates). Only one
+  can exist. It's placed centred on the tile you pick. Like all contraband, keep it out of the watch ring.
+- The ship is built in four **stages**, in order. Belt each stage's items into the shipyard; it accepts
+  only what the current stage still needs, so nothing is wasted. Everything delivered there is diverted
+  from the Company.
+
+  | Stage | Items |
+  |---|---|
+  | Hull | 150 iron plates, 80 bricks |
+  | Engine | 30 motors, 80 gears |
+  | Life support | 120 wire, 60 copper ingots |
+  | Navigation | 20 motors, 80 wire, 40 gears |
+
+- A Friend emails as each stage is finished. Selecting the shipyard (or opening the black-market window)
+  shows the stages and what the current one still needs. The ship appears on the pad stage by stage.
+- **Launch** (a button on the selected shipyard, once the ship is finished) starts a **90 s countdown**.
+  The Company's next wave comes within 15 s and is **twice the usual size**, and enemies head for the
+  shipyard as well as the hub. A banner above the toolbar counts down.
+- If the shipyard is still standing at lift-off, **you escape**: the run is won. Enemies are cleared,
+  the game stops, and a victory screen shows the run's numbers. The "Groove" track plays.
+- If the shipyard is destroyed (by enemies, or confiscated by a Hardcore audit), any launch fails.
+  **Standard** keeps the stages built, and a new shipyard carries on. **Hardcore** loses the ship.
+  Demolishing the shipyard yourself always keeps the ship.
+- **Come back (endless mode):** from the victory screen. The shipyard is removed, ¢250,000 is billed for
+  the return passage, waves resume after 90 s, and the run carries on with no end. A save that has escaped
+  shows "escaped!" or "Endless" on the main menu. You can't build a second shipyard.
+
 ## Modes
 
 | | Standard (default) | Hardcore |
@@ -224,7 +257,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   It offers **Continue** (when a save exists, showing its mode and next wave),
   **New game** (choose the mode) and **How to play**.
 
-- **Tutorial lessons** (seven) start by themselves the first time each one is useful:
+- **Tutorial lessons** (eight) start by themselves the first time each one is useful:
 
   | Lesson | Starts when | Steps |
   |---|---|---|
@@ -234,6 +267,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   | Defense | The first wave warning | Spawn marker → research Basic Defense |
   | Company Store | The "store is open" email has been read | Where to find it |
   | Splitters and tunnels | The splitter is unlocked | What splitters do |
+  | The escape ship | The shipyard plans are researched | Pick the shipyard → place it → stages → launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
@@ -286,5 +320,5 @@ it's a single row.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently v6). Older saves are migrated when loaded,
+- Save files are versioned (currently v7). Older saves are migrated when loaded,
   and every migration is covered by a test.
