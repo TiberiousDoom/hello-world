@@ -244,8 +244,8 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 | | Desktop | Touch |
 |---|---|---|
-| Build / select | Left click | Tap |
-| Lay belts | Drag with the Belt tool | Drag with the Belt tool |
+| Build / select | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
+| Lay belts or walls | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
@@ -254,6 +254,14 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 | Pause | Space | ❚❚ button |
 | Put down the tool or clear the selection | Right-click or Esc | Tap the tool again |
 | Close a menu | Click outside it | Tap outside it |
+| Blueprint: rotate, reverse, cancel | ⟳, R or the wheel (reverses a belt line); ✕, Esc or right-click | ⟳ or Rotate; ✕ |
+
+**Soft placement (D-030).** Building can show a **blueprint** first: dashed ghosts, red where a
+tile can't be built (blocked, or past what your stock can pay for), and a bar with ✕, ⟳ and ✓
+beside its end. Dragging back along a blueprint shortens it, and tiles that already hold a building
+are skipped. On touch screens every placement is a blueprint; Menu → "Confirm before building on
+touch screens" switches it off. On desktop, single clicks build at once, and only a dragged-out belt
+or wall line becomes a blueprint.
 
 ## Saves
 

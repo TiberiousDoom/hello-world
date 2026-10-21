@@ -6,6 +6,7 @@ import { HARDCORE_UNLOCK_WAVE, HUB_SIZE } from './sim/data';
 import { createDemoWorld, sustainDemo } from './sim/demo';
 import { TICK, World } from './sim/world';
 import { Hud, hydrateIcons } from './ui/hud';
+import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
 import { LESSONS, Tutorial } from './ui/tutorial';
 
@@ -29,10 +30,11 @@ interface Profile {
   lessonsSeen: string[];
   tipsOff: boolean;
   hardcoreUnlocked: boolean;
+  confirmTouch: boolean;
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -78,6 +80,7 @@ const active = () => (inMenu || !game ? demo : game);
 
 const profile = loadProfile();
 const ui = createUIState();
+ui.confirmTouch = profile.confirmTouch;
 const camera = new Camera();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas, camera);
@@ -138,6 +141,7 @@ const hud = new Hud(ui, {
   },
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
+  rotatePlan: () => input.rotatePlan(),
   centreOnHub: () => {
     const hub = active().hub;
     if (hub) [camera.x, camera.y] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
@@ -161,10 +165,22 @@ const tutorial = new Tutorial(camera, active, ui, {
   },
 });
 
-new Input(canvas, camera, ui, {
+const input = new Input(canvas, camera, ui, {
   getWorld: active,
   onPlaceError: (err) => hud.placeError(err),
   onChange: () => hud.refresh(),
+});
+const planBar = new PlanBar(camera, ui, {
+  confirm: () => input.confirmPlan(),
+  rotate: () => input.rotatePlan(),
+  cancel: () => input.cancelPlan(),
+});
+
+const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
+confirmToggle.checked = profile.confirmTouch;
+confirmToggle.addEventListener('change', () => {
+  ui.confirmTouch = profile.confirmTouch = confirmToggle.checked;
+  saveProfile();
 });
 
 document.getElementById('mm-continue')!.addEventListener('click', () => play(game ?? loadWorld()));
@@ -220,6 +236,7 @@ function frame(now: number): void {
   }
   camera.clampTo(world.state.width, world.state.height);
   renderer.draw(world, inMenu ? null : ui, now);
+  planBar.update(world, !inMenu);
   if (!inMenu) {
     hud.update(world, now);
     hud.placeStock(world, camera);

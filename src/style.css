@@ -1044,3 +1044,47 @@ button.quiet {
     height: 66px !important;
   }
 }
+
+/* Soft placement: the blueprint's ✓ / ⟳ / ✕ bar (positioned each frame by PlanBar). */
+#plan-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+}
+#plan-bar[hidden] {
+  display: none;
+}
+#plan-bar button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  font: 700 22px/1 var(--display);
+  justify-content: center;
+}
+#plan-bar .plan-confirm {
+  background: var(--good);
+  border-color: var(--good);
+  color: var(--navy-ink);
+}
+#plan-bar .plan-confirm:disabled {
+  opacity: 0.4;
+}
+#plan-bar .plan-cancel {
+  color: #ffb3bd;
+}
+#plan-bar .plan-count {
+  padding: 0 4px 0 6px;
+  font: 700 13px/1 var(--display);
+  color: var(--muted);
+  white-space: nowrap;
+}

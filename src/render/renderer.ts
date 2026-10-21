@@ -26,7 +26,8 @@ import {
   isMachine,
 } from '../sim/data';
 import { Building, Shot, World } from '../sim/world';
-import { UIState } from '../ui/state';
+import { Plan, UIState, planDirs } from '../ui/state';
+import { planStatus } from '../ui/plan';
 import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
@@ -168,7 +169,19 @@ export class Renderer {
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
     }
-    if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
+    if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
+    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
+  }
+
+  /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
+  private drawPlan(world: World, plan: Plan, dir: Dir, z: number): void {
+    const status = planStatus(world, plan);
+    const dirs = planDirs(plan, dir);
+    const single = plan.tiles.length === 1;
+    plan.tiles.forEach((t, i) => {
+      if (status[i] === 'occupied') return;
+      this.drawGhost(world, plan.tool, t.x, t.y, dirs[i], z, { ok: status[i] === null, range: single, dashed: true });
+    });
   }
 
   // ------------------------------------------------------------- sprites
@@ -331,7 +344,15 @@ export class Renderer {
     this.drawItem(item, x + 0.8, y + 0.2, 0.28);
   }
 
-  private drawGhost(world: World, tool: BuildingType | 'demolish', x: number, y: number, dir: Dir, z: number): void {
+  private drawGhost(
+    world: World,
+    tool: BuildingType | 'demolish',
+    x: number,
+    y: number,
+    dir: Dir,
+    z: number,
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean } = {},
+  ): void {
     const ctx = this.ctx;
     if (tool === 'demolish') {
       ctx.strokeStyle = '#e0445a';
@@ -344,7 +365,7 @@ export class Renderer {
       ctx.stroke();
       return;
     }
-    const ok = !world.checkPlace(tool, x, y);
+    const ok = opts.ok ?? !world.checkPlace(tool, x, y);
     const turret = !!TURRETS[tool];
     const directional = tool !== 'wall' && tool !== 'repair' && tool !== 'port' && tool !== 'stash' && !turret;
     const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
@@ -362,14 +383,20 @@ export class Renderer {
     }
     ctx.strokeStyle = ok ? '#3fa9f5' : '#ff6070';
     ctx.lineWidth = 2.5 / z;
+    if (opts.dashed) {
+      ctx.fillStyle = ok ? 'rgba(63,169,245,0.18)' : 'rgba(0,0,0,0)';
+      ctx.fillRect(x + 0.03, y + 0.03, 0.94, 0.94);
+      ctx.setLineDash([6 / z, 4 / z]);
+    }
     roundRect(ctx, x + 0.03, y + 0.03, 0.94, 0.94, 0.1);
     ctx.stroke();
+    ctx.setLineDash([]);
     if (directional) {
       ctx.fillStyle = '#ffffff';
       arrowHead(ctx, x + 0.5 + DX[dir] * 0.62, y + 0.5 + DY[dir] * 0.62, dir, 0.14);
     }
     const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : 0);
-    if (range) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
+    if (range && opts.range !== false) rangeCircle(ctx, x + 0.5, y + 0.5, range, z);
     if (tool === 'tunnel' && ok) {
       const entrance = world.findTunnelEntrance(x, y, dir);
       if (entrance) linkLine(ctx, entrance, { x, y }, z);

@@ -32,6 +32,12 @@
 
     <div id="inventory" class="hud"></div>
     <div id="toasts"></div>
+    <div id="plan-bar" class="hud" hidden>
+      <span class="plan-count" hidden></span>
+      <button data-plan="cancel" class="plan-cancel" title="Cancel (Esc)" aria-label="Cancel">✕</button>
+      <button data-plan="rotate" title="Rotate (R)" aria-label="Rotate">⟳</button>
+      <button data-plan="confirm" class="plan-confirm" title="Build (Enter)" aria-label="Build">✓</button>
+    </div>
     <aside id="info" class="hud" hidden></aside>
     <nav id="toolbar" class="hud"></nav>
 
@@ -114,6 +120,7 @@
           <button id="btn-mainmenu"><i data-icon="home"></i>Main menu</button>
           <button id="btn-new" class="danger"><i data-icon="new"></i>New game</button>
         </div>
+        <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
         <p class="muted small">Progress saves automatically in this browser.</p>
       </div>
     </div>

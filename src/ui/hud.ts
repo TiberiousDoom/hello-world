@@ -69,6 +69,7 @@ export interface HudActions {
   toMainMenu(): void;
   hasGame(): boolean;
   centreOnHub(): void;
+  rotatePlan(): void;
 }
 
 /** Fills every empty `[data-icon]` element under `root` with its inline SVG. */
@@ -267,7 +268,8 @@ export class Hud {
   }
 
   private rotate(): void {
-    if (this.ui.tool) this.ui.dir = ((this.ui.dir + 1) % 4) as UIState['dir'];
+    if (this.ui.plan) this.actions.rotatePlan();
+    else if (this.ui.tool) this.ui.dir = ((this.ui.dir + 1) % 4) as UIState['dir'];
     else if (this.ui.selected != null) this.actions.getWorld().rotate(this.ui.selected);
     this.refresh();
   }

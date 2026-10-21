@@ -91,6 +91,10 @@ function nearestNode(w: World, item: ItemId): TileTarget | null {
   return best;
 }
 
+/** On touch screens (with confirming switched on), building shows a blueprint first. */
+const confirmHint = (c: StepContext) =>
+  c.ui.confirmTouch && matchMedia('(pointer: coarse)').matches ? ' A blueprint appears first: tap ✓ to build it, or tap the same spot again.' : '';
+
 /** Points at a toolbar button until that tool is picked, then at `then`. */
 function toolThen(ctx: StepContext, tool: BuildingType, then: Target = {}): Target {
   return ctx.ui.tool === tool ? then : { el: `[data-tool="${tool}"]` };
@@ -113,7 +117,8 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'extractor'),
         text: (c) =>
           c.ui.tool === 'extractor'
-            ? 'Now tap the iron ore node to place the extractor. Its arrow shows where ore comes out; turn it with Rotate (or the mouse wheel) first.'
+            ? 'Now tap the iron ore node to place the extractor. Its arrow shows where ore comes out; turn it with Rotate (or the mouse wheel) first.' +
+              confirmHint(c)
             : 'Iron ore never runs out. Pick the Extractor to mine it.',
       },
       {
@@ -121,7 +126,8 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'belt', 3),
         text: (c) =>
           c.ui.tool === 'belt'
-            ? "Drag from the extractor's arrow toward the hub to lay a line of belts. Each belt points the way you dragged."
+            ? "Drag from the extractor's arrow toward the hub to lay a line of belts. Each belt points the way you dragged. " +
+              'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
             : 'Belts carry items. Pick the Belt.',
       },
       {
