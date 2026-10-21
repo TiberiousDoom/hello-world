@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude (and other agents) working in this repo.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## The project
 
@@ -17,11 +17,16 @@ game as it is on `master`.
 npm run dev          # dev server
 npm test             # unit tests (Vitest, src/**/*.test.ts)
 npm run typecheck    # tsc --noEmit (tests included: CI fails on type errors in tests too)
-npm run build        # static site in dist/
-npm run build:single # one self-contained HTML file (no music, no public/)
+npm run build        # typecheck + static site in dist/
+npm run build:single # one self-contained HTML file in dist-single/ (no music, no public/)
 npm run test:e2e     # Playwright, desktop and phone viewports; builds and serves on :4173
-npx playwright test e2e/lessons.spec.ts   # one suite
+npx vitest run src/sim/ship.test.ts            # one unit test file (add -t "name" for one test)
+npx playwright test e2e/lessons.spec.ts        # one browser suite
+npx playwright test --project=desktop          # one viewport (projects: desktop, phone)
 ```
+
+Locally, Playwright reuses a server already listening on :4173 (`reuseExistingServer`), so a
+leftover `vite preview` serves a stale build. Stop it before running e2e after code changes.
 
 Before every push, run `npm run typecheck`, `npm test`, `npm run build` and `npm run test:e2e`.
 CI (`.github/workflows/deploy.yml`) runs all of them on every PR. Browser tests can be flaky under
@@ -42,6 +47,12 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
 - `src/input/`: mouse, touch and keyboard.
 - `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`.
 - `main.ts`: wiring, the game loop, save/load and the player profile (localStorage).
+
+How a frame flows: `main.ts` runs a fixed-step accumulator in `requestAnimationFrame` that calls
+`world.tick(TICK)` (scaled by the UI's game speed, capped per frame), then `renderer.draw`, the HUD,
+`sounds.update` and the tutorial check. Everything outside `src/sim/` only reads the world or calls
+`World` methods (`place`, `demolish`, `rotate`, `startResearch`, ...), which return an error code
+(`PlaceError`, `ResearchError`) instead of throwing. The main menu runs a live `World` too (`demo.ts`).
 - Buildings have rectangular footprints (`size` in `BUILDINGS`, width along the facing); use
   `footprint(type, dir)`, `world.footprintOf(b)`, `world.outputTile(b)` instead of assuming 1×1.
 - Saves are versioned (`SAVE_VERSION` in `world.ts`). If you change saved state, bump the version and
@@ -74,7 +85,8 @@ Write docs in plain, short sentences. The owner prefers not to see the word "hon
 ## Gotchas
 
 - Never `pkill -f "vite preview"` (or similar `-f` patterns) from a shell: it can match and kill the
-  shell itself. Find the PID via `/proc` and kill that.
+  shell itself. Find the PID and kill that: via `/proc` on Linux, or on Windows with
+  `netstat -ano | findstr :4173` then `taskkill /PID <pid> /F`.
 - Pathfinding costs use `Float64Array` on purpose; 32-bit storage caused a heap blow-up (see the
   comment on `World.flow`).
 - Browsers only allow audio after a click or key press; `Music` and `Sfx` wait for it.

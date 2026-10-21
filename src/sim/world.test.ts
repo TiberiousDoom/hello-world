@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BREACH, BUILDINGS, HUB_SIZE, ItemId, MAP_SIZE, NESTS, RESEARCH, TURRETS } from './data';
+import { BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, RESEARCH, TURRETS } from './data';
 import { Nest, cellKey, isAngry, nestCentre } from './nests';
-import { Building, OldSaveError, SAVE_VERSION, TICK, World } from './world';
+import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
@@ -9,6 +9,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   const w = World.create(1, mode);
   w.state.researched = RESEARCH.map((r) => r.id);
   w.state.resources.fill(0);
+  w.state.trees.fill(0);
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
@@ -414,10 +415,122 @@ describe('Saves', () => {
     expect(loaded.nestCells.size).toBe(w.state.nests.length);
   });
 
+  it('v8 saves gain forest around what is already built', () => {
+    const w = World.create(5);
+    const x = w.hub!.x - 30;
+    w.state.trees.fill(NO_TREE);
+    for (let i = 0; i < 20; i++) placed(w.place('belt', x + i, w.hub!.y, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 8;
+    delete old.trees;
+    delete old.regrow;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.state.trees.filter((t) => t === TREE).length).toBeGreaterThan(1000);
+    for (const b of loaded.state.buildings) {
+      const [fw, fh] = loaded.footprintOf(b);
+      for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) expect(loaded.treeAt(b.x + dx, b.y + dy)).toBe(NO_TREE);
+    }
+    expect(World.fromJSON(loaded.toJSON()).toJSON()).toBe(loaded.toJSON());
+  });
+
   it('refuse older versions (a different kind of map)', () => {
     const old = JSON.parse(World.create(5).toJSON());
     old.version = 7;
     expect(() => World.fromJSON(JSON.stringify(old))).toThrow(OldSaveError);
+  });
+});
+
+describe('Wood', () => {
+  /** Plants a square of trees with its top-left at (x, y). */
+  function grove(w: World, x: number, y: number, size: number) {
+    for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) w.state.trees[w.idx(x + dx, y + dy)] = TREE;
+  }
+
+  it('forest covers part of the map, never ore or the hub clearing, with a grove close by', () => {
+    const w = World.create(42);
+    const s = w.state;
+    const c = w.hub!.x + Math.floor(HUB_SIZE / 2);
+    let count = 0;
+    let nearest = Infinity;
+    for (let i = 0; i < s.trees.length; i++) {
+      if (s.trees[i] !== TREE) continue;
+      count++;
+      expect(s.resources[i]).toBe(0);
+      nearest = Math.min(nearest, Math.hypot((i % s.width) - c, Math.floor(i / s.width) - c));
+    }
+    expect(count).toBeGreaterThan(s.trees.length * FOREST.share * 0.7);
+    expect(nearest).toBeGreaterThanOrEqual(FOREST.clear);
+    expect(nearest).toBeLessThan(FOREST.clear + 3);
+    expect(World.create(42).state.trees).toEqual(s.trees);
+  });
+
+  it('trees block building; stumps do not, and building over them clears them for good', () => {
+    const w = emptyWorld();
+    const x = w.hub!.x - 10;
+    const y = w.hub!.y;
+    w.state.trees[w.idx(x, y)] = TREE;
+    expect(w.place('belt', x, y, 0)).toBe('tree');
+    w.state.trees[w.idx(x, y)] = STUMP;
+    w.state.regrow[w.idx(x, y)] = 5;
+    placed(w.place('belt', x, y, 0));
+    expect(w.treeAt(x, y)).toBe(NO_TREE);
+    run(w, 6);
+    expect(w.treeAt(x, y)).toBe(NO_TREE);
+  });
+
+  it('lumber camps go near trees, cut the nearest into logs, and stumps grow back', () => {
+    const w = emptyWorld();
+    const x = w.hub!.x - 20;
+    const y = w.hub!.y;
+    expect(w.place('lumber_camp', x, y, 0)).toBe('needs-trees');
+    w.state.trees[w.idx(x - 1, y)] = TREE; // right beside the camp
+    w.state.trees[w.idx(x - 3, y)] = TREE; // further away
+    const camp = placed(w.place('lumber_camp', x, y, 0));
+    run(w, LUMBER.period + 0.1);
+    expect(w.treeAt(x - 1, y)).toBe(STUMP);
+    expect(w.treeAt(x - 3, y)).toBe(TREE);
+    expect(camp.outputs).toEqual(Array(LUMBER.logsPerTree).fill('log'));
+    camp.outputs = [];
+    run(w, LUMBER.period);
+    expect(w.treeAt(x - 3, y)).toBe(STUMP);
+    // Nothing left to cut: the camp waits until a stump grows back.
+    camp.outputs = [];
+    run(w, LUMBER.period * 2);
+    expect(camp.outputs).toEqual([]);
+    expect(camp.progress).toBe(-1);
+    w.demolish(camp.id); // or it would cut the tree again as soon as it grows back
+    run(w, LUMBER.regrow);
+    expect(w.treeAt(x - 1, y)).toBe(TREE);
+  });
+
+  it('logs go by belt into a sawmill, and planks reach the hub', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const y = hub.y + 2;
+    grove(w, hub.x - 16, y - 4, 3);
+    placed(w.place('lumber_camp', hub.x - 14, y, 0)); // outputs at (hub.x - 12, y)
+    placed(w.place('sawmill', hub.x - 12, y, 0)); // outputs at (hub.x - 10, y)
+    for (let x = hub.x - 10; x < hub.x; x++) placed(w.place('belt', x, y, 0));
+    const before = w.state.inventory.plank ?? 0;
+    run(w, 30);
+    expect(w.state.inventory.plank ?? 0).toBeGreaterThan(before + 4);
+  });
+
+  it('forestry unlocks the camp and sawmill, and palisades cost planks', () => {
+    const w = World.create(3);
+    expect(w.isUnlocked('lumber_camp')).toBe(false);
+    expect(w.checkResearch('palisades')).toBe('requires');
+    w.state.inventory.iron_plate = 999;
+    expect(w.researchNow('forestry')).toBeNull();
+    expect(w.isUnlocked('lumber_camp') && w.isUnlocked('sawmill')).toBe(true);
+    const e = emptyWorld();
+    const x = e.hub!.x - 10;
+    e.state.inventory.plank = 1;
+    expect(e.place('palisade', x, e.hub!.y, 0)).toBe('cost');
+    e.state.inventory.plank = 2;
+    placed(e.place('palisade', x, e.hub!.y, 0));
+    expect(e.state.inventory.plank).toBe(0);
   });
 });
 

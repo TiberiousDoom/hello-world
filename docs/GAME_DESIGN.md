@@ -5,7 +5,7 @@ How the game works on `master` today. Balance numbers live in
 
 ## Core loop
 
-1. Mine raw resources with **extractors** placed over ore.
+1. Mine raw resources with **extractors** placed over ore, and cut trees with **lumber camps**.
 2. Carry them on **belts** to machines that turn them into parts.
 3. Deliver items to the **hub**. Its stock pays for buildings and research.
 4. **Research** (in the hub) unlocks new buildings.
@@ -19,6 +19,9 @@ How the game works on `master` today. Balance numbers live in
   copper and stone (about 3.5% each). A starter patch of each ore is placed 10–15 tiles from the hub,
   and the ground right around the hub is kept clear.
 - Resource tiles never run out.
+- **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
+  and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
+  clearing, so the first Lumber Camp is close by. See [Wood](#wood).
 - The **5×5 hub** sits in the centre.
 - **Bug territories:** the map is divided into 10×10 cells. About 18% of the cells whose nearest tile is
   at least 30 tiles from the hub's centre hold a nest (roughly 100 per map). See [Bugs](#bugs).
@@ -36,6 +39,8 @@ How the game works on `master` today. Balance numbers live in
 | Gear | Workshop | 2 iron plates | 2 s |
 | Copper wire ×2 | Workshop | 1 copper ingot | 1.5 s |
 | Motor | Assembler | 1 gear + 2 wire + 1 iron plate | 4 s |
+| Log ×2 | Lumber Camp | 1 tree in reach | 3 s |
+| Plank ×2 | Sawmill | 1 log | 1.5 s |
 
 A machine picks its recipe from the first input it receives, or the player
 picks one in its info panel. Changing the recipe discards inputs it has already received.
@@ -57,6 +62,9 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Repair Station | 1×1 | 12 iron plates, 4 gears, 6 wire | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
 | Shipyard | 3×3 | 40 bricks, 40 iron plates | 900 | Shipyard |
+| Lumber Camp | 2×2 | 8 iron plates | 100 | Forestry |
+| Sawmill | 2×2 | 6 iron plates, 2 bricks | 100 | Forestry |
+| Palisade | 1×1 | 2 planks | 160 | Palisades |
 
 - Sizes are width × depth when facing east (the first number runs along the direction the building
   faces). Turning a building sideways swaps them, and a placed building only turns if its new footprint is free.
@@ -88,6 +96,25 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   Because bigger buildings centre on the tapped tile, a dropped-in machine's input and output line up
   with the belt row, so it starts working at once.
 
+## Wood
+
+Wood is the one resource that runs out, for a while (D-044). The escape ship doesn't use it.
+
+- **Trees block building.** Every building, belts included, needs tree-free ground. Underground belts
+  can still pass under trees.
+- A **Lumber Camp** (2×2) must have at least one tree or stump within **4 tiles** of its centre. Every
+  3 s it cuts the nearest tree in reach into **2 logs**, and outputs them like an extractor. It waits
+  while its output is full, and goes idle when nothing in reach is grown.
+- A cut tree leaves a **stump**, which grows back into a tree after **180 s**. Stumps don't block
+  building: building over one clears it for good. So a camp can clear land, or keep cutting the same
+  woods as they regrow.
+- The **Sawmill** (2×2 machine) turns 1 log into 2 planks.
+- The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
+  like walls.
+- Selecting a camp shows its reach, and how many trees and regrowing stumps it has.
+- Later phases add a stake-firing turret, planks as repair fuel, charcoal and steel, and forest that
+  matters to bugs ([ROADMAP.md](ROADMAP.md)).
+
 ## Research
 
 You start with the belt, extractor and furnace. Everything else is researched. **Select the hub** and
@@ -111,6 +138,8 @@ press **Research** to open the list.
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
 | Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
 | Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Basic Defense | Cannon |
+| Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
+| Palisades | 12 planks | 30 s | Forestry | Palisade |
 
 Starting stock: 100 iron plates, 24 bricks, 16 copper ingots.
 
@@ -243,7 +272,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 |---|---|---|
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
 | Select | Click a building | Tap a building |
-| Lay belts or walls | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
+| Lay belts, walls or palisades | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
@@ -278,7 +307,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 - Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
-  blocked placement, turret and cannon shots, the hub gun, bugs dying, a building destroyed, the hub
+  blocked placement, a tree being chopped, turret and cannon shots, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, and an angry
   chitter when a nest is provoked.
 - Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
@@ -290,6 +319,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v8**). v8 is a new kind of map (bigger, bug territories,
-  bigger buildings), so **older saves can't be converted**: the main menu explains this, clears the old
-  save and offers a new game (D-038). Later versions will migrate again, with tests.
+- Save files are versioned (currently **v9**). v9 adds trees: a v8 save loads with forest grown
+  around what's already built (never under a building, nor within 20 tiles of the hub).
+- v8 was a new kind of map (bigger, bug territories, bigger buildings), so **saves older than v8 can't
+  be converted**: the main menu explains this, clears the old save and offers a new game (D-038).

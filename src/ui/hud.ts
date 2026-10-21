@@ -8,6 +8,7 @@ import {
   HUB_SIZE,
   HUB_WEAPON,
   ITEMS,
+  LUMBER,
   ITEM_IDS,
   ItemCounts,
   ItemId,
@@ -31,26 +32,31 @@ const TOOLBAR: BuildingType[] = [
   'tunnel',
   'port',
   'extractor',
+  'lumber_camp',
   'furnace',
+  'sawmill',
   'workshop',
   'assembler',
   'turret',
   'cannon',
   'repair',
   'wall',
+  'palisade',
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'repair', 'turret', 'cannon', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'cannon', 'port', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
 const PLACE_ERRORS: Record<PlaceError, string> = {
   bounds: 'Outside the map.',
   occupied: 'That tile is taken.',
+  tree: 'Trees are in the way. A Lumber Camp can clear them.',
   locked: 'Research this first.',
   cost: 'Not enough materials in the hub.',
   'needs-resource': 'Extractors must go over ore.',
+  'needs-trees': 'Lumber Camps must go near trees.',
   'needs-hub': 'Hub ports must go right next to the hub.',
   unique: 'You can only have one shipyard.',
 };
@@ -480,6 +486,12 @@ export class Hud {
       if (b.type === 'extractor') {
         const ore = b.recipe as ItemId | null;
         stats += `<br>Mining ${ore ? swatch(ore) + ITEMS[ore].name : 'nothing'}`;
+      }
+      if (b.type === 'lumber_camp') {
+        const [fw, fh] = world.footprintOf(b);
+        const reach = world.treesInReach(b.x, b.y, fw, fh);
+        stats += `<br>${reach.trees.length} tree${reach.trees.length === 1 ? '' : 's'} in reach, ${reach.stumps} stump${reach.stumps === 1 ? '' : 's'} growing back`;
+        stats += `<br>${LUMBER.logsPerTree} ${swatch('log')}logs per tree, one tree every ${LUMBER.period}s`;
       }
       if (isMachine(b.type)) {
         const r = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;

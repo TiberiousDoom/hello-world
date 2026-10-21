@@ -215,7 +215,7 @@ export class Input {
   }
 
   private softPlace(pointerType: string, tool: string): boolean {
-    if (pointerType === 'mouse') return tool === 'belt' || tool === 'wall';
+    if (pointerType === 'mouse') return tool === 'belt' || tool === 'wall' || tool === 'palisade';
     return this.ui.confirmTouch;
   }
 

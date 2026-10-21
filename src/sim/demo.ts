@@ -18,9 +18,9 @@ export function createDemoWorld(seed = 20261019): World {
   const hy = hub.y;
   const iy = hy + 2; // the hub's middle row
 
-  // Clear random nodes near the hub and lay out our own.
+  // Clear random nodes and trees near the hub and lay out our own.
   for (let y = hy - 20; y <= hy + 22; y++) {
-    for (let x = hx - 22; x <= hx + 24; x++) if (w.inBounds(x, y)) s.resources[w.idx(x, y)] = 0;
+    for (let x = hx - 22; x <= hx + 24; x++) if (w.inBounds(x, y)) s.resources[w.idx(x, y)] = s.trees[w.idx(x, y)] = 0;
   }
   const ore = (x: number, y: number, kind: number) => {
     for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) s.resources[w.idx(x + dx, y + dy)] = kind;

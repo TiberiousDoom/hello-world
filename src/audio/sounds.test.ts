@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from '../render/camera';
-import { NESTS, RESEARCH } from '../sim/data';
+import { LUMBER, NESTS, RESEARCH } from '../sim/data';
 import { Nest, cellKey } from '../sim/nests';
-import { Building, TICK, World } from '../sim/world';
+import { Building, TICK, TREE, World } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
 import { SoundWatcher } from './sounds';
 
@@ -22,6 +22,7 @@ function setup() {
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id).filter((r) => r !== 'masonry');
   s.resources.fill(0);
+  s.trees.fill(0);
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
@@ -77,6 +78,18 @@ describe('Sound effects', () => {
     w.tick(TICK);
     watcher.update(w);
     expect(sfx.names()).toEqual(['place', 'destroyed']);
+  });
+
+  it('a lumber camp chops each tree it cuts', () => {
+    const { w, hub, sfx, watcher } = setup();
+    w.state.trees[w.idx(hub.x - 6, hub.y)] = TREE;
+    placed(w.place('lumber_camp', hub.x - 5, hub.y, 0));
+    watcher.update(w);
+    sfx.played = [];
+    for (let t = 0; t < LUMBER.period + 0.1; t += TICK) w.tick(TICK);
+    watcher.update(w);
+    watcher.update(w);
+    expect(sfx.names()).toEqual(['chop']);
   });
 
   it('shots, kills, research, and a provoked nest heard from far away', () => {

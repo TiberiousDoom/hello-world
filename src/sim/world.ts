@@ -18,6 +18,7 @@ import {
   HUB_WEAPON,
   ItemCounts,
   ItemId,
+  LUMBER,
   MAP_SIZE,
   NESTS,
   OUTPUT_BUFFER,
@@ -36,7 +37,7 @@ import {
   isMachine,
 } from './data';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
-import { generateNests, generateResources } from './mapgen';
+import { generateNests, generateResources, generateTrees } from './mapgen';
 import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs } from './nests';
 import { ShipState, awaitingChoice, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -46,9 +47,15 @@ export type { ResearchState };
 /**
  * v8 (D-038) is a new kind of map (bigger, with bug territories and larger
  * buildings), so older saves can't be converted and start over.
+ * v9 (D-044) adds trees; v8 saves get forest grown around what's already built.
  */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 export const TICK = 1 / 20;
+
+/** What grows on a tile (GameState.trees). */
+export const NO_TREE = 0;
+export const TREE = 1;
+export const STUMP = 2;
 
 export interface BeltItem {
   item: ItemId;
@@ -94,6 +101,8 @@ export interface GameState {
   width: number;
   height: number;
   resources: number[]; // index into RESOURCE_ITEMS per tile
+  trees: number[]; // NO_TREE, TREE or STUMP per tile
+  regrow: Record<number, number>; // stump tile index -> game time it grows back
   buildings: Building[];
   enemies: Enemy[];
   nextId: number;
@@ -118,7 +127,7 @@ export interface Shot {
   age: number;
 }
 
-export type PlaceError = 'bounds' | 'occupied' | 'locked' | 'cost' | 'needs-resource' | 'needs-hub' | 'unique';
+export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
@@ -149,6 +158,8 @@ export class World {
   /** Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing. */
   lost: { id: number; age: number }[] = [];
   events: string[] = [];
+  /** Trees cut in the last moment (not saved), for effects and sound. */
+  felled: { x: number; y: number; age: number }[] = [];
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
 
@@ -169,6 +180,8 @@ export class World {
       width: size,
       height: size,
       resources: new Array(size * size).fill(0),
+      trees: new Array(size * size).fill(NO_TREE),
+      regrow: {},
       buildings: [],
       enemies: [],
       nextId: 1,
@@ -190,6 +203,7 @@ export class World {
     generateResources(world, centre, centre, HUB_SIZE / 2);
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
+    generateTrees(world, centre, centre);
     state.nests = generateNests(world, centre, centre);
     for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
     return world;
@@ -197,8 +211,22 @@ export class World {
 
   static fromJSON(json: string): World {
     const state = JSON.parse(json) as GameState;
+    if (state.version === 8) return World.migrateV8(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     return new World(state);
+  }
+
+  /** v8 to v9: grows forest on the existing map, around the buildings already there. */
+  private static migrateV8(state: GameState): World {
+    state.version = SAVE_VERSION;
+    state.trees = new Array(state.width * state.height).fill(NO_TREE);
+    state.regrow = {};
+    const world = new World(state);
+    const hub = world.hub;
+    const cx = hub ? hub.x + Math.floor(HUB_SIZE / 2) : state.width / 2;
+    const cy = hub ? hub.y + Math.floor(HUB_SIZE / 2) : state.height / 2;
+    generateTrees(world, cx, cy);
+    return world;
   }
 
   toJSON(): string {
@@ -232,6 +260,32 @@ export class World {
   resourceAt(x: number, y: number): ItemId | null {
     if (!this.inBounds(x, y)) return null;
     return RESOURCE_ITEMS[this.state.resources[this.idx(x, y)]];
+  }
+
+  treeAt(x: number, y: number): number {
+    return this.inBounds(x, y) ? this.state.trees[this.idx(x, y)] : NO_TREE;
+  }
+
+  /**
+   * Tiles with a tree, and the number of stumps, that a Lumber Camp with its
+   * top-left at (x, y) would reach: within LUMBER.range of its centre, outside its own footprint.
+   */
+  treesInReach(x: number, y: number, w = 2, h = 2): { trees: number[]; stumps: number } {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const r = LUMBER.range;
+    const trees: number[] = [];
+    let stumps = 0;
+    for (let ty = Math.floor(cy - r); ty <= Math.ceil(cy + r); ty++) {
+      for (let tx = Math.floor(cx - r); tx <= Math.ceil(cx + r); tx++) {
+        if (!this.inBounds(tx, ty) || Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy) > r) continue;
+        if (tx >= x && tx < x + w && ty >= y && ty < y + h) continue;
+        const t = this.state.trees[this.idx(tx, ty)];
+        if (t === TREE) trees.push(this.idx(tx, ty));
+        else if (t === STUMP) stumps++;
+      }
+    }
+    return { trees, stumps };
   }
 
   /** A placed building's width and height on the map. */
@@ -419,11 +473,16 @@ export class World {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
         const b = this.buildingAt(x + dx, y + dy);
         if (b && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
+        if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
       }
     }
     if (type === 'shipyard' && (shipyard(this) || this.state.ship.escaped)) return 'unique';
     if (!this.isUnlocked(type)) return 'locked';
     if (type === 'extractor' && !this.oreUnder(x, y, w, h)) return 'needs-resource';
+    if (type === 'lumber_camp') {
+      const reach = this.treesInReach(x, y, w, h);
+      if (!reach.trees.length && !reach.stumps) return 'needs-trees';
+    }
     if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
     if (!this.canAfford(BUILDINGS[type].cost)) return 'cost';
     return null;
@@ -447,6 +506,15 @@ export class World {
       }
     }
     if (type === 'port') dir = this.awayFromHub(x, y)!;
+    // Building over stumps clears them for good.
+    const [fw, fh] = footprint(type, dir);
+    for (let dy = 0; dy < fh; dy++) {
+      for (let dx = 0; dx < fw; dx++) {
+        const i = this.idx(x + dx, y + dy);
+        this.state.trees[i] = NO_TREE;
+        delete this.state.regrow[i];
+      }
+    }
     const entrance = type === 'tunnel' ? this.findTunnelEntrance(x, y, dir) : undefined;
     const b = this.addBuilding(type, x, y, dir);
     if (entrance) {
@@ -600,7 +668,8 @@ export class World {
         return true;
       case 'furnace':
       case 'workshop':
-      case 'assembler': {
+      case 'assembler':
+      case 'sawmill': {
         if (!target.recipe) {
           const r = RECIPES.find((r) => r.machine === target.type && r.inputs[item]);
           if (!r) return false;
@@ -678,9 +747,13 @@ export class World {
         case 'extractor':
           this.tickExtractor(b, dt);
           break;
+        case 'lumber_camp':
+          this.tickLumberCamp(b, dt);
+          break;
         case 'furnace':
         case 'workshop':
         case 'assembler':
+        case 'sawmill':
           this.tickMachine(b, dt);
           break;
         case 'hub':
@@ -692,6 +765,7 @@ export class World {
     }
 
     this.tickResearch(dt);
+    this.tickRegrowth();
     tickShip(this);
     // Attack paths matter only while a nest is angry; buildings change often, so refresh them at most twice a second.
     if (this.flowDirty && s.time - this.flowAt >= FLOW_REFRESH && anyAngry(this)) this.computeFlow();
@@ -716,6 +790,48 @@ export class World {
     this.shots = this.shots.filter((sh) => sh.age < 0.12);
     for (const l of this.lost) l.age += dt;
     this.lost = this.lost.filter((l) => l.age < 2);
+    for (const f of this.felled) f.age += dt;
+    this.felled = this.felled.filter((f) => f.age < 2);
+  }
+
+  /** Stumps whose time has come grow back into trees. */
+  private tickRegrowth(): void {
+    const s = this.state;
+    for (const k in s.regrow) {
+      const i = Number(k);
+      if (s.regrow[i] > s.time) continue;
+      delete s.regrow[i];
+      if (s.trees[i] === STUMP) s.trees[i] = TREE;
+    }
+  }
+
+  /** Cuts the nearest tree in reach into logs, one tree every LUMBER.period seconds. */
+  private tickLumberCamp(b: Building, dt: number): void {
+    const s = this.state;
+    if (b.outputs.length + LUMBER.logsPerTree <= OUTPUT_BUFFER) {
+      const [w, h] = this.footprintOf(b);
+      const { trees } = this.treesInReach(b.x, b.y, w, h);
+      if (!trees.length) {
+        b.progress = -1; // nothing to cut until a stump grows back
+      } else {
+        b.progress = Math.max(b.progress, 0) + dt;
+        if (b.progress >= LUMBER.period) {
+          b.progress = 0;
+          const [cx, cy] = this.centreOf(b);
+          let pick = trees[0];
+          let best = Infinity;
+          for (const i of trees) {
+            const d = Math.hypot((i % s.width) + 0.5 - cx, Math.floor(i / s.width) + 0.5 - cy);
+            if (d < best) [pick, best] = [i, d];
+          }
+          s.trees[pick] = STUMP;
+          s.regrow[pick] = s.time + LUMBER.regrow;
+          this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
+          for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');
+        }
+      }
+    }
+    this.pushOutput(b);
   }
 
   /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */

@@ -18,6 +18,7 @@ export class SoundWatcher {
   private buildings = new Map<number, { type: string; x: number; y: number }>();
   private enemies = new Map<number, { x: number; y: number }>();
   private seenShots = new WeakSet<Shot>();
+  private seenFelled = new WeakSet<object>();
   private angry = new Set<number>();
   private breaches = 0;
   private hubHp = 0;
@@ -62,6 +63,13 @@ export class SoundWatcher {
       this.seenShots.add(sh);
       const from = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
       this.play(from?.type === 'hub' ? 'hub_shot' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
+    }
+
+    // Trees cut by Lumber Camps.
+    for (const f of world.felled) {
+      if (this.seenFelled.has(f)) continue;
+      this.seenFelled.add(f);
+      this.play('chop', f.x + 0.5, f.y + 0.5);
     }
 
     // Bugs killed (but not the ones sent home by a breach).
@@ -115,6 +123,7 @@ export class SoundWatcher {
     this.buildings = new Map(s.buildings.map((b) => [b.id, { type: b.type, x: b.x, y: b.y }]));
     this.enemies = new Map(s.enemies.map((e) => [e.id, { x: e.x, y: e.y }]));
     for (const sh of world.shots) this.seenShots.add(sh);
+    for (const f of world.felled) this.seenFelled.add(f);
     this.angry = new Set(s.nests.filter((n) => isAngry(world, n)).map((n) => n.id));
     this.breaches = s.breaches;
     this.hubHp = world.hub?.hp ?? 0;

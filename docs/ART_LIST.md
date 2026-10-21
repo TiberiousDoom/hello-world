@@ -46,6 +46,8 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 | Stone node (2–3 variants) | 64×64 | 1 | P1 | Placeholder |
 | Decorations, transparent: grass tuft, flowers (2 colourways), mushrooms, pebbles. Scattered on empty tiles | 64×64 | 1 | P2 | Placeholder (`terrain/tuft`, `flowers`, `flowers_blue`, `mushrooms`, `pebbles`) |
 | Trees, top-down canopies with a soft shadow: round, autumn, pine, berry bush. They fill a band around the map | 128×128 (2 tiles) | 1 | P2 | Placeholder (`terrain/tree_round`, `tree_autumn`, `tree_pine`, `bush`) |
+| Map trees (D-044): the same canopies, drawn about 1.4 tiles across on every forest tile. Zoomed far out, a plain canopy colour | — | — | P2 | Uses the tree sprites |
+| Tree stump, with a sprouting twig, on a transparent background | 64×64 | 1 | P2 | Placeholder (`terrain/stump`) |
 | Fireflies and drifting leaves | — | — | P3 | Code |
 
 ## Items
@@ -63,6 +65,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Gear | 32×32 (+64×64) | P1 | Placeholder |
 | Copper wire | 32×32 (+64×64) | P1 | Placeholder |
 | Motor | 32×32 (+64×64) | P1 | Placeholder |
+| Log | 32×32 (+64×64) | P2 | Placeholder |
+| Plank | 32×32 (+64×64) | P2 | Placeholder |
 
 ## Buildings
 
@@ -87,6 +91,10 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Repair station | 1×1 | | 1 + 4 working | P2 | Placeholder |
 | Shipyard | 3×3 (192×192) | A landing pad under camouflage netting, with gantries | 1 | P2 | Placeholder |
 | Ship stages | 3×3 overlays | The ship, pointing north, drawn over the pad stage by stage: `ship_hull`, `ship_engine`, `ship_life`, `ship_nav`. Each overlay holds only its own parts. The game draws engine flames at launch | 1 each | P2 | Placeholder |
+| Lumber Camp | 2×2 (128×128) | A log pile and a saw, facing east. The game draws an output port at the middle of the east edge | 1 + 4 working | P2 | Placeholder |
+| Sawmill | 2×2 (128×128) | A saw bench, logs in and planks out, facing east | 1 + 4 working | P2 | Placeholder |
+| Palisade | 1×1 | Sharpened wooden stakes. Later a set that joins up, like the wall | 1 | P2 | Placeholder |
+| Leaf burst when a tree is cut | 64×64 | 4 | P3 | Code |
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
