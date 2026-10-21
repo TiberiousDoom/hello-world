@@ -135,9 +135,12 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - Killed bugs don't come back: a nest with no bugs left is cleared, and its mound goes flat.
 - Nests further from the hub are bigger and tougher:
 
-  | Distance from the hub | Crawlers | Runners | Brutes | Bug HP |
-  |---|---|---|---|---|
-  | each nest | 3 + 1 per 45 tiles | 1 + 1 per 40 tiles beyond 60 | 1 + 1 per 50 tiles beyond 100 | +1% per 1.5 tiles |
+  | Bugs in a nest *d* tiles from the hub | Count |
+  |---|---|
+  | Crawlers | 3, plus 1 per 45 tiles of *d* |
+  | Runners | none within 60 tiles; then 1, plus 1 per 40 tiles beyond 60 |
+  | Brutes | none within 100 tiles; then 1, plus 1 per 50 tiles beyond 100 |
+  | Bug HP | +1% per 1.5 tiles of *d* (double at 150 tiles) |
 
 | Bug | HP | Speed (tiles/s) | Damage to buildings |
 |---|---|---|---|

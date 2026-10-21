@@ -39,11 +39,12 @@ npm run build:single # one self-contained HTML file in dist-single/
 ```
 src/
   art/       sprites and icons (SVG placeholders; a same-named PNG replaces one)
-  sim/       game rules, with no DOM: data.ts (balance/content), world.ts (simulation), demo.ts (menu factory)
+  sim/       game rules, with no DOM: data.ts (balance/content), world.ts (simulation), mapgen.ts (map),
+             nests.ts (bug territories), ship.ts (escape ship), research.ts, demo.ts (menu factory)
   render/    Canvas 2D renderer and camera (swappable for 3D later)
   input/     mouse, touch and keyboard
   ui/        HTML overlay (HUD, toolbar, dialogs, tutorial, blueprint bar)
-  audio/     music player (crossfades between tracks)
+  audio/     music player (crossfades), synthesized sound effects, and the watcher that triggers them
   main.ts    wiring, the fixed-timestep loop, save/load
 e2e/           browser tests (Playwright), run in CI
 public/music/  the music the game plays (128 kbps copies)
