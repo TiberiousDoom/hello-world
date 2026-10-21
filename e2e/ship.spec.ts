@@ -12,7 +12,8 @@ test('build the escape ship, launch it, escape, and keep playing in endless mode
     s.researched.push('defense', 'workshop', 'assembly', 'shipyard');
     const x = w.hub.x - 22;
     const y = w.hub.y + 1;
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) s.resources[w.idx(x + dx, y + dy)] = 0;
+    // Clear ore and trees (forest can start 20 tiles out) under the shipyard.
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
     window.game.camera.x = x + 0.5;
     window.game.camera.y = y + 0.5;
     return { x, y };
