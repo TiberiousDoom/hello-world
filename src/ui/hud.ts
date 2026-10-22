@@ -375,7 +375,13 @@ export class Hud {
     const p = this.pointer;
     const r = el.getBoundingClientRect();
     const near = 12;
-    el.classList.toggle('peek', !!p && p.x > r.left - near && p.x < r.right + near && p.y > r.top - near && p.y < r.bottom + near);
+    const overPanel = !!p && p.x > r.left - near && p.x < r.right + near && p.y > r.top - near && p.y < r.bottom + near;
+    // Shown only while the hub is selected or pointed at (or the pointer moves on to the panel itself).
+    const hv = this.ui.hover;
+    const overHub = !!hv && hv.x >= hub.x && hv.x < hub.x + HUB_SIZE && hv.y >= hub.y && hv.y < hub.y + HUB_SIZE;
+    const shown = this.ui.selected === hub.id || overHub || (overPanel && !el.classList.contains('away'));
+    el.classList.toggle('away', !shown);
+    el.classList.toggle('peek', shown && overPanel && !overHub);
     el.style.transform = `translate(${Math.round(sx - w / 2)}px, ${Math.round(top - h - 6)}px)`;
   }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased: picking buildings, belt alignment and a tidier hub
+- **Build more like a building you placed:** middle-click it, or on a phone hold your finger on it for half a second. It becomes the tool in hand, facing the same way.
+- **Buildings line up with belts while you aim:** place a machine next to a belt line and it turns and shifts so the belt runs into it and its output runs onto the next belt.
+- **Hub stock only shows when you want it:** select the hub, or point at it with the mouse.
+
 ## Unreleased: wood lesson and machine hum
 - **A Wood lesson** starts the first time you research Forestry: placing a Lumber Camp beside the trees, stumps and regrowth, the Sawmill, and what planks are for. Replay it from Menu → Tutorials.
 - **The main menu's demo factory** now has a lumber camp and sawmill turning a grove into planks.
@@ -9,7 +14,7 @@
 - **Seven new in-game tracks and a fanfare,** all made for the game in the same late-90s adventure style as the menu theme. Some are upbeat (a polka, a jig, a swung market tune), some slow (a lullaby, a mysterious forest piece, a starlit waltz), plus an easy-going morning tune. The fanfare plays when your first supply run is delivered. They replace the lo-fi tracks and "Groove".
 - **Music flows from the main menu into the game** (and back) without a cut: the track playing finishes, then the next one fades in.
 - **Forestry and Palisades** come before Masonry in the research list.
-- **Tutorial tips no longer cover the spotlight.** On phones, a big target like a bug territory slides up to make room for the tip.
+- **Tutorial tips no longer cover the spotlight** (or a blueprint's ✓ button). On phones, a big target like a bug territory slides up to make room for the tip.
 
 ## Unreleased: new menu music
 - **New main menu music:** a whimsical theme made for the game, in the style of late-90s 3D adventure games: an ocarina-like flute over harp, pizzicato strings and marimba, in a lilting 6/8 with a touch of magic. It replaces the corporate track.

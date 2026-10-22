@@ -209,7 +209,7 @@ export const LESSONS: Lesson[] = [
       {
         target: () => ({ el: '#inventory' }),
         text: () =>
-          'Your stock, shown above the hub, went up. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
+          'Your stock went up. It shows above the hub while you point at it or select it. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
@@ -413,6 +413,7 @@ export class Tutorial {
     if (this.lesson && markSeen) this.profile.markSeen(this.lesson.id);
     this.lesson = null;
     this.root.hidden = true;
+    document.getElementById('inventory')?.classList.remove('pinned');
     this.setPaused(false);
   }
 
@@ -478,6 +479,8 @@ export class Tutorial {
         this.camera.y = target.tiles.ty + target.tiles.size / 2;
       }
     }
+    // Hub stock is normally hidden unless the hub is selected or pointed at: keep it up while a step points at it.
+    document.getElementById('inventory')?.classList.toggle('pinned', target.el === '#inventory');
     let r: Rect | null = null;
     if (target.el) {
       const el = document.querySelector(target.el);
@@ -521,8 +524,11 @@ export class Tutorial {
     const centreX = vw / 2 - tw / 2;
     let candidates: [number, number][];
     if (!r) {
-      // Nothing to point at: near the top while the player builds, else centred.
-      candidates = [[centreX, step.done ? 110 : vh / 2 - th / 2]];
+      // Nothing to point at: near the top while the player builds, else centred (or wherever's clear).
+      const top: [number, number] = [centreX, 110];
+      const bottom: [number, number] = [centreX, vh - th - 120];
+      const middle: [number, number] = [centreX, vh / 2 - th / 2];
+      candidates = step.done ? [top, bottom, middle] : [middle, top, bottom];
     } else {
       const cx = r.x + r.w / 2 - tw / 2;
       const cy = r.y + r.h / 2 - th / 2;
@@ -536,19 +542,26 @@ export class Tutorial {
       const far = r.y + r.h / 2 > vh / 2 ? [top, bottom] : [bottom, top];
       candidates = target.tiles && step.done ? [...far, right, left, below, above] : [below, above, right, left, ...far];
     }
-    const pad = { x: r ? r.x - 4 : 0, y: r ? r.y - 4 : 0, w: r ? r.w + 8 : 0, h: r ? r.h + 8 : 0 };
+    // Keep clear of the spotlight, and of a blueprint's ✓ ⟳ ✕ bar, which the player may need to tap.
+    const avoid: Rect[] = [];
+    if (r) avoid.push({ x: r.x - 4, y: r.y - 4, w: r.w + 8, h: r.h + 8 });
+    const bar = document.getElementById('plan-bar');
+    if (bar && !bar.hidden) {
+      const b = bar.getBoundingClientRect();
+      if (b.width) avoid.push({ x: b.left - 6, y: b.top - 6, w: b.width + 12, h: b.height + 12 });
+    }
     const overlap = ([x, y]: [number, number]) =>
-      r ? Math.max(0, Math.min(x + tw, pad.x + pad.w) - Math.max(x, pad.x)) * Math.max(0, Math.min(y + th, pad.y + pad.h) - Math.max(y, pad.y)) : 0;
+      avoid.reduce((sum, a) => sum + Math.max(0, Math.min(x + tw, a.x + a.w) - Math.max(x, a.x)) * Math.max(0, Math.min(y + th, a.y + a.h) - Math.max(y, a.y)), 0);
     // Below the map, the toolbar sits at the bottom: avoid it unless nothing else is clear.
     const toolbarTop = document.getElementById('toolbar')?.getBoundingClientRect().top ?? vh;
     const placed = candidates.map(fit);
     const clear = placed.filter((c) => overlap(c) === 0);
     const [left, top] =
       clear.find(([, y]) => y + th <= toolbarTop - 8) ?? clear[0] ?? placed.reduce((best, c) => (overlap(c) < overlap(best) ? c : best));
-    // A big map target with no clear spot (a bug territory on a phone): slide the map so the
+    // A big map target (a bug territory) with no clear spot on a phone: slide the map so the
     // target moves away from the tip. Only just after it comes into view, while the layout
     // settles, so it never fights the player's own panning.
-    if (r && target.tiles && !clear.length && performance.now() - this.tilesSince < 600) {
+    if (r && target.tiles && target.tiles.size >= NESTS.cell && !clear.length && performance.now() - this.tilesSince < 600) {
       const down = top + th / 2 > r.y + r.h / 2; // the tip is below the target: move the target up
       // Keep the tip above the toolbar when there's room for that too.
       const floor = r.h + GAP + th + 24 < toolbarTop ? toolbarTop - 8 : vh - 12;

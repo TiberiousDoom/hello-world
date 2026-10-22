@@ -25,8 +25,9 @@ How the game works on `master` today. Balance numbers live in
 - The **5×5 hub** sits in the centre.
 - **Bug territories:** the map is divided into 10×10 cells. About 18% of the cells whose nearest tile is
   at least 30 tiles from the hub's centre hold a nest (roughly 100 per map). See [Bugs](#bugs).
-- Hub stock is shown just above the hub, as part of the map: it scrolls away with the hub. While the
-  mouse is over it (or a finger is down on it), it fades almost completely, so it never hides the map above the hub.
+- Hub stock is shown just above the hub, as part of the map, **only while the hub is selected or the
+  mouse is over it** (D-053); it scrolls away with the hub. While the mouse is over the panel itself (or a
+  finger is down on it), it fades almost completely, so it never hides the map above the hub.
 
 ## Items and recipes
 
@@ -104,6 +105,11 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   refunded, the building faces the way the belt under the tap ran, and it takes any items they carried.
   Because bigger buildings centre on the tapped tile, a dropped-in machine's input and output line up
   with the belt row, so it starts working at once.
+- **Lining up with belts while aiming (D-053):** a single placement (a click or tap, not a drag) of an
+  extractor, lumber camp, furnace, workshop, assembler, sawmill or splitter next to belts lines itself up
+  with them. Among the facings and positions that cover the aimed tile, it picks the one where its output
+  runs onto a belt (best), and a belt runs into it (better still if it then faces the way that belt runs,
+  carrying the flow straight on). The player's own facing wins a tie. The preview shows the result.
 
 ## Wood
 
@@ -288,8 +294,8 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
 - **Explanation steps** pause the game until you press Next.
 - A lesson waits while a window (research, menu…) is open, so it never covers what the player is reading.
-- A lesson card never covers its spotlight. It tries below, above, beside, then the top or bottom of the
-  screen, and keeps clear of the toolbar when it can. When a map target is too big for any of those (a
+- A lesson card never covers its spotlight, nor a blueprint's ✓ ⟳ ✕ bar. It tries below, above, beside, then
+  the top or bottom of the screen, and keeps clear of the toolbar when it can. When a map target is too big for any of those (a
   bug territory on a phone), the map slides a little as the target comes into view, to make room.
 - The **New game** dialog has "Start with the Essentials tutorial", ticked until the player has seen it once. Ticking it shows Essentials even if lessons are switched off; unticking it skips them.
 - Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
@@ -315,6 +321,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
 | Pick a building | 1–9 | Toolbar |
+| Build more like a placed building | Middle-click it | Hold a finger still on it (about half a second) |
 | Pause | Space | ❚❚ button |
 | Put down the tool or clear the selection | Right-click or Esc | Tap the tool again |
 | Close a menu | Click outside it | Tap outside it |
