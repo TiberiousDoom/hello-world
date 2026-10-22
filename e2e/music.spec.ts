@@ -2,7 +2,7 @@ import { expect, setProfile, test } from './helpers';
 
 test.skip(({ isMobile }) => isMobile, 'one viewport is enough');
 
-test('music: silent until a click, corporate on the menu, lo-fi in game, crossfades and volume', async ({ page }) => {
+test('music: silent until a click, its own theme on the menu, lo-fi in game, crossfades and volume', async ({ page }) => {
   await setProfile(page, { lessonsSeen: ['essentials'], tipsOff: true });
   await page.goto('/');
   const music = () => page.evaluate(() => window.game.music.state);
@@ -11,14 +11,14 @@ test('music: silent until a click, corporate on the menu, lo-fi in game, crossfa
 
   await page.mouse.click(900, 600);
   await expect.poll(async () => (await music()).time, { timeout: 10_000 }).toBeGreaterThan(0.2);
-  expect((await music()).track).toBe('corporate-background');
+  expect((await music()).track).toBe('menu-theme');
 
   await page.click('#mm-new');
   await page.click('[data-mode="standard"]');
   await expect.poll(async () => (await music()).mood).toBe('game');
   await expect.poll(async () => (await music()).time, { timeout: 10_000 }).toBeGreaterThan(0.2);
   const first = (await music()).track;
-  expect(first).not.toBe('corporate-background');
+  expect(first).not.toBe('menu-theme');
 
   // Near the end of a track, the next one starts.
   await page.evaluate(() => {
@@ -34,5 +34,5 @@ test('music: silent until a click, corporate on the menu, lo-fi in game, crossfa
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).musicVolume)).toBe(0.2);
 
   await page.click('#btn-mainmenu');
-  await expect.poll(async () => (await music()).track, { timeout: 10_000 }).toBe('corporate-background');
+  await expect.poll(async () => (await music()).track, { timeout: 10_000 }).toBe('menu-theme');
 });

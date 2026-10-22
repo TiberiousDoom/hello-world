@@ -134,7 +134,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects, UI icons, app icon
 - ⬜ Loading animation strips (frame sheets) for belts, machines and enemies
-- ✅ Music: corporate menu theme, shuffled lo-fi in game with crossfades, a win track (D-032)
+- ✅ Music: shuffled lo-fi in game with crossfades, a track for the first delivery (D-032), and a generated late-90s adventure-style theme for the main menu (D-051)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043). A machine-running loop is still to come
 - 🚧 Animation: belts (chevrons, corners), turret aim and two-frame enemy walk cycles are in code; machine animations to come

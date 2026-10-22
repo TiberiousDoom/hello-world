@@ -328,13 +328,17 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 ## Music
 
-- Main menu: the corporate track, looping. In game: seven lo-fi tracks in a shuffled
+- Main menu: an original theme in the style of late-90s 3D adventure games (D-051), looping: a
+  breathy, ocarina-like flute over harp, pizzicato bass, marimba and soft strings, in a lilting 6/8 and
+  the F Lydian mode, with plenty of reverb. About 70 seconds. In game: seven lo-fi tracks in a shuffled
   order. Tracks crossfade over 4 s (1.5 s when switching between menu and game). The "Groove" track
   plays on the first-delivery screen.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
 - Menu → Music sets the volume (saved per device). Zero mutes it. Sound effects have their own slider ([Sound effects](#sound-effects)).
 - The game ships 128 kbps copies in `public/music/`. The originals and their Pixabay licences are in
-  `audio/source/`. The single-file build has no music.
+  `audio/source/`. The menu theme is made by `audio/compose/menu-theme.mjs`, which writes
+  `public/music/menu-theme.wav`: change its notes and run `node audio/compose/menu-theme.mjs` to rework
+  it. The single-file build has no music.
 
 ## Sound effects
 
