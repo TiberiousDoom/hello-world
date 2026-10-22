@@ -41,7 +41,7 @@ interface Profile {
   lessonsSeen: string[];
   tipsOff: boolean;
   hardcoreUnlocked: boolean;
-  escapes: number;
+  escapes: number; // games with a supply run delivered (named for the escape ship it replaced)
   confirmTouch: boolean;
   musicVolume: number; // 0–1
   sfxVolume: number; // 0–1
@@ -140,7 +140,8 @@ function refreshMainMenu(): void {
     const s = saved.state;
     const mode = s.mode === 'hardcore' ? 'Hardcore' : 'Standard';
     const mins = Math.floor(s.time / 60);
-    const where = s.ship.endless ? 'Endless' : s.ship.escaped ? 'escaped!' : `${mins} min played`;
+    const runs = s.ship.runs;
+    const where = runs ? `${runs} supply run${runs === 1 ? '' : 's'} delivered` : `${mins} min played`;
     document.getElementById('mm-continue-sub')!.textContent = s.gameOver ? `${mode} · run over` : `${mode} · ${where}`;
     if (s.gameOver) btn.hidden = true;
   }
@@ -161,13 +162,13 @@ const hud = new Hud(ui, {
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
   rotatePlan: () => input.rotatePlan(),
-  escaped: () => {
-    music.setMood('win');
-    // Count each run's escape once, however often its victory screen is reopened.
-    if (game && !escapesCounted.has(game.state.seed)) {
+  delivered: (first) => {
+    if (first) music.setMood('win');
+    // Count each game's first delivery once.
+    if (first && game && !escapesCounted.has(game.state.seed)) {
       escapesCounted.add(game.state.seed);
       profile.escapes++;
-      // Escaping in Standard unlocks Hardcore.
+      // A first delivery in Standard unlocks Hardcore.
       if (game.state.mode === 'standard' && !profile.hardcoreUnlocked) {
         profile.hardcoreUnlocked = true;
         hud.toast('Hardcore mode unlocked! Start it from Menu → New game.');

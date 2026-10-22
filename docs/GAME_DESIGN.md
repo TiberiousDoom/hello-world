@@ -10,7 +10,7 @@ How the game works on `master` today. Balance numbers live in
 3. Deliver items to the **hub**. Its stock pays for buildings and research.
 4. **Research** (in the hub) unlocks new buildings.
 5. Expand carefully: **bug territories** dot the map, and their bugs attack if provoked.
-6. Research the **Shipyard**, build the escape ship and launch it to win.
+6. Research the **Shipyard**, build the supply ship, then load it and launch it again and again to supply the colony.
 
 ## Map
 
@@ -98,7 +98,7 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 ## Wood
 
-Wood is the one resource that runs out, for a while (D-044). The escape ship doesn't use it.
+Wood is the one resource that runs out, for a while (D-044). The ship's hull doesn't use it, but later supply runs carry planks.
 
 - **Trees block building.** Every building, belts included, needs tree-free ground. Underground belts
   can still pass under trees.
@@ -197,14 +197,15 @@ There are three ways to get ammo to a turret:
 **Repair stations** heal the most damaged building within 3.5 tiles, at 20 HP/s.
 They are fuelled by iron plates (1 plate = 40 HP, holding up to 400 HP), and arrive half full.
 
-## The escape ship
+## The supply ship
 
-The win condition (D-019, D-034). Numbers live in `SHIP` in `src/sim/data.ts`; the rules are in `src/sim/ship.ts`.
+You keep a far-off colony supplied (D-046). There's no final win: the game carries on. Numbers live in
+`SHIP` and `cargoFor` in `src/sim/data.ts`; the rules are in `src/sim/ship.ts`.
 
 - The **Shipyard** research unlocks the **Shipyard**: 3×3, 900 HP, 40 bricks and 40 iron plates. Only one
-  can exist.
-- The ship is built in four **stages**, in order. Belt each stage's items into the shipyard; it accepts
-  only what the current stage still needs, so nothing is wasted.
+  can exist at a time.
+- The ship is built once, in four **stages**, in order. Belt each stage's items into the shipyard; it
+  accepts only what the current stage still needs, so nothing is wasted.
 
   | Stage | Items |
   |---|---|
@@ -213,25 +214,38 @@ The win condition (D-019, D-034). Numbers live in `SHIP` in `src/sim/data.ts`; t
   | Life support | 120 wire, 60 copper ingots |
   | Navigation | 20 motors, 80 wire, 40 gears |
 
-- A message pops up as each stage is finished. Selecting the shipyard shows the stages and what the
-  current one still needs. The ship appears on the pad stage by stage.
-- **Launch** (a button on the selected shipyard, once the ship is finished) starts a **90 s countdown**.
+- Then each **supply run** needs its **cargo** belted in, the same way:
+
+  | Run | Cargo |
+  |---|---|
+  | 1 | 100 iron plates, 60 bricks, 40 copper ingots |
+  | 2 | 120 iron plates, 60 gears, 60 wire, 60 planks |
+  | 3 | 120 bricks, 100 gears, 20 motors, 120 planks |
+  | 4 and on | Run 3's list, 25% more each run (rounded up to tens) |
+
+- A message pops up as each stage is finished and when the cargo is loaded. Selecting the shipyard
+  shows the stages, the runs delivered, and what the stage or the cargo still needs. The ship appears
+  on the pad stage by stage.
+- **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**.
   The engines wake **every nest within 48 tiles** of the shipyard, and they stay angry for the whole
   countdown. A banner above the toolbar counts down.
-- If the shipyard is still standing at lift-off, **you escape**: the run is won. The game stops, and a
-  victory screen shows the run's numbers. The "Groove" track plays.
-- If the shipyard is destroyed, any launch fails. **Standard** keeps the stages built, and a new shipyard
-  carries on. **Hardcore** loses the ship. Demolishing the shipyard yourself always keeps the ship.
-- **Keep playing (endless):** from the victory screen. The shipyard is removed and the run carries on.
-  You can't build a second shipyard. A save that has escaped shows "escaped!" or "Endless" on the main menu.
-- *How the ship fits the game is due to change (owner's note, D-038).*
+- If the shipyard is still standing at lift-off, the run is **delivered**. The game goes on. The ship is
+  **away for 5 minutes** (the pad is empty, and nothing can be loaded), then comes back for the next run.
+- The **first delivery** in a game opens a "Supplies delivered!" screen with the game's numbers, and
+  pauses the game until you press Keep building. The "Groove" track plays. In Standard, it unlocks Hardcore.
+  Later deliveries show a message and play a jingle.
+- If the shipyard is destroyed, any launch fails. **Standard** keeps the ship and its cargo, and a new
+  shipyard carries on. **Hardcore** loses a docked ship and its cargo; a ship that's away is safe.
+  Demolishing the shipyard yourself always keeps the ship.
+- The main menu's Continue button shows how many supply runs a save has delivered.
+- *Coming next:* each delivered run will unlock something you can't research (D-046).
 
 ## Modes
 
 | | Standard (default) | Hardcore |
 |---|---|---|
 | Hub reaches 0 HP | **Breach:** every nest calms down and its bugs go home, 25% of every item in stock is lost, and the hub is restored to 50% HP | Run over |
-| Availability | Always | Unlocked by escaping once in Standard |
+| Availability | Always | Unlocked by delivering a supply run in Standard |
 
 The hardcore unlock is stored in the browser's profile, separate from the save file.
 
@@ -248,7 +262,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   | Essentials | A game has no extractors or belts yet | The hub → pick the extractor → place it over iron ore → lay 3 belts → build a furnace → deliver a plate → hub stock → Research is in the hub |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense from the hub |
   | Splitters and tunnels | The splitter is unlocked | What splitters do |
-  | The escape ship | The shipyard is researched | Pick the shipyard → place it → stages → launch |
+  | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
@@ -297,7 +311,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 - Main menu: the corporate track, looping. In game: seven lo-fi tracks in a shuffled
   order. Tracks crossfade over 4 s (1.5 s when switching between menu and game). The "Groove" track
-  plays on the escape (win) screen.
+  plays on the first-delivery screen.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
 - Menu → Music sets the volume (saved per device). Zero mutes it. Sound effects have their own slider ([Sound effects](#sound-effects)).
 - The game ships 128 kbps copies in `public/music/`. The originals and their Pixabay licences are in
@@ -308,7 +322,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 - Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
   blocked placement, a tree being chopped, turret and cannon shots, the hub gun, bugs dying, a building destroyed, the hub
-  being hit, a breach, research finished, a ship stage finished, the launch rumble, and an angry
+  being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry
   chitter when a nest is provoked.
 - Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
   right by where they happen. A provoked nest is a warning, so it's always heard, quietly if far away.
@@ -319,7 +333,10 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v9**). v9 adds trees: a v8 save loads with forest grown
-  around what's already built (never under a building, nor within 20 tiles of the hub).
+- Save files are versioned (currently **v10**). v10 turns the escape ship into the supply ship: a game
+  that had escaped loads with one run delivered, and the ship built and back at the shipyard; other
+  games keep their ship progress.
+- v9 added trees: a v8 save loads with forest grown around what's already built (never under a
+  building, nor within 20 tiles of the hub).
 - v8 was a new kind of map (bigger, bug territories, bigger buildings), so **saves older than v8 can't
   be converted**: the main menu explains this, clears the old save and offers a new game (D-038).

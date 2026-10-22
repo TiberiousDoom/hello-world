@@ -147,7 +147,7 @@ breach, research complete, ship stage, launch, nest provoked, UI click. Still to
 working loop. Recorded sounds can replace any of them.
 
 **Music: done.** Nine tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
-tracks for play, a corporate-style theme for the main menu, and "Groove" for the win screen. See
+tracks for play, a corporate-style theme for the main menu, and "Groove" for the first-delivery screen. See
 [GAME_DESIGN.md](GAME_DESIGN.md#music).
 
 ## Not needed

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ItemId, NESTS, RESEARCH, SHIP } from './data';
+import { ItemId, NESTS, RESEARCH, SHIP, cargoFor } from './data';
 import { Nest, cellKey, isAngry } from './nests';
-import { awaitingChoice, insertShip, keepPlaying, launch, shipyard } from './ship';
-import { Building, TICK, World } from './world';
+import { cargoLoaded, insertShip, launch, shipAway, shipyard } from './ship';
+import { Building, SAVE_VERSION, TICK, World } from './world';
 
 function run(w: World, seconds: number) {
   for (let t = 0; t < seconds; t += TICK) w.tick();
@@ -39,6 +39,11 @@ function finishShip(w: World): void {
   }
 }
 
+/** Feeds the next run's cargo straight into the shipyard. */
+function loadCargo(w: World): void {
+  for (const [item, n] of Object.entries(cargoFor(w.state.ship.runs))) for (let i = 0; i < n!; i++) insertShip(w, item as ItemId);
+}
+
 function addNest(w: World, x: number, y: number): Nest {
   const n: Nest = { id: w.state.nests.length, x, y, angryUntil: 0 };
   w.state.nests.push(n);
@@ -47,7 +52,7 @@ function addNest(w: World, x: number, y: number): Nest {
   return n;
 }
 
-describe('Escape ship', () => {
+describe('Supply ship', () => {
   it('the shipyard is researched, takes 3×3 tiles, and only one can be built', () => {
     const w = quiet();
     w.state.researched = w.state.researched.filter((r) => r !== 'shipyard');
@@ -71,13 +76,29 @@ describe('Escape ship', () => {
     expect(w.insert(b, 'motor', ...from)).toBe(true); // now the engine
   });
 
-  it('launching needs a finished ship and wakes the nests within reach', () => {
+  it('once built, the ship takes only the cargo the run still needs', () => {
+    const w = quiet();
+    const b = yard(w);
+    finishShip(w);
+    const from = [b.x - 1, b.y] as const;
+    const cargo = cargoFor(0);
+    expect(w.insert(b, 'motor', ...from)).toBe(cargo.motor !== undefined);
+    expect(cargoLoaded(w)).toBe(false);
+    loadCargo(w);
+    expect(cargoLoaded(w)).toBe(true);
+    expect(w.insert(b, 'iron_plate', ...from)).toBe(false);
+    expect(w.events.some((e) => e.includes('cargo is loaded'))).toBe(true);
+  });
+
+  it('launching needs a finished, loaded ship and wakes the nests within reach', () => {
     const w = quiet();
     const b = yard(w);
     const near = addNest(w, Math.floor((b.x - 30) / 10) * 10, Math.floor(b.y / 10) * 10);
     const far = addNest(w, 0, 0);
     expect(launch(w)).toBe('not-ready');
     finishShip(w);
+    expect(launch(w)).toBe('not-ready'); // no cargo yet
+    loadCargo(w);
     expect(launch(w)).toBeNull();
     expect(w.state.ship.launchAt).toBeCloseTo(w.state.time + SHIP.launchTime);
     expect(isAngry(w, near)).toBe(true);
@@ -86,23 +107,35 @@ describe('Escape ship', () => {
     expect(launch(w)).toBe('launching');
   });
 
-  it('holding the shipyard until lift-off wins; the game waits, then keeps going on request', () => {
+  it('holding the shipyard until lift-off delivers the run; the game goes on and the ship comes back', () => {
     const w = quiet();
-    yard(w);
+    const b = yard(w);
     finishShip(w);
+    loadCargo(w);
     launch(w);
     run(w, SHIP.launchTime + 1);
-    expect(w.state.ship.escaped).toBe(true);
-    expect(awaitingChoice(w)).toBe(true);
+    const ship = w.state.ship;
+    expect(ship.runs).toBe(1);
+    expect(ship.delivered).toEqual({});
+    expect(shipAway(w)).toBe(true);
+    expect(shipyard(w)).toBe(b);
     const t = w.state.time;
-    run(w, 5);
-    expect(w.state.time).toBe(t); // frozen on the victory screen
-    keepPlaying(w);
-    expect(w.state.ship.endless).toBe(true);
-    expect(shipyard(w)).toBeUndefined();
-    expect(w.place('shipyard', w.hub!.x - 40, w.hub!.y, 0)).toBe('unique'); // no second escape
     run(w, 1);
-    expect(w.state.time).toBeGreaterThan(t);
+    expect(w.state.time).toBeGreaterThan(t); // no waiting on a victory screen
+    expect(w.insert(b, 'iron_plate', b.x - 1, b.y)).toBe(false); // nothing to load while it's away
+    expect(launch(w)).toBe('away');
+    run(w, SHIP.returnTime);
+    expect(shipAway(w)).toBe(false);
+    expect(w.events.some((e) => e.includes('ship is back'))).toBe(true);
+    expect(ship.stage).toBe(SHIP.stages.length); // built once
+    loadCargo(w); // the second run's, bigger cargo
+    expect(launch(w)).toBeNull();
+  });
+
+  it('each run asks for more, and runs past the listed ones keep growing', () => {
+    const total = (run: number) => Object.values(cargoFor(run)).reduce((a, n) => a + n!, 0);
+    for (let r = 1; r < SHIP.cargo.length + 3; r++) expect(total(r)).toBeGreaterThan(total(r - 1));
+    expect(Object.keys(cargoFor(SHIP.cargo.length + 2))).toEqual(Object.keys(SHIP.cargo[SHIP.cargo.length - 1]));
   });
 
   it('losing the shipyard stops a launch; Standard keeps the stages built, Hardcore loses the ship', () => {
@@ -116,6 +149,37 @@ describe('Escape ship', () => {
       expect(shipyard(w)).toBeUndefined();
       expect(w.state.ship.launchAt).toBeNull();
       expect(w.state.ship.stage).toBe(mode === 'standard' ? SHIP.stages.length : 0);
+    }
+  });
+
+  it('a ship away at the colony survives losing the shipyard, even in Hardcore', () => {
+    const w = quiet('hardcore');
+    const b = yard(w);
+    finishShip(w);
+    loadCargo(w);
+    launch(w);
+    run(w, SHIP.launchTime + 1);
+    b.hp = 0;
+    w.tick();
+    expect(w.state.ship.stage).toBe(SHIP.stages.length);
+    expect(w.state.ship.runs).toBe(1);
+  });
+
+  it('v9 saves: an escaped game counts one run delivered, with the ship back and built', () => {
+    for (const escaped of [true, false]) {
+      const w = quiet();
+      yard(w);
+      for (let i = 0; i < 20; i++) insertShip(w, 'iron_plate');
+      const old = JSON.parse(w.toJSON());
+      old.version = 9;
+      old.ship = { stage: escaped ? SHIP.stages.length : 0, delivered: old.ship.delivered, launchAt: null, escaped, endless: escaped };
+      const loaded = World.fromJSON(JSON.stringify(old));
+      expect(loaded.state.version).toBe(SAVE_VERSION);
+      expect(loaded.state.ship).toEqual(
+        escaped
+          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null }
+          : { stage: 0, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null },
+      );
     }
   });
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased: the colony supply ship
+- **The escape ship is now a colony supply ship, and the game no longer ends.** Build the ship once, then load each supply run's cargo by belt and launch it. Hold the shipyard through the countdown, and the run is delivered.
+- The ship is away for 5 minutes after each run, then comes back for the next, bigger one. Later runs ask for gears, wire, motors and planks.
+- Your first delivery gets a "Supplies delivered!" screen, and in Standard it unlocks Hardcore. The victory screen and the endless-mode choice are gone.
+- In Hardcore, a ship that's away at the colony is safe even if the shipyard falls.
+- Saves move to v10. A game that had escaped loads with one supply run delivered and the ship ready to load.
+
 ## Unreleased: wood (phase 1)
 - **Forests:** about a seventh of the map is now woods. Trees block building, so expanding means working around them or clearing them. There's a small grove just outside the hub's clearing.
 - **Forestry** research unlocks the **Lumber Camp**, which cuts the nearest tree in reach into logs, and the **Sawmill**, which saws logs into planks. Cut trees leave stumps that grow back after 3 minutes. Build over a stump to clear it for good.
