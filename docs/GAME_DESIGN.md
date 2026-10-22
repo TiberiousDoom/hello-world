@@ -282,6 +282,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense from the hub |
   | Splitters and tunnels | The splitter is unlocked | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
+  | Wood | Forestry is researched | Pick the Lumber Camp → place it beside the nearest trees → stumps and regrowth → pick and place the Sawmill → what planks are for |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
@@ -364,6 +365,10 @@ strings and light percussion, with a roomy reverb.
   blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry
   chitter when a nest is provoked.
+- **The machine hum:** a soft, continuous loop (a low drone and a whirr with a gentle chug) that grows
+  with the number of machines working on screen (extractors, lumber camps, furnaces, workshops,
+  assemblers, sawmills), full at six. It fades with distance like other sounds, and goes quiet while the
+  game is paused and on the main menu.
 - Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
   right by where they happen. A provoked nest is a warning, so it's always heard, quietly if far away.
 - Busy fights are kept tidy: each sound has a shortest gap between plays, and at most 24 play at once.

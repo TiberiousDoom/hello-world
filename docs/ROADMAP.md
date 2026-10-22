@@ -79,6 +79,7 @@ quality and business work don't get left until the end.
 ### Wood (M4w, D-044)
 Not the escape ship's hull. In this order:
 - ✅ **Phase 1, trees and the basics:** forest from map generation, saved (v9, with a v8 migration); trees block building and stumps don't. A Lumber Camp cuts the nearest tree in reach into logs, and stumps regrow. A Sawmill makes planks (D-045). Palisade walls made of planks. Forestry and Palisades research. Placeholder sprites, a chop sound and a leaf burst
+- ✅ **Phase 1 follow-ups:** a Wood lesson when Forestry is researched, a lumber camp and sawmill in the main-menu demo, and a browser test
 - ⬜ **Phase 2, wood in the economy:** a stake-firing turret with cheap wooden ammo; repair stations also burn planks; planks in some early building and research costs; charcoal (furnace, from logs), then steel (charcoal and iron plates) as the mid-game material for upgrades
 - ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a tree nursery that plants new forest
 
@@ -107,10 +108,12 @@ Not the escape ship's hull. In this order:
 - ⬜ Settings screen reachable from the main menu (today, music volume and the touch-confirm setting are in the pause menu)
 - ⬜ Tooltips for items in the hub stock panel (touch users can't hover; item icons help)
 - ⬜ Hotkeys beyond 9 tools, and a key-binding screen
+- ⬜ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a firm press (a long press) on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
+- ⬜ **Buildings line up with belts while you aim:** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory
 - ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)
-- ✅ **Tutorial rework (M3c, D-025):** five lessons, each starting the first time it's useful: *Essentials* (a fresh factory, or chosen on New game), *Bugs* (the first provoked nest, or building near one), *Splitters and tunnels* (when researched), *The escape ship* (when researched) and *Breaches* (the first breach). Lessons never open over a window.
+- ✅ **Tutorial rework (M3c, D-025):** lessons (six now, with Wood), each starting the first time it's useful: *Essentials* (a fresh factory, or chosen on New game), *Bugs* (the first provoked nest, or building near one), *Splitters and tunnels* (when researched), *The escape ship* (when researched) and *Breaches* (the first breach). Lessons never open over a window.
   - Action steps wait for you to do the thing (place an extractor, lay belts, build a furnace, deliver a plate, research Basic Defense), and the game keeps running.
   - Explanation steps pause the game.
   - Each lesson plays once, and can be replayed or switched off in Menu → Tutorials.
@@ -136,13 +139,13 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Loading animation strips (frame sheets) for belts, machines and enemies
 - ✅ Music: nine original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, and a fanfare for the first delivery. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
-- ✅ Sound effects, synthesized in the browser (D-043). A machine-running loop is still to come
+- ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
 - 🚧 Animation: belts (chevrons, corners), turret aim and two-frame enemy walk cycles are in code; machine animations to come
 
 ## 5. Tech and quality
 - ✅ Unit tests for the simulation, run in CI on every PR
 - ✅ Versioned saves with tested migrations (v8 started over with the new map, D-038)
-- ✅ Browser tests (Playwright, `e2e/`) in CI on desktop and phone viewports: lessons, blueprints, HUD, controls, music and the escape ship (D-035)
+- ✅ Browser tests (Playwright, `e2e/`) in CI on desktop and phone viewports: lessons, blueprints, HUD, controls, music, the supply ship and wood (D-035)
 - ⬜ A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies
 - ⬜ Lint and format checks (ESLint, Prettier)
 - ⬜ Error reporting (Q-7)

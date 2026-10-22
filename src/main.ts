@@ -303,8 +303,10 @@ function frame(now: number): void {
   if (!inMenu) {
     hud.update(world, now);
     hud.placeStock(world, camera);
-    sounds.update(world);
+    sounds.update(world, ui.speed > 0);
     tutorial.check();
+  } else {
+    sfx.setHum(0); // no factory noise on the main menu
   }
   tutorial.update();
   requestAnimationFrame(frame);

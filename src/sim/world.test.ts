@@ -621,6 +621,7 @@ describe('Demo world', () => {
     expect(w.state.inventory.iron_plate!).toBeGreaterThan(inv.iron_plate!);
     expect(w.state.inventory.wire!).toBeGreaterThan(inv.wire!);
     expect(w.state.inventory.brick!).toBeGreaterThan(inv.brick!);
+    expect(w.state.inventory.plank ?? 0).toBeGreaterThan(inv.plank ?? 0);
     expect(w.state.nests.every((n) => !isAngry(w, n))).toBe(true);
   });
 });

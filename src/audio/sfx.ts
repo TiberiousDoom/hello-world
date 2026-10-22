@@ -42,6 +42,8 @@ const MIN_GAP: Partial<Record<Sound, number>> = {
 };
 /** At most this many sounds at once. */
 const MAX_VOICES = 24;
+/** The machine hum at its loudest (a busy factory filling the screen). */
+const HUM_PEAK = 0.1;
 
 export interface PlayOptions {
   /** 0–1, e.g. quieter when far from the middle of the screen. */
@@ -145,6 +147,10 @@ export class Sfx {
   private started = false;
   private last = new Map<Sound, number>();
   private voices = 0;
+  /** The machine-running loop, once started. */
+  private hum: GainNode | null = null;
+  /** The hum's current level, 0–1 (for tests and debugging). */
+  humLevel = 0;
   /** The most recent sounds played (for tests and debugging). */
   readonly log: Sound[] = [];
 
@@ -198,6 +204,52 @@ export class Sfx {
       out.disconnect();
       node.disconnect();
     }, (end - now) * 1000 + 100);
+  }
+
+  /**
+   * The machine-running loop: a low drone and a whirr with a gentle chug,
+   * fading to `level` (0–1, how busy the factory on screen is).
+   */
+  setHum(level: number): void {
+    this.humLevel = level;
+    if (!this.started || (level <= 0 && !this.hum)) return;
+    if (!this.setup()) return;
+    const ctx = this.ctx!;
+    if (!this.hum) this.hum = this.startHum();
+    this.hum.gain.setTargetAtTime(level * HUM_PEAK, ctx.currentTime, 0.4);
+  }
+
+  private startHum(): GainNode {
+    const ctx = this.ctx!;
+    const out = ctx.createGain();
+    out.gain.value = 0;
+    out.connect(this.master!);
+    const drone = ctx.createOscillator();
+    drone.type = 'triangle';
+    drone.frequency.value = 55;
+    const droneGain = ctx.createGain();
+    droneGain.gain.value = 0.5;
+    drone.connect(droneGain).connect(out);
+    drone.start();
+    const whirr = ctx.createBufferSource();
+    whirr.buffer = this.noiseBuf;
+    whirr.loop = true;
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 320;
+    band.Q.value = 1.2;
+    const whirrGain = ctx.createGain();
+    whirrGain.gain.value = 0.35;
+    whirr.connect(band).connect(whirrGain).connect(out);
+    whirr.start();
+    // The chug: the whirr swells and dips a few times a second, like machines at work.
+    const chug = ctx.createOscillator();
+    chug.frequency.value = 3.2;
+    const depth = ctx.createGain();
+    depth.gain.value = 0.15;
+    chug.connect(depth).connect(whirrGain.gain);
+    chug.start();
+    return out;
   }
 
   private setup(): boolean {

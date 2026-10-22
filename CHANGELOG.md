@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased: wood lesson and machine hum
+- **A Wood lesson** starts the first time you research Forestry: placing a Lumber Camp beside the trees, stumps and regrowth, the Sawmill, and what planks are for. Replay it from Menu → Tutorials.
+- **The main menu's demo factory** now has a lumber camp and sawmill turning a grove into planks.
+- **A machine hum:** a soft, continuous factory sound that grows with the number of machines working on screen, and goes quiet when you pause.
+
 ## Unreleased: new music, research order and tutorial tips
 - **Seven new in-game tracks and a fanfare,** all made for the game in the same late-90s adventure style as the menu theme. Some are upbeat (a polka, a jig, a swung market tune), some slow (a lullaby, a mysterious forest piece, a starlit waltz), plus an easy-going morning tune. The fanfare plays when your first supply run is delivered. They replace the lo-fi tracks and "Groove".
 - **Music flows from the main menu into the game** (and back) without a cut: the track playing finishes, then the next one fades in.

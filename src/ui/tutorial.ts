@@ -9,8 +9,8 @@
 
 import { shipyard } from '../sim/ship';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
-import { BREACH, BuildingType, HUB_SIZE, ItemId, NESTS, SHIP } from '../sim/data';
-import { World } from '../sim/world';
+import { BREACH, BuildingType, HUB_SIZE, ItemId, LUMBER, NESTS, SHIP } from '../sim/data';
+import { TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
 
@@ -130,6 +130,30 @@ function nearestNode(w: World, item: ItemId): TileTarget | null {
   return best;
 }
 
+/** The trees nearest the hub, for the wood lesson's first Lumber Camp. */
+function nearestTrees(w: World): TileTarget | null {
+  const hub = w.hub;
+  if (!hub) return null;
+  const cx = hub.x + HUB_SIZE / 2;
+  const cy = hub.y + HUB_SIZE / 2;
+  let best = -1;
+  let bestD = Infinity;
+  w.state.trees.forEach((t, i) => {
+    if (t !== TREE) return;
+    const d = Math.hypot((i % w.state.width) - cx, Math.floor(i / w.state.width) - cy);
+    if (d < bestD) [best, bestD] = [i, d];
+  });
+  if (best < 0) return null;
+  // A patch around the nearest tree, so the spotlight shows a bit of the wood.
+  return { tx: (best % w.state.width) - 1, ty: Math.floor(best / w.state.width) - 1, size: 3 };
+}
+
+/** The first Lumber Camp the player built. */
+function campTarget(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'lumber_camp');
+  return b ? { tx: b.x, ty: b.y, size: 2 } : null;
+}
+
 /** On touch screens (with confirming switched on), building shows a blueprint first. */
 const confirmHint = (c: StepContext) =>
   c.ui.confirmTouch && matchMedia('(pointer: coarse)').matches ? ' A blueprint appears first: tap ✓ to build it, or tap the same spot again.' : '';
@@ -225,6 +249,40 @@ export const LESSONS: Lesson[] = [
         target: () => ({ el: '[data-tool="splitter"]' }),
         text: () =>
           'Splitters take items from behind and send them out the front, left and right in turn. Use them to branch a line, for example plates to both the hub and a turret.',
+      },
+    ],
+  },
+  {
+    id: 'forestry',
+    title: 'Wood',
+    trigger: (w) => w.isUnlocked('lumber_camp'),
+    steps: [
+      {
+        target: (c) => toolThen(c, 'lumber_camp', { tiles: nearestTrees(c.world), shape: 'circle' }),
+        done: (c) => built(c, 'lumber_camp'),
+        text: (c) =>
+          c.ui.tool === 'lumber_camp'
+            ? `Place it beside the trees: the blue circle shows its reach of ${LUMBER.range} tiles. It cuts the nearest tree into ${LUMBER.logsPerTree} logs every ${LUMBER.period} seconds, and sends them out of the side its arrow marks.` +
+              confirmHint(c)
+            : 'Trees are in the way of building, but they are also wood. Pick the Lumber Camp.',
+      },
+      {
+        target: (c) => ({ tiles: campTarget(c.world), shape: 'circle' }),
+        text: () =>
+          `A cut tree leaves a stump, which grows back in about ${Math.round(LUMBER.regrow / 60)} minutes. Stumps don't block building: build over one to clear it for good, or leave the woods to regrow and keep cutting.`,
+      },
+      {
+        target: (c) => toolThen(c, 'sawmill'),
+        done: (c) => built(c, 'sawmill'),
+        text: (c) =>
+          c.ui.tool === 'sawmill'
+            ? "Place it where the camp's logs can reach it by belt, or drop it onto a belt line. Each log becomes two planks." + confirmHint(c)
+            : 'Logs need sawing into planks. Pick the Sawmill.',
+      },
+      {
+        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
+        text: () =>
+          'Belt the planks to the hub. They pay for Palisades, cheap wooden walls you can research next, and later supply runs carry them to the colony.',
       },
     ],
   },

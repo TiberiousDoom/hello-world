@@ -8,7 +8,8 @@ All the music is original to this game: composed and rendered in code by the scr
 Earlier versions used tracks by [velariomusic](https://pixabay.com/users/velariomusic-54515099/) under the
 [Pixabay Content License](https://pixabay.com/service/terms/): Corporate Background, Chill Beat, Chill
 Lo-Fi, Late Night B Roll, Lo-Fi Waves, Lofi Background, Lofi Hip-Hop, Lofi Jazz and Groove. None of them
-ships any more; the originals and their licence certificates stay in [`audio/source/`](../audio/source/).
+ships any more, and the original files were removed from the repository (they're in its git history).
+Their licence certificates stay in [`audio/source/`](../audio/source/) as the record.
 
 ## Fonts
 

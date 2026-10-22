@@ -2,7 +2,7 @@
 
 import { Dir, NESTS, RESEARCH } from './data';
 import { cellKey } from './nests';
-import { World } from './world';
+import { TREE, World } from './world';
 
 const IRON = 1;
 const COPPER = 2;
@@ -65,6 +65,15 @@ export function createDemoWorld(seed = 20261019): World {
   put('tunnel', sx, hy + 11, 3);
   put('tunnel', sx, hy + 8, 3);
   line(sx, hy + 7, sx, hy + 5, 3);
+
+  // Wood from the north: a grove, a lumber camp, a sawmill, then planks down into the hub.
+  const wx = hx + 2;
+  for (let y = hy - 17; y <= hy - 13; y++) {
+    for (let x = hx - 1; x <= hx + 6; x++) if ((x + y) % 5) s.trees[w.idx(x, y)] = TREE;
+  }
+  put('lumber_camp', wx, hy - 12, 1);
+  put('sawmill', wx, hy - 10, 1);
+  line(wx, hy - 8, wx, hy - 1, 1);
 
   // Defences around the hub.
   for (let x = hx - 3; x <= hx + 7; x++) put('wall', x, hy + 10, 0);

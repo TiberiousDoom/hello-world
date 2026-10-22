@@ -47,8 +47,9 @@ src/
   audio/     music player (crossfades), synthesized sound effects, and the watcher that triggers them
   main.ts    wiring, the fixed-timestep loop, save/load
 e2e/           browser tests (Playwright), run in CI
-public/music/  the music the game plays (128 kbps copies)
-audio/source/  the original tracks and their licences
+public/music/  the music the game plays (rendered from audio/compose/)
+audio/compose/ the music, composed and rendered in code
+audio/source/  licences for music used in earlier versions
 ```
 
 The simulation runs at a fixed 20 ticks per second and is deterministic per

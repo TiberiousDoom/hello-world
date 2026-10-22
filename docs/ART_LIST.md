@@ -147,8 +147,8 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 
 **Sound effects: done** (synthesized in code, D-043): building placed, belt placed, demolished,
 blocked placement, turret shot, cannon shot, hub gun, enemy death, building destroyed, hub hit,
-breach, research complete, ship stage, launch, nest provoked, UI click. Still to come: a machine
-working loop. Recorded sounds can replace any of them.
+breach, research complete, ship stage, launch, nest provoked, UI click, tree chopped, tesla zap, and a
+machine-running hum that follows how busy the factory on screen is. Recorded sounds can replace any of them.
 
 **Music: done.** Nine original tracks in a late-90s adventure style, generated in code: the menu
 theme, seven tracks for play and a fanfare for the first delivery (`audio/compose/`, D-051, D-052). See
