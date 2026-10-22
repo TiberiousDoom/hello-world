@@ -108,8 +108,9 @@ Not the escape ship's hull. In this order:
 - ⬜ Settings screen reachable from the main menu (today, music volume and the touch-confirm setting are in the pause menu)
 - ⬜ Tooltips for items in the hub stock panel (touch users can't hover; item icons help)
 - ⬜ Hotkeys beyond 9 tools, and a key-binding screen
-- ⬜ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a firm press (a long press) on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
-- ⬜ **Buildings line up with belts while you aim:** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
+- ✅ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a long press on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
+- ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
+- ✅ **Hub stock only while the hub is selected or pointed at** (D-053), so the map around the hub stays clear
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory
 - ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)

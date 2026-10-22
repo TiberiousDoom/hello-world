@@ -1226,6 +1226,15 @@ button.quiet {
 #inventory.peek {
   opacity: 0.12;
 }
+/* Hub stock shows only while the hub is selected or pointed at (a lesson can pin it). */
+#inventory.away:not(.pinned) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#inventory {
+  transition: opacity 0.15s;
+}
 
 .mm-note {
   max-width: 360px;

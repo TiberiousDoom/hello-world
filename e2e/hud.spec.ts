@@ -1,11 +1,16 @@
-import { calm, expect, newGame, selectHub, test } from './helpers';
+import { calm, expect, isTouch, newGame, selectHub, test } from './helpers';
 
-test('the top bar has only speed and the menu; hub stock sits above the hub and scrolls away with it', async ({ page }) => {
+test('the top bar has only speed and the menu; hub stock shows above the selected hub and scrolls away with it', async ({ page }, info) => {
   await newGame(page);
+  await calm(page);
   await expect(page.locator('#topbar > *')).toHaveCount(2);
   for (const gone of ['#hub-hp', '#wave', '#contract-btn', '#mail-btn', '#research-btn']) await expect(page.locator(gone)).toHaveCount(0);
 
+  // Hidden until the hub is selected (or, with a mouse, pointed at).
   const stock = page.locator('#inventory');
+  await expect(stock).toHaveClass(/away/);
+  await selectHub(page, info);
+  await expect(stock).not.toHaveClass(/away/);
   const box = (await stock.boundingBox())!;
   const [hx, hy] = await page.evaluate(() => {
     const h = window.game.world.hub;
@@ -31,9 +36,12 @@ test('picking a tool shows no panel; placed buildings do, and the hub holds Rese
   await expect(page.locator('#research-body')).toContainText('Basic Defense');
 });
 
-test('the stock panel fades while the pointer is over it', async ({ page }, info) => {
+test('the stock panel fades while the pointer is over it, and hides when the hub is deselected', async ({ page }, info) => {
   await newGame(page);
+  await calm(page);
+  await selectHub(page, info);
   const stock = page.locator('#inventory');
+  await expect(stock).not.toHaveClass(/away/);
   const box = (await stock.boundingBox())!;
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
@@ -51,4 +59,7 @@ test('the stock panel fades while the pointer is over it', async ({ page }, info
     await page.mouse.move(x, y + 200);
     await expect(stock).not.toHaveClass(/peek/);
   }
+  await page.evaluate(() => (window.game.ui.selected = null));
+  if (!isTouch(info)) await page.mouse.move(5, 300); // off the hub
+  await expect(stock).toHaveClass(/away/);
 });

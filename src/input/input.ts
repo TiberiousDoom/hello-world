@@ -2,6 +2,8 @@
 //
 // Mouse: left click/drag builds with the selected tool (or selects with no
 // tool), right-click clears the tool and selection, right/middle drag pans.
+// A middle-click on a building (or, on touch, holding a finger still on one)
+// picks it: its kind becomes the tool in hand, facing the same way.
 // The wheel rotates the building being placed, and zooms otherwise
 // (Ctrl+wheel, which is also a trackpad pinch, always zooms).
 // Touch: one finger builds/selects like the left mouse button, or pans when
@@ -18,7 +20,7 @@ import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs } from '../ui/state';
 
-type Mode = 'none' | 'pending' | 'right' | 'pan' | 'paint' | 'plan' | 'pinch';
+type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'pinch';
 
 interface Tile {
   x: number;
@@ -33,6 +35,7 @@ export interface InputCallbacks {
 
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
+const LONG_PRESS = 450; // ms a finger rests on a building to pick it
 
 export class Input {
   private pointers = new Map<number, { x: number; y: number }>();
@@ -44,6 +47,7 @@ export class Input {
   private pinch = { dist: 0, midX: 0, midY: 0 };
   private wheelTurn = 0;
   private prevPlan: Plan | null = null; // the blueprint before this gesture started a new one
+  private pressTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -128,8 +132,12 @@ export class Input {
     if (this.pointers.size > 2) return;
 
     this.downAt = { x, y };
+    if (e.pointerType !== 'mouse') this.startLongPress(this.ui.hover);
     if (e.pointerType === 'mouse' && e.button === 2) {
       this.mode = 'right'; // a click clears; a drag pans
+    } else if (e.pointerType === 'mouse' && e.button === 1) {
+      this.mode = 'middle'; // a click picks the building under it; a drag pans
+      e.preventDefault(); // no autoscroll
     } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
     } else if (this.ui.tool === 'express_belt' && this.cb.getWorld().buildingAt(this.ui.hover.x, this.ui.hover.y)?.type === 'belt') {
@@ -174,7 +182,8 @@ export class Input {
     }
     this.ui.hover = this.tileAt(x, y);
     const moved = Math.hypot(x - this.downAt.x, y - this.downAt.y) > TAP_SLOP;
-    if ((this.mode === 'pending' || this.mode === 'right') && moved) this.mode = 'pan';
+    if (moved) this.cancelLongPress();
+    if ((this.mode === 'pending' || this.mode === 'right' || this.mode === 'middle') && moved) this.mode = 'pan';
     if (this.mode === 'pan') this.camera.pan(x - prev.x, y - prev.y);
     if (this.mode === 'paint') this.paintTo(this.ui.hover);
     if (this.mode === 'plan') this.extendPlan(this.ui.hover);
@@ -184,12 +193,45 @@ export class Input {
     if (!this.pointers.has(e.pointerId)) return;
     const [x, y] = this.local(e);
     this.pointers.delete(e.pointerId);
+    this.cancelLongPress();
     if (completed && this.mode === 'pending') this.select(this.tileAt(x, y));
     if (completed && this.mode === 'right') this.clearSelection();
+    if (completed && this.mode === 'middle') this.pick(this.tileAt(x, y));
     if (this.mode === 'plan') this.endPlanGesture(e.pointerType, completed);
     if (e.pointerType !== 'mouse') this.ui.hover = null;
     // After a pinch, the remaining finger pans rather than building.
     this.mode = this.pointers.size === 1 ? 'pan' : 'none';
+  }
+
+  /** Touch: a finger held still on a building picks it, unless this press already built something. */
+  private startLongPress(t: Tile): void {
+    this.cancelLongPress();
+    const b = this.cb.getWorld().buildingAt(t.x, t.y);
+    if (!b || b.type === 'hub') return;
+    this.pressTimer = setTimeout(() => {
+      this.pressTimer = null;
+      if (this.pointers.size !== 1 || this.lastPlacedId != null) return;
+      if (this.mode === 'plan') this.ui.plan = this.prevPlan; // the press started a blueprint: drop it
+      this.mode = 'none'; // lifting the finger does nothing more
+      this.pick(t);
+      navigator.vibrate?.(15);
+    }, LONG_PRESS);
+  }
+
+  private cancelLongPress(): void {
+    if (this.pressTimer) clearTimeout(this.pressTimer);
+    this.pressTimer = null;
+  }
+
+  /** Makes the building at `t` the tool in hand, facing the way it does. */
+  pick(t: Tile): void {
+    const b = this.cb.getWorld().buildingAt(t.x, t.y);
+    if (!b || b.type === 'hub') return;
+    this.ui.tool = b.type;
+    this.ui.dir = b.dir;
+    this.ui.plan = null;
+    this.ui.selected = null;
+    this.cb.onChange();
   }
 
   private startPinch(): void {
