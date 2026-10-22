@@ -64,7 +64,7 @@ quality and business work don't get left until the end.
 - ⏸ Phase 3: food factories and meal buffs. Set aside for wood (D-044)
 - ✅ Phase 4: shipyard, four-stage escape ship, launch defence, victory screen and endless mode (D-019, D-034). Now unlocked by normal research; launching wakes nearby nests (D-040). Becoming the supply ship (D-046)
 - 🚧 **Colony supply runs (D-046)**, in this order:
-  - ✅ **Phase 1, supply runs (D-047):** after the ship is built, a cargo list to belt in; launch (countdown and woken nests, as now); lift-off delivers instead of ending the game; a celebration screen on the first delivery, which also unlocks Hardcore; the ship returns after a while, and each run's cargo list is bigger. The victory screen, "escaped" and the endless choice go. Saves move to v10, migrating escaped and endless games to one delivered run
+  - ✅ **Phase 1, supply runs (D-047, D-048):** after the ship is built, a cargo list to belt in; launch (countdown and woken nests, as now); lift-off delivers instead of ending the game; a celebration screen on the first delivery, which also unlocks Hardcore; the ship returns after a while, and each run's cargo list is bigger. The victory screen, "escaped" and the endless choice go. Saves move to v10, migrating escaped and endless games to one delivered run
   - ⬜ **Phase 2, colony rewards:** each delivered run unlocks something you can't research (blueprints from the colony). Later cargo lists ask for planks, then steel (wood phase 2). Maybe a wider wake radius on later runs
 - ⏸ Vehicles and gear (D-021)
 

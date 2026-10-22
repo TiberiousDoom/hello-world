@@ -21,7 +21,7 @@ import {
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
-import { cargoLoaded, checkLaunch, currentCargo, currentStage, launch, runStats } from '../sim/ship';
+import { cargoLoaded, checkLaunch, currentCargo, currentStage, launch, nestsToWake, runStats } from '../sim/ship';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Tool, UIState } from './state';
@@ -127,7 +127,8 @@ function shipStats(world: World): string {
   } else if (!cargoLoaded(world)) {
     html += `<br>Cargo for run ${ship.runs + 1}: ${needs(currentCargo(world))}`;
   } else {
-    html += `<br>Loaded and ready. Launching wakes every bug nest within ${SHIP.wakeRadius} tiles, and the shipyard must hold for ${SHIP.launchTime} seconds.`;
+    const n = nestsToWake(world).length;
+    html += `<br>Loaded and ready. Launching wakes ${n} bug nest${n === 1 ? '' : 's'} (every one within ${SHIP.wakeRadius} tiles, and at least the ${SHIP.minWake} nearest). Their bugs come for the shipyard, and it must hold for ${SHIP.launchTime} seconds.`;
   }
   return html;
 }

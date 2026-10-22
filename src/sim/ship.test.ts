@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ItemId, NESTS, RESEARCH, SHIP, cargoFor } from './data';
+import { BUILDINGS, ItemId, NESTS, RESEARCH, SHIP, cargoFor } from './data';
 import { Nest, cellKey, isAngry } from './nests';
-import { cargoLoaded, insertShip, launch, shipAway, shipyard } from './ship';
+import { cargoLoaded, insertShip, launch, nestsToWake, shipAway, shipyard } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
 function run(w: World, seconds: number) {
@@ -94,6 +94,9 @@ describe('Supply ship', () => {
     const w = quiet();
     const b = yard(w);
     const near = addNest(w, Math.floor((b.x - 30) / 10) * 10, Math.floor(b.y / 10) * 10);
+    // Three more, all out of reach: only the nearest two make up the floor of three.
+    addNest(w, Math.floor((b.x + 70) / 10) * 10, Math.floor(b.y / 10) * 10);
+    addNest(w, Math.floor((b.x + 90) / 10) * 10, Math.floor(b.y / 10) * 10);
     const far = addNest(w, 0, 0);
     expect(launch(w)).toBe('not-ready');
     finishShip(w);
@@ -102,9 +105,36 @@ describe('Supply ship', () => {
     expect(launch(w)).toBeNull();
     expect(w.state.ship.launchAt).toBeCloseTo(w.state.time + SHIP.launchTime);
     expect(isAngry(w, near)).toBe(true);
+    expect(w.state.ship.drawn.length).toBe(SHIP.minWake);
     expect(isAngry(w, far)).toBe(false);
     expect(near.angryUntil).toBeGreaterThan(w.state.ship.launchAt!);
     expect(launch(w)).toBe('launching');
+  });
+
+  it('woken bugs come for the shipyard from past their usual leash, and chew it', () => {
+    const w = quiet();
+    const b = yard(w);
+    // A nest whose centre is 35 tiles west of the yard: well beyond the 22-tile leash.
+    const n = addNest(w, Math.floor((b.x - 40) / 10) * 10, Math.floor(b.y / 10) * 10);
+    finishShip(w);
+    loadCargo(w);
+    expect(nestsToWake(w)).toEqual([n]);
+    launch(w);
+    expect(w.state.ship.drawn).toEqual([n.id]);
+    run(w, 60);
+    const bug = w.state.enemies.find((e) => e.nest === n.id)!;
+    const [yx, yy] = w.centreOf(b);
+    expect(Math.hypot(bug.x - yx, bug.y - yy)).toBeLessThan(3);
+    expect(b.hp).toBeLessThan(BUILDINGS.shipyard.hp);
+  });
+
+  it('without a launch, the same nest stays on its leash and never reaches the shipyard', () => {
+    const w = quiet();
+    const b = yard(w);
+    const n = addNest(w, Math.floor((b.x - 40) / 10) * 10, Math.floor(b.y / 10) * 10);
+    n.angryUntil = 1e9;
+    run(w, 60);
+    expect(b.hp).toBe(BUILDINGS.shipyard.hp);
   });
 
   it('holding the shipyard until lift-off delivers the run; the game goes on and the ship comes back', () => {
@@ -116,6 +146,7 @@ describe('Supply ship', () => {
     run(w, SHIP.launchTime + 1);
     const ship = w.state.ship;
     expect(ship.runs).toBe(1);
+    expect(ship.drawn).toEqual([]);
     expect(ship.delivered).toEqual({});
     expect(shipAway(w)).toBe(true);
     expect(shipyard(w)).toBe(b);
@@ -177,8 +208,8 @@ describe('Supply ship', () => {
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
-          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null }
-          : { stage: 0, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null },
+          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [] }
+          : { stage: 0, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [] },
       );
     }
   });

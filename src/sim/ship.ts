@@ -1,11 +1,12 @@
 // The colony supply ship (D-034, D-046): a shipyard, four stages built once
 // from items belted into it, then supply runs. Each run's cargo is belted in,
-// and a launch the shipyard has to survive delivers it. The engines wake every
-// bug territory nearby (D-038). The game carries on, and the ship comes back
-// after a while for the next, bigger run.
+// and a launch the shipyard has to survive delivers it. The engines wake the
+// bug territories nearby (D-038), and their bugs come for the shipyard (D-047).
+// The game carries on, and the ship comes back after a while for the next,
+// bigger run.
 
 import { ItemCounts, ItemId, NESTS, SHIP, ShipStage, cargoFor } from './data';
-import { nestCentre, provoke } from './nests';
+import { Nest, nestAlive, nestCentre, provoke } from './nests';
 import type { Building, World } from './world';
 
 export interface ShipState {
@@ -14,10 +15,11 @@ export interface ShipState {
   launchAt: number | null; // game time of lift-off, while a launch is under way
   runs: number; // supply runs delivered
   returnAt: number | null; // game time the ship is back, while it's away
+  drawn: number[]; // nests whose bugs are heading for the shipyard, during a launch
 }
 
 export function createShipState(): ShipState {
-  return { stage: 0, delivered: {}, launchAt: null, runs: 0, returnAt: null };
+  return { stage: 0, delivered: {}, launchAt: null, runs: 0, returnAt: null, drawn: [] };
 }
 
 export function currentStage(w: World): ShipStage | null {
@@ -77,25 +79,41 @@ export function checkLaunch(w: World): LaunchError | null {
   return null;
 }
 
-/** Starts the countdown. The engines wake every bug territory within reach. */
+/**
+ * The live nests a launch from the shipyard would wake: every one within
+ * SHIP.wakeRadius, and at least the SHIP.minWake nearest, however far.
+ */
+export function nestsToWake(w: World): Nest[] {
+  const yard = shipyard(w);
+  if (!yard) return [];
+  const [yx, yy] = w.centreOf(yard);
+  const live = w.state.nests
+    .filter((n) => nestAlive(w, n))
+    .map((n) => ({ n, d: Math.hypot(nestCentre(n)[0] - yx, nestCentre(n)[1] - yy) }))
+    .sort((a, b) => a.d - b.d);
+  return live.filter((x, i) => x.d <= SHIP.wakeRadius || i < SHIP.minWake).map((x) => x.n);
+}
+
+/**
+ * Starts the countdown. The engines wake the nests within reach, and their
+ * bugs come for the shipyard, past their usual leash, until lift-off.
+ */
 export function launch(w: World): LaunchError | null {
   const err = checkLaunch(w);
   if (err) return err;
   const s = w.state;
+  const woken = nestsToWake(w);
   s.ship.launchAt = s.time + SHIP.launchTime;
-  const yard = shipyard(w)!;
-  const [yw, yh] = w.footprintOf(yard);
-  const yx = yard.x + yw / 2;
-  const yy = yard.y + yh / 2;
-  for (const n of s.nests) {
-    const [cx, cy] = nestCentre(n);
-    if (Math.hypot(cx - yx, cy - yy) <= SHIP.wakeRadius) {
-      provoke(w, n);
-      // They stay angry for the whole countdown.
-      n.angryUntil = Math.max(n.angryUntil, s.ship.launchAt + NESTS.calmAfter);
-    }
+  s.ship.drawn = woken.map((n) => n.id);
+  for (const n of woken) {
+    provoke(w, n);
+    // They stay angry for the whole countdown.
+    n.angryUntil = Math.max(n.angryUntil, s.ship.launchAt + NESTS.calmAfter);
   }
-  w.events.push(`Launch in ${SHIP.launchTime} seconds. The engines have woken the bugs: hold the shipyard!`);
+  w.markFlowDirty();
+  w.events.push(
+    `Launch in ${SHIP.launchTime} seconds. The engines woke ${woken.length} nest${woken.length === 1 ? '' : 's'}, and the bugs are coming for the shipyard: hold it!`,
+  );
   return null;
 }
 
@@ -109,10 +127,12 @@ export function tickShip(w: World): void {
   if (ship.launchAt == null) return;
   if (!shipyard(w)) {
     ship.launchAt = null;
+    ship.drawn = [];
     return;
   }
   if (s.time < ship.launchAt) return;
   ship.launchAt = null;
+  ship.drawn = []; // the bugs lose interest and, once calm, wander home
   ship.runs++;
   ship.delivered = {};
   ship.returnAt = s.time + SHIP.returnTime;
@@ -129,6 +149,7 @@ export function onShipyardRemoved(w: World, destroyed: boolean): void {
   const ship = w.state.ship;
   const wasLaunching = ship.launchAt != null;
   ship.launchAt = null;
+  ship.drawn = [];
   if (destroyed && w.state.mode === 'hardcore' && !shipAway(w)) {
     ship.stage = 0;
     ship.delivered = {};

@@ -235,6 +235,7 @@ export const SHIP = {
   ] as ShipStage[],
   launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
   wakeRadius: 48, // the engines provoke every bug territory within this many tiles
+  minWake: 3, // and at least this many of the nearest live ones, however far
   returnTime: 300, // seconds the ship is away after delivering a run
   /** Cargo for the first supply runs, in order. Later runs repeat the last list, growing (cargoFor). */
   cargo: [

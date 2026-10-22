@@ -236,7 +236,7 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'shipyard'),
         text: (c) =>
           c.ui.tool === 'shipyard'
-            ? `Build it where you can defend it. When it launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles.`
+            ? `Build it where you can defend it. When it launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles, and they come for the shipyard.`
             : 'You can build a ship to carry supplies to the colony. Pick the Shipyard.',
       },
       {
@@ -247,7 +247,7 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
         text: () =>
-          `Then belt in the cargo and press Launch. Every nest within ${SHIP.wakeRadius} tiles comes for your buildings for ${SHIP.launchTime} seconds. Hold the shipyard, and the supplies are on their way. The ship comes back for more.`,
+          `Then belt in the cargo and press Launch. For ${SHIP.launchTime} seconds, the bugs of every nest within ${SHIP.wakeRadius} tiles (and at least the ${SHIP.minWake} nearest) come for the shipyard. Hold it, and the supplies are on their way. The ship comes back for more.`,
       },
     ],
   },

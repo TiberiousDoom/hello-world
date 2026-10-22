@@ -227,8 +227,11 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   shows the stages, the runs delivered, and what the stage or the cargo still needs. The ship appears
   on the pad stage by stage.
 - **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**.
-  The engines wake **every nest within 48 tiles** of the shipyard, and they stay angry for the whole
-  countdown. A banner above the toolbar counts down.
+  The engines wake **every nest within 48 tiles** of the shipyard, and **at least the 3 nearest** live
+  nests however far, so there's always a fight. They stay angry for the whole countdown, and their bugs
+  **come for the shipyard**, ignoring their usual 22-tile leash and chewing through anything in the way
+  (D-048). Before you launch, the shipyard's panel says how many nests it will wake. A banner above the
+  toolbar counts down. After lift-off the bugs lose interest, calm down and wander home.
 - If the shipyard is still standing at lift-off, the run is **delivered**. The game goes on. The ship is
   **away for 5 minutes** (the pad is empty, and nothing can be loaded), then comes back for the next run.
 - The **first delivery** in a game opens a "Supplies delivered!" screen with the game's numbers, and
