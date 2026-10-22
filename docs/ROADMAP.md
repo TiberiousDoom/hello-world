@@ -111,7 +111,7 @@ Not the escape ship's hull. In this order:
 - ✅ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a long press on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
 - ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
 - ✅ **Hub stock only while the hub is selected or pointed at** (D-053), so the map around the hub stays clear
-- ⬜ **Clear a belt line** in one go (owner's note, for later): with Demolish, one tap or click on a belt removes its whole line (the same line the Express Belt upgrade uses), refunding every belt. Maybe also a way to empty a line's items without removing it
+- ⬜ **Clear a belt line** (owner's note, for later): one action empties every item off a whole belt line (the same line the Express Belt upgrade uses), leaving the belts in place. Where the items go (back into hub stock, or lost) is to be decided
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory
 - ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)
