@@ -159,6 +159,11 @@ const hud = new Hud(ui, {
     profile.tipsOff = off;
     saveProfile();
   },
+  resetLessons: () => {
+    profile.lessonsSeen = [];
+    profile.tipsOff = false;
+    saveProfile();
+  },
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
   rotatePlan: () => input.rotatePlan(),

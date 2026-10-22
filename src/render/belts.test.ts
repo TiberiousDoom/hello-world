@@ -8,7 +8,7 @@ function emptyWorld(): World {
   w.state.researched = RESEARCH.map((r) => r.id);
   w.state.resources.fill(0);
   w.state.trees.fill(0);
-  w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999 };
+  w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, plank: 999 };
   return w;
 }
 

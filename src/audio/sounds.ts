@@ -75,7 +75,7 @@ export class SoundWatcher {
       this.seenShots.add(sh);
       if (sh.jump) continue; // part of a tesla's arc, already heard
       const from = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
-      this.play(from?.type === 'hub' ? 'hub_shot' : sh.arc ? 'zap' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
+      this.play(from?.type === 'hub' ? 'hub_shot' : from?.type === 'ballista' ? 'twang' : sh.arc ? 'zap' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
     }
 
     // Trees cut by Lumber Camps.

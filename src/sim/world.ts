@@ -770,8 +770,9 @@ export class World {
         return true;
       }
       case 'repair': {
-        if (item !== 'iron_plate' || target.ammo + REPAIR.hpPerPlate > REPAIR.maxCharge) return false;
-        target.ammo += REPAIR.hpPerPlate;
+        const hp = item === 'iron_plate' ? REPAIR.hpPerPlate : item === 'plank' ? REPAIR.hpPerPlank : 0;
+        if (!hp || target.ammo + hp > REPAIR.maxCharge) return false;
+        target.ammo += hp;
         return true;
       }
       case 'hub':
@@ -794,6 +795,7 @@ export class World {
         return true;
       }
       case 'turret':
+      case 'ballista':
       case 'cannon':
       case 'tesla': {
         const def = TURRETS[target.type]!;
@@ -871,6 +873,7 @@ export class World {
           break;
         case 'hub':
         case 'turret':
+        case 'ballista':
         case 'cannon':
         case 'tesla':
           this.tickTurret(b, dt);

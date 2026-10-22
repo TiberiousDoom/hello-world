@@ -8,7 +8,7 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   const spot = await page.evaluate(() => {
     const w = window.game.world;
     const s = w.state;
-    s.inventory = { iron_plate: 999, brick: 999 };
+    s.inventory = { iron_plate: 999, brick: 999, plank: 999 };
     s.researched.push('defense', 'workshop', 'assembly', 'shipyard');
     const x = w.hub.x - 22;
     const y = w.hub.y + 1;

@@ -18,7 +18,7 @@ quality and business work don't get left until the end.
 | M4: Depth | Upgrades, more content, balance | ⬜ |
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
-| M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phase 1 done |
+| M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phases 1 and 2 done; forest and bugs next |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -80,7 +80,7 @@ quality and business work don't get left until the end.
 Not the escape ship's hull. In this order:
 - ✅ **Phase 1, trees and the basics:** forest from map generation, saved (v9, with a v8 migration); trees block building and stumps don't. A Lumber Camp cuts the nearest tree in reach into logs, and stumps regrow. A Sawmill makes planks (D-045). Palisade walls made of planks. Forestry and Palisades research. Placeholder sprites, a chop sound and a leaf burst
 - ✅ **Phase 1 follow-ups:** a Wood lesson when Forestry is researched, a lumber camp and sawmill in the main-menu demo, and a browser test
-- ⬜ **Phase 2, wood in the economy:** a stake-firing turret with cheap wooden ammo; repair stations also burn planks; planks in some early building and research costs; charcoal (furnace, from logs), then steel (charcoal and iron plates) as the mid-game material for upgrades
+- ✅ **Phase 2, wood in the economy (D-054):** the Ballista, firing stakes sawn from planks; repair stations also burn planks; planks in the Workshop, Repair Station and Shipyard (Workshops now needs Forestry); charcoal (furnace, from logs), then steel (charcoal and iron plates), carried from the fourth supply run on and the material for upgrades to come. Also: Reset tutorials in Menu → Tutorials
 - ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a tree nursery that plants new forest
 
 ### Next (M4)

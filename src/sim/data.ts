@@ -17,6 +17,9 @@ export const ITEMS = {
   motor: { name: 'Motor', color: '#9b7fe0' },
   log: { name: 'Log', color: '#8a5a32' },
   plank: { name: 'Plank', color: '#d9a866' },
+  stake: { name: 'Stake', color: '#b98a50' },
+  charcoal: { name: 'Charcoal', color: '#3b3a3f' },
+  steel: { name: 'Steel', color: '#8fa3b8' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
@@ -43,6 +46,9 @@ export const RECIPES: Recipe[] = [
   { id: 'gear', machine: 'workshop', inputs: { iron_plate: 2 }, output: 'gear', count: 1, time: 2 },
   { id: 'wire', machine: 'workshop', inputs: { copper_ingot: 1 }, output: 'wire', count: 2, time: 1.5 },
   { id: 'plank', machine: 'sawmill', inputs: { log: 1 }, output: 'plank', count: 2, time: 1.5 },
+  { id: 'stake', machine: 'sawmill', inputs: { plank: 1 }, output: 'stake', count: 3, time: 1.5 },
+  { id: 'charcoal', machine: 'furnace', inputs: { log: 2 }, output: 'charcoal', count: 1, time: 2.5 },
+  { id: 'steel', machine: 'furnace', inputs: { iron_plate: 2, charcoal: 1 }, output: 'steel', count: 1, time: 3 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -58,6 +64,7 @@ export type BuildingType =
   | 'workshop'
   | 'assembler'
   | 'turret'
+  | 'ballista'
   | 'cannon'
   | 'tesla'
   | 'repair'
@@ -98,7 +105,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
   extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { iron_plate: 6 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
   furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { brick: 4, iron_plate: 2 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
-  workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [3, 2], cost: { iron_plate: 8, copper_ingot: 4 }, blocking: true, description: 'Makes gears and wire.' },
+  workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [3, 2], cost: { iron_plate: 6, copper_ingot: 4, plank: 4 }, blocking: true, description: 'Makes gears and wire.' },
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [4, 2], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
@@ -111,7 +118,16 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     blocking: true,
     description: 'Its shots arc from bug to bug. Arrives loaded; refill it with copper wire by belt.',
   },
-  repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
+  ballista: {
+    name: 'Ballista',
+    short: 'BA',
+    color: '#8a6234',
+    hp: 140,
+    cost: { plank: 8, iron_plate: 4 },
+    blocking: true,
+    description: 'Slow, long-range bolts. Arrives loaded; refill it with stakes (sawn from planks) by belt.',
+  },
+  repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 10, gear: 4, wire: 6, plank: 4 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates or planks by belt.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   lumber_camp: {
@@ -132,7 +148,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     color: '#3a4a3a',
     hp: 900,
     size: [3, 3],
-    cost: { brick: 40, iron_plate: 40 },
+    cost: { brick: 30, iron_plate: 30, plank: 20 },
     blocking: true,
     description: "A dock for your colony supply ship. Belt in the parts for each stage, then each run's cargo, then launch. Only one.",
   },
@@ -156,11 +172,13 @@ export interface TurretDef {
 
 export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   turret: { ammoItem: 'iron_plate', shotsPerItem: 4, maxShots: 40, range: 5, rate: 3, damage: 5, splash: 0 },
+  ballista: { ammoItem: 'stake', shotsPerItem: 1, maxShots: 20, range: 6.5, rate: 0.8, damage: 14, splash: 0 },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
   tesla: { ammoItem: 'wire', shotsPerItem: 2, maxShots: 30, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
 
-export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, maxCharge: 400 };
+/** Repair stations burn iron plates or planks (D-054). */
+export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, hpPerPlank: 30, maxCharge: 400 };
 
 /** The hub's built-in gun. It needs no ammo and never upgrades. */
 export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, maxShots: 0, range: 8, rate: 1.2, damage: 9, splash: 0 };
@@ -223,8 +241,9 @@ export const RESEARCH: Research[] = [
   { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: [], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
   { id: 'forestry', name: 'Forestry', cost: { iron_plate: 15 }, time: 30, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
   { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
+  { id: 'ballistae', name: 'Ballistae', cost: { plank: 20, iron_plate: 10 }, time: 45, requires: ['palisades', 'defense'], unlocks: ['ballista'], description: 'Long-range towers that fire wooden stakes.' },
   { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
-  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: [], unlocks: ['workshop'], description: 'Make gears and wire.' },
+  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['forestry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
   { id: 'logistics', name: 'Logistics', cost: { iron_plate: 20, gear: 10 }, time: 75, requires: ['workshop'], unlocks: ['splitter'], description: 'Splitters branch a line three ways.' },
   { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
@@ -273,6 +292,7 @@ export const SHIP = {
     { iron_plate: 100, brick: 60, copper_ingot: 40 },
     { iron_plate: 120, gear: 60, wire: 60, plank: 60 },
     { brick: 120, gear: 100, motor: 20, plank: 120 },
+    { steel: 40, gear: 120, motor: 30, plank: 180 },
   ] as ItemCounts[],
   cargoGrowth: 1.25, // each run past the listed ones asks for this much more of everything
 };

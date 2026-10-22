@@ -1,6 +1,6 @@
 // A small pre-built factory that runs behind the main menu.
 
-import { Dir, NESTS, RESEARCH } from './data';
+import { Dir, NESTS, RESEARCH, TURRETS } from './data';
 import { cellKey } from './nests';
 import { TREE, World } from './world';
 
@@ -12,7 +12,7 @@ export function createDemoWorld(seed = 20261019): World {
   const w = World.create(seed);
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
-  s.inventory = { iron_plate: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999 };
+  s.inventory = { iron_plate: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999 };
   const hub = w.hub!;
   const hx = hub.x;
   const hy = hub.y;
@@ -95,6 +95,6 @@ export function createDemoWorld(seed = 20261019): World {
 export function sustainDemo(w: World): void {
   const hub = w.hub;
   if (hub && hub.hp < 500) hub.hp = 1000;
-  for (const b of w.state.buildings) if ((b.type === 'turret' || b.type === 'cannon') && b.ammo < 6) b.ammo += 6;
+  for (const b of w.state.buildings) if (TURRETS[b.type] && b.ammo < 6) b.ammo += 6;
   for (const n of w.state.nests) n.angryUntil = 0;
 }

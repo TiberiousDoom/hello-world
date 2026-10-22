@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased: wood in the economy
+- **Ballista:** a long-range wooden tower that fires stakes. Research Ballistae (after Palisades and Basic Defense), and have a Sawmill saw planks into stakes for it.
+- **Charcoal and steel:** a furnace burns logs into charcoal, and makes steel from iron plates and charcoal. The fourth supply run asks for steel.
+- **Planks matter early:** Workshops, Repair Stations and the Shipyard cost a few planks (so Forestry now comes before Workshops), and Repair Stations can burn planks for fuel.
+- **Reset tutorials** in Menu → Tutorials shows every lesson again.
+
 ## Unreleased: picking buildings, belt alignment and a tidier hub
 - **Build more like a building you placed:** middle-click it, or on a phone hold your finger on it for half a second. It becomes the tool in hand, facing the same way.
 - **Buildings line up with belts while you aim:** place a machine next to a belt line and it turns and shifts so the belt runs into it and its output runs onto the next belt.
