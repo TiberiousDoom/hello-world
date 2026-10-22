@@ -228,16 +228,16 @@ export const LESSONS: Lesson[] = [
   },
   {
     id: 'shipyard',
-    title: 'The escape ship',
-    trigger: (w) => w.isUnlocked('shipyard') && !w.state.ship.escaped,
+    title: 'The supply ship',
+    trigger: (w) => w.isUnlocked('shipyard') && w.state.ship.runs === 0,
     steps: [
       {
         target: (c) => toolThen(c, 'shipyard'),
         done: (c) => built(c, 'shipyard'),
         text: (c) =>
           c.ui.tool === 'shipyard'
-            ? `Build it where you can defend it. When it launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles.`
-            : 'You can build a ship to get off this planet. Pick the Shipyard.',
+            ? `Build it where you can defend it. When it launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles, and they come for the shipyard.`
+            : 'You can build a ship to carry supplies to the colony. Pick the Shipyard.',
       },
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
@@ -247,7 +247,7 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
         text: () =>
-          `When the ship is finished, select the shipyard and press Launch. Every nest within ${SHIP.wakeRadius} tiles comes for your buildings for ${SHIP.launchTime} seconds. Hold the shipyard, and you're free.`,
+          `Then belt in the cargo and press Launch. For ${SHIP.launchTime} seconds, the bugs of every nest within ${SHIP.wakeRadius} tiles (and at least the ${SHIP.minWake} nearest) come for the shipyard. Hold it, and the supplies are on their way. The ship comes back for more.`,
       },
     ],
   },

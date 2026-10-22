@@ -24,6 +24,7 @@ export class SoundWatcher {
   private hubHp = 0;
   private researched = 0;
   private stage = 0;
+  private runs = 0;
   private launching = false;
   private gameOver = false;
 
@@ -111,6 +112,8 @@ export class SoundWatcher {
     this.researched = s.researched.length;
     if (s.ship.stage > this.stage) this.sfx.play('stage');
     this.stage = s.ship.stage;
+    if (s.ship.runs > this.runs) this.sfx.play('research');
+    this.runs = s.ship.runs;
     const launching = s.ship.launchAt != null;
     if (launching && !this.launching) this.sfx.play('launch');
     this.launching = launching;
@@ -129,6 +132,7 @@ export class SoundWatcher {
     this.hubHp = world.hub?.hp ?? 0;
     this.researched = s.researched.length;
     this.stage = s.ship.stage;
+    this.runs = s.ship.runs;
     this.launching = s.ship.launchAt != null;
     this.gameOver = s.gameOver;
   }

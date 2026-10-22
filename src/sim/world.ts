@@ -29,6 +29,7 @@ import {
   RESEARCH,
   RESEARCH_BY_ID,
   RESOURCE_ITEMS,
+  SHIP,
   STARTING_BUILDINGS,
   START_INVENTORY,
   TUNNEL_RANGE,
@@ -39,7 +40,7 @@ import {
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs } from './nests';
-import { ShipState, awaitingChoice, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
+import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
 export type { ResearchState };
@@ -48,8 +49,9 @@ export type { ResearchState };
  * v8 (D-038) is a new kind of map (bigger, with bug territories and larger
  * buildings), so older saves can't be converted and start over.
  * v9 (D-044) adds trees; v8 saves get forest grown around what's already built.
+ * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
  */
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -137,6 +139,8 @@ export class OldSaveError extends Error {}
 const FLOW_RANGE = 80;
 /** Attack paths are recomputed at most this often (seconds), while any nest is angry. */
 const FLOW_REFRESH = 0.5;
+/** Extra reach of the shipyard's flow field past its furthest woken nest: detours and chewing through walls. */
+const SHIP_FLOW_MARGIN = 40;
 
 export class World {
   state: GameState;
@@ -152,6 +156,10 @@ export class World {
   flow: Float64Array;
   private flowDirty = true;
   private flowAt = -Infinity;
+  /** Cost to reach the shipyard from each tile, for bugs drawn to it by a launch (D-047). */
+  shipFlow: Float64Array;
+  private shipFlowDirty = true;
+  private shipFlowAt = -Infinity;
   /** The nest owning each territory cell (see cellKey). */
   nestCells = new Map<number, Nest>();
   shots: Shot[] = [];
@@ -167,6 +175,7 @@ export class World {
     this.state = state;
     this.tiles = new Int32Array(state.width * state.height);
     this.flow = new Float64Array(state.width * state.height);
+    this.shipFlow = new Float64Array(state.width * state.height);
     for (const b of state.buildings) this.index(b);
     for (const n of state.nests) this.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
   }
@@ -211,14 +220,14 @@ export class World {
 
   static fromJSON(json: string): World {
     const state = JSON.parse(json) as GameState;
-    if (state.version === 8) return World.migrateV8(state);
+    if (state.version === 8) World.migrateV8(state);
+    if (state.version === 9) World.migrateV9(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     return new World(state);
   }
 
   /** v8 to v9: grows forest on the existing map, around the buildings already there. */
-  private static migrateV8(state: GameState): World {
-    state.version = SAVE_VERSION;
+  private static migrateV8(state: GameState): void {
     state.trees = new Array(state.width * state.height).fill(NO_TREE);
     state.regrow = {};
     const world = new World(state);
@@ -226,7 +235,22 @@ export class World {
     const cx = hub ? hub.x + Math.floor(HUB_SIZE / 2) : state.width / 2;
     const cy = hub ? hub.y + Math.floor(HUB_SIZE / 2) : state.height / 2;
     generateTrees(world, cx, cy);
-    return world;
+    state.version = 9;
+  }
+
+  /** v9 to v10: the escape ship becomes a supply ship. Escaping counts as the first run delivered. */
+  private static migrateV9(state: GameState): void {
+    const old = state.ship as ShipState & { escaped?: boolean; endless?: boolean };
+    const escaped = !!old.escaped;
+    delete old.escaped;
+    delete old.endless;
+    state.ship = { ...old, runs: escaped ? 1 : 0, returnAt: null, drawn: [] };
+    if (escaped) {
+      state.ship.stage = SHIP.stages.length;
+      state.ship.delivered = {};
+      state.ship.launchAt = null;
+    }
+    state.version = 10;
   }
 
   toJSON(): string {
@@ -301,8 +325,8 @@ export class World {
 
   /** Recomputes attack paths soon (buildings changed, or a nest got angry). */
   markFlowDirty(): void {
-    this.flowDirty = true;
-    this.flowAt = -Infinity;
+    this.flowDirty = this.shipFlowDirty = true;
+    this.flowAt = this.shipFlowAt = -Infinity;
   }
 
   /** Adds a calm bug at a random spot in its nest's territory. */
@@ -414,14 +438,14 @@ export class World {
     this.byId.set(b.id, b);
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
-    this.flowDirty = true;
+    this.flowDirty = this.shipFlowDirty = true;
   }
 
   private unindex(b: Building): void {
     this.byId.delete(b.id);
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
-    this.flowDirty = true;
+    this.flowDirty = this.shipFlowDirty = true;
   }
 
   private addBuilding(type: BuildingType, x: number, y: number, dir: Dir): Building {
@@ -476,7 +500,7 @@ export class World {
         if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
       }
     }
-    if (type === 'shipyard' && (shipyard(this) || this.state.ship.escaped)) return 'unique';
+    if (type === 'shipyard' && shipyard(this)) return 'unique';
     if (!this.isUnlocked(type)) return 'locked';
     if (type === 'extractor' && !this.oreUnder(x, y, w, h)) return 'needs-resource';
     if (type === 'lumber_camp') {
@@ -724,7 +748,7 @@ export class World {
 
   tick(dt = TICK): void {
     const s = this.state;
-    if (s.gameOver || awaitingChoice(this)) return; // lost, or won and waiting on the player
+    if (s.gameOver) return;
     s.time += dt;
 
     for (const b of s.buildings) {
@@ -769,6 +793,7 @@ export class World {
     tickShip(this);
     // Attack paths matter only while a nest is angry; buildings change often, so refresh them at most twice a second.
     if (this.flowDirty && s.time - this.flowAt >= FLOW_REFRESH && anyAngry(this)) this.computeFlow();
+    if (s.ship.launchAt != null && this.shipFlowDirty && s.time - this.shipFlowAt >= FLOW_REFRESH) this.computeShipFlow();
     tickBugs(this, dt);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
@@ -1019,11 +1044,36 @@ export class World {
 
   /** Dijkstra from every building tile outwards, up to FLOW_RANGE: angry bugs follow it downhill. */
   computeFlow(): void {
+    this.fillFlow(this.flow, this.state.buildings, FLOW_RANGE);
+    this.flowDirty = false;
+    this.flowAt = this.state.time;
+  }
+
+  /**
+   * The same from the shipyard alone, for a launch's woken bugs. It reaches just
+   * past the furthest of their nests (with room for detours and chewing), which
+   * keeps it cheap enough to refresh during a fight on a phone.
+   */
+  computeShipFlow(): void {
+    const yards = this.state.buildings.filter((b) => b.type === 'shipyard');
+    let range = 0;
+    if (yards.length) {
+      const [yx, yy] = this.centreOf(yards[0]);
+      for (const id of this.state.ship.drawn) {
+        const n = this.state.nests[id];
+        if (n) range = Math.max(range, Math.abs(n.x + NESTS.cell / 2 - yx) + Math.abs(n.y + NESTS.cell / 2 - yy));
+      }
+    }
+    this.fillFlow(this.shipFlow, yards, range + NESTS.cell + SHIP_FLOW_MARGIN);
+    this.shipFlowDirty = false;
+    this.shipFlowAt = this.state.time;
+  }
+
+  private fillFlow(flow: Float64Array, targets: Building[], range: number): void {
     const { width: w, height: h } = this.state;
-    const flow = this.flow;
     flow.fill(Infinity);
     const heap = new MinHeap();
-    for (const b of this.state.buildings) {
+    for (const b of targets) {
       const [bw, bh] = this.footprintOf(b);
       for (let dy = 0; dy < bh; dy++)
         for (let dx = 0; dx < bw; dx++) {
@@ -1034,7 +1084,7 @@ export class World {
     }
     while (heap.size) {
       const [i, d] = heap.pop();
-      if (d > flow[i] || d > FLOW_RANGE) continue;
+      if (d > flow[i] || d > range) continue;
       const x = i % w;
       const y = (i - x) / w;
       const step = this.enterCost(i);
@@ -1050,8 +1100,6 @@ export class World {
         }
       }
     }
-    this.flowDirty = false;
-    this.flowAt = this.state.time;
   }
 }
 

@@ -3,7 +3,8 @@
 // building in or next to its cell, by a building coming close to one of its
 // bugs, or by its bugs being shot; then its bugs go for the nearest
 // buildings, as far as their leash allows, until things have been quiet for a
-// while and they wander home.
+// while and they wander home. A ship launch draws the nests it wakes to the
+// shipyard instead, with no leash (D-047).
 
 import { BUILDINGS, DX, DY, ENEMIES, NESTS } from './data';
 import type { Building, Enemy, World } from './world';
@@ -74,13 +75,18 @@ export function tickBugs(w: World, dt: number): void {
   const s = w.state;
   // Looking around for nearby buildings is done a few times a second, not every tick.
   const look = Math.floor(s.time * 4) !== Math.floor((s.time - dt) * 4);
+  const drawn = new Set(s.ship.launchAt != null ? s.ship.drawn : []);
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
     const n = s.nests[e.nest];
     const [hx, hy] = nestCentre(n);
     const def = ENEMIES[e.type];
+    if (drawn.has(n.id) && isAngry(w, n)) {
+      chase(w, e, n, dt, w.shipFlow);
+      continue;
+    }
     if (isAngry(w, n) && Math.hypot(e.x - hx, e.y - hy) <= NESTS.leash) {
-      chase(w, e, n, dt);
+      chase(w, e, n, dt, w.flow);
       continue;
     }
     if (look && buildingNear(w, e.x, e.y, NESTS.closeRadius)) {
@@ -118,8 +124,8 @@ export function tickBugs(w: World, dt: number): void {
   }
 }
 
-/** Follow the flow field towards the nearest building, and chew on whatever is reached. */
-function chase(w: World, e: Enemy, n: Nest, dt: number): void {
+/** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
+function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array): void {
   const def = ENEMIES[e.type];
   const tx = Math.floor(e.x);
   const ty = Math.floor(e.y);
@@ -129,14 +135,14 @@ function chase(w: World, e: Enemy, n: Nest, dt: number): void {
     return;
   }
   let best = -1;
-  let bestCost = w.flow[w.idx(tx, ty)];
+  let bestCost = flow[w.idx(tx, ty)];
   for (let k = 0; k < 4; k++) {
     const nx = tx + DX[k];
     const ny = ty + DY[k];
     if (!w.inBounds(nx, ny)) continue;
     const i = w.idx(nx, ny);
-    if (w.flow[i] < bestCost) {
-      bestCost = w.flow[i];
+    if (flow[i] < bestCost) {
+      bestCost = flow[i];
       best = i;
     }
   }

@@ -114,7 +114,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     size: [3, 3],
     cost: { brick: 40, iron_plate: 40 },
     blocking: true,
-    description: 'A dock for your escape ship. Belt in the parts each stage needs, then launch. Only one.',
+    description: "A dock for your colony supply ship. Belt in the parts for each stage, then each run's cargo, then launch. Only one.",
   },
 };
 
@@ -199,7 +199,7 @@ export const RESEARCH: Research[] = [
   { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
-  { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to get off this planet.' },
+  { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
   { id: 'forestry', name: 'Forestry', cost: { iron_plate: 15 }, time: 30, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
   { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
   { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
@@ -216,7 +216,10 @@ export const BREACH = {
 
 export const PORT_PERIOD = 0.5; // seconds per item a hub port puts out
 
-/** The escape ship (D-034). Stages are built in order, from items belted into the shipyard. */
+/**
+ * The colony supply ship (D-034, D-046). Stages are built once, in order, from
+ * items belted into the shipyard; then each supply run's cargo is belted in.
+ */
 export interface ShipStage {
   id: string;
   name: string;
@@ -232,7 +235,27 @@ export const SHIP = {
   ] as ShipStage[],
   launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
   wakeRadius: 48, // the engines provoke every bug territory within this many tiles
+  minWake: 3, // and at least this many of the nearest live ones, however far
+  returnTime: 300, // seconds the ship is away after delivering a run
+  /** Cargo for the first supply runs, in order. Later runs repeat the last list, growing (cargoFor). */
+  cargo: [
+    { iron_plate: 100, brick: 60, copper_ingot: 40 },
+    { iron_plate: 120, gear: 60, wire: 60, plank: 60 },
+    { brick: 120, gear: 100, motor: 20, plank: 120 },
+  ] as ItemCounts[],
+  cargoGrowth: 1.25, // each run past the listed ones asks for this much more of everything
 };
+
+/** The cargo for supply run `run` (0 for the first). */
+export function cargoFor(run: number): ItemCounts {
+  const list = SHIP.cargo;
+  const last = list.length - 1;
+  if (run <= last) return list[run];
+  const scale = SHIP.cargoGrowth ** (run - last);
+  const out: ItemCounts = {};
+  for (const [k, n] of Object.entries(list[last])) out[k as ItemId] = Math.ceil((n! * scale) / 10) * 10;
+  return out;
+}
 
 export const START_INVENTORY: ItemCounts = { iron_plate: 100, brick: 24, copper_ingot: 16 };
 

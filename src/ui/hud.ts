@@ -21,7 +21,7 @@ import {
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
-import { awaitingChoice, checkLaunch, currentStage, keepPlaying, launch, runStats } from '../sim/ship';
+import { cargoLoaded, checkLaunch, currentCargo, currentStage, launch, nestsToWake, runStats } from '../sim/ship';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Tool, UIState } from './state';
@@ -75,9 +75,9 @@ export interface HudActions {
   toMainMenu(): void;
   hasGame(): boolean;
   rotatePlan(): void;
-  /** The victory screen has opened. */
-  escaped(): void;
-  /** The player chose to keep playing after escaping (endless mode). */
+  /** A supply run was delivered; `first` when it was this game's first, and its screen has opened. */
+  delivered(first: boolean): void;
+  /** The first-delivery screen was closed. */
   keptPlaying(): void;
 }
 
@@ -105,7 +105,7 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** The shipyard's panel: every stage, what the current one still needs, and the launch. */
+/** The shipyard's panel: every stage, what the current one or the cargo still needs, and the launch. */
 function shipStats(world: World): string {
   const ship = world.state.ship;
   const stages = SHIP.stages
@@ -113,17 +113,22 @@ function shipStats(world: World): string {
     .join(' · ');
   let html = `<br>${stages}`;
   const stage = currentStage(world);
-  if (stage) {
-    const needs = Object.entries(stage.items)
+  const needs = (items: ItemCounts) =>
+    Object.entries(items)
       .map(([k, n]) => `${swatch(k as ItemId)}${ship.delivered[k as ItemId] ?? 0}/${n}`)
       .join(' ');
-    html += `<br>Belt in: ${needs}`;
-  } else if (ship.escaped) {
-    html += '<br>The ship is gone. You got out.';
+  if (ship.runs) html += `<br>Supply runs delivered: ${ship.runs}`;
+  if (stage) {
+    html += `<br>Belt in: ${needs(stage.items)}`;
+  } else if (ship.returnAt != null) {
+    html += `<br>The ship is away at the colony. Back in ${formatTime(ship.returnAt - world.state.time)}.`;
   } else if (ship.launchAt != null) {
     html += `<br><b>Lift-off in ${formatTime(ship.launchAt - world.state.time)}.</b> Hold the shipyard!`;
+  } else if (!cargoLoaded(world)) {
+    html += `<br>Cargo for run ${ship.runs + 1}: ${needs(currentCargo(world))}`;
   } else {
-    html += `<br>The ship is ready. Launching wakes every bug nest within ${SHIP.wakeRadius} tiles, and the shipyard must hold for ${SHIP.launchTime} seconds.`;
+    const n = nestsToWake(world).length;
+    html += `<br>Loaded and ready. Launching wakes ${n} bug nest${n === 1 ? '' : 's'} (every one within ${SHIP.wakeRadius} tiles, and at least the ${SHIP.minWake} nearest). Their bugs come for the shipyard, and it must hold for ${SHIP.launchTime} seconds.`;
   }
   return html;
 }
@@ -158,6 +163,10 @@ export class Hud {
   /** Where the mouse is, or a finger while it's down: the stock panel fades out of its way. */
   private pointer: { x: number; y: number } | null = null;
   private researchKey = '';
+  /** Supply runs seen delivered in the current game, to notice a new one. */
+  private runsSeen: { world: World | null; runs: number } = { world: null, runs: 0 };
+  /** Game speed before the first-delivery screen paused the game. */
+  private speedBefore = 1;
 
   constructor(
     private ui: UIState,
@@ -207,10 +216,9 @@ export class Hud {
     $('btn-new').addEventListener('click', () => this.openNewGame());
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
     $('btn-keep-playing').addEventListener('click', () => {
-      keepPlaying(actions.getWorld());
       this.closeModals();
+      this.setSpeed(this.speedBefore || 1);
       actions.keptPlaying();
-      this.refresh();
     });
     $('btn-victory-menu').addEventListener('click', () => {
       this.closeModals();
@@ -387,12 +395,20 @@ export class Hud {
     this.updateInfo(world);
 
     if (s.gameOver && $('gameover').hidden && $('newgame').hidden) $('gameover').hidden = false;
-    if (awaitingChoice(world) && $('victory').hidden && $('newgame').hidden) {
-      $('victory-stats').innerHTML = runStats(world)
-        .map((r) => `<dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd>`)
-        .join('');
-      $('victory').hidden = false;
-      this.actions.escaped();
+    // A supply run delivered. The first one in a game gets its own screen, and pauses the game.
+    if (this.runsSeen.world !== world) this.runsSeen = { world, runs: s.ship.runs };
+    if (s.ship.runs > this.runsSeen.runs) {
+      const first = this.runsSeen.runs === 0;
+      this.runsSeen.runs = s.ship.runs;
+      if (first) {
+        $('victory-stats').innerHTML = runStats(world)
+          .map((r) => `<dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd>`)
+          .join('');
+        $('victory').hidden = false;
+        this.speedBefore = this.ui.speed;
+        this.setSpeed(0);
+      }
+      this.actions.delivered(first);
     }
     const banner = $('launch-banner');
     banner.hidden = s.ship.launchAt == null;
@@ -439,7 +455,7 @@ export class Hud {
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -611,7 +627,7 @@ export class Hud {
     hc.disabled = !unlocked;
     $('hardcore-note').textContent = unlocked
       ? 'Losing the hub ends the run.'
-      : 'Locked: escape the planet once in Standard to unlock.';
+      : 'Locked: deliver a supply run in Standard to unlock.';
     $('standard-note').textContent = `If the hub falls, the bugs go home but you lose ${BREACH.stockLost * 100}% of hub stock.`;
     this.openModal('newgame');
   }

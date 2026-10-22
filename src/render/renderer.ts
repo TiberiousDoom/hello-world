@@ -777,6 +777,7 @@ export class Renderer {
   private drawShip(world: World, b: Building, now: number): void {
     const ctx = this.ctx;
     const ship = world.state.ship;
+    if (ship.returnAt != null) return; // away at the colony: an empty pad
     SHIP.stages.forEach((st, i) => {
       if (i > ship.stage) return;
       let alpha = 1;

@@ -120,6 +120,11 @@ describe('Sound effects', () => {
     w.state.researched.push('masonry');
     watcher.update(w);
     expect(sfx.names()).toEqual(['research']);
+
+    sfx.played = [];
+    w.state.ship.runs++; // a supply run delivered
+    watcher.update(w);
+    expect(sfx.names()).toEqual(['research']);
   });
 
   it('fights far off screen are silent', () => {

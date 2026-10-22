@@ -16,7 +16,7 @@ quality and business work don't get left until the end.
 | M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; forest placeholders in; final sprites to come |
 | M3c: Playtest polish | Playtest notes: tutorial, store lock, hub weapon, controls; batch 2 (blueprints, belts, forest); batch 3 (music, tracker, lessons) | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
-| M4s: Story layer | Escape ship ✅ (to be tied in differently, Q-17). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
+| M4s: Story layer | Colony supply ship with repeat runs: phase 1 done, rewards next (D-046, D-047). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
 | M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phase 1 done |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
@@ -41,7 +41,7 @@ quality and business work don't get left until the end.
 11. ✅ **Owner's notes, round 4:** buildings onto belts (D-037), hub port collar, hub-touching turrets reload from stock (D-036), see-through stock panel, and a fix for a pathfinding crash.
 12. ✅ **The open map redesign:** a procedural 256×256 map, bug territories that attack only when provoked (no waves), building sizes (extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5), the Company and black market removed, research inside the hub, a leaner top bar, and tap-to-select with a tool in hand (D-038 to D-042).
 13. ✅ **Sound effects** (D-043).
-14. **Next:** playtest the open map and wood phase 1 (nest density, territory sizes, how far bugs chase, forest density and regrowth); decide how the escape ship fits in (Q-17); then wood phase 2 (D-044, see Gameplay → Wood).
+14. **Next:** playtest the open map and wood phase 1 (nest density, territory sizes, how far bugs chase, forest density and regrowth); colony rewards for supply runs (D-046, see Gameplay → Story layer); then wood phase 2 (D-044, see Gameplay → Wood).
 
 ---
 
@@ -62,7 +62,10 @@ quality and business work don't get left until the end.
 ### Story layer (M4s, [STORY.md](STORY.md))
 - ✖ Phases 1 and 2 (Company contracts, inbox, store, black market, suspicion) were built, then dropped (D-040)
 - ⏸ Phase 3: food factories and meal buffs. Set aside for wood (D-044)
-- ✅ Phase 4: shipyard, four-stage escape ship, launch defence, victory screen and endless mode (D-019, D-034). Now unlocked by normal research; launching wakes nearby nests (D-040). ❓ How it fits the new game (Q-17)
+- ✅ Phase 4: shipyard, four-stage escape ship, launch defence, victory screen and endless mode (D-019, D-034). Now unlocked by normal research; launching wakes nearby nests (D-040). Becoming the supply ship (D-046)
+- 🚧 **Colony supply runs (D-046)**, in this order:
+  - ✅ **Phase 1, supply runs (D-047, D-048):** after the ship is built, a cargo list to belt in; launch (countdown and woken nests, as now); lift-off delivers instead of ending the game; a celebration screen on the first delivery, which also unlocks Hardcore; the ship returns after a while, and each run's cargo list is bigger. The victory screen, "escaped" and the endless choice go. Saves move to v10, migrating escaped and endless games to one delivered run
+  - ⬜ **Phase 2, colony rewards:** each delivered run unlocks something you can't research (blueprints from the colony). Later cargo lists ask for planks, then steel (wood phase 2). Maybe a wider wake radius on later runs
 - ⏸ Vehicles and gear (D-021)
 
 ### Playtest polish (M3c)
@@ -82,7 +85,7 @@ Not the escape ship's hull. In this order:
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
-- ✅ Win condition: escape (D-019, D-034)
+- ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (nest density and toughness)
 - ✅ Enemy nests on the map that players can clear (D-038)

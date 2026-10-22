@@ -17,7 +17,7 @@ art; final sprites drop into `src/art/` (see [docs/ART_LIST.md](docs/ART_LIST.md
 A tutorial runs the first time you play, and you can replay it from the menu.
 In short: mine with **extractors**, move items with **belts**, smelt in
 **furnaces**, deliver to the **hub**, spend hub stock on **research** and
-buildings, expand carefully around **bug territories** and feed **turrets** to hold them off, then build an escape ship. The full rules and
+buildings, expand carefully around **bug territories** and feed **turrets** to hold them off, then build a supply ship and keep a far-off colony supplied. The full rules and
 controls are in [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md).
 
 Progress autosaves to the browser's local storage.
@@ -40,7 +40,7 @@ npm run build:single # one self-contained HTML file in dist-single/
 src/
   art/       sprites and icons (SVG placeholders; a same-named PNG replaces one)
   sim/       game rules, with no DOM: data.ts (balance/content), world.ts (simulation), mapgen.ts (map),
-             nests.ts (bug territories), ship.ts (escape ship), research.ts, demo.ts (menu factory)
+             nests.ts (bug territories), ship.ts (supply ship), research.ts, demo.ts (menu factory)
   render/    Canvas 2D renderer and camera (swappable for 3D later)
   input/     mouse, touch and keyboard
   ui/        HTML overlay (HUD, toolbar, dialogs, tutorial, blueprint bar)

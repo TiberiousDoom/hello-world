@@ -8,8 +8,9 @@ A factory-automation game in the spirit of Builderment, where the factory is
 also the fortress. You mine, smelt and assemble across a large, generated map, and
 bug territories test whether your production can keep your defenses fed as you expand.
 
-**Goal:** build an escape ship and get off the planet. (The Company story was dropped,
-D-040; how the ship ties in is open, Q-17.)
+**Goal:** keep a far-off colony supplied. You build a supply ship, load it with what your factory
+makes and launch it, again and again, for bigger loads and new blueprints in return (D-046). There's no
+final win: the game carries on as long as you like.
 
 ## Pillars
 
