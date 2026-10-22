@@ -132,6 +132,12 @@ export class Input {
       this.mode = 'right'; // a click clears; a drag pans
     } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
+    } else if (this.ui.tool === 'express_belt' && this.cb.getWorld().buildingAt(this.ui.hover.x, this.ui.hover.y)?.type === 'belt') {
+      // A tap or click on a belt upgrades its whole line at once: no blueprint, no drag.
+      const result = this.cb.getWorld().upgradeBeltLine(this.ui.hover.x, this.ui.hover.y);
+      if (typeof result === 'string') this.cb.onPlaceError(result);
+      this.mode = 'none';
+      this.cb.onChange();
     } else if (this.takesOver(this.ui.hover)) {
       // Pressing on a different kind of building selects it instead of building there.
       this.ui.tool = null;
@@ -215,7 +221,7 @@ export class Input {
   }
 
   private softPlace(pointerType: string, tool: string): boolean {
-    if (pointerType === 'mouse') return tool === 'belt' || tool === 'wall' || tool === 'palisade';
+    if (pointerType === 'mouse') return tool === 'belt' || tool === 'express_belt' || tool === 'wall' || tool === 'palisade';
     return this.ui.confirmTouch;
   }
 
@@ -320,7 +326,7 @@ export class Input {
         dir = dy > 0 ? 1 : 3;
         y += Math.sign(dy);
       }
-      if (this.ui.tool === 'belt') {
+      if (this.ui.tool === 'belt' || this.ui.tool === 'express_belt') {
         // Dragging belts points each one at the next.
         if (this.lastPlacedId != null) world.rotate(this.lastPlacedId, dir);
         if (this.ui.dir !== dir) {

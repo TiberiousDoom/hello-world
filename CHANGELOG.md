@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: colony rewards (supply runs phase 2)
+- **Blueprints from the colony:** after each supply run, the colony offers two blueprints for buildings you can't research, and you pick one. The other comes with a later run. Research shows them under "From the colony".
+- **Express Belt:** twice as fast as a belt. With it selected, one tap or click on a belt upgrades that whole line in place, keeping its direction and items. The old belts are refunded, so it costs a gear per belt.
+- **Tesla Turret:** fed copper wire by belt. Each shot arcs from the nearest bug on to two more nearby.
+- **A heavier ship:** each run's launch wakes nests 8 tiles further out than the last (from 48 up to 96 tiles).
+- Fixed belts next to Lumber Camps and Sawmills not joining up with them visually.
+- Saves move to v11. Games that had delivered runs get a blueprint to pick when they load.
+
 ## Unreleased: the colony supply ship
 - **The escape ship is now a colony supply ship, and the game no longer ends.** Build the ship once, then load each supply run's cargo by belt and launch it. Hold the shipyard through the countdown, and the run is delivered.
 - The ship is away for 5 minutes after each run, then comes back for the next, bigger one. Later runs ask for gears, wire, motors and planks.

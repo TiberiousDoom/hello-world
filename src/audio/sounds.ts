@@ -41,17 +41,25 @@ export class SoundWatcher {
     const s = world.state;
     const hub = world.hub;
 
-    // Buildings placed, demolished or lost to bugs.
+    // Buildings placed, upgraded, demolished or lost to bugs.
     const lost = new Set(world.lost.map((l) => l.id));
+    let upgraded: { x: number; y: number } | undefined;
     const now = new Set<number>();
     for (const b of s.buildings) {
       now.add(b.id);
-      if (this.buildings.has(b.id)) continue;
+      const known = this.buildings.get(b.id);
+      if (known && known.type !== b.type) {
+        // Upgraded in place (a belt line to express): one click per belt would be noise, so play once.
+        known.type = b.type;
+        upgraded = upgraded ?? b;
+      }
+      if (known) continue;
       this.buildings.set(b.id, { type: b.type, x: b.x, y: b.y });
       const [w, h] = BUILDINGS[b.type].size ?? [1, 1];
-      const sound: Sound = b.type === 'belt' ? 'belt' : w * h >= 4 ? 'place_big' : 'place';
+      const sound: Sound = b.type === 'belt' || b.type === 'express_belt' ? 'belt' : w * h >= 4 ? 'place_big' : 'place';
       this.play(sound, b.x + w / 2, b.y + h / 2);
     }
+    if (upgraded) this.play('place', upgraded.x + 0.5, upgraded.y + 0.5);
     for (const [id, b] of this.buildings) {
       if (now.has(id)) continue;
       this.buildings.delete(id);
@@ -62,8 +70,9 @@ export class SoundWatcher {
     for (const sh of world.shots) {
       if (this.seenShots.has(sh)) continue;
       this.seenShots.add(sh);
+      if (sh.jump) continue; // part of a tesla's arc, already heard
       const from = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
-      this.play(from?.type === 'hub' ? 'hub_shot' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
+      this.play(from?.type === 'hub' ? 'hub_shot' : sh.arc ? 'zap' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
     }
 
     // Trees cut by Lumber Camps.

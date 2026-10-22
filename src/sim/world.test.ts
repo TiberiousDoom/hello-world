@@ -534,6 +534,85 @@ describe('Wood', () => {
   });
 });
 
+describe('Colony blueprints', () => {
+  it('the express belt needs its blueprint, and moves items twice as fast', () => {
+    const w = emptyWorld();
+    const y = w.hub!.y - 8;
+    const x = w.hub!.x - 10;
+    expect(w.place('express_belt', x, y, 0)).toBe('locked');
+    w.state.ship.blueprints = ['express_belt'];
+    const fast = placed(w.place('express_belt', x, y, 0));
+    const slow = placed(w.place('belt', x, y + 2, 0));
+    fast.belt.push({ item: 'iron_plate', pos: 0 });
+    slow.belt.push({ item: 'iron_plate', pos: 0 });
+    run(w, 0.2);
+    expect(fast.belt[0].pos).toBeCloseTo(2 * slow.belt[0].pos, 1);
+  });
+
+  it('a tap upgrades the whole belt line in place, side merges included, up to other buildings', () => {
+    const w = emptyWorld();
+    w.state.ship.blueprints = ['express_belt'];
+    const y = w.hub!.y - 8;
+    const x0 = w.hub!.x - 20;
+    const line = [0, 1, 2, 3, 4, 5].map((i) => placed(w.place('belt', x0 + i, y, 0)));
+    const merge = placed(w.place('belt', x0 + 2, y + 1, 3)); // feeds in from the side
+    placed(w.place('splitter', x0 + 6, y, 0));
+    const after = placed(w.place('belt', x0 + 7, y, 0)); // past the splitter: another line
+    const apart = placed(w.place('belt', x0, y + 3, 0)); // not joined at all
+    line[3].belt.push({ item: 'gear', pos: 0.5 });
+    const inv = { ...w.state.inventory };
+    expect(w.upgradeBeltLine(x0 + 3, y)).toEqual({ upgraded: 7, left: 0 });
+    for (const b of [...line, merge]) expect(b.type).toBe('express_belt');
+    expect(merge.dir).toBe(3);
+    expect(line[3].belt).toEqual([{ item: 'gear', pos: 0.5 }]);
+    expect(after.type).toBe('belt');
+    expect(apart.type).toBe('belt');
+    // Each upgrade refunds the old belt's plate, so only the gears are spent.
+    expect(w.state.inventory.gear).toBe(inv.gear! - 7);
+    expect(w.state.inventory.iron_plate).toBe(inv.iron_plate);
+    expect(w.upgradeBeltLine(x0 + 3, y)).toBe('occupied'); // already express
+    expect(w.upgradeBeltLine(x0 + 6, y)).toBe('occupied'); // a splitter, not a belt
+  });
+
+  it('with too little stock, it upgrades the belts nearest the tap and says how many were left', () => {
+    const w = emptyWorld();
+    w.state.ship.blueprints = ['express_belt'];
+    const y = w.hub!.y - 8;
+    const x0 = w.hub!.x - 20;
+    const line = [0, 1, 2, 3, 4, 5, 6].map((i) => placed(w.place('belt', x0 + i, y, 0)));
+    w.state.inventory.gear = 3;
+    expect(w.upgradeBeltLine(x0 + 3, y)).toEqual({ upgraded: 3, left: 4 });
+    expect(line.map((b) => b.type === 'express_belt')).toEqual([false, false, true, true, true, false, false]);
+    expect(w.events.some((e) => e.includes('other 4'))).toBe(true);
+    w.state.inventory.gear = 0;
+    expect(w.upgradeBeltLine(x0, y)).toBe('cost');
+  });
+
+  it('a tesla arcs from the nearest bug to up to two more within reach, and reloads with wire', () => {
+    const w = emptyWorld();
+    w.state.ship.blueprints = ['tesla'];
+    const t = placed(w.place('tesla', w.hub!.x - 20, w.hub!.y - 10, 0));
+    const n = addNest(w, 0, 0, 0);
+    // A string of bugs 1.5 tiles apart, starting 3 tiles from the tesla.
+    const bugs = [0, 1, 2, 3].map((i) => {
+      const e = w.spawnBug('crawler', n, 1);
+      e.x = t.x + 3.5 + i * 1.5;
+      e.y = t.y + 0.5;
+      e.hp = e.maxHp = 1000;
+      return e;
+    });
+    w.tick();
+    expect(bugs.map((e) => e.hp < 1000)).toEqual([true, true, true, false]);
+    expect(w.shots.filter((s) => s.arc).length).toBe(3);
+    expect(w.shots.filter((s) => s.jump).length).toBe(2);
+    const def = TURRETS.tesla!;
+    t.ammo = 0;
+    expect(w.insert(t, 'iron_plate', t.x - 1, t.y)).toBe(false);
+    expect(w.insert(t, 'wire', t.x - 1, t.y)).toBe(true);
+    expect(t.ammo).toBe(def.shotsPerItem);
+  });
+});
+
 describe('Demo world', () => {
   it('lays out a working factory that delivers to the hub, with calm bugs nearby', () => {
     const w = createDemoWorld();

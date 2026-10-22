@@ -4,7 +4,6 @@
 
 import { sprite } from '../art';
 import {
-  BELT_SPEED,
   BUILDINGS,
   BuildingType,
   DX,
@@ -25,6 +24,8 @@ import {
   REPAIR,
   RESOURCE_ITEMS,
   TURRETS,
+  beltSpeed,
+  isBelt,
   isMachine,
 } from '../sim/data';
 import { Building, STUMP, Shot, TREE, World } from '../sim/world';
@@ -61,6 +62,7 @@ function hash(x: number, y: number): number {
 // Belt colours, matching the belt sprite.
 const BELT_SURFACE = '#20242d';
 const BELT_RAIL = '#5a6478';
+const EXPRESS_RAIL = '#d9a93a';
 const BELT_SLAT = 'rgba(138,150,168,0.5)';
 
 interface Effect {
@@ -163,11 +165,11 @@ export class Renderer {
       if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
     }
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
-    const belts = s.buildings.filter((b) => b.type === 'belt' && visible(b.x, b.y));
+    const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
     belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
     for (const b of s.buildings) {
-      if (b.type === 'belt') continue;
+      if (isBelt(b.type)) continue;
       const [fw, fh] = world.footprintOf(b);
       if (visible(b.x, b.y, Math.max(fw, fh))) this.drawBuilding(world, b, now, z);
     }
@@ -214,8 +216,33 @@ export class Renderer {
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
     }
-    if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
+    // Express belt over a belt: outline the whole line a tap would upgrade.
+    const hovered = ui.hover && ui.tool === 'express_belt' ? world.buildingAt(ui.hover.x, ui.hover.y) : undefined;
+    if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
+    else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
     else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
+  }
+
+  /** The belts a tap with the Express Belt would upgrade; red where stock runs out. */
+  private drawUpgradeLine(world: World, line: Building[], z: number): void {
+    const ctx = this.ctx;
+    const each = BUILDINGS.express_belt.cost;
+    const inv = world.state.inventory;
+    // Each upgrade refunds the old belt, so only the difference is spent.
+    const afford = Math.min(
+      ...Object.entries(each).map(([k, n]) => {
+        const net = n! - ((BUILDINGS.belt.cost as Record<string, number>)[k] ?? 0);
+        return net > 0 ? Math.floor((inv[k as ItemId] ?? 0) / net) : Infinity;
+      }),
+    );
+    ctx.lineWidth = 2.5 / z;
+    line.forEach((b, i) => {
+      const ok = i < afford;
+      ctx.fillStyle = ok ? 'rgba(242,193,78,0.22)' : 'rgba(224,68,90,0.3)';
+      ctx.fillRect(b.x, b.y, 1, 1);
+      ctx.strokeStyle = ok ? '#f2c14e' : '#ff6070';
+      ctx.strokeRect(b.x + 0.04, b.y + 0.04, 0.92, 0.92);
+    });
   }
 
   /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
@@ -467,7 +494,7 @@ export class Renderer {
     if (look.curved) return this.drawCurvedBelt(b, look.from, now, z);
     const ctx = this.ctx;
     const angle = (b.dir * Math.PI) / 2;
-    if (!this.drawSprite('buildings/belt', b.x, b.y, 1, angle)) {
+    if (!this.drawSprite(`buildings/${b.type}`, b.x, b.y, 1, angle)) {
       ctx.fillStyle = BELT_SURFACE;
       ctx.fillRect(b.x, b.y + 0.06, 1, 0.88);
     }
@@ -476,7 +503,7 @@ export class Renderer {
     // Along the belt (u) and across it (v), from the tile's centre.
     const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
     // Moving chevrons show the direction of travel.
-    const phase = ((now / 1000) * BELT_SPEED) % 0.25;
+    const phase = ((now / 1000) * beltSpeed(b.type)) % 0.25;
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.lineCap = 'round';
@@ -491,7 +518,7 @@ export class Renderer {
     ctx.lineCap = 'butt';
     // Caps where a line starts or stops: a lip at the start, a hazard bumper at the end.
     if (!look.fed) {
-      ctx.fillStyle = BELT_RAIL;
+      ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
       this.beltBar(at, -0.5, 0.09);
     }
     if (!look.joined) {
@@ -548,7 +575,7 @@ export class Renderer {
     ctx.strokeStyle = '#0f1a2e';
     // Rails line up with the straight belt sprite's (4–11 and 53–60 px of 64).
     for (const [r0, r1] of [[0.06, 0.17], [0.83, 0.94]]) {
-      ctx.fillStyle = BELT_RAIL;
+      ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
       ring(r0, r1);
       ctx.fill();
       ctx.stroke();
@@ -557,7 +584,7 @@ export class Renderer {
     ctx.fillStyle = '#8a96a8';
     for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
     // Slats fan out around the bend.
-    const phase = ((now / 1000) * BELT_SPEED) % 0.25;
+    const phase = ((now / 1000) * beltSpeed(b.type)) % 0.25;
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.beginPath();
@@ -577,9 +604,9 @@ export class Renderer {
   private drawJoins(world: World, b: Building, look: BeltLook, z: number): void {
     const sides: Dir[] = [];
     const feeder = look.fed ? world.buildingAt(b.x + DX[look.from], b.y + DY[look.from]) : undefined;
-    if (feeder && feeder.type !== 'belt') sides.push(look.from);
+    if (feeder && !isBelt(feeder.type)) sides.push(look.from);
     const front = world.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-    if (look.joined && front && front.type !== 'belt') sides.push(b.dir);
+    if (look.joined && front && !isBelt(front.type)) sides.push(b.dir);
     const ctx = this.ctx;
     for (const d of sides) {
       const ex = b.x + 0.5 + DX[d] * 0.5;
@@ -614,7 +641,7 @@ export class Renderer {
 
   private spriteKey(world: World, b: Building): string {
     if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
-    if (b.type === 'turret' || b.type === 'cannon') return `buildings/${b.type}_base`;
+    if (TURRETS[b.type]) return `buildings/${b.type}_base`;
     return `buildings/${b.type}`;
   }
 
@@ -892,6 +919,7 @@ export class Renderer {
     for (const sh of world.shots) {
       if (this.seenShots.has(sh)) continue;
       this.seenShots.add(sh);
+      if (sh.jump) continue; // starts at a bug, not a turret
       const b = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
       if (b) this.aims.set(b.id, Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1));
       if (sh.splash) this.effects.push({ kind: 'blast', x: sh.x2, y: sh.y2, r: sh.splash, born: now, life: 350, color: '255,170,70' });
@@ -941,6 +969,10 @@ export class Renderer {
     const ctx = this.ctx;
     for (const sh of world.shots) {
       const fade = 1 - sh.age / 0.12;
+      if (sh.arc) {
+        this.drawArc(sh, fade, z);
+        continue;
+      }
       ctx.strokeStyle = `rgba(255,224,138,${fade})`;
       ctx.lineWidth = (sh.splash ? 3 : 1.5) / z;
       ctx.beginPath();
@@ -957,6 +989,30 @@ export class Renderer {
         ctx.fillStyle = `rgba(255,236,160,${0.9 * flicker})`;
         dot(ctx, mx, my, sh.splash ? 0.2 : 0.12);
       }
+    }
+  }
+
+  /** A tesla's lightning: a jagged bolt with a soft glow, different every frame. */
+  private drawArc(sh: Shot, fade: number, z: number): void {
+    const ctx = this.ctx;
+    const dx = sh.x2 - sh.x1;
+    const dy = sh.y2 - sh.y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const steps = Math.max(3, Math.round(len * 3));
+    const pts: [number, number][] = [[sh.x1, sh.y1]];
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const off = (Math.random() - 0.5) * 0.35;
+      pts.push([sh.x1 + dx * t - (dy / len) * off, sh.y1 + dy * t + (dx / len) * off]);
+    }
+    pts.push([sh.x2, sh.y2]);
+    for (const [width, color] of [[6, `rgba(120,200,255,${0.35 * fade})`], [2, `rgba(235,248,255,${fade})`]] as const) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width / z;
+      ctx.beginPath();
+      ctx.moveTo(...pts[0]);
+      for (const p of pts.slice(1)) ctx.lineTo(...p);
+      ctx.stroke();
     }
   }
 

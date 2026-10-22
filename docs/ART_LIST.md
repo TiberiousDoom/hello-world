@@ -95,6 +95,10 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Sawmill | 2×2 (128×128) | A saw bench, logs in and planks out, facing east | 1 + 4 working | P2 | Placeholder |
 | Palisade | 1×1 | Sharpened wooden stakes. Later a set that joins up, like the wall | 1 | P2 | Placeholder |
 | Leaf burst when a tree is cut | 64×64 | 4 | P3 | Code |
+| Express belt (straight) | 1×1 | Like the belt, with hazard-yellow rails so it reads as faster. Corners are drawn in code with yellow rails | 8 | P2 | Placeholder (`buildings/express_belt`) |
+| Tesla base | 1×1 | Static | 1 | P2 | Placeholder (`buildings/tesla_base`) |
+| Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel; centred pivot | 1 | P2 | Placeholder (`buildings/tesla_barrel`) |
+| Tesla lightning | — | A jagged bolt with a glow, redrawn every frame | — | P3 | Code |
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
