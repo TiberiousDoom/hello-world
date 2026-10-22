@@ -138,6 +138,8 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 | Research | Items | Time | Needs | Unlocks |
 |---|---|---|---|---|
 | Basic Defense | 20 iron plates | 30 s | — | Turret |
+| Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
+| Palisades | 12 planks | 30 s | Forestry | Palisade |
 | Masonry | 12 bricks | 30 s | — | Wall |
 | Workshops | 30 iron plates, 10 copper | 60 s | — | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
@@ -147,8 +149,6 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
 | Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
 | Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Basic Defense | Cannon |
-| Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
-| Palisades | 12 planks | 30 s | Forestry | Palisade |
 
 Starting stock: 100 iron plates, 24 bricks, 16 copper ingots.
 
@@ -247,7 +247,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 - If the shipyard is still standing at lift-off, the run is **delivered**. The game goes on. The ship is
   **away for 5 minutes** (the pad is empty, and nothing can be loaded), then comes back for the next run.
 - The **first delivery** in a game opens a "Supplies delivered!" screen with the game's numbers, and
-  pauses the game until you press Keep building. The "Groove" track plays. In Standard, it unlocks Hardcore.
+  pauses the game until you press Keep building. The "Supplies Delivered" fanfare plays. In Standard, it unlocks Hardcore.
   Later deliveries show a message and play a jingle.
 - If the shipyard is destroyed, any launch fails. **Standard** keeps the ship and its cargo, and a new
   shipyard carries on. **Hardcore** loses a docked ship and its cargo; a ship that's away is safe.
@@ -287,6 +287,9 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
 - **Explanation steps** pause the game until you press Next.
 - A lesson waits while a window (research, menu…) is open, so it never covers what the player is reading.
+- A lesson card never covers its spotlight. It tries below, above, beside, then the top or bottom of the
+  screen, and keeps clear of the toolbar when it can. When a map target is too big for any of those (a
+  bug territory on a phone), the map slides a little as the target comes into view, to make room.
 - The **New game** dialog has "Start with the Essentials tutorial", ticked until the player has seen it once. Ticking it shows Essentials even if lessons are switched off; unticking it skips them.
 - Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
 - Lessons play once. Menu → Tutorials lists them, replays any of them, and switches automatic lessons on or off.
@@ -328,17 +331,31 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 ## Music
 
-- Main menu: an original theme in the style of late-90s 3D adventure games (D-051), looping: a
-  breathy, ocarina-like flute over harp, pizzicato bass, marimba and soft strings, in a lilting 6/8 and
-  the F Lydian mode, with plenty of reverb. About 70 seconds. In game: seven lo-fi tracks in a shuffled
-  order. Tracks crossfade over 4 s (1.5 s when switching between menu and game). The "Groove" track
-  plays on the first-delivery screen.
+All the music is original to the game, composed as notes in code in the style of late-90s 3D adventure
+games (D-051, D-052): synthesized flute, clarinet, harp, lute, marimba, music box, accordion, brass,
+strings and light percussion, with a roomy reverb.
+
+| Track | Plays | Feel |
+|---|---|---|
+| Menu theme | Main menu, looping | Ocarina-like flute over harp, 6/8, F Lydian |
+| Morning Clearing | In game | Easy-going flute and harp, 92 bpm |
+| Workshop Polka | In game | Upbeat marimba and accordion oom-pah, 126 bpm |
+| Firefly Lullaby | In game | Slow music-box waltz with strings, 66 bpm |
+| Conveyor Jig | In game | Fast flute jig with a hand drum, 6/8 |
+| Deep Woods | In game | Slow, mysterious clarinet in E minor, 76 bpm |
+| Market Day | In game | Upbeat, swung accordion and marimba, 112 bpm |
+| Starlit Night | In game | Slow, dreamy bells and flute, 6/8, C Lydian |
+| Supplies Delivered | The first delivery's screen | A brass fanfare with timpani |
+
+- In game, the seven tracks play in a shuffled order. Tracks crossfade over 4 s.
+- **Moving between the main menu and the game never cuts the music:** the track playing carries on to
+  its end, then crossfades into the next mood's tracks. Only the fanfare starts at once (1.5 s crossfade).
+- Every track is brought to the same average loudness, so the playlist doesn't jump in volume.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
 - Menu → Music sets the volume (saved per device). Zero mutes it. Sound effects have their own slider ([Sound effects](#sound-effects)).
-- The game ships 128 kbps copies in `public/music/`. The originals and their Pixabay licences are in
-  `audio/source/`. The menu theme is made by `audio/compose/menu-theme.mjs`, which writes
-  `public/music/menu-theme.wav`: change its notes and run `node audio/compose/menu-theme.mjs` to rework
-  it. The single-file build has no music.
+- The tunes live in `audio/compose/` (`menu-theme.mjs`, `tracks.mjs`, and the instruments in `lib.mjs`).
+  `node audio/compose/render.mjs` renders every track to `public/music/` (22 kHz, 16-bit mono WAV);
+  name tracks to render only those. The single-file build has no music.
 
 ## Sound effects
 
