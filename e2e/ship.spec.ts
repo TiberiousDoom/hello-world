@@ -1,4 +1,4 @@
-import { ALL_LESSONS, build, calm, cameraSettled, expect, newGame, settled, stepLabel, test, tilePoint, uncoveredTile } from './helpers';
+import { ALL_LESSONS, build, calm, cameraSettled, expect, newGame, settled, stepLabel, tap, test, tilePoint, uncoveredTile } from './helpers';
 
 test('build the supply ship, load and launch it, deliver the first run, and keep building', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: ALL_LESSONS.filter((l) => l !== 'shipyard') });
@@ -88,6 +88,15 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
 
   await page.click('#btn-keep-playing');
   await expect(page.locator('#victory')).toBeHidden();
+
+  // The colony offers two blueprints; the game waits for a pick.
+  await expect(page.locator('#blueprints')).toBeVisible();
+  await expect(page.locator('#blueprint-choices button')).toHaveCount(2);
+  expect(await page.evaluate(() => window.game.ui.speed)).toBe(0);
+  await page.click('[data-blueprint="express_belt"]');
+  await expect(page.locator('#blueprints')).toBeHidden();
+  expect(await page.evaluate(() => window.game.world.state.ship.blueprints)).toEqual(['express_belt']);
+  await expect(page.locator('[data-tool="express_belt"]')).toBeVisible();
   const ship = await page.evaluate(() => ({ ...window.game.world.state.ship, yards: window.game.world.state.buildings.filter((b: { type: string }) => b.type === 'shipyard').length }));
   expect(ship.runs).toBe(1);
   expect(ship.returnAt).not.toBeNull();
@@ -97,4 +106,28 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   expect(await page.evaluate(() => window.game.music.state.mood)).toBe('game');
   await page.mouse.click(...(await tilePoint(page, spot.x, spot.y)));
   await expect(page.locator('#info')).toContainText('away at the colony');
+
+  // One tap or click with the Express Belt upgrades a whole belt line: no blueprint, no drag.
+  const belts = await page.evaluate(() => {
+    const w = window.game.world;
+    const s = w.state;
+    s.inventory.gear = 50;
+    s.inventory.iron_plate = 50;
+    const y = w.hub.y - 6;
+    const x0 = w.hub.x - 4;
+    for (let i = 0; i < 6; i++) {
+      s.resources[w.idx(x0 + i, y)] = 0;
+      s.trees[w.idx(x0 + i, y)] = 0;
+      w.place('belt', x0 + i, y, 0);
+    }
+    return { x0, y };
+  });
+  await page.click('[data-tool="express_belt"]');
+  await tap(page, info, ...(await uncoveredTile(page, belts.x0 + 2, belts.y)));
+  await expect
+    .poll(() =>
+      page.evaluate(({ x0, y }) => [0, 1, 2, 3, 4, 5].map((i) => window.game.world.buildingAt(x0 + i, y)?.type), belts),
+    )
+    .toEqual(Array(6).fill('express_belt'));
+  expect(await page.evaluate(() => window.game.ui.plan)).toBeNull();
 });

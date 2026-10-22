@@ -15,6 +15,7 @@ export type Sound =
   | 'shot'
   | 'hub_shot'
   | 'cannon'
+  | 'zap'
   | 'death'
   | 'destroyed'
   | 'hub_hit'
@@ -33,6 +34,7 @@ const MIN_GAP: Partial<Record<Sound, number>> = {
   shot: 0.07,
   hub_shot: 0.1,
   cannon: 0.12,
+  zap: 0.1,
   death: 0.06,
   destroyed: 0.15,
   hub_hit: 0.6,
@@ -105,6 +107,9 @@ function recipe(sound: Sound): Layer[] {
       return [tone('sawtooth', 1100, 250, 0.1, 0.12), noise('highpass', 1800, 1800, 0.05, 0.18)];
     case 'cannon':
       return [tone('sine', 110, 38, 0.35, 0.7), noise('lowpass', 1400, 150, 0.32, 0.45)];
+    case 'zap':
+      // A crackle of high noise over a falling buzz.
+      return [noise('highpass', 4000, 2500, 0.12, 0.3, 1.5), tone('sawtooth', 1400, 300, 0.1, 0.1), noise('bandpass', 2500, 900, 0.08, 0.2, 4, 0.03)];
     case 'death':
       return [noise('bandpass', 1600, 350, 0.14, 0.5, 3), tone('sine', 500, 160, 0.08, 0.18)];
     case 'destroyed':

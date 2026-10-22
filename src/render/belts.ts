@@ -11,10 +11,13 @@ export function outputsTo(world: World, n: Building, x: number, y: number): bool
   let dirs: Dir[];
   switch (n.type) {
     case 'belt':
+    case 'express_belt':
     case 'extractor':
+    case 'lumber_camp':
     case 'furnace':
     case 'workshop':
     case 'assembler':
+    case 'sawmill':
     case 'port':
       dirs = [n.dir];
       break;
@@ -38,6 +41,7 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
   const front = b.x + DX[b.dir] === fromX && b.y + DY[b.dir] === fromY;
   switch (b.type) {
     case 'belt':
+    case 'express_belt':
       return !front;
     case 'tunnel':
       return !front && !world.isTunnelExit(b);
@@ -49,6 +53,7 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'furnace':
     case 'workshop':
     case 'assembler':
+    case 'sawmill':
     case 'turret':
     case 'cannon':
       return true;

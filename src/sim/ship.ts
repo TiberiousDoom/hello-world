@@ -5,7 +5,7 @@
 // The game carries on, and the ship comes back after a while for the next,
 // bigger run.
 
-import { ItemCounts, ItemId, NESTS, SHIP, ShipStage, cargoFor } from './data';
+import { BLUEPRINTS, BLUEPRINT_BY_ID, ItemCounts, ItemId, NESTS, SHIP, ShipStage, cargoFor } from './data';
 import { Nest, nestAlive, nestCentre, provoke } from './nests';
 import type { Building, World } from './world';
 
@@ -16,10 +16,45 @@ export interface ShipState {
   runs: number; // supply runs delivered
   returnAt: number | null; // game time the ship is back, while it's away
   drawn: number[]; // nests whose bugs are heading for the shipyard, during a launch
+  blueprints: string[]; // received from the colony (D-049)
+  offer: string[] | null; // blueprints the colony offers right now; the player picks one
 }
 
 export function createShipState(): ShipState {
-  return { stage: 0, delivered: {}, launchAt: null, runs: 0, returnAt: null, drawn: [] };
+  return { stage: 0, delivered: {}, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null };
+}
+
+/** How far the next launch's engines reach: further with every run, as the loaded ship gets heavier. */
+export const wakeRadius = (w: World): number => Math.min(SHIP.wakeMax, SHIP.wakeRadius + SHIP.wakeGrowth * w.state.ship.runs);
+
+/** Blueprints the colony hasn't sent yet. */
+export const blueprintsLeft = (w: World): string[] => BLUEPRINTS.map((b) => b.id).filter((id) => !w.state.ship.blueprints.includes(id));
+
+/**
+ * After a delivery: the colony offers two blueprints to pick from. With only
+ * one left it's simply sent; with none, there's nothing to offer.
+ */
+function offerBlueprints(w: World): void {
+  const ship = w.state.ship;
+  const left = blueprintsLeft(w);
+  if (left.length === 1) {
+    ship.blueprints.push(left[0]);
+    w.events.push(`The colony sent the ${BLUEPRINT_BY_ID[left[0]].name} blueprint.`);
+  } else if (left.length > 1) {
+    const first = left.splice(Math.floor(w.random() * left.length), 1)[0];
+    const second = left[Math.floor(w.random() * left.length)];
+    ship.offer = [first, second];
+  }
+}
+
+/** Takes one of the offered blueprints. The other stays in the pool for later runs. */
+export function pickBlueprint(w: World, id: string): boolean {
+  const ship = w.state.ship;
+  if (!ship.offer?.includes(id)) return false;
+  ship.blueprints.push(id);
+  ship.offer = null;
+  w.events.push(`Blueprint received: ${BLUEPRINT_BY_ID[id].name}.`);
+  return true;
 }
 
 export function currentStage(w: World): ShipStage | null {
@@ -81,7 +116,7 @@ export function checkLaunch(w: World): LaunchError | null {
 
 /**
  * The live nests a launch from the shipyard would wake: every one within
- * SHIP.wakeRadius, and at least the SHIP.minWake nearest, however far.
+ * wakeRadius, and at least the SHIP.minWake nearest, however far.
  */
 export function nestsToWake(w: World): Nest[] {
   const yard = shipyard(w);
@@ -91,7 +126,8 @@ export function nestsToWake(w: World): Nest[] {
     .filter((n) => nestAlive(w, n))
     .map((n) => ({ n, d: Math.hypot(nestCentre(n)[0] - yx, nestCentre(n)[1] - yy) }))
     .sort((a, b) => a.d - b.d);
-  return live.filter((x, i) => x.d <= SHIP.wakeRadius || i < SHIP.minWake).map((x) => x.n);
+  const r = wakeRadius(w);
+  return live.filter((x, i) => x.d <= r || i < SHIP.minWake).map((x) => x.n);
 }
 
 /**
@@ -137,6 +173,7 @@ export function tickShip(w: World): void {
   ship.delivered = {};
   ship.returnAt = s.time + SHIP.returnTime;
   w.events.push(`Supply run ${ship.runs} is on its way to the colony. The ship will be back in ${Math.round(SHIP.returnTime / 60)} minutes.`);
+  offerBlueprints(w);
 }
 
 /**

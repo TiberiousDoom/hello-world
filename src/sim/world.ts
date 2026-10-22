@@ -4,6 +4,10 @@
 import {
   BELT_SPACING,
   BELT_SPEED,
+  BLUEPRINTS,
+  BLUEPRINT_BY_ID,
+  beltSpeed,
+  isBelt,
   BREACH,
   BUILDINGS,
   BuildingType,
@@ -50,8 +54,9 @@ export type { ResearchState };
  * buildings), so older saves can't be converted and start over.
  * v9 (D-044) adds trees; v8 saves get forest grown around what's already built.
  * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
+ * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
  */
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -127,6 +132,8 @@ export interface Shot {
   y2: number;
   splash: number;
   age: number;
+  arc?: boolean; // a tesla's lightning
+  jump?: boolean; // an arc jumping on from one bug to the next, not fired from a turret
 }
 
 export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
@@ -222,6 +229,7 @@ export class World {
     const state = JSON.parse(json) as GameState;
     if (state.version === 8) World.migrateV8(state);
     if (state.version === 9) World.migrateV9(state);
+    if (state.version === 10) World.migrateV10(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     return new World(state);
   }
@@ -244,13 +252,20 @@ export class World {
     const escaped = !!old.escaped;
     delete old.escaped;
     delete old.endless;
-    state.ship = { ...old, runs: escaped ? 1 : 0, returnAt: null, drawn: [] };
+    state.ship = { ...old, runs: escaped ? 1 : 0, returnAt: null, drawn: [], blueprints: [], offer: null };
     if (escaped) {
       state.ship.stage = SHIP.stages.length;
       state.ship.delivered = {};
       state.ship.launchAt = null;
     }
     state.version = 10;
+  }
+
+  /** v10 to v11: colony blueprints. Runs already delivered earn one pick from the first two. */
+  private static migrateV10(state: GameState): void {
+    state.ship.blueprints = [];
+    state.ship.offer = state.ship.runs > 0 ? BLUEPRINTS.slice(0, 2).map((b) => b.id) : null;
+    state.version = 11;
   }
 
   toJSON(): string {
@@ -346,6 +361,7 @@ export class World {
 
   isUnlocked(type: BuildingType): boolean {
     if (STARTING_BUILDINGS.includes(type)) return true;
+    if (this.state.ship.blueprints.some((id) => BLUEPRINT_BY_ID[id]?.unlocks.includes(type))) return true;
     return this.state.researched.some((id) => RESEARCH_BY_ID[id]?.unlocks.includes(type));
   }
 
@@ -481,9 +497,79 @@ export class World {
    * takes over the belts under it and faces the way they ran (D-037).
    */
   beltToReplace(type: BuildingType, x: number, y: number): Building | undefined {
-    if (type === 'belt') return undefined;
+    if (isBelt(type)) return undefined;
     const b = this.buildingAt(x, y);
-    return b?.type === 'belt' ? b : undefined;
+    return b && isBelt(b.type) ? b : undefined;
+  }
+
+  /**
+   * The ordinary belts in the line through `start`: every belt joined to it
+   * belt-to-belt, in both directions (side merges included), up to any other
+   * building. Nearest first.
+   */
+  beltLine(start: Building): Building[] {
+    if (start.type !== 'belt') return [];
+    const seen = new Set([start.id]);
+    const line = [start];
+    for (let i = 0; i < line.length; i++) {
+      const b = line[i];
+      const next: (Building | undefined)[] = [];
+      // Downstream: the belt this one feeds, unless it points straight back.
+      const front = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
+      if (front && !(front.x + DX[front.dir] === b.x && front.y + DY[front.dir] === b.y)) next.push(front);
+      // Upstream: belts pointing into this one from its back or sides.
+      for (let d = 0; d < 4; d++) {
+        if (d === b.dir) continue;
+        const n = this.buildingAt(b.x + DX[d], b.y + DY[d]);
+        if (n && n.x + DX[n.dir] === b.x && n.y + DY[n.dir] === b.y) next.push(n);
+      }
+      for (const n of next) {
+        if (n && n.type === 'belt' && !seen.has(n.id)) {
+          seen.add(n.id);
+          line.push(n);
+        }
+      }
+    }
+    return line;
+  }
+
+  /**
+   * Upgrades the whole belt line through (x, y) to express belts in place,
+   * keeping each belt's facing and items and refunding the old belts. With
+   * too little stock it upgrades as many as it can, nearest the tap first.
+   */
+  upgradeBeltLine(x: number, y: number): { upgraded: number; left: number } | PlaceError {
+    const start = this.buildingAt(x, y);
+    if (start?.type !== 'belt') return 'occupied';
+    if (!this.isUnlocked('express_belt')) return 'locked';
+    const line = this.beltLine(start);
+    const refund = BUILDINGS.belt.cost;
+    const cost = BUILDINGS.express_belt.cost;
+    let upgraded = 0;
+    for (const b of line) {
+      this.refund(refund);
+      if (!this.canAfford(cost)) {
+        this.pay(refund);
+        break;
+      }
+      this.pay(cost);
+      b.hp = (b.hp / BUILDINGS.belt.hp) * BUILDINGS.express_belt.hp;
+      b.type = 'express_belt';
+      upgraded++;
+    }
+    if (!upgraded) return 'cost';
+    const left = line.length - upgraded;
+    this.events.push(
+      left
+        ? `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'}. Not enough stock for the other ${left}.`
+        : `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'} to express.`,
+    );
+    return { upgraded, left };
+  }
+
+  private refund(cost: ItemCounts): void {
+    const inv = this.state.inventory;
+    for (const [item, n] of Object.entries(cost)) inv[item as ItemId] = (inv[item as ItemId] ?? 0) + n!;
   }
 
   /**
@@ -657,7 +743,8 @@ export class World {
   /** Tries to hand an item to a building. `fromX/fromY` is the source tile. */
   insert(target: Building, item: ItemId, fromX: number, fromY: number): boolean {
     switch (target.type) {
-      case 'belt': {
+      case 'belt':
+      case 'express_belt': {
         // Don't accept items from the tile this belt feeds into.
         if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
         const last = target.belt[target.belt.length - 1];
@@ -707,7 +794,8 @@ export class World {
         return true;
       }
       case 'turret':
-      case 'cannon': {
+      case 'cannon':
+      case 'tesla': {
         const def = TURRETS[target.type]!;
         if (item !== def.ammoItem || target.ammo + def.shotsPerItem > def.maxShots) return false;
         target.ammo += def.shotsPerItem;
@@ -754,6 +842,7 @@ export class World {
     for (const b of s.buildings) {
       switch (b.type) {
         case 'belt':
+        case 'express_belt':
           this.tickBelt(b, dt);
           break;
         case 'splitter':
@@ -783,6 +872,7 @@ export class World {
         case 'hub':
         case 'turret':
         case 'cannon':
+        case 'tesla':
           this.tickTurret(b, dt);
           break;
       }
@@ -860,17 +950,17 @@ export class World {
   }
 
   /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */
-  private advanceItems(items: BeltItem[], dt: number, length: number): void {
+  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): void {
     const spacing = BELT_SPACING / length;
     for (let i = 0; i < items.length; i++) {
       const limit = i === 0 ? 1 : items[i - 1].pos - spacing;
-      items[i].pos = Math.max(items[i].pos, Math.min(items[i].pos + (BELT_SPEED * dt) / length, limit));
+      items[i].pos = Math.max(items[i].pos, Math.min(items[i].pos + (speed * dt) / length, limit));
     }
   }
 
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
-    this.advanceItems(items, dt, 1);
+    this.advanceItems(items, dt, 1, beltSpeed(b.type));
     const front = items[0];
     if (front && front.pos >= 1) {
       const target = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
@@ -1001,7 +1091,28 @@ export class World {
       target.hp -= def.damage;
       onBugHurt(this, target);
     }
-    this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0 });
+    this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0, arc: !!def.chain });
+    // Tesla: the arc jumps on to the nearest bug it hasn't hit yet, within reach of the last.
+    const hit = new Set([target]);
+    let last = target;
+    for (let k = 0; k < (def.chain ?? 0); k++) {
+      let next: Enemy | undefined;
+      let near = def.chainRange! ** 2;
+      for (const e of this.state.enemies) {
+        if (hit.has(e) || e.hp <= 0) continue;
+        const d = (e.x - last.x) ** 2 + (e.y - last.y) ** 2;
+        if (d <= near) {
+          near = d;
+          next = e;
+        }
+      }
+      if (!next) break;
+      next.hp -= def.damage;
+      onBugHurt(this, next);
+      this.shots.push({ x1: last.x, y1: last.y, x2: next.x, y2: next.y, splash: 0, age: 0, arc: true, jump: true });
+      hit.add(next);
+      last = next;
+    }
   }
 
   /** A turret touching the hub reloads from hub stock, one item at a time. */

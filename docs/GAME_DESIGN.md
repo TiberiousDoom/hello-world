@@ -61,6 +61,8 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Assembler | 4×2 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 12 iron plates, 4 gears, 6 wire | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
+| Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
+| Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
 | Shipyard | 3×3 | 40 bricks, 40 iron plates | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 iron plates | 100 | Forestry |
 | Sawmill | 2×2 | 6 iron plates, 2 bricks | 100 | Forestry |
@@ -78,6 +80,13 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 - **Belts** move 1.5 tiles/s and hold about 3 items per tile. A belt accepts items from
   any side except the tile it points into.
+- **Express belts** (a colony blueprint) work the same way at 3 tiles/s. They can be laid like belts,
+  but the quick way is to **tap or click an existing belt with the Express Belt selected: its whole line
+  is upgraded in place**, with no ✓ step on touch. The line is every belt joined to the tapped one,
+  belt-to-belt in either direction (side merges included), up to any other building such as a splitter,
+  tunnel or machine. Each belt keeps its facing and items, and the old belt's plate is refunded, so an
+  upgrade costs 1 gear. Hovering a belt with the tool outlines the line, red where stock runs out; with
+  too little stock, the belts nearest the tap are upgraded first.
 - **Machines and extractors** output from the **middle of the side their arrow marks** (for an even
   width, the tile left of centre as seen facing out). A small port with an arrow shows the spot.
   Machines accept input on any tile of any side, and buffer up to 3 crafts' worth of each input.
@@ -117,8 +126,8 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 
 ## Research
 
-You start with the belt, extractor and furnace. Everything else is researched. **Select the hub** and
-press **Research** to open the list.
+You start with the belt, extractor and furnace. Everything else is researched, except colony
+blueprints, which come from supply runs. **Select the hub** and press **Research** to open the list.
 
 - **Start** a research, and it draws its items from hub stock at a steady pace over its research
   time. For example, Basic Defense takes 20 iron plates over 30 s.
@@ -185,6 +194,7 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 |---|---|---|---|---|---|---|
 | Turret | iron plate | 4 | 40 | 5 | 3/s | 5 |
 | Cannon | gear | 3 | 24 | 6.5 | 0.7/s | 30, splash radius 1.3 |
+| Tesla Turret | copper wire | 2 | 30 | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it.
 There are three ways to get ammo to a turret:
@@ -227,7 +237,9 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   shows the stages, the runs delivered, and what the stage or the cargo still needs. The ship appears
   on the pad stage by stage.
 - **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**.
-  The engines wake **every nest within 48 tiles** of the shipyard, and **at least the 3 nearest** live
+  The engines wake **every nest within 48 tiles** of the shipyard on the first run, **8 tiles further for
+  each run delivered** (up to 96), because a loaded ship is heavier and needs more thrust (D-049). They
+  also wake **at least the 3 nearest** live
   nests however far, so there's always a fight. They stay angry for the whole countdown, and their bugs
   **come for the shipyard**, ignoring their usual 22-tile leash and chewing through anything in the way
   (D-048). Before you launch, the shipyard's panel says how many nests it will wake. A banner above the
@@ -241,7 +253,11 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   shipyard carries on. **Hardcore** loses a docked ship and its cargo; a ship that's away is safe.
   Demolishing the shipyard yourself always keeps the ship.
 - The main menu's Continue button shows how many supply runs a save has delivered.
-- *Coming next:* each delivered run will unlock something you can't research (D-046).
+- **Blueprints from the colony (D-049):** after each delivery the colony offers **two blueprints** for
+  buildings you can't research, and you **pick one** on a screen that pauses the game. The other stays
+  on offer for a later run; when only one is left, the next delivery simply sends it. The blueprints are
+  the **Express Belt** and the **Tesla Turret**. Research lists them under "From the colony", with
+  what you've received and what's on offer.
 
 ## Modes
 
@@ -324,7 +340,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 - Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
-  blocked placement, a tree being chopped, turret and cannon shots, the hub gun, bugs dying, a building destroyed, the hub
+  blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry
   chitter when a nest is provoked.
 - Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
@@ -336,7 +352,9 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v10**). v10 turns the escape ship into the supply ship: a game
+- Save files are versioned (currently **v11**). v11 adds colony blueprints: a game that had delivered
+  runs loads with an offer of both blueprints to pick from.
+- v10 turned the escape ship into the supply ship: a game
   that had escaped loads with one run delivered, and the ship built and back at the shipyard; other
   games keep their ship progress.
 - v9 added trees: a v8 save loads with forest grown around what's already built (never under a

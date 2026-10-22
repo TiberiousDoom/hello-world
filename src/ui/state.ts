@@ -1,4 +1,4 @@
-import { BuildingType, Dir, footprint } from '../sim/data';
+import { BuildingType, Dir, footprint, isBelt } from '../sim/data';
 import type { World } from '../sim/world';
 
 export type Tool = BuildingType | 'demolish' | null;
@@ -30,7 +30,7 @@ export function createUIState(): UIState {
 
 /** True when a plan is a dragged belt line, whose belts each point at the next. */
 export function isBeltPath(plan: Plan): boolean {
-  return plan.tool === 'belt' && plan.tiles.length > 1;
+  return isBelt(plan.tool) && plan.tiles.length > 1;
 }
 
 function dirBetween(a: { x: number; y: number }, b: { x: number; y: number }): Dir {

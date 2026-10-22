@@ -50,6 +50,7 @@ export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.m
 export type BuildingType =
   | 'hub'
   | 'belt'
+  | 'express_belt'
   | 'splitter'
   | 'tunnel'
   | 'extractor'
@@ -58,6 +59,7 @@ export type BuildingType =
   | 'assembler'
   | 'turret'
   | 'cannon'
+  | 'tesla'
   | 'repair'
   | 'port'
   | 'wall'
@@ -83,6 +85,15 @@ export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [5, 5], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
+  express_belt: {
+    name: 'Express Belt',
+    short: '',
+    color: '#3a3f4b',
+    hp: 40,
+    cost: { iron_plate: 1, gear: 1 },
+    blocking: false,
+    description: 'Moves items twice as fast as a belt. Tap a belt to upgrade its whole line.',
+  },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Takes items from behind and sends them out front, left and right in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
   extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { iron_plate: 6 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
@@ -91,6 +102,15 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [4, 2], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
+  tesla: {
+    name: 'Tesla Turret',
+    short: 'TE',
+    color: '#2f6f9f',
+    hp: 160,
+    cost: { iron_plate: 12, copper_ingot: 6, wire: 10 },
+    blocking: true,
+    description: 'Its shots arc from bug to bug. Arrives loaded; refill it with copper wire by belt.',
+  },
   repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 12, gear: 4, wire: 6 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates by belt.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
@@ -129,11 +149,15 @@ export interface TurretDef {
   rate: number; // shots per second
   damage: number;
   splash: number; // radius in tiles, 0 for single target
+  /** Tesla: each shot jumps on to up to this many more bugs, each within `chainRange` tiles of the last. */
+  chain?: number;
+  chainRange?: number;
 }
 
 export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   turret: { ammoItem: 'iron_plate', shotsPerItem: 4, maxShots: 40, range: 5, rate: 3, damage: 5, splash: 0 },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
+  tesla: { ammoItem: 'wire', shotsPerItem: 2, maxShots: 30, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
 
 export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, maxCharge: 400 };
@@ -159,6 +183,11 @@ export const FOREST = {
   grove: 3, // radius of the guaranteed grove just outside the clearing
 };
 export const BELT_SPEED = 1.5; // tiles per second
+export const EXPRESS_BELT_SPEED = 3; // a colony blueprint (D-049)
+
+/** Belts of either speed: they carry items the same way. */
+export const isBelt = (t: BuildingType): boolean => t === 'belt' || t === 'express_belt';
+export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EXPRESS_BELT_SPEED : BELT_SPEED);
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
 export const OUTPUT_BUFFER = 3;
 
@@ -234,7 +263,9 @@ export const SHIP = {
     { id: 'nav', name: 'Navigation', items: { motor: 20, wire: 80, gear: 40 } },
   ] as ShipStage[],
   launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
-  wakeRadius: 48, // the engines provoke every bug territory within this many tiles
+  wakeRadius: 48, // the engines provoke every bug territory within this many tiles on the first run
+  wakeGrowth: 8, // and this much further for each run delivered: a loaded ship is heavier (D-049)
+  wakeMax: 96,
   minWake: 3, // and at least this many of the nearest live ones, however far
   returnTime: 300, // seconds the ship is away after delivering a run
   /** Cargo for the first supply runs, in order. Later runs repeat the last list, growing (cargoFor). */
@@ -245,6 +276,20 @@ export const SHIP = {
   ] as ItemCounts[],
   cargoGrowth: 1.25, // each run past the listed ones asks for this much more of everything
 };
+
+/** Blueprints the colony sends back for delivered supply runs (D-049): buildings you can't research. */
+export interface Blueprint {
+  id: string;
+  name: string;
+  description: string;
+  unlocks: BuildingType[];
+}
+
+export const BLUEPRINTS: Blueprint[] = [
+  { id: 'express_belt', name: 'Express Belt', description: 'Belts twice as fast. Tap a belt to upgrade its whole line.', unlocks: ['express_belt'] },
+  { id: 'tesla', name: 'Tesla Turret', description: 'Fed by copper wire. Each shot arcs on to two more bugs nearby.', unlocks: ['tesla'] },
+];
+export const BLUEPRINT_BY_ID: Record<string, Blueprint> = Object.fromEntries(BLUEPRINTS.map((b) => [b.id, b]));
 
 /** The cargo for supply run `run` (0 for the first). */
 export function cargoFor(run: number): ItemCounts {

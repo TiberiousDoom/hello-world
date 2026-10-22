@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, ItemId, NESTS, RESEARCH, SHIP, cargoFor } from './data';
 import { Nest, cellKey, isAngry } from './nests';
-import { cargoLoaded, insertShip, launch, nestsToWake, shipAway, shipyard } from './ship';
+import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
 function run(w: World, seconds: number) {
@@ -42,6 +42,15 @@ function finishShip(w: World): void {
 /** Feeds the next run's cargo straight into the shipyard. */
 function loadCargo(w: World): void {
   for (const [item, n] of Object.entries(cargoFor(w.state.ship.runs))) for (let i = 0; i < n!; i++) insertShip(w, item as ItemId);
+}
+
+/** Builds the ship if needed, then loads, launches and delivers one run, and waits for the ship's return. */
+function deliverRun(w: World): void {
+  if (w.state.ship.stage < SHIP.stages.length) finishShip(w);
+  loadCargo(w);
+  expect(launch(w)).toBeNull();
+  run(w, SHIP.launchTime + 1);
+  run(w, SHIP.returnTime);
 }
 
 function addNest(w: World, x: number, y: number): Nest {
@@ -208,8 +217,8 @@ describe('Supply ship', () => {
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
-          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [] }
-          : { stage: 0, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [] },
+          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['express_belt', 'tesla'] }
+          : { stage: 0, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
   });
@@ -220,5 +229,60 @@ describe('Supply ship', () => {
     for (let i = 0; i < 20; i++) insertShip(w, 'iron_plate');
     w.demolish(b.id);
     expect(w.state.ship.delivered.iron_plate).toBe(20);
+  });
+
+  it('after each delivery the colony offers two blueprints; the one not picked comes with the next run', () => {
+    const w = quiet();
+    yard(w);
+    expect(w.isUnlocked('express_belt') || w.isUnlocked('tesla')).toBe(false);
+    deliverRun(w);
+    const ship = w.state.ship;
+    expect([...ship.offer!].sort()).toEqual(['express_belt', 'tesla']);
+    expect(pickBlueprint(w, 'shipyard')).toBe(false);
+    expect(pickBlueprint(w, 'express_belt')).toBe(true);
+    expect(ship.offer).toBeNull();
+    expect(w.isUnlocked('express_belt')).toBe(true);
+    expect(w.isUnlocked('tesla')).toBe(false);
+    expect(pickBlueprint(w, 'tesla')).toBe(false); // not on offer any more
+    deliverRun(w); // only one left: it's simply sent
+    expect(ship.offer).toBeNull();
+    expect(w.isUnlocked('tesla')).toBe(true);
+    expect(w.events.some((e) => e.includes('Tesla Turret blueprint'))).toBe(true);
+    deliverRun(w); // none left
+    expect(ship.offer).toBeNull();
+    expect(ship.blueprints).toEqual(['express_belt', 'tesla']);
+  });
+
+  it('each run wakes nests further out, up to a limit, as the loaded ship gets heavier', () => {
+    const w = quiet();
+    const radii = [0, 1, 2, 3, 6, 7, 20].map((runs) => {
+      w.state.ship.runs = runs;
+      return wakeRadius(w);
+    });
+    expect(radii).toEqual([48, 56, 64, 72, 96, 96, 96]);
+    // A nest 60 tiles out wakes from the second run on, not the first.
+    const b = yard(w);
+    const [yx, yy] = w.centreOf(b);
+    const n = addNest(w, Math.floor((yx - 60 - 5) / 10) * 10, Math.floor((yy - 5) / 10) * 10);
+    for (let i = 0; i < 3; i++) addNest(w, Math.floor((yx + 20 + i * 10) / 10) * 10, Math.floor((yy + 20) / 10) * 10); // the nearest three
+    w.state.ship.runs = 0;
+    expect(nestsToWake(w)).not.toContain(n);
+    w.state.ship.runs = 2;
+    expect(nestsToWake(w)).toContain(n);
+  });
+
+  it('v10 saves: a game with runs delivered gets a blueprint to pick', () => {
+    for (const runs of [0, 2]) {
+      const w = quiet();
+      const old = JSON.parse(w.toJSON());
+      old.version = 10;
+      old.ship.runs = runs;
+      delete old.ship.blueprints;
+      delete old.ship.offer;
+      const loaded = World.fromJSON(JSON.stringify(old));
+      expect(loaded.state.version).toBe(SAVE_VERSION);
+      expect(loaded.state.ship.blueprints).toEqual([]);
+      expect(loaded.state.ship.offer).toEqual(runs ? ['express_belt', 'tesla'] : null);
+    }
   });
 });

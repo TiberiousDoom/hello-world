@@ -80,6 +80,32 @@ describe('Sound effects', () => {
     expect(sfx.names()).toEqual(['place', 'destroyed']);
   });
 
+  it('a tesla zaps once per shot, however far its arc jumps; a line upgrade sounds once', () => {
+    const { w, hub, sfx, watcher } = setup();
+    w.state.ship.blueprints = ['express_belt', 'tesla'];
+    const t = placed(w.place('tesla', hub.x + 7, hub.y, 0));
+    const n = addNest(w, 0, 0);
+    for (let i = 0; i < 3; i++) {
+      const e = w.spawnBug('crawler', n, 1);
+      e.x = t.x + 3.5 + i * 1.5;
+      e.y = t.y + 0.5;
+      e.hp = 1000;
+    }
+    watcher.update(w);
+    sfx.played = [];
+    w.tick(TICK);
+    watcher.update(w);
+    expect(sfx.names().filter((s) => s === 'zap')).toEqual(['zap']);
+    expect(sfx.names()).not.toContain('shot');
+
+    for (let i = 0; i < 4; i++) placed(w.place('belt', hub.x - 6 + i, hub.y - 3, 0));
+    watcher.update(w);
+    sfx.played = [];
+    w.upgradeBeltLine(hub.x - 6, hub.y - 3);
+    watcher.update(w);
+    expect(sfx.names()).toEqual(['place']);
+  });
+
   it('a lumber camp chops each tree it cuts', () => {
     const { w, hub, sfx, watcher } = setup();
     w.state.trees[w.idx(hub.x - 6, hub.y)] = TREE;

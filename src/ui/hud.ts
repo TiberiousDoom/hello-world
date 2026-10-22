@@ -1,6 +1,8 @@
 // HTML overlay: top bar, hub stock, build toolbar, info panel and dialogs.
 
 import {
+  BLUEPRINTS,
+  BLUEPRINT_BY_ID,
   BREACH,
   BUILDINGS,
   BuildingType,
@@ -21,13 +23,14 @@ import {
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
-import { cargoLoaded, checkLaunch, currentCargo, currentStage, launch, nestsToWake, runStats } from '../sim/ship';
+import { cargoLoaded, checkLaunch, currentCargo, currentStage, launch, nestsToWake, pickBlueprint, runStats, wakeRadius } from '../sim/ship';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Tool, UIState } from './state';
 
 const TOOLBAR: BuildingType[] = [
   'belt',
+  'express_belt',
   'splitter',
   'tunnel',
   'port',
@@ -39,13 +42,14 @@ const TOOLBAR: BuildingType[] = [
   'assembler',
   'turret',
   'cannon',
+  'tesla',
   'repair',
   'wall',
   'palisade',
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'cannon', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'cannon', 'tesla', 'port', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -92,7 +96,7 @@ const ico = (name: string) => `<i data-icon="${name}">${icon(name)}</i>`;
 
 /** Image markup for a building's sprite (turrets get their barrel on top, pointing up). */
 function buildingIcon(t: BuildingType, cls = ''): string {
-  const key = t === 'tunnel' ? 'tunnel_in' : t === 'turret' || t === 'cannon' ? `${t}_base` : t;
+  const key = t === 'tunnel' ? 'tunnel_in' : TURRETS[t] ? `${t}_base` : t;
   const base = artUrl(`buildings/${key}`);
   if (!base) return `<span class="${cls}" style="background:${BUILDINGS[t].color};border-radius:6px"></span>`;
   const barrel = TURRETS[t] ? `<img class="barrel" src="${artUrl(`buildings/${t}_barrel`)}" alt="">` : '';
@@ -128,7 +132,7 @@ function shipStats(world: World): string {
     html += `<br>Cargo for run ${ship.runs + 1}: ${needs(currentCargo(world))}`;
   } else {
     const n = nestsToWake(world).length;
-    html += `<br>Loaded and ready. Launching wakes ${n} bug nest${n === 1 ? '' : 's'} (every one within ${SHIP.wakeRadius} tiles, and at least the ${SHIP.minWake} nearest). Their bugs come for the shipyard, and it must hold for ${SHIP.launchTime} seconds.`;
+    html += `<br>Loaded and ready. Launching wakes ${n} bug nest${n === 1 ? '' : 's'} (every one within ${wakeRadius(world)} tiles, and at least the ${SHIP.minWake} nearest). Their bugs come for the shipyard, and it must hold for ${SHIP.launchTime} seconds.`;
   }
   return html;
 }
@@ -215,6 +219,14 @@ export class Hud {
     });
     $('btn-new').addEventListener('click', () => this.openNewGame());
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
+    $('blueprint-choices').addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-blueprint]');
+      if (!btn || !pickBlueprint(actions.getWorld(), btn.dataset.blueprint!)) return;
+      this.closeModals();
+      this.setSpeed(this.speedBefore || 1);
+      actions.save();
+      this.refresh();
+    });
     $('btn-keep-playing').addEventListener('click', () => {
       this.closeModals();
       this.setSpeed(this.speedBefore || 1);
@@ -247,7 +259,7 @@ export class Hud {
     // also started there, so dragging out of a card doesn't close it. Game over
     // stays up: it needs a choice.
     for (const modal of document.querySelectorAll<HTMLElement>('.modal')) {
-      if (modal.id === 'gameover' || modal.id === 'victory') continue;
+      if (modal.id === 'gameover' || modal.id === 'victory' || modal.id === 'blueprints') continue;
       let pressedBackdrop = false;
       modal.addEventListener('pointerdown', (e) => (pressedBackdrop = e.target === modal));
       modal.addEventListener('click', (e) => {
@@ -410,6 +422,19 @@ export class Hud {
       }
       this.actions.delivered(first);
     }
+    // The colony's blueprint offer waits for a pick (after the first delivery's own screen).
+    if (s.ship.offer && $('blueprints').hidden && $('victory').hidden && $('newgame').hidden && $('gameover').hidden) {
+      $('blueprint-choices').innerHTML = s.ship.offer
+        .map((id) => {
+          const bp = BLUEPRINT_BY_ID[id];
+          return `<button data-blueprint="${id}">${buildingIcon(bp.unlocks[0], 'bp-icon')}<span><b>${esc(bp.name)}</b><small>${esc(bp.description)}</small></span></button>`;
+        })
+        .join('');
+      this.closeModals();
+      $('blueprints').hidden = false;
+      this.speedBefore = this.ui.speed;
+      this.setSpeed(0);
+    }
     const banner = $('launch-banner');
     banner.hidden = s.ship.launchAt == null;
     if (s.ship.launchAt != null) {
@@ -545,7 +570,7 @@ export class Hud {
         stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
       }
       if (b.type === 'shipyard') stats += shipStats(world);
-      if (b.type === 'belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
+      if (b.type === 'belt' || b.type === 'express_belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
     }
     if (stats !== this.statsHtml) {
       this.statsHtml = stats;
@@ -564,7 +589,7 @@ export class Hud {
   private renderResearch(world: World): void {
     const rs = world.state.research;
     const inv = world.state.inventory;
-    const key = JSON.stringify([rs.active, rs.stalled, rs.paid, world.state.researched.length, ITEM_IDS.map((i) => inv[i] ?? 0)]);
+    const key = JSON.stringify([rs.active, rs.stalled, rs.paid, world.state.researched.length, ITEM_IDS.map((i) => inv[i] ?? 0), world.state.ship.blueprints, world.state.ship.offer]);
     if (key === this.researchKey) return;
     this.researchKey = key;
     const rows = RESEARCH.map((r) => {
@@ -602,8 +627,23 @@ export class Hud {
         <span class="muted">${esc(r.description)}</span><br>${items}${state ? '<br>' + state : ''}${bar}</div>
         <div>${action}</div></div>`;
     });
+    const ship = world.state.ship;
+    const colony = BLUEPRINTS.map((bp) => {
+      const have = ship.blueprints.includes(bp.id);
+      const state = have
+        ? '<span class="done">✓ Received</span>'
+        : ship.offer?.includes(bp.id)
+          ? '<span class="muted">On offer now</span>'
+          : '<span class="muted">Deliver a supply run</span>';
+      const unlocks = bp.unlocks.map((t) => BUILDINGS[t].name).join(', ');
+      return `<div class="research ${have ? 'done' : 'requires'}">
+        <div><b>${esc(bp.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br><span class="muted">${esc(bp.description)}</span></div>
+        <div>${state}</div></div>`;
+    });
     $('research-body').innerHTML = `<h2>Research</h2>
-      <p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}`;
+      <p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}
+      <h3>From the colony</h3>
+      <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`;
   }
 
   private openLessons(): void {
