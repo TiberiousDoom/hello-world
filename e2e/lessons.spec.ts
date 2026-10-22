@@ -1,4 +1,4 @@
-import { build, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, test, uncoveredTile } from './helpers';
+import { ALL_LESSONS, build, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, test, uncoveredTile } from './helpers';
 
 test('the Essentials and Bugs lessons run, then can be replayed and switched off', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: [] });
@@ -108,4 +108,18 @@ test('New game starts without the tutorial when the box is unticked', async ({ p
   await newGame(page, { lessonsSeen: [], tutorial: false });
   await page.waitForTimeout(500);
   await expect(page.locator('#tutorial')).toBeHidden();
+});
+
+test('Reset tutorials marks every lesson unseen and switches lessons back on', async ({ page }) => {
+  await newGame(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
+  await page.click('#menu-btn');
+  await page.click('#btn-tutorial');
+  await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(ALL_LESSONS.length);
+  await expect(page.locator('#tips-toggle')).not.toBeChecked();
+  await page.click('#btn-reset-lessons');
+  await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(0);
+  await expect(page.locator('#tips-toggle')).toBeChecked();
+  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!));
+  expect(profile.lessonsSeen).toEqual([]);
+  expect(profile.tipsOff).toBe(false);
 });

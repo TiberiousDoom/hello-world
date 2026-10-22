@@ -42,6 +42,9 @@ How the game works on `master` today. Balance numbers live in
 | Motor | Assembler | 1 gear + 2 wire + 1 iron plate | 4 s |
 | Log ×2 | Lumber Camp | 1 tree in reach | 3 s |
 | Plank ×2 | Sawmill | 1 log | 1.5 s |
+| Stake ×3 | Sawmill | 1 plank | 1.5 s |
+| Charcoal | Furnace | 2 logs | 2.5 s |
+| Steel | Furnace | 2 iron plates + 1 charcoal | 3 s |
 
 A machine picks its recipe from the first input it receives, or the player
 picks one in its info panel. Changing the recipe discards inputs it has already received.
@@ -54,17 +57,18 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Extractor | 2×2 | 6 iron plates | 80 | start |
 | Furnace | 2×2 | 4 bricks, 2 iron plates | 120 | start |
 | Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Basic Defense |
+| Ballista | 1×1 | 8 planks, 4 iron plates | 140 | Ballistae |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
-| Workshop | 3×2 | 8 iron plates, 4 copper ingots | 120 | Workshops |
+| Workshop | 3×2 | 6 iron plates, 4 copper ingots, 4 planks | 120 | Workshops |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×1 | 3 iron plates, 1 copper ingot | 40 | Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Underground Transport |
 | Assembler | 4×2 | 10 gears, 10 wire | 150 | Assembly |
-| Repair Station | 1×1 | 12 iron plates, 4 gears, 6 wire | 150 | Field Repair |
+| Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
 | Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
 | Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
-| Shipyard | 3×3 | 40 bricks, 40 iron plates | 900 | Shipyard |
+| Shipyard | 3×3 | 30 bricks, 30 iron plates, 20 planks | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 iron plates | 100 | Forestry |
 | Sawmill | 2×2 | 6 iron plates, 2 bricks | 100 | Forestry |
 | Palisade | 1×1 | 2 planks | 160 | Palisades |
@@ -127,8 +131,13 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 - The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
   like walls.
 - Selecting a camp shows its reach, and how many trees and regrowing stumps it has.
-- Later phases add a stake-firing turret, planks as repair fuel, charcoal and steel, and forest that
-  matters to bugs ([ROADMAP.md](ROADMAP.md)).
+- **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
+  **Ballista** (researched after Palisades and Basic Defense). **Repair stations** burn planks as well as
+  iron plates. The **Workshop**, **Repair Station** and **Shipyard** cost a few planks, so Workshops
+  research now needs Forestry first. A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
+  2 iron plates and 1 charcoal. Steel is cargo for the fourth supply run on, and the material for upgrades
+  to come.
+- Still to come: forest that matters to bugs ([ROADMAP.md](ROADMAP.md)).
 
 ## Research
 
@@ -146,8 +155,9 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 | Basic Defense | 20 iron plates | 30 s | — | Turret |
 | Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
 | Palisades | 12 planks | 30 s | Forestry | Palisade |
+| Ballistae | 20 planks, 10 iron plates | 45 s | Palisades, Basic Defense | Ballista |
 | Masonry | 12 bricks | 30 s | — | Wall |
-| Workshops | 30 iron plates, 10 copper | 60 s | — | Workshop |
+| Workshops | 30 iron plates, 10 copper | 60 s | Forestry | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
 | Logistics | 20 iron plates, 10 gears | 75 s | Workshops | Splitter |
 | Underground Transport | 20 gears, 10 bricks | 90 s | Logistics | Underground Belt |
@@ -199,6 +209,7 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 | Turret | Ammo | Shots per item | Max shots | Range | Fire rate | Damage |
 |---|---|---|---|---|---|---|
 | Turret | iron plate | 4 | 40 | 5 | 3/s | 5 |
+| Ballista | stake | 1 | 20 | 6.5 | 0.8/s | 14 |
 | Cannon | gear | 3 | 24 | 6.5 | 0.7/s | 30, splash radius 1.3 |
 | Tesla Turret | copper wire | 2 | 30 | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
 
@@ -211,7 +222,7 @@ There are three ways to get ammo to a turret:
    hub stock, one item at a time as it has room (D-036).
 
 **Repair stations** heal the most damaged building within 3.5 tiles, at 20 HP/s.
-They are fuelled by iron plates (1 plate = 40 HP, holding up to 400 HP), and arrive half full.
+They are fuelled by iron plates (1 plate = 40 HP) or planks (1 plank = 30 HP), holding up to 400 HP, and arrive half full.
 
 ## The supply ship
 
@@ -237,7 +248,8 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   | 1 | 100 iron plates, 60 bricks, 40 copper ingots |
   | 2 | 120 iron plates, 60 gears, 60 wire, 60 planks |
   | 3 | 120 bricks, 100 gears, 20 motors, 120 planks |
-  | 4 and on | Run 3's list, 25% more each run (rounded up to tens) |
+  | 4 | 40 steel, 120 gears, 30 motors, 180 planks |
+  | 5 and on | Run 4's list, 25% more each run (rounded up to tens) |
 
 - A message pops up as each stage is finished and when the cargo is loaded. Selecting the shipyard
   shows the stages, the runs delivered, and what the stage or the cargo still needs. The ship appears
@@ -300,6 +312,8 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 - The **New game** dialog has "Start with the Essentials tutorial", ticked until the player has seen it once. Ticking it shows Essentials even if lessons are switched off; unticking it skips them.
 - Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
 - Lessons play once. Menu → Tutorials lists them, replays any of them, and switches automatic lessons on or off.
+  **Reset tutorials** marks every lesson unseen and switches automatic lessons back on, so each shows again
+  when its moment comes (one whose moment is now, like Wood after Forestry, starts straight away).
 
 ## Screen
 
@@ -369,7 +383,7 @@ strings and light percussion, with a roomy reverb.
 
 - Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
-  blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, the hub gun, bugs dying, a building destroyed, the hub
+  blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, a ballista's twang, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry
   chitter when a nest is provoked.
 - **The machine hum:** a soft, continuous loop (a low drone and a whirr with a gentle chug) that grows

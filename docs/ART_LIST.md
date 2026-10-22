@@ -67,6 +67,9 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Motor | 32×32 (+64×64) | P1 | Placeholder |
 | Log | 32×32 (+64×64) | P2 | Placeholder |
 | Plank | 32×32 (+64×64) | P2 | Placeholder |
+| Stake (a bundle of two sharpened stakes) | 32×32 (+64×64) | P2 | Placeholder |
+| Charcoal | 32×32 (+64×64) | P2 | Placeholder |
+| Steel (an ingot, cooler and brighter than iron plate) | 32×32 (+64×64) | P2 | Placeholder |
 
 ## Buildings
 
@@ -96,6 +99,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Palisade | 1×1 | Sharpened wooden stakes. Later a set that joins up, like the wall | 1 | P2 | Placeholder |
 | Leaf burst when a tree is cut | 64×64 | 4 | P3 | Code |
 | Express belt (straight) | 1×1 | Like the belt, with hazard-yellow rails so it reads as faster. Corners are drawn in code with yellow rails | 8 | P2 | Placeholder (`buildings/express_belt`) |
+| Ballista base | 1×1 | A wooden platform | 1 | P2 | Placeholder (`buildings/ballista_base`) |
+| Ballista bow | 1×1 | Separate layer that turns to aim, bolt pointing east; centred pivot | 1 | P2 | Placeholder (`buildings/ballista_barrel`) |
 | Tesla base | 1×1 | Static | 1 | P2 | Placeholder (`buildings/tesla_base`) |
 | Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel; centred pivot | 1 | P2 | Placeholder (`buildings/tesla_barrel`) |
 | Tesla lightning | — | A jagged bolt with a glow, redrawn every frame | — | P3 | Code |

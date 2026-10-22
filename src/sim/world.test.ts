@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, RESEARCH, TURRETS } from './data';
+import { BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
 import { Nest, cellKey, isAngry, nestCentre } from './nests';
 import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
@@ -13,7 +13,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999 };
+  w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
   return w;
 }
 
@@ -195,8 +195,9 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999 };
-    for (const id of ['defense', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+    expect(w.researchNow('workshop')).toBe('requires'); // workshops need planks, so Forestry comes first
+    for (const id of ['defense', 'forestry', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
   });
@@ -531,6 +532,63 @@ describe('Wood', () => {
     e.state.inventory.plank = 2;
     placed(e.place('palisade', x, e.hub!.y, 0));
     expect(e.state.inventory.plank).toBe(0);
+  });
+});
+
+describe('Wood in the economy', () => {
+  it('a sawmill saws planks into stakes; a furnace burns logs into charcoal, then makes steel', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const saw = placed(w.place('sawmill', hub.x - 20, hub.y - 10, 0));
+    w.setRecipe(saw.id, 'stake');
+    for (let i = 0; i < 2; i++) w.insert(saw, 'plank', saw.x - 1, saw.y);
+    const furnace = placed(w.place('furnace', hub.x - 20, hub.y - 4, 0));
+    for (let i = 0; i < 2; i++) expect(w.insert(furnace, 'log', furnace.x - 1, furnace.y)).toBe(true);
+    expect(furnace.recipe).toBe('charcoal');
+    run(w, 3);
+    expect(saw.outputs.filter((o) => o === 'stake').length).toBeGreaterThanOrEqual(3);
+    expect(furnace.outputs).toEqual(['charcoal']);
+    // A furnace fed plates and charcoal makes steel.
+    const steel = placed(w.place('furnace', hub.x - 20, hub.y + 2, 0));
+    for (let i = 0; i < 2; i++) expect(w.insert(steel, 'iron_plate', steel.x - 1, steel.y)).toBe(true);
+    expect(steel.recipe).toBe('steel');
+    expect(w.insert(steel, 'charcoal', steel.x - 1, steel.y)).toBe(true);
+    run(w, 3.5);
+    expect(steel.outputs).toEqual(['steel']);
+  });
+
+  it('a ballista reaches further than a turret and reloads with stakes', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const x = hub.x - 20;
+    const y = hub.y - 10;
+    const ballista = placed(w.place('ballista', x, y, 0));
+    const turret = placed(w.place('turret', x, y + 4, 0));
+    const n = addNest(w, 0, 0, 0);
+    // A bug 6 tiles from the ballista, and more than 5 from the turret.
+    const e = w.spawnBug('crawler', n, 1);
+    e.x = x + 6.5;
+    e.y = y + 0.5;
+    e.hp = e.maxHp = 1000;
+    const before = turret.ammo;
+    w.tick();
+    expect(e.hp).toBe(1000 - TURRETS.ballista!.damage);
+    expect(turret.ammo).toBe(before); // out of the turret's reach
+    ballista.ammo = 0;
+    expect(w.insert(ballista, 'plank', x - 1, y)).toBe(false);
+    expect(w.insert(ballista, 'stake', x - 1, y)).toBe(true);
+    expect(ballista.ammo).toBe(TURRETS.ballista!.shotsPerItem);
+  });
+
+  it('repair stations burn planks as well as iron plates', () => {
+    const w = emptyWorld();
+    const r = placed(w.place('repair', w.hub!.x - 20, w.hub!.y - 10, 0));
+    r.ammo = 0;
+    expect(w.insert(r, 'plank', r.x - 1, r.y)).toBe(true);
+    expect(r.ammo).toBe(REPAIR.hpPerPlank);
+    expect(w.insert(r, 'iron_plate', r.x - 1, r.y)).toBe(true);
+    expect(r.ammo).toBe(REPAIR.hpPerPlank + REPAIR.hpPerPlate);
+    expect(w.insert(r, 'log', r.x - 1, r.y)).toBe(false);
   });
 });
 

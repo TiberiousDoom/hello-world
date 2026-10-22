@@ -41,6 +41,7 @@ const TOOLBAR: BuildingType[] = [
   'workshop',
   'assembler',
   'turret',
+  'ballista',
   'cannon',
   'tesla',
   'repair',
@@ -49,7 +50,7 @@ const TOOLBAR: BuildingType[] = [
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'cannon', 'tesla', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'port', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -76,6 +77,8 @@ export interface HudActions {
   playLesson(id: string): void;
   tipsOff(): boolean;
   setTipsOff(off: boolean): void;
+  /** Marks every lesson unseen and switches lessons back on, so each shows again when its moment comes. */
+  resetLessons(): void;
   toMainMenu(): void;
   hasGame(): boolean;
   rotatePlan(): void;
@@ -245,6 +248,11 @@ export class Hud {
     });
     $<HTMLInputElement>('tips-toggle').addEventListener('change', (e) => {
       actions.setTipsOff(!(e.target as HTMLInputElement).checked);
+    });
+    $('btn-reset-lessons').addEventListener('click', () => {
+      actions.resetLessons();
+      this.openLessons(); // redraw: nothing is marked seen any more
+      this.toast('Tutorials reset. Each lesson will show again when its moment comes.');
     });
     $('newgame').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
