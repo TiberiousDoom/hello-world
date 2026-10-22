@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased: new menu music
+- **New main menu music:** a whimsical theme made for the game, in the style of late-90s 3D adventure games: an ocarina-like flute over harp, pizzicato strings and marimba, in a lilting 6/8 with a touch of magic. It replaces the corporate track.
+
 ## Unreleased: colony rewards (supply runs phase 2)
 - **Blueprints from the colony:** after each supply run, the colony offers two blueprints for buildings you can't research, and you pick one. The other comes with a later run. Research shows them under "From the colony".
 - **Express Belt:** twice as fast as a belt. With it selected, one tap or click on a belt upgrades that whole line in place, keeping its direction and items. The old belts are refunded, so it costs a gear per belt.

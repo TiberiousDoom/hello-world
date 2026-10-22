@@ -1,6 +1,6 @@
 // Music: tracks blend into one another with a crossfade.
 //
-// Main menu: the corporate theme, looping. In game: the lo-fi tracks
+// Main menu: a theme made for the game, looping. In game: the lo-fi tracks
 // in a shuffled order. Winning: the groove. Volume goes through
 // Web Audio gain nodes, because iOS ignores an <audio> element's volume.
 // Browsers only allow sound after the player has clicked or tapped, so nothing
@@ -11,10 +11,13 @@ import { audioContext } from './context';
 export type Mood = 'menu' | 'game' | 'win';
 
 const TRACKS: Record<Mood, string[]> = {
-  menu: ['corporate-background'],
+  menu: ['menu-theme'],
   game: ['chill-beat', 'chill-lo-fi', 'late-night-b-roll', 'lo-fi-waves', 'lofi-background', 'lofi-hip-hop', 'lofi-jazz'],
   win: ['groove'],
 };
+
+/** Tracks that aren't MP3s: the menu theme is rendered by audio/compose/menu-theme.mjs. */
+const FILES: Record<string, string> = { 'menu-theme': 'menu-theme.wav' };
 
 const FADE = 4; // seconds of overlap between tracks
 const MOOD_FADE = 1.5; // seconds when the mood changes (e.g. leaving the menu)
@@ -116,7 +119,7 @@ export class Music {
       }, fade * 1000 + 100);
     }
     const name = this.nextName();
-    const el = new Audio(`music/${name}.mp3`);
+    const el = new Audio(`music/${FILES[name] ?? `${name}.mp3`}`);
     el.preload = 'auto';
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, ctx.currentTime);

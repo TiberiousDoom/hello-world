@@ -150,8 +150,9 @@ blocked placement, turret shot, cannon shot, hub gun, enemy death, building dest
 breach, research complete, ship stage, launch, nest provoked, UI click. Still to come: a machine
 working loop. Recorded sounds can replace any of them.
 
-**Music: done.** Nine tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
-tracks for play, a corporate-style theme for the main menu, and "Groove" for the first-delivery screen. See
+**Music: done.** Eight tracks by velariomusic on Pixabay (licences in `audio/source/`): seven lo-fi
+tracks for play and "Groove" for the first-delivery screen. The main menu has an original theme in a
+late-90s adventure style, generated in code (`audio/compose/menu-theme.mjs`, D-051). See
 [GAME_DESIGN.md](GAME_DESIGN.md#music).
 
 ## Not needed
