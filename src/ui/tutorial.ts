@@ -65,6 +65,8 @@ export interface TutorialProfile {
   setTipsOff(off: boolean): void;
 }
 
+/** Space between the spotlight and the tip. */
+const GAP = 14;
 const PAD = 8;
 
 const count = (w: World, type: BuildingType) => w.state.buildings.filter((b) => b.type === type).length;
@@ -277,6 +279,8 @@ export class Tutorial {
   /** Bumped by input outside the tutorial so a step's text refreshes promptly. */
   private lastText = '';
   /** The map area the camera last moved to, so a newly targeted area is brought into view once. */
+  /** When the current map target came into view (ms). */
+  private tilesSince = 0;
   private lastTiles = '';
 
   constructor(
@@ -411,6 +415,7 @@ export class Tutorial {
       const k = `${target.tiles.tx},${target.tiles.ty}`;
       if (k !== this.lastTiles) {
         this.lastTiles = k;
+        this.tilesSince = performance.now();
         this.camera.x = target.tiles.tx + target.tiles.size / 2;
         this.camera.y = target.tiles.ty + target.tiles.size / 2;
       }
@@ -445,27 +450,53 @@ export class Tutorial {
       Object.assign(this.spot.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
     }
 
-    // Put the tip below the spotlight if it fits, otherwise above, otherwise centred.
+    // Place the tip where it doesn't cover the spotlight: try spots in order of preference,
+    // each kept on screen, and take the first that's clear (or the one that covers least).
     const tw = this.tip.offsetWidth;
     const th = this.tip.offsetHeight;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let left = vw / 2 - tw / 2;
-    let top = vh / 2 - th / 2;
-    if (!r && step.done) {
-      // Nothing to point at while the player builds: stay near the top, off the map's centre.
-      top = 110;
-    } else if (r && target.tiles && step.done) {
-      // Map targets the player has to build around: keep the card out of the way,
-      // in the half of the screen the target isn't in.
-      top = r.y + r.h / 2 > vh / 2 ? 110 : vh - th - 120;
-    } else if (r) {
-      left = r.x + r.w / 2 - tw / 2;
-      if (r.y + r.h + 12 + th < vh - 100) top = r.y + r.h + 12;
-      else if (r.y - 12 - th > 0) top = r.y - 12 - th;
+    const fit = ([x, y]: [number, number]): [number, number] => [
+      Math.max(12, Math.min(vw - tw - 12, x)),
+      Math.max(12, Math.min(vh - th - 12, y)),
+    ];
+    const centreX = vw / 2 - tw / 2;
+    let candidates: [number, number][];
+    if (!r) {
+      // Nothing to point at: near the top while the player builds, else centred.
+      candidates = [[centreX, step.done ? 110 : vh / 2 - th / 2]];
+    } else {
+      const cx = r.x + r.w / 2 - tw / 2;
+      const cy = r.y + r.h / 2 - th / 2;
+      const below: [number, number] = [cx, r.y + r.h + GAP];
+      const above: [number, number] = [cx, r.y - GAP - th];
+      const right: [number, number] = [r.x + r.w + GAP, cy];
+      const left: [number, number] = [r.x - GAP - tw, cy];
+      const top: [number, number] = [centreX, 110];
+      const bottom: [number, number] = [centreX, vh - th - 120];
+      // Map targets the player builds around: keep to the half of the screen the target isn't in.
+      const far = r.y + r.h / 2 > vh / 2 ? [top, bottom] : [bottom, top];
+      candidates = target.tiles && step.done ? [...far, right, left, below, above] : [below, above, right, left, ...far];
     }
-    left = Math.max(12, Math.min(vw - tw - 12, left));
-    top = Math.max(12, Math.min(vh - th - 12, top));
+    const pad = { x: r ? r.x - 4 : 0, y: r ? r.y - 4 : 0, w: r ? r.w + 8 : 0, h: r ? r.h + 8 : 0 };
+    const overlap = ([x, y]: [number, number]) =>
+      r ? Math.max(0, Math.min(x + tw, pad.x + pad.w) - Math.max(x, pad.x)) * Math.max(0, Math.min(y + th, pad.y + pad.h) - Math.max(y, pad.y)) : 0;
+    // Below the map, the toolbar sits at the bottom: avoid it unless nothing else is clear.
+    const toolbarTop = document.getElementById('toolbar')?.getBoundingClientRect().top ?? vh;
+    const placed = candidates.map(fit);
+    const clear = placed.filter((c) => overlap(c) === 0);
+    const [left, top] =
+      clear.find(([, y]) => y + th <= toolbarTop - 8) ?? clear[0] ?? placed.reduce((best, c) => (overlap(c) < overlap(best) ? c : best));
+    // A big map target with no clear spot (a bug territory on a phone): slide the map so the
+    // target moves away from the tip. Only just after it comes into view, while the layout
+    // settles, so it never fights the player's own panning.
+    if (r && target.tiles && !clear.length && performance.now() - this.tilesSince < 600) {
+      const down = top + th / 2 > r.y + r.h / 2; // the tip is below the target: move the target up
+      // Keep the tip above the toolbar when there's room for that too.
+      const floor = r.h + GAP + th + 24 < toolbarTop ? toolbarTop - 8 : vh - 12;
+      const need = down ? r.y + r.h + GAP + th - floor : 12 + th + GAP - r.y;
+      this.camera.y += ((down ? 1 : -1) * Math.max(0, need)) / this.camera.zoom;
+    }
     this.tip.style.left = `${left}px`;
     this.tip.style.top = `${top}px`;
   }

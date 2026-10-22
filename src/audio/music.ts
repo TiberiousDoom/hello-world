@@ -1,8 +1,12 @@
-// Music: tracks blend into one another with a crossfade.
+// Music: tracks blend into one another with a crossfade. Every track is
+// composed for the game in code (audio/compose/, D-051, D-052).
 //
-// Main menu: a theme made for the game, looping. In game: the lo-fi tracks
-// in a shuffled order. Winning: the groove. Volume goes through
-// Web Audio gain nodes, because iOS ignores an <audio> element's volume.
+// Main menu: the menu theme, looping. In game: seven tracks in a shuffled
+// order, some upbeat and some slow. Moving between the menu and the game
+// never cuts the music: the track playing carries on, and the next one comes
+// from the new mood. A first supply run delivered: the fanfare, at once.
+// Volume goes through Web Audio gain nodes, because iOS ignores an <audio>
+// element's volume.
 // Browsers only allow sound after the player has clicked or tapped, so nothing
 // plays until then.
 
@@ -12,12 +16,9 @@ export type Mood = 'menu' | 'game' | 'win';
 
 const TRACKS: Record<Mood, string[]> = {
   menu: ['menu-theme'],
-  game: ['chill-beat', 'chill-lo-fi', 'late-night-b-roll', 'lo-fi-waves', 'lofi-background', 'lofi-hip-hop', 'lofi-jazz'],
-  win: ['groove'],
+  game: ['morning-clearing', 'workshop-polka', 'firefly-lullaby', 'conveyor-jig', 'deep-woods', 'market-day', 'starlit-night'],
+  win: ['supplies-delivered'],
 };
-
-/** Tracks that aren't MP3s: the menu theme is rendered by audio/compose/menu-theme.mjs. */
-const FILES: Record<string, string> = { 'menu-theme': 'menu-theme.wav' };
 
 const FADE = 4; // seconds of overlap between tracks
 const MOOD_FADE = 1.5; // seconds when the mood changes (e.g. leaving the menu)
@@ -71,11 +72,15 @@ export class Music {
     return { mood: this.mood, track: this.current?.name ?? null, time: this.current?.el.currentTime ?? 0, volume: this.volume };
   }
 
+  /**
+   * Changes what plays next. Menu and game music flow into each other: the
+   * current track finishes first. The fanfare for a delivery starts at once.
+   */
   setMood(mood: Mood): void {
     if (mood === this.mood) return;
     this.mood = mood;
     this.queue = [];
-    if (this.started) this.playNext(MOOD_FADE);
+    if (this.started && (mood === 'win' || !this.current)) this.playNext(MOOD_FADE);
   }
 
   private ensureContext(): void {
@@ -119,7 +124,7 @@ export class Music {
       }, fade * 1000 + 100);
     }
     const name = this.nextName();
-    const el = new Audio(`music/${FILES[name] ?? `${name}.mp3`}`);
+    const el = new Audio(`music/${name}.wav`);
     el.preload = 'auto';
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, ctx.currentTime);

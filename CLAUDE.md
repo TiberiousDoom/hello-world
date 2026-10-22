@@ -23,6 +23,7 @@ npm run test:e2e     # Playwright, desktop and phone viewports; builds and serve
 npx vitest run src/sim/ship.test.ts            # one unit test file (add -t "name" for one test)
 npx playwright test e2e/lessons.spec.ts        # one browser suite
 npx playwright test --project=desktop          # one viewport (projects: desktop, phone)
+node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
 ```
 
 Locally, Playwright reuses a server already listening on :4173 (`reuseExistingServer`), so a
