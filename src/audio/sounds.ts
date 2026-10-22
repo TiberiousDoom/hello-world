@@ -3,7 +3,7 @@
 // full volume and fade out beyond its edges, so a fight across the map stays quiet.
 
 import { Camera } from '../render/camera';
-import { BUILDINGS, HUB_SIZE } from '../sim/data';
+import { BUILDINGS, HUB_SIZE, isMachine } from '../sim/data';
 import { isAngry, nestCentre } from '../sim/nests';
 import { Shot, World } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
@@ -12,6 +12,8 @@ import { PlayOptions, Sfx, Sound } from './sfx';
 const FADE_BEYOND = 0.6;
 /** Warnings (a nest provoked) can be heard from anywhere, at least this loud. */
 const WARNING_MIN = 0.35;
+/** This many working machines on screen make the machine hum as loud as it gets. */
+const HUM_FULL = 6;
 
 export class SoundWatcher {
   private world: World | null = null;
@@ -33,7 +35,8 @@ export class SoundWatcher {
     private camera: Camera,
   ) {}
 
-  update(world: World): void {
+  /** `running`: false while the game is paused, which silences the machine hum. */
+  update(world: World, running = true): void {
     if (world !== this.world) {
       this.reset(world);
       return;
@@ -115,6 +118,15 @@ export class SoundWatcher {
       if (angry) this.angry.add(n.id);
       else this.angry.delete(n.id);
     }
+
+    // The machine hum: louder the more machines are working on (or near) the screen.
+    let busy = 0;
+    for (const b of s.buildings) {
+      if (b.progress < 0 || !(isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp')) continue;
+      const [w, h] = world.footprintOf(b);
+      busy += this.spot(b.x + w / 2, b.y + h / 2).gain ?? 1;
+    }
+    this.sfx.setHum(running ? Math.min(1, busy / HUM_FULL) : 0);
 
     // Milestones.
     if (s.researched.length > this.researched) this.sfx.play('research');

@@ -9,6 +9,10 @@ import { SoundWatcher } from './sounds';
 /** Records what would be played, and how loud. */
 class FakeSfx {
   played: { sound: Sound; gain: number }[] = [];
+  hum = 0;
+  setHum(level: number): void {
+    this.hum = level;
+  }
   play(sound: Sound, opts: PlayOptions = {}): void {
     this.played.push({ sound, gain: opts.gain ?? 1 });
   }
@@ -104,6 +108,30 @@ describe('Sound effects', () => {
     w.upgradeBeltLine(hub.x - 6, hub.y - 3);
     watcher.update(w);
     expect(sfx.names()).toEqual(['place']);
+  });
+
+  it('machines working on screen hum, louder the more there are; off screen or paused, they go quiet', () => {
+    const { w, hub, sfx, watcher } = setup();
+    watcher.update(w);
+    expect(sfx.hum).toBe(0);
+    for (let i = 0; i < 3; i++) {
+      const f = placed(w.place('furnace', hub.x - 6, hub.y - 6 + i * 3, 0));
+      f.recipe = 'iron_plate';
+      f.inputs = { iron_ore: 3 };
+    }
+    w.tick(TICK);
+    watcher.update(w);
+    expect(sfx.hum).toBeCloseTo(0.5);
+    watcher.update(w, false);
+    expect(sfx.hum).toBe(0);
+    // Far off screen: silent.
+    const far = setup();
+    const f = placed(far.w.place('furnace', 10, 10, 0));
+    f.recipe = 'iron_plate';
+    f.inputs = { iron_ore: 3 };
+    far.w.tick(TICK);
+    far.watcher.update(far.w);
+    expect(far.sfx.hum).toBe(0);
   });
 
   it('a lumber camp chops each tree it cuts', () => {
