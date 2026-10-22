@@ -42,10 +42,11 @@ kids' game. The default mode is forgiving, and hardcore mode is for players who 
 
 ## Non-goals (for now)
 
-- Multiplayer
 - Combat units the player controls directly
 - Procedural storylines or dialogue
 - Ads. Monetization is an optional purchase plus donations or tips (D-017)
+
+Multiplayer was a non-goal; co-op for 2–4 players is now planned (D-056, [COOP.md](COOP.md)).
 
 ## Our own identity
 

@@ -1,8 +1,8 @@
 # Co-op plan
 
 A plan for 2–4 players building and defending one factory together, in the browser, on desktop
-and phones. Nothing here is built yet. Multiplayer is a non-goal in [VISION.md](VISION.md), so
-going ahead means a decision in [DECISIONS.md](DECISIONS.md) that supersedes it.
+and phones. We're going ahead with it (D-056); nothing is built yet. Progress is tracked in
+[ROADMAP.md](ROADMAP.md) under Co-op (M4c).
 
 ## The short version
 
@@ -129,7 +129,6 @@ report), undo (already on the roadmap), and tests that replay real games.
 
 ## Open questions
 
-- Does co-op become a goal (superseding the VISION non-goal)? It needs a D-row.
 - Is a co-op game saved only on the host, or can any player resume it?
 - Drop-in strangers (public rooms), or only friends with a room code? Suggestion: room codes
   only.

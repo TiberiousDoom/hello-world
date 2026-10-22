@@ -19,6 +19,7 @@ quality and business work don't get left until the end.
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
 | M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phases 1 and 2 done; forest and bugs next |
+| M4c: Co-op | 2–4 players in one shared world (D-056, [COOP.md](COOP.md)) | ⬜ |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -82,6 +83,13 @@ Not the escape ship's hull. In this order:
 - ✅ **Phase 1 follow-ups:** a Wood lesson when Forestry is researched, a lumber camp and sawmill in the main-menu demo, and a browser test
 - ✅ **Phase 2, wood in the economy (D-054):** the Ballista, firing stakes sawn from planks; repair stations also burn planks; planks in the Workshop, Repair Station and Shipyard (Workshops now needs Forestry); charcoal (furnace, from logs), then steel (charcoal and iron plates), carried from the fourth supply run on and the material for upgrades to come. Also: Reset tutorials in Menu → Tutorials
 - ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a tree nursery that plants new forest
+
+### Co-op (M4c, D-056, [COOP.md](COOP.md))
+In this order, after the player character (playtest issue #40):
+- ⬜ **Phase 0, prepare in single player:** every world-changing action goes through a command list; players in the saved state (a save version bump); `Math.hypot` out of the rules; a state hash and a cross-browser determinism test. No visible change
+- ⬜ **Phase 1, two-player prototype:** room codes, a test relay, lockstep with input delay, both characters visible
+- ⬜ **Phase 2, make it solid:** the real relay, joining mid-game, desync detection and resync, reconnecting after a phone sleeps
+- ⬜ **Phase 3, co-op design:** pings, player colours, blueprint picks without pausing, balance, up to 4 players
 
 ### Next (M4)
 - ⬜ Upgrades: faster belts (the Express Belt, a colony blueprint, D-049) and a mk2 tier for each machine (made with steel, D-044)
