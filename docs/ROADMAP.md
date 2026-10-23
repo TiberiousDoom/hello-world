@@ -42,6 +42,7 @@ quality and business work don't get left until the end.
 12. ✅ **The open map redesign:** a procedural 256×256 map, bug territories that attack only when provoked (no waves), building sizes (extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5), the Company and black market removed, research inside the hub, a leaner top bar, and tap-to-select with a tool in hand (D-038 to D-042).
 13. ✅ **Sound effects** (D-043).
 14. **Next:** playtest the open map, wood phases 1 and 2, supply runs and the colony blueprints (nest density, territory sizes, how far bugs chase, forest density and regrowth, launch difficulty, cargo sizes, ballista and tesla balance); then the next colony blueprints (D-055, see Gameplay → Colony supply runs).
+15. ✅ **Playtest batch 4, quick fixes** (issues #32, #35, #36, #37): bugs no longer twitch at the end of their leash, the research menu's ✕ is at the top right, Underground Transport research is renamed Underground Belt, and single buildings can be dragged into place (D-057). The rest of batch 4 is in the `playtest` issues.
 
 ---
 

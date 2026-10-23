@@ -434,6 +434,25 @@ body.in-menu #toasts {
 .card > button[data-close] {
   margin-top: 8px;
 }
+/* A title row whose close button stays in reach while a long card scrolls. */
+.card-head {
+  position: sticky;
+  top: -18px;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: -18px -20px 6px;
+  padding: 18px 20px 8px;
+  background: var(--navy-deep);
+}
+.card-head h2 {
+  margin: 0;
+}
+.card-head button {
+  padding: 6px 8px;
+}
 .muted {
   color: var(--muted);
 }

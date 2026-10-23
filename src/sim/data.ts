@@ -246,7 +246,7 @@ export const RESEARCH: Research[] = [
   { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['forestry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
   { id: 'logistics', name: 'Logistics', cost: { iron_plate: 20, gear: 10 }, time: 75, requires: ['workshop'], unlocks: ['splitter'], description: 'Splitters branch a line three ways.' },
-  { id: 'underground', name: 'Underground Transport', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
+  { id: 'underground', name: 'Underground Belt', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
