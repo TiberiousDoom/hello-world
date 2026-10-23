@@ -193,9 +193,12 @@ export class Sfx {
     const ctx = this.ctx!;
     if (ctx.state !== 'running') void ctx.resume();
     const now = ctx.currentTime;
-    if (now - (this.last.get(sound) ?? -Infinity) < (MIN_GAP[sound] ?? 0)) return;
+    // Gaps are timed on the page clock: the audio clock stands still while the context is starting up,
+    // which made every sound after the first look like a repeat and get dropped.
+    const wall = performance.now() / 1000;
+    if (wall - (this.last.get(sound) ?? -Infinity) < (MIN_GAP[sound] ?? 0)) return;
     if (this.voices >= MAX_VOICES) return;
-    this.last.set(sound, now);
+    this.last.set(sound, wall);
     this.log.push(sound);
     if (this.log.length > 50) this.log.shift();
 

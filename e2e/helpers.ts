@@ -67,6 +67,9 @@ export async function calm(page: Page): Promise<void> {
 
 /** Selects the hub by clicking or tapping its middle. */
 export async function selectHub(page: Page, info: TestInfo): Promise<void> {
+  // An open info panel can cover the middle of a phone screen, where the hub is about to be.
+  const close = page.locator('#info:not([hidden]) [data-action="close"]');
+  if (await close.isVisible()) await close.click();
   const [x, y] = await page.evaluate(() => {
     const h = window.game.world.hub;
     const c = window.game.camera;

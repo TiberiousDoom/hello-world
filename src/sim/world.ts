@@ -58,8 +58,9 @@ export type { ResearchState };
  * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
  * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
  * v14 (#38) moves belts into the Logistics research; older games get it for free.
+ * v15 (#33, #34) resizes the workshop, assembler and splitter; ones that no longer fit are refunded.
  */
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -273,10 +274,73 @@ export class World {
     if (state.version === 11) World.migrateV11(state);
     if (state.version === 12) World.migrateV12(state);
     if (state.version === 13) World.migrateV13(state);
+    if (state.version === 14) World.migrateV14(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v14 to v15 (#33, #34): the workshop goes from 3×2 to 2×2, the assembler from 4×2 to 3×3 and the
+   * splitter from 1×1 to 1×2. Each moves to the spot overlapping its old one where it fits, keeping its
+   * output where it was if it can; one that fits nowhere is removed and refunded, with what it held.
+   */
+  private static migrateV14(state: GameState): void {
+    const old: Partial<Record<BuildingType, [number, number]>> = { workshop: [3, 2], assembler: [4, 2], splitter: [1, 1] };
+    const size = (b: Building): [number, number] => {
+      const [w, h] = old[b.type] ?? BUILDINGS[b.type].size ?? [1, 1];
+      return b.dir % 2 ? [h, w] : [w, h];
+    };
+    const W = state.width;
+    const taken = new Map<number, number>();
+    const mark = (b: Building, [w, h]: [number, number], id: number) => {
+      for (let y = b.y; y < b.y + h; y++) for (let x = b.x; x < b.x + w; x++) if (id) taken.set(y * W + x, id); else taken.delete(y * W + x);
+    };
+    for (const b of state.buildings) mark(b, size(b), b.id);
+    const fits = (x: number, y: number, w: number, h: number) => {
+      for (let ty = y; ty < y + h; ty++)
+        for (let tx = x; tx < x + w; tx++) if (tx < 0 || ty < 0 || tx >= W || ty >= state.height || taken.has(ty * W + tx) || state.trees[ty * W + tx] === TREE) return false;
+      return true;
+    };
+    // The tile just past the middle of the front edge, as World.outputTile works it out.
+    const outAt = (x: number, y: number, w: number, h: number, dir: Dir) => {
+      const fx = dir === 0 ? x + w - 1 : dir === 2 ? x : x + Math.floor((w - 1) / 2);
+      const fy = dir === 1 ? y + h - 1 : dir === 3 ? y : y + Math.floor((h - 1) / 2);
+      return (fy + DY[dir]) * W + fx + DX[dir];
+    };
+    const removed = new Set<number>();
+    for (const b of state.buildings) {
+      if (!old[b.type]) continue;
+      const [ow, oh] = size(b);
+      mark(b, [ow, oh], 0);
+      const [w, h] = footprint(b.type, b.dir);
+      const wasOut = outAt(b.x, b.y, ow, oh, b.dir);
+      let best: [number, number] | null = null;
+      let bestScore = -Infinity;
+      for (let y = b.y - h + 1; y < b.y + oh; y++) {
+        for (let x = b.x - w + 1; x < b.x + ow; x++) {
+          if (!fits(x, y, w, h)) continue;
+          const overlap = (Math.min(x + w, b.x + ow) - Math.max(x, b.x)) * (Math.min(y + h, b.y + oh) - Math.max(y, b.y));
+          if (overlap <= 0) continue;
+          const score = (outAt(x, y, w, h, b.dir) === wasOut ? 1000 : 0) + overlap * 10 - Math.abs(x - b.x) - Math.abs(y - b.y);
+          if (score > bestScore) [best, bestScore] = [[x, y], score];
+        }
+      }
+      if (best) {
+        [b.x, b.y] = best;
+        mark(b, [w, h], b.id);
+        continue;
+      }
+      removed.add(b.id);
+      const inv = state.inventory;
+      const give = (item: ItemId, n = 1) => (inv[item] = (inv[item] ?? 0) + n);
+      for (const [item, n] of Object.entries(BUILDINGS[b.type].cost)) give(item as ItemId, n!);
+      for (const [item, n] of Object.entries(b.inputs)) if (n) give(item as ItemId, n);
+      for (const item of b.outputs) give(item);
+    }
+    state.buildings = state.buildings.filter((b) => !removed.has(b.id));
+    state.version = 15;
   }
 
   /**
@@ -859,8 +923,8 @@ export class World {
       case 'shipyard':
         return insertShip(this, item);
       case 'splitter': {
-        // Only from directly behind.
-        if (target.x - DX[target.dir] !== fromX || target.y - DY[target.dir] !== fromY) return false;
+        // Only from directly behind one of its two lanes.
+        if (!this.splitterLanes(target).some((l) => l.x - DX[target.dir] === fromX && l.y - DY[target.dir] === fromY)) return false;
         if (target.outputs.length) return false;
         target.outputs.push(item);
         return true;
@@ -1154,16 +1218,27 @@ export class World {
     return true;
   }
 
+  /** A splitter's two lanes (#34): its tiles, each with the tile in front that it sends items to. */
+  splitterLanes(b: Building): { x: number; y: number; outX: number; outY: number }[] {
+    const across = b.dir % 2 ? { dx: 1, dy: 0 } : { dx: 0, dy: 1 };
+    return [0, 1].map((i) => {
+      const x = b.x + across.dx * i;
+      const y = b.y + across.dy * i;
+      return { x, y, outX: x + DX[b.dir], outY: y + DY[b.dir] };
+    });
+  }
+
   private tickSplitter(b: Building): void {
     if (!b.outputs.length) return;
-    // Front, left, right, starting from the side after the last one used.
-    const sides: Dir[] = [b.dir, ((b.dir + 3) % 4) as Dir, ((b.dir + 1) % 4) as Dir];
-    for (let i = 0; i < 3; i++) {
-      const k = (b.rr + i) % 3;
-      const target = this.buildingAt(b.x + DX[sides[k]], b.y + DY[sides[k]]);
-      if (target && this.insert(target, b.outputs[0], b.x, b.y)) {
+    // Out of the two lanes in turn, starting from the one after the last used; a blocked lane is skipped.
+    const lanes = this.splitterLanes(b);
+    for (let i = 0; i < 2; i++) {
+      const k = (b.rr + i) % 2;
+      const l = lanes[k];
+      const target = this.buildingAt(l.outX, l.outY);
+      if (target && target !== b && this.insert(target, b.outputs[0], l.x, l.y)) {
         b.outputs.shift();
-        b.rr = (k + 1) % 3;
+        b.rr = (k + 1) % 2;
         return;
       }
     }

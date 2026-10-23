@@ -787,7 +787,8 @@ export class Renderer {
         arrowHead(ctx, b.x + 0.5 + DX[b.dir] * 0.36, b.y + 0.5 + DY[b.dir] * 0.36, b.dir, 0.12);
       }
     }
-    if (big && directional) this.drawOutputPort(world, b, z);
+    // A splitter's sprite shows both its outputs; other big buildings mark their one output.
+    if (big && directional && b.type !== 'splitter') this.drawOutputPort(world, b, z);
 
     // Working machines glow and pulse.
     const working = (isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3;
@@ -821,7 +822,10 @@ export class Renderer {
       bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
 
-    if (b.type === 'splitter' && b.outputs.length) this.drawItem(b.outputs[0], b.x + 0.5, b.y + 0.5, 0.34);
+    if (b.type === 'splitter' && b.outputs.length) {
+      const [cx, cy] = world.centreOf(b);
+      this.drawItem(b.outputs[0], cx, cy, 0.34);
+    }
     if (b.type === 'tunnel' && b.link == null) {
       // Unpaired: flash a warning dot.
       ctx.fillStyle = `rgba(242,193,78,${0.5 + 0.5 * Math.sin(now / 200)})`;
@@ -1025,6 +1029,8 @@ export class Renderer {
       const oy = (dir === 1 ? y + fh - 1 : dir === 3 ? y : y + Math.floor((fh - 1) / 2)) + 0.5;
       ctx.fillStyle = '#ffffff';
       arrowHead(ctx, ox + DX[dir] * 0.62, oy + DY[dir] * 0.62, dir, 0.14);
+      // A splitter sends items out of its second lane too.
+      if (tool === 'splitter') arrowHead(ctx, ox + (dir % 2) + DX[dir] * 0.62, oy + ((dir + 1) % 2) + DY[dir] * 0.62, dir, 0.14);
     }
     const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : tool === 'lumber_camp' ? LUMBER.range : 0);
     if (range && opts.range !== false) rangeCircle(ctx, x + fw / 2, y + fh / 2, range, z);

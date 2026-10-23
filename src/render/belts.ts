@@ -25,8 +25,7 @@ export function outputsTo(world: World, n: Building, x: number, y: number): bool
       dirs = world.isTunnelExit(n) ? [n.dir] : [];
       break;
     case 'splitter':
-      dirs = [n.dir, turn(n.dir, 3), turn(n.dir, 1)];
-      break;
+      return world.splitterLanes(n).some((l) => l.outX === x && l.outY === y);
     default:
       dirs = [];
   }
@@ -46,7 +45,7 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'tunnel':
       return !front && !world.isTunnelExit(b);
     case 'splitter':
-      return b.x - DX[b.dir] === fromX && b.y - DY[b.dir] === fromY;
+      return world.splitterLanes(b).some((l) => l.x - DX[b.dir] === fromX && l.y - DY[b.dir] === fromY);
     case 'shipyard':
     case 'repair':
     case 'hub':

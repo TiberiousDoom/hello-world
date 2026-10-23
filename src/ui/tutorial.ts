@@ -303,7 +303,7 @@ export const LESSONS: Lesson[] = [
       {
         target: () => ({ el: '[data-tool="splitter"]' }),
         text: () =>
-          'Splitters take items from behind and send them out the front, left and right in turn. Use them to branch a line, for example plates to both the hub and a turret.',
+          'Splitters span two belt lanes. They take items from behind either lane and send them out of both lanes in turn. Use them to branch a line, for example plates to both the hub and a turret.',
       },
     ],
   },

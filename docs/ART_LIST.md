@@ -83,11 +83,11 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code |
 | Extractor | 2×2 (128×128) | Drill, facing east. The game draws an output port at the middle of the east edge | 4–8 working | P1 | Placeholder |
 | Furnace | 2×2 (128×128) | Idle and working (glow), facing east | 1 + 4 | P1 | Placeholder |
-| Workshop | 3×2 (192×128) | Idle and working, facing east (3 tiles wide along the facing) | 1 + 4 | P2 | Placeholder |
-| Assembler | 4×2 (256×128) | Idle and working, facing east (4 tiles wide along the facing) | 1 + 4 | P2 | Placeholder |
-| Splitter | 1×1 | Should read as "one in, three out" | 1 | P2 | Placeholder |
-| Underground belt entrance | 1×1 | Mouth on the east side | 1 | P2 | Placeholder |
-| Underground belt exit | 1×1 | Mouth on the west side | 1 | P2 | Placeholder |
+| Workshop | 2×2 (128×128) | Idle and working, facing east | 1 + 4 | P2 | Placeholder |
+| Assembler | 3×3 (192×192) | Idle and working, facing east | 1 + 4 | P2 | Placeholder |
+| Splitter | 1×2 (64×128), facing east | A box straddling two belt lanes, an arrow on each: two lanes in, two out (#34) | 1 | P2 | Placeholder |
+| Underground belt entrance | 1×1 | A belt running into a hooded mouth on the east side, diving underground (#35) | 1 | P2 | Placeholder |
+| Underground belt exit | 1×1 | A belt coming up out of a hooded mouth on the west side (#35) | 1 | P2 | Placeholder |
 | Hub port | 1×1 | Should look like part of the hub, with output to the east | 1 | P2 | Placeholder |
 | Turret base | 1×1 | Static | 1 | P1 | Placeholder |
 | Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot | 1 | P1 | Placeholder |

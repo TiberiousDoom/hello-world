@@ -85,7 +85,7 @@ describe('Map', () => {
 describe('Buildings', () => {
   it('have their sizes, and sideways turns swap width and height', () => {
     const w = emptyWorld();
-    const sizes: [string, number, number][] = [['extractor', 2, 2], ['furnace', 2, 2], ['workshop', 3, 2], ['assembler', 4, 2]];
+    const sizes: [string, number, number][] = [['extractor', 2, 2], ['furnace', 2, 2], ['workshop', 2, 2], ['assembler', 3, 3], ['splitter', 1, 2]];
     let y = 20;
     for (const [type, bw, bh] of sizes) {
       ore(w, 20, y, 1, 4);
@@ -104,9 +104,9 @@ describe('Buildings', () => {
     const before = w.state.inventory.iron_plate!;
     const b = placed(w.place('workshop', 20, 20, 0));
     expect(w.state.inventory.iron_plate).toBe(before - BUILDINGS.workshop.cost.iron_plate!);
-    expect(w.place('belt', 22, 21, 0)).toBe('occupied'); // inside the workshop
+    expect(w.place('belt', 21, 21, 0)).toBe('occupied'); // inside the workshop
     expect(w.place('extractor', 30, 30, 0)).toBe('needs-resource');
-    expect(w.place('workshop', MAP_SIZE - 2, 10, 0)).toBe('bounds');
+    expect(w.place('workshop', MAP_SIZE - 1, 10, 0)).toBe('bounds');
     expect(w.place('port', 60, 60, 0)).toBe('needs-hub');
     w.demolish(b.id);
     expect(w.state.inventory.iron_plate).toBe(before);
@@ -114,20 +114,20 @@ describe('Buildings', () => {
 
   it('turn in place only when their new footprint is free', () => {
     const w = emptyWorld();
-    const b = placed(w.place('workshop', 20, 20, 0)); // 3 wide, 2 deep
-    expect(w.rotate(b.id)).toBe(true); // now 2 wide, 3 deep
-    expect(w.buildingAt(20, 22)).toBe(b);
-    expect(w.buildingAt(22, 20)).toBeUndefined();
-    placed(w.place('wall', 22, 20, 0));
+    const b = placed(w.place('splitter', 20, 20, 0)); // 1 along, 2 across
+    expect(w.rotate(b.id)).toBe(true); // facing south: 2 wide, 1 deep
+    expect(w.buildingAt(21, 20)).toBe(b);
+    expect(w.buildingAt(20, 21)).toBeUndefined();
+    placed(w.place('wall', 20, 21, 0));
     expect(w.rotate(b.id)).toBe(false); // facing west it would cover the wall
   });
 
   it('output from the middle of the side they face', () => {
     const w = emptyWorld();
-    const b = placed(w.place('workshop', 20, 20, 1)); // facing south: 2 wide, 3 deep
-    expect(w.outputTile(b)).toEqual({ x: 20, y: 23, fromX: 20, fromY: 22 });
-    const a = placed(w.place('assembler', 30, 20, 0)); // facing east: 4 wide, 2 deep
-    expect(w.outputTile(a)).toEqual({ x: 34, y: 20, fromX: 33, fromY: 20 });
+    const b = placed(w.place('workshop', 20, 20, 1)); // facing south: 2×2
+    expect(w.outputTile(b)).toEqual({ x: 20, y: 22, fromX: 20, fromY: 21 });
+    const a = placed(w.place('assembler', 30, 20, 0)); // facing east: 3×3, so a true middle
+    expect(w.outputTile(a)).toEqual({ x: 33, y: 21, fromX: 32, fromY: 21 });
   });
 
   it('extractors mine the ore covering most of their base', () => {
@@ -229,16 +229,24 @@ describe('Production', () => {
     expect(plates - w.state.inventory.iron_plate!).toBe(def.maxShots / def.shotsPerItem);
   });
 
-  it('splitters take from behind and alternate between front, left and right', () => {
+  it('splitters span two lanes, take from behind either one and alternate between the two outputs (#34)', () => {
     const w = emptyWorld();
-    const sp = placed(w.place('splitter', 20, 20, 0));
-    const out = [placed(w.place('belt', 21, 20, 0)), placed(w.place('belt', 20, 19, 3)), placed(w.place('belt', 20, 21, 1))];
+    const sp = placed(w.place('splitter', 20, 20, 0)); // tiles (20,20) and (20,21)
+    const out = [placed(w.place('belt', 21, 20, 0)), placed(w.place('belt', 21, 21, 0))];
     expect(w.insert(sp, 'gear', 20, 19)).toBe(false); // not from the side
-    for (let i = 0; i < 3; i++) {
-      expect(w.insert(sp, 'gear', 19, 20)).toBe(true);
-      w.tick();
+    expect(w.insert(sp, 'gear', 21, 20)).toBe(false); // nor from the front
+    for (let i = 0; i < 4; i++) {
+      expect(w.insert(sp, 'gear', 19, 20 + (i % 2))).toBe(true); // behind either lane
+      for (let t = 0; t < 10; t++) w.tick();
     }
-    expect(out.map((b) => b.belt.length)).toEqual([1, 1, 1]);
+    expect(out.map((b) => b.belt.length)).toEqual([2, 2]);
+    // With one lane blocked, everything goes out of the other.
+    w.demolish(out[1].id);
+    for (let i = 0; i < 2; i++) {
+      expect(w.insert(sp, 'gear', 19, 20)).toBe(true);
+      for (let t = 0; t < 10; t++) w.tick();
+    }
+    expect(out[0].belt.length).toBeGreaterThanOrEqual(2);
   });
 
   it('move items at an even speed across belt tiles, with no pause or jump at the edges', () => {
@@ -875,6 +883,42 @@ describe('Starting from nothing (#38)', () => {
     expect(w.state.inventory.iron_plate).toBe(n);
     expect(fu.outputs.length).toBe(0);
     expect(w.collect(w.hub!.id)).toBe(0);
+  });
+
+  it('v14 saves resize workshops, assemblers and splitters, keeping outputs where they were or refunding (#33, #34)', () => {
+    const w = emptyWorld();
+    const ws = placed(w.place('workshop', 20, 20, 0));
+    const as = placed(w.place('assembler', 40, 20, 0));
+    const free = placed(w.place('splitter', 60, 20, 0));
+    const boxed = placed(w.place('splitter', 70, 20, 0));
+    for (const y of [19, 22]) placed(w.place('wall', 70, y, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 14;
+    // As they stood at the old sizes: the boxed splitter's second tile was a wall.
+    old.buildings.find((b: Building) => b.id === boxed.id).y = 20;
+    old.buildings.push({ ...old.buildings.find((b: Building) => b.type === 'wall'), id: 9999, x: 70, y: 21 });
+    const plates = old.inventory.iron_plate;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    const at = (id: number) => loaded.byId.get(id);
+    // The workshop (3×2 → 2×2) keeps its output tile at (23, 20).
+    expect([at(ws.id)!.x, at(ws.id)!.y]).toEqual([21, 20]);
+    expect(loaded.outputTile(at(ws.id)!)).toMatchObject({ x: 23, y: 20 });
+    // The assembler (4×2 → 3×3) also keeps its output at (44, 20).
+    expect(loaded.outputTile(at(as.id)!)).toMatchObject({ x: 44, y: 20 });
+    expect(at(free.id)).toBeDefined();
+    expect(at(boxed.id)).toBeUndefined(); // walls above, below and in its second lane
+    expect(loaded.state.inventory.iron_plate).toBe(plates + BUILDINGS.splitter.cost.iron_plate!);
+    // No two buildings overlap.
+    const seen = new Set<number>();
+    for (const b of loaded.state.buildings) {
+      const [fw, fh] = loaded.footprintOf(b);
+      for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) {
+        const i = loaded.idx(b.x + dx, b.y + dy);
+        expect(seen.has(i)).toBe(false);
+        seen.add(i);
+      }
+    }
   });
 
   it('v13 saves get Logistics as done, and the old Underground Belt research goes away', () => {
