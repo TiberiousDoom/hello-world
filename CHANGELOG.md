@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.27.0 · 2026-10-23 · Art review: new bugs, a standing ship and tidier sprites
+### New
+- **New bugs:** the crawler is long, flat and segmented, dark orange; the runner is a glossy black, many-legged scuttler; the brute is a four-legged, centaur-like beast in very dark red, with two big claws.
+- **The supply ship stands upright** on its pad, taller and drawn in three-quarter view. Life support is less cartoony.
+- **The repair station** now looks like a workshop: a cog and spanner, a welding arm and a toolbox.
+
+### Fixed
+- **Tidier sprites:** the ballista's bow sits at the front, and it and the tesla coil lost their arrows; the palisade has no brown background; iron plates are dark grey squares and planks are proper boards; autumn trees have more autumn colour; grass tufts grow from a broad base.
+
 ## 0.26.0 · 2026-10-23 · Smoother belts, readable rates and spreading nests
 ### New
 - **Version numbers and What's new:** the main menu shows the game's version, and "What's new" (main menu and pause menu) lists what changed in each version. A dot marks it until you've looked.
