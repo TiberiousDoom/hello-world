@@ -10,7 +10,9 @@
 // Each nest has a mound with health (D-065). Destroying it clears the territory
 // for good and drops chitin; its surviving bugs stay angry, with no home and no
 // leash, until they're killed. A calm nest breeds back up to the bugs it started
-// with; new bugs hatch young and grow up over a few minutes.
+// with; new bugs hatch young and grow up over a few minutes. A threat level
+// rising with play time makes newly bred bugs tougher and territories spread
+// sooner. Shooting a nest's bugs wakes the nests next to it too.
 
 import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, chitinFor, moundHp, nestComposition } from './data';
 import { clockAt } from './clock';
@@ -137,10 +139,26 @@ export function nearHub(x: number, y: number, hubCx: number, hubCy: number): boo
   return hypot(nx - hubCx, ny - hubCy) < NESTS.safeRadius;
 }
 
-/** Fills a new nest, `distance` tiles from the hub, with its brood, all grown up. */
-export function populate(w: World, n: Nest, distance: number): void {
-  const hpMult = nestComposition(distance).hpMult;
+/** Fills a new nest, `distance` tiles from the hub, with its brood, all grown up; `tougher` multiplies their health. */
+export function populate(w: World, n: Nest, distance: number, tougher = 1): void {
+  const hpMult = nestComposition(distance).hpMult * tougher;
   for (const type of BUG_TYPES) for (let i = 0; i < n.brood[type]; i++) w.spawnBug(type, n, hpMult);
+}
+
+/** The threat level (D-065): 0 at the start, one more every NESTS.threatEvery seconds of play. */
+export function threatAt(time: number): number {
+  return Math.min(NESTS.threatMax, Math.floor(Math.max(0, time) / NESTS.threatEvery));
+}
+
+/** How much more health bugs bred or spread now get, from the threat level. */
+export function threatToughness(w: World): number {
+  return 1 + NESTS.threatHp * threatAt(w.state.time);
+}
+
+/** Says when the threat level rises. */
+export function announceThreat(w: World, before: number, now: number): void {
+  const t = threatAt(now);
+  if (t > threatAt(before)) w.events.push(`Threat level ${t}: new bugs are tougher, and territories spread sooner.`);
 }
 
 const BUG_TYPES: EnemyType[] = ['crawler', 'runner', 'brute'];
@@ -165,13 +183,20 @@ export function tickBreeding(w: World, dt: number): void {
       n.nextBreed = 0;
       continue;
     }
-    const got = have.get(n.id);
-    const short = BUG_TYPES.filter((t) => (got?.[t] ?? 0) < n.brood[t]);
-    if (!short.length) n.nextBreed = 0;
+    const got = have.get(n.id) ?? { crawler: 0, runner: 0, brute: 0 };
+    const total = (b: Brood) => b.crawler + b.runner + b.brute;
+    if (total(got) >= total(n.brood)) n.nextBreed = 0;
     else if (!n.nextBreed) n.nextBreed = s.time + NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0]);
     else if (s.time >= n.nextBreed) {
-      const type = short[Math.floor(w.random() * short.length)];
-      w.spawnBug(type, n, nestComposition(hubDistance(w, n)).hpMult, true);
+      const distance = hubDistance(w, n);
+      const short = BUG_TYPES.filter((t) => got[t] < n.brood[t]);
+      let type = short.length ? short[Math.floor(w.random() * short.length)] : 'crawler';
+      // With threat, crawlers more often hatch as something worse (D-065). The nest's size stays the same.
+      const threat = threatAt(s.time);
+      if (type === 'crawler' && w.random() < Math.min(NESTS.threatSwapMax, NESTS.threatSwap * threat)) {
+        type = nestComposition(distance).brutes > 0 && w.random() < 0.5 ? 'brute' : 'runner';
+      }
+      w.spawnBug(type, n, nestComposition(distance).hpMult * threatToughness(w), true);
       n.nextBreed = 0;
     }
   }
@@ -203,7 +228,8 @@ function grow(w: World, e: Enemy, dt: number): void {
 export function tickSpread(w: World): void {
   const s = w.state;
   if (s.time < s.nextSpread) return;
-  s.nextSpread = s.time + NESTS.spreadEvery;
+  const sooner = Math.max(NESTS.threatSpreadMin, 1 - NESTS.threatSpread * threatAt(s.time));
+  s.nextSpread = s.time + NESTS.spreadEvery * sooner;
   const hub = w.hub;
   if (!hub) return;
   const hubCx = hub.x + Math.floor(HUB_SIZE / 2);
@@ -223,7 +249,7 @@ export function tickSpread(w: World): void {
   const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare);
   s.nests.push(nest);
   w.nestCells.set(cellKey(x / C, y / C), nest);
-  populate(w, nest, distance);
+  populate(w, nest, distance, threatToughness(w));
   w.events.push('Bugs have spread into a new territory.');
 }
 
@@ -262,10 +288,18 @@ export function onBuilt(w: World, b: Building): void {
   }
 }
 
-/** A bug was hurt (a turret or the hub gun): its whole nest wakes. */
+/** A bug was hurt (a turret or the hub gun): its whole nest wakes, and so do the nests next to it (D-065). */
 export function onBugHurt(w: World, e: Enemy): void {
   const n = w.state.nests[e.nest];
-  if (n) provoke(w, n);
+  if (!n) return;
+  provoke(w, n);
+  if (n.destroyed) return;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const nb = w.nestCells.get(cellKey(n.x / C + dx, n.y / C + dy));
+      if (nb && nb !== n && !nb.destroyed) provoke(w, nb);
+    }
+  }
 }
 
 /** Moves every bug: chasing when its nest is angry, strolling at home otherwise. */

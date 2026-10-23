@@ -49,7 +49,7 @@ import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
-import { Nest, anyAngry, broodFor, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
+import { Nest, announceThreat, anyAngry, broodFor, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
 import { Player, PlayerAction, goAndDo, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -1262,6 +1262,7 @@ export class World {
     tickBreeding(this, dt);
     tickPlayers(this, dt, (p, a) => this.act(p, a));
     this.announceClock(s.time - dt, s.time);
+    announceThreat(this, s.time - dt, s.time);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {

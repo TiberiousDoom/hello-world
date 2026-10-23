@@ -21,8 +21,10 @@ import {
   TURRETS,
   isMachine,
   CLOCK,
+  NESTS,
 } from '../sim/data';
 import { clockAt } from '../sim/clock';
+import { threatAt } from '../sim/nests';
 import { artUrl, icon } from '../art';
 import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
@@ -759,7 +761,14 @@ export class Hud {
     el.classList.toggle('night', c.night);
     el.dataset.season = c.season.id;
     const left = Math.ceil(((1 - c.part) * (c.night ? CLOCK.night : CLOCK.day)) / 60);
-    el.title = `${c.night ? 'Night' : 'Day'}: about ${left} min until ${c.night ? 'morning' : 'nightfall'}. Day ${c.seasonDay} of ${c.season.days} in ${c.season.name}.`;
+    const threat = threatAt(time);
+    const threatEl = el.querySelector<HTMLElement>('.clock-threat')!;
+    const threatText = threat ? `⚠${threat}` : '';
+    if (threatEl.textContent !== threatText) threatEl.textContent = threatText;
+    threatEl.hidden = !threat;
+    el.title =
+      `${c.night ? 'Night' : 'Day'}: about ${left} min until ${c.night ? 'morning' : 'nightfall'}. Day ${c.seasonDay} of ${c.season.days} in ${c.season.name}.` +
+      ` Threat level ${threat}: it rises every ${NESTS.threatEvery / 60} minutes, making new bugs tougher.`;
   }
 
   openModal(id: string): void {

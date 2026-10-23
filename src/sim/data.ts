@@ -396,6 +396,13 @@ export const NESTS = {
   breedEvery: [60, 90] as [number, number], // seconds between bugs a calm nest breeds, while it has fewer than it started with
   growUp: 180, // seconds a newly hatched bug takes to grow into an adult
   young: 0.5, // a newly hatched bug's share of an adult's health, bite and size
+  threatEvery: 1080, // seconds of play between threat levels (D-065: every 15–20 minutes)
+  threatMax: 10,
+  threatHp: 0.15, // bugs bred or spread from now on get this much more health per threat level
+  threatSwap: 0.08, // chance per level that a bred crawler hatches as a runner (or, far out, a brute), up to threatSwapMax
+  threatSwapMax: 0.5,
+  threatSpread: 0.08, // territories spread this much sooner per level, down to threatSpreadMin of the usual time
+  threatSpreadMin: 0.5,
 };
 
 /** A nest's mound health `distance` tiles from the hub. */

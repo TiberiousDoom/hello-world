@@ -259,7 +259,7 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - A nest is **provoked** when:
   - anything is built inside its cell or within 2 tiles of it,
   - any building is within 3 tiles of one of its bugs, or
-  - one of its bugs is shot (by a turret, a cannon or the hub gun).
+  - one of its bugs is shot (by a turret, a cannon or the hub gun), or a bug of a nest next to it is.
 - A provoked nest's bugs go for the **nearest buildings**, following a path field from every building
   outwards. Belts, splitters and tunnels can be walked over; other buildings block, and bugs chew
   through whatever they reach. They chase no further than **22 tiles** from their territory's centre; a bug that reaches that edge stops there until its territory calms down.
@@ -281,6 +281,14 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   still stands, counts as a live nest, and breeds back.
 - **Young bugs** hatch at **half** an adult's health and bite, smaller and paler, and grow into adults
   over **3 minutes**: their health and bite rise steadily, keeping any damage they've taken.
+- **Threat (D-065, D-072).** A threat level starts at 0 and rises by 1 every **18 minutes** of play, up
+  to 10. A message says when it rises, and the clock in the top bar shows it (⚠). At each level:
+  - bugs bred or spread from then on get **+15% health** (bugs already out there don't change),
+  - a bred crawler has an **8% chance** (up to 50%) to hatch as a runner instead, or, for a nest that
+    already has brutes, as a runner or a brute; the nest's size stays the same,
+  - territories spread **8% sooner** (down to half the usual 4 minutes).
+- **Neighbours wake (D-065).** Shooting a nest's bugs provokes that nest and every live nest in the 8
+  cells around it. Building near a nest still provokes only the nests it's in or next to.
 - **Territories spread (D-059).** Every **4 minutes**, one live territory, picked at random, spreads
   into a neighbouring cell (left, right, above or below) that has no live nest: one whose mound was
   destroyed, or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
