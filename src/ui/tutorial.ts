@@ -134,13 +134,24 @@ function nearestNode(w: World, item: ItemId): TileTarget | null {
 const FIRST_STONE = (BUILDINGS.furnace.cost.stone ?? 0) + (BUILDINGS.extractor.cost.stone ?? 0);
 const FIRST_ORE = BUILDINGS.extractor.cost.iron_ore ?? 0;
 
-/** How much of an item the player has mined by hand this step: what's in stock, plus what the furnaces and extractors built since cost. */
-function mined(c: StepContext, item: ItemId): number {
+/** How much of an item has reached the hub this step: what's in stock, plus what the furnaces and extractors built since cost. */
+function stocked(c: StepContext, item: ItemId): number {
   const spent = (['furnace', 'extractor'] as const).reduce(
     (sum, t) => sum + (BUILDINGS[t].cost[item] ?? 0) * Math.max(0, count(c.world, t) - (c.start.buildings[t] ?? 0)),
     0,
   );
   return (c.world.state.inventory[item] ?? 0) + spent;
+}
+
+/** How much of an item has been mined by hand: in the hub (or spent), or still carried. */
+function mined(c: StepContext, item: ItemId): number {
+  return stocked(c, item) + (c.world.state.players[0]?.carry.filter((i) => i === item).length ?? 0);
+}
+
+/** The character, for the spotlight. */
+function playerTarget(w: World): TileTarget | null {
+  const p = w.state.players[0];
+  return p ? { tx: Math.floor(p.x) - 1, ty: Math.floor(p.y) - 1, size: 3 } : null;
 }
 
 /** The tile in front of the first extractor's arrow, where the first furnace goes. */
@@ -202,16 +213,25 @@ export const LESSONS: Lesson[] = [
           'This is your hub. Everything you deliver here goes into its stock, which pays for buildings and research. It starts empty, and it has a small gun of its own.',
       },
       {
+        target: (c) => ({ tiles: playerTarget(c.world), shape: 'circle' }),
+        text: () => 'This is your engineer. Tap or click the ground to walk there; on a keyboard, WASD or the arrow keys walk too.',
+      },
+      {
         target: (c) => ({ tiles: nearestNode(c.world, 'stone'), shape: 'circle' }),
         done: (c) => mined(c, 'stone') >= FIRST_STONE,
         text: (c) =>
-          `Start by mining by hand. Tap the grey stone (or click it): every ${HAND_MINING.taps} taps put one stone into the hub. Hold your finger or the mouse button down to keep mining. ` +
+          `Start by mining by hand. Tap the grey stone (or click it): your engineer walks over, and every ${HAND_MINING.taps} taps loosen one stone, which they carry. Hold your finger or the mouse button down to keep mining. ` +
           `A furnace and an extractor need ${FIRST_STONE} stone: ${Math.min(FIRST_STONE, mined(c, 'stone'))} of ${FIRST_STONE}.`,
       },
       {
         target: (c) => ({ tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
         done: (c) => mined(c, 'iron_ore') >= FIRST_ORE,
         text: (c) => `Now mine ${FIRST_ORE} iron ore the same way, for the extractor: ${Math.min(FIRST_ORE, mined(c, 'iron_ore'))} of ${FIRST_ORE}.`,
+      },
+      {
+        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
+        done: (c) => stocked(c, 'stone') >= FIRST_STONE && stocked(c, 'iron_ore') >= FIRST_ORE,
+        text: () => 'Walk back to the hub (tap the ground next to it). Your engineer drops off everything they carry as soon as they reach it.',
       },
       {
         target: (c) => toolThen(c, 'extractor', { tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
@@ -238,7 +258,7 @@ export const LESSONS: Lesson[] = [
             ? { el: '#info [data-action="collect"]' }
             : { tiles: furnaceTarget(c.world), shape: 'circle' },
         done: (c) => (c.world.delivered.iron_plate ?? 0) > (c.start.delivered.iron_plate ?? 0),
-        text: () => 'Plates pile up in the furnace. Select it and tap Collect to carry them to the hub. Soon belts will do this for you.',
+        text: () => 'Plates pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub. Soon belts will do this for you.',
       },
       {
         target: () => ({ el: '#inventory' }),
@@ -252,7 +272,7 @@ export const LESSONS: Lesson[] = [
             : { tiles: hubTarget(c.world), shape: 'circle' },
         done: (c) => c.world.state.researched.includes('logistics') || c.world.state.research.active === 'logistics',
         text: () =>
-          `Select the hub, open Research and start Logistics. It unlocks belts, and uses ${RESEARCH_BY_ID.logistics.cost.iron_plate} iron plates from stock: keep collecting from the furnace until it's done.`,
+          `Select the hub, open Research and start Logistics. It unlocks belts, and uses ${RESEARCH_BY_ID.logistics.cost.iron_plate} iron plates from stock: keep bringing plates from the furnace until it's done.`,
       },
       {
         target: (c) => toolThen(c, 'belt'),

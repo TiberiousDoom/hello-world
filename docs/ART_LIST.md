@@ -109,6 +109,12 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
+## Units
+
+| Asset | Size on screen | Frames | Priority | Status |
+|---|---|---|---|---|
+| Engineer (the player character, #40): top-down, facing east; a yellow hard hat, orange overalls, boots | 1 tile (64×64) | 2 walk (`units/engineer`, `engineer_b`) | P1 | Placeholder |
+
 ## Enemies
 
 All top-down and facing east. Each has two walk frames (`name` and `name_b`, legs in opposite

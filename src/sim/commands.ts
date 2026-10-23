@@ -23,6 +23,9 @@ export type Command =
   | { kind: 'pick-blueprint'; id: string }
   | { kind: 'mine'; x: number; y: number }
   | { kind: 'collect'; id: number }
+  | { kind: 'drop'; id: number }
+  | { kind: 'move'; x: number; y: number }
+  | { kind: 'walk'; dx: number; dy: number }
   // Every game rebuilds its path fields on the same tick, before a snapshot is taken.
   | { kind: 'checkpoint' };
 
@@ -40,6 +43,9 @@ export interface CommandResults {
   'pick-blueprint': boolean;
   mine: HandTap | MineError;
   collect: number;
+  drop: number;
+  move: boolean;
+  walk: void;
   checkpoint: void;
 }
 
@@ -75,6 +81,12 @@ function apply(w: World, c: Command): CommandResults[keyof CommandResults] {
       return w.mineByHand(c.x, c.y);
     case 'collect':
       return w.collect(c.id);
+    case 'drop':
+      return w.dropOff(c.id);
+    case 'move':
+      return w.moveTo(c.x, c.y);
+    case 'walk':
+      return w.walk(c.dx, c.dy);
     case 'checkpoint':
       return w.checkpoint();
   }

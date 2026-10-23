@@ -72,6 +72,9 @@ test('holding the mouse button on bare ore keeps mining it by hand', async ({ pa
     const y = w.hub.y + 2;
     w.state.resources[w.idx(x, y)] = 3; // stone
     w.state.trees[w.idx(x, y)] = 0;
+    const p = w.state.players[0]; // the engineer stands next to it
+    p.x = x + 1.5;
+    p.y = y + 0.5;
     return [x, y] as [number, number];
   });
   const [px, py] = await uncoveredTile(page, ...tile);
@@ -80,7 +83,38 @@ test('holding the mouse button on bare ore keeps mining it by hand', async ({ pa
   await page.waitForTimeout(2600);
   await page.mouse.up();
   // Four taps a second: eight taps (one stone) in about two seconds.
-  await expect.poll(() => page.evaluate(() => window.game.world.state.inventory.stone ?? 0)).toBeGreaterThanOrEqual(1);
+  await expect.poll(() => page.evaluate(() => window.game.world.state.players[0].carry.filter((i: string) => i === 'stone').length)).toBeGreaterThanOrEqual(1);
   const taps = await page.evaluate(() => window.game.world.handMiningAt(window.game.world.hub.x - 6, window.game.world.hub.y + 2));
   expect(taps).toBeLessThan(8);
+});
+
+test('the engineer walks where you click on empty ground, and with WASD or the arrow keys', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  const pos = () => page.evaluate(() => [window.game.world.state.players[0].x, window.game.world.state.players[0].y] as [number, number]);
+  const [x0, y0] = await pos();
+  const target = await page.evaluate(() => {
+    const w = window.game.world;
+    for (let dx = -12; dx >= -20; dx--) {
+      const x = w.hub.x + dx;
+      const y = w.hub.y + 8;
+      if (!w.buildingAt(x, y) && !w.resourceAt(x, y) && w.treeAt(x, y) !== 1) return [x, y] as [number, number];
+    }
+    return null;
+  });
+  expect(target).not.toBeNull();
+  await page.mouse.click(...(await uncoveredTile(page, ...target!)));
+  await expect.poll(pos, { timeout: 15000 }).toEqual([target![0] + 0.5, target![1] + 0.5]);
+
+  const [x1] = await pos();
+  await page.keyboard.down('d');
+  await page.waitForTimeout(600);
+  await page.keyboard.up('d');
+  const [x2, y2] = await pos();
+  expect(x2).toBeGreaterThan(x1);
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(400);
+  await page.keyboard.up('ArrowUp');
+  expect((await pos())[1]).toBeLessThan(y2);
+  expect([x0, y0]).not.toEqual(await pos());
 });

@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.32.0 · 2026-10-23 · Your engineer
+### New
+- **You have an engineer.** Tap or click empty ground to walk there; on a keyboard, WASD or the arrow keys walk too, and the camera follows.
+- **Mining by hand** now sends the engineer over to the ore. What they mine, they carry, trailing behind them, up to 20 items.
+- **Walk up to the hub** to drop off everything you carry.
+- **Collect** sends the engineer to fetch a machine's finished items. **Drop off** hands a building whatever it takes of what you carry.
+- The Essentials lesson walks you through it.
+- WASD and the arrow keys no longer pan the map: drag (right or middle mouse button on a computer) to pan.
+
 ## 0.31.0 · 2026-10-23 · Nest mounds and chitin
 ### New
 - **Destroy a nest's mound** to clear its territory for good. Turrets in range shoot a mound when no bugs are near (which wakes the nest). A damaged mound shows a health bar and cracks.

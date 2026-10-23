@@ -173,24 +173,39 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 
 The hub starts empty.
 
+## Your engineer
+
+You have a character, an engineer (#40, D-067), who starts just below the hub. Numbers are in `PLAYER`
+in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
+
+- **Walking:** with no tool in hand, tap or click empty ground and the engineer walks there (4 tiles a
+  second), around walls, machines and nest mounds; belts can be walked over. A ring marks where it's
+  going. On a keyboard, **WASD or the arrow keys** walk it directly, and the camera follows. If
+  something is built across its way, it stops.
+- **Reach:** it mines and hands things over within **1.5 tiles**. Tapping ore, Collect and Drop off
+  send it over first if it's too far, and it does the job on arriving.
+- **Carrying:** up to **20 items**, which trail behind it. Walking up to the **hub** drops everything
+  off at once. **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands
+  that building whatever it takes of what's carried.
+- Bugs ignore the engineer for now.
+- In co-op each player will have their own engineer; the rules already keep a list of players.
+
 ## Starting from nothing
 
 A new game starts with an empty hub and no belts (#38, D-062). The first minutes go:
 
-1. **Mine by hand.** With no tool in hand, tap or click a tile of bare ore or stone. Every **8 taps** in
-   a row put **1** of it into the hub; a ring around the tile fills with each tap, with sparks and a
-   pickaxe sound. Holding the finger or mouse button down taps **4 times a second**. Tapping another
-   tile, or **3 s** without a tap, starts the count over. Dragging from there pans, as usual.
-2. **Build a furnace** (6 stone) and an **extractor** (4 stone, 4 iron ore) over iron ore, with the
-   furnace in front of the extractor's arrow: a building's output passes straight into a building
-   in front of it.
-3. **Collect by hand.** Select a machine, extractor or lumber camp and press **Collect** to carry its
-   finished items (up to 3) to the hub.
+1. **Mine by hand.** With no tool in hand, tap or click a tile of bare ore or stone. The engineer
+   walks over, and every **8 taps** in a row loosen **1**, which it carries; a ring around the tile
+   fills with each tap, with sparks and a pickaxe sound. Holding the finger or mouse button down taps
+   **4 times a second**. Tapping another tile, or **3 s** without a tap, starts the count over.
+   Dragging from there pans, as usual. With full hands, mining stops and a message says so.
+2. **Carry it to the hub**, then **build a furnace** (6 stone) and an **extractor** (4 stone, 4 iron
+   ore) over iron ore, with the furnace in front of the extractor's arrow: a building's output passes
+   straight into a building in front of it.
+3. **Collect by hand.** Select a machine, extractor or lumber camp and press **Collect**: the engineer
+   fetches its finished items (up to 3), to carry to the hub.
 4. **Research Logistics** (10 iron plates) to unlock belts, splitters and underground belts. From
    there, belts do the carrying.
-
-Mining by hand and Collect are commands like building, so they will work in co-op. When the player
-character arrives (#40), they are expected to fill the character's pack instead.
 
 ## Bugs
 
@@ -335,7 +350,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
   | Lesson | Starts when | Steps |
   |---|---|---|
-  | Essentials | A game has no extractors, furnaces or belts yet | The hub → mine 10 stone by hand → mine 4 iron ore → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate → hub stock → research Logistics → lay 3 belts → the loop |
+  | Essentials | A game has no extractors, furnaces or belts yet | The hub → your engineer → mine 10 stone by hand → mine 4 iron ore → walk back to the hub → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → hub stock → research Logistics → lay 3 belts → the loop |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense from the hub |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
@@ -382,10 +397,11 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 |---|---|---|
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
 | Select | Click a building | Tap a building |
+| Walk (your engineer) | Click empty ground with no tool, or WASD / arrow keys | Tap empty ground with no tool |
 | Mine by hand | Click bare ore or stone with no tool (hold to keep mining) | Tap it with no tool (hold to keep mining) |
 | Lay belts, walls or palisades | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Drag a building into place | Press and drag, then click it (or ✓ or Enter) | Press and drag, then ✓ |
-| Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
+| Pan | Right or middle drag | Drag with no tool, or two fingers |
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |

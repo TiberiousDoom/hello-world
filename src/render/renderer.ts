@@ -112,6 +112,8 @@ export class Renderer {
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
+  /** Each character as drawn: eased toward its position between ticks, its heading, how far it has walked, and where it has been (for the trail of carried items). */
+  private players = new Map<number, { x: number; y: number; angle: number; walked: number; trail: [number, number][]; at: number }>();
   private world: World | null = null;
   /** How far the game is between its last tick and the next (0–1); things are drawn that far along (#49). */
   private alpha = 1;
@@ -215,6 +217,8 @@ export class Renderer {
       const cy0 = Math.max(0, ly0 - 1);
       this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
     });
+
+    if (ui) this.drawPlayers(world, now, z);
 
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
@@ -1168,6 +1172,71 @@ export class Renderer {
       ctx.moveTo(...pts[0]);
       for (const p of pts.slice(1)) ctx.lineTo(...p);
       ctx.stroke();
+    }
+  }
+
+  /**
+   * The characters (#40): an engineer heading the way it walks, a marker where it's going, and what
+   * it carries trailing behind it.
+   */
+  private drawPlayers(world: World, now: number, z: number): void {
+    const ctx = this.ctx;
+    for (const p of world.state.players) {
+      let d = this.players.get(p.id);
+      if (!d) {
+        d = { x: p.x, y: p.y, angle: Math.PI / 2, walked: 0, trail: [[p.x, p.y]], at: now };
+        this.players.set(p.id, d);
+      }
+      // Ease toward the true position, so 20 moves a second look smooth.
+      const ease = Math.min(1, ((now - d.at) / 1000) * 14);
+      d.at = now;
+      const dx = (p.x - d.x) * ease;
+      const dy = (p.y - d.y) * ease;
+      if (Math.abs(p.x - d.x) + Math.abs(p.y - d.y) > 3) [d.x, d.y] = [p.x, p.y]; // a jump (a load): no gliding
+      else {
+        d.x += dx;
+        d.y += dy;
+      }
+      const step = Math.hypot(dx, dy);
+      if (step > 1e-4) {
+        d.angle = Math.atan2(dy, dx);
+        d.walked += step;
+      }
+      const last = d.trail[d.trail.length - 1];
+      if (Math.hypot(d.x - last[0], d.y - last[1]) > 0.05) {
+        d.trail.push([d.x, d.y]);
+        if (d.trail.length > 400) d.trail.shift();
+      }
+      // Where it's heading.
+      if (p.path.length) {
+        const end = p.path[p.path.length - 1];
+        const ex = (end % world.state.width) + 0.5;
+        const ey = Math.floor(end / world.state.width) + 0.5;
+        ctx.strokeStyle = 'rgba(255,214,120,0.8)';
+        ctx.lineWidth = 2 / z;
+        ctx.beginPath();
+        ctx.arc(ex, ey, 0.25 + 0.05 * Math.sin(now / 150), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // Carried items follow in a line along the way it came.
+      let gap = 0.55;
+      let k = 0;
+      for (let i = d.trail.length - 1; i > 0 && k < p.carry.length; i--) {
+        const [ax, ay] = d.trail[i];
+        const [bx, by] = d.trail[i - 1];
+        gap -= Math.hypot(ax - bx, ay - by);
+        if (gap > 0) continue;
+        this.drawItem(p.carry[p.carry.length - 1 - k], bx, by, 0.36);
+        gap = 0.32;
+        k++;
+      }
+      for (; k < p.carry.length; k++) this.drawItem(p.carry[p.carry.length - 1 - k], d.x - 0.3 - 0.1 * k, d.y + 0.3, 0.3); // no room on the trail yet
+      const moving = p.path.length > 0 || !!p.walk;
+      const frame = moving && Math.floor(d.walked / 0.35) % 2 ? '_b' : '';
+      if (!this.drawSprite(`units/engineer${frame}`, d.x - 0.5, d.y - 0.5, 1, d.angle)) {
+        ctx.fillStyle = '#ffcc33';
+        dot(ctx, d.x, d.y, 0.3);
+      }
     }
   }
 
