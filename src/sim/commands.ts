@@ -16,6 +16,7 @@ export type Command =
   | { kind: 'rotate'; id: number; dir?: Dir }
   | { kind: 'recipe'; id: number; recipe: string | null }
   | { kind: 'filter'; id: number; item: ItemId | null }
+  | { kind: 'splitter-side'; id: number; side: 'left' | 'right' }
   | { kind: 'research'; id: string }
   | { kind: 'pause-research' }
   | { kind: 'upgrade-belts'; x: number; y: number }
@@ -36,6 +37,7 @@ export interface CommandResults {
   rotate: boolean;
   recipe: void;
   filter: void;
+  'splitter-side': void;
   research: ResearchError | null;
   'pause-research': void;
   'upgrade-belts': { upgraded: number; left: number } | PlaceError;
@@ -67,6 +69,8 @@ function apply(w: World, c: Command): CommandResults[keyof CommandResults] {
       return w.setRecipe(c.id, c.recipe);
     case 'filter':
       return w.setFilter(c.id, c.item);
+    case 'splitter-side':
+      return w.setSplitterSide(c.id, c.side);
     case 'research':
       return w.startResearch(c.id);
     case 'pause-research':

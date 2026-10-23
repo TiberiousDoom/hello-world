@@ -67,8 +67,9 @@ export type { ResearchState };
  * v15 (#33, #34) resizes the workshop, assembler and splitter; ones that no longer fit are refunded.
  * v16 (D-065) gives nests mounds with health; nests already cleared of bugs count as destroyed.
  * v17 (#40, D-067) gives players a character: a position, a path and what it carries.
+ * v18 (#61, D-069) gives belts two lanes; items already on belts go onto the right lane.
  */
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -76,9 +77,15 @@ export const NO_TREE = 0;
 export const TREE = 1;
 export const STUMP = 2;
 
+/** A belt's two lanes (#61): 0 is the left, 1 the right, looking the way the belt runs. */
+export type Lane = 0 | 1;
+export const LEFT: Lane = 0;
+export const RIGHT: Lane = 1;
+
 export interface BeltItem {
   item: ItemId;
   pos: number; // 0 = entry edge, 1 = exit edge
+  lane: Lane;
 }
 
 export interface Building {
@@ -97,7 +104,11 @@ export interface Building {
   cooldown: number; // turrets
   link: number | null; // tunnels: the paired entrance or exit
   rr: number; // splitters: which output side is next
-  filter: ItemId | null; // hub ports: the item taken out of stock
+  filter: ItemId | null; // hub ports: the item taken out of stock; splitters: the item sorted to `side` (#62)
+  /** Splitters: the lane each buffered item came in on, so it leaves on the same one (#61). */
+  outLanes?: Lane[];
+  /** Splitters: which side the filtered item goes out of; everything else takes the other (#62). */
+  side?: 'left' | 'right';
 }
 
 export interface Enemy {
@@ -282,10 +293,20 @@ export class World {
     if (state.version === 14) World.migrateV14(state);
     if (state.version === 15) World.migrateV15(state);
     if (state.version === 16) World.migrateV16(state);
+    if (state.version === 17) World.migrateV17(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v17 to v18 (#61): belts get two lanes. Everything already on a belt or in a tunnel is on the right one. */
+  private static migrateV17(state: GameState): void {
+    for (const b of state.buildings) {
+      for (const it of b.belt) it.lane = RIGHT;
+      if (b.type === 'splitter') b.outLanes = b.outputs.map(() => RIGHT);
+    }
+    state.version = 18;
   }
 
   /** v16 to v17 (#40): each player gets a character, standing just below the hub. */
@@ -939,9 +960,16 @@ export class World {
     b.progress = -1;
   }
 
+  /** A hub port's item, or the item a splitter sorts to one side (#62). */
   setFilter(id: number, item: ItemId | null): void {
     const b = this.byId.get(id);
-    if (b?.type === 'port') b.filter = item;
+    if (b?.type === 'port' || b?.type === 'splitter') b.filter = item;
+  }
+
+  /** Which side of a splitter its filtered item goes out of (#62). */
+  setSplitterSide(id: number, side: 'left' | 'right'): void {
+    const b = this.byId.get(id);
+    if (b?.type === 'splitter') b.side = side;
   }
 
   /** Recipes a machine can use. */
@@ -951,16 +979,20 @@ export class World {
 
   // ------------------------------------------------------------ item flow
 
-  /** Tries to hand an item to a building. `fromX/fromY` is the source tile. */
-  insert(target: Building, item: ItemId, fromX: number, fromY: number): boolean {
+  /**
+   * Tries to hand an item to a building. `fromX/fromY` is the source tile. `lane` is the lane it was on
+   * when it comes off a belt (or out of a splitter or tunnel); buildings put items onto a belt's right
+   * lane (#61).
+   */
+  insert(target: Building, item: ItemId, fromX: number, fromY: number, lane?: Lane): boolean {
     switch (target.type) {
       case 'belt':
       case 'express_belt': {
         // Don't accept items from the tile this belt feeds into.
         if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
-        const last = target.belt[target.belt.length - 1];
-        if (last && last.pos < BELT_SPACING) return false;
-        target.belt.push({ item, pos: 0 });
+        const to = this.laneFrom(target, fromX, fromY, lane);
+        if (!this.roomOn(target.belt, to, BELT_SPACING)) return false;
+        target.belt.push({ item, pos: 0, lane: to });
         return true;
       }
       case 'shipyard':
@@ -970,14 +1002,15 @@ export class World {
         if (!this.splitterLanes(target).some((l) => l.x - DX[target.dir] === fromX && l.y - DY[target.dir] === fromY)) return false;
         if (target.outputs.length) return false;
         target.outputs.push(item);
+        target.outLanes = [lane ?? RIGHT];
         return true;
       }
       case 'tunnel': {
         if (this.isTunnelExit(target)) return false;
         if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
-        const last = target.belt[target.belt.length - 1];
-        if (last && last.pos < BELT_SPACING / this.tunnelLength(target)) return false;
-        target.belt.push({ item, pos: 0 });
+        const to = this.laneFrom(target, fromX, fromY, lane);
+        if (!this.roomOn(target.belt, to, BELT_SPACING / this.tunnelLength(target))) return false;
+        target.belt.push({ item, pos: 0, lane: to });
         return true;
       }
       case 'repair': {
@@ -1284,27 +1317,70 @@ export class World {
    * Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. Returns how far (in
    * tiles) the front item would have gone past the end, so it can carry on onto the next belt.
    */
-  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): number {
+  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): [number, number] {
+    // Each lane keeps its own spacing; items are in front-first order within each lane.
     const spacing = BELT_SPACING / length;
-    let over = 0;
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      if (this.movedThisTick.has(it)) continue;
-      const want = it.pos + (speed * dt) / length;
-      const limit = i === 0 ? 1 : items[i - 1].pos - spacing;
-      if (i === 0 && want > 1) over = (want - 1) * length;
-      it.pos = Math.max(it.pos, Math.min(want, limit));
+    const over: [number, number] = [0, 0];
+    const ahead: [number | null, number | null] = [null, null];
+    for (const it of items) {
+      const prev = ahead[it.lane];
+      if (!this.movedThisTick.has(it)) {
+        const want = it.pos + (speed * dt) / length;
+        const limit = prev == null ? 1 : prev - spacing;
+        if (prev == null && want > 1) over[it.lane] = (want - 1) * length;
+        it.pos = Math.max(it.pos, Math.min(want, limit));
+      }
+      ahead[it.lane] = it.pos;
     }
     return over;
   }
 
+  /** Whether a lane has room for a new item at its entry edge. */
+  private roomOn(items: BeltItem[], lane: Lane, spacing: number): boolean {
+    for (let i = items.length - 1; i >= 0; i--) if (items[i].lane === lane) return items[i].pos >= spacing;
+    return true;
+  }
+
+  /**
+   * The lane an item lands on when it enters a belt from (fromX, fromY) (#61). Coming from behind, or
+   * round a corner, it keeps its lane; fed in from the side by another belt, it takes the near lane.
+   * Anything else (a building's output, `lane` not given) goes onto the right lane.
+   */
+  private laneFrom(target: Building, fromX: number, fromY: number, lane?: Lane): Lane {
+    if (lane == null) return RIGHT;
+    const d = target.dir;
+    if (fromX === target.x - DX[d] && fromY === target.y - DY[d]) return lane;
+    const left = ((d + 3) % 4) as Dir;
+    const fromLeft = fromX === target.x + DX[left] && fromY === target.y + DY[left];
+    // A corner: nothing feeds it from behind or from the other side, so the line just turns.
+    const other = fromLeft ? (((d + 1) % 4) as Dir) : left;
+    if (!this.feedsInto(target.x - DX[d], target.y - DY[d], target) && !this.feedsInto(target.x + DX[other], target.y + DY[other], target)) return lane;
+    return fromLeft ? LEFT : RIGHT;
+  }
+
+  /** Whether the building on tile (x, y) sends items onto `target`'s tile. */
+  private feedsInto(x: number, y: number, target: Building): boolean {
+    const n = this.buildingAt(x, y);
+    if (!n || n === target) return false;
+    if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
+    if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port') return false;
+    const o = this.outputTile(n);
+    return o.x === target.x && o.y === target.y;
+  }
+
+  /** Belts, and tunnel exits (which run like one belt tile once items come up). */
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
-    const over = this.advanceItems(items, dt, 1, beltSpeed(b.type));
-    const front = items[0];
-    if (front && front.pos >= 1) {
+    const over = this.advanceItems(items, dt, 1, b.type === 'tunnel' ? BELT_SPEED : beltSpeed(b.type));
+    for (const lane of [LEFT, RIGHT]) {
+      const i = items.findIndex((it) => it.lane === lane);
+      const front = items[i];
+      if (!front || front.pos < 1) continue;
       const target = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-      if (target && (isBelt(target.type) ? this.passAlong(target, front, over, b.x, b.y) : this.insert(target, front.item, b.x, b.y))) items.shift();
+      if (!target) continue;
+      const moved = isBelt(target.type) ? this.passAlong(target, front, over[lane], b.x, b.y) : this.insert(target, front.item, b.x, b.y, front.lane);
+      if (moved) items.splice(i, 1);
     }
   }
 
@@ -1315,9 +1391,12 @@ export class World {
   private passAlong(target: Building, it: BeltItem, over: number, fromX: number, fromY: number): boolean {
     // Don't accept items from the tile this belt feeds into.
     if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
-    const last = target.belt[target.belt.length - 1];
-    if (last && last.pos < BELT_SPACING) return false;
+    const lane = this.laneFrom(target, fromX, fromY, it.lane);
+    if (!this.roomOn(target.belt, lane, BELT_SPACING)) return false;
+    let last: BeltItem | undefined;
+    for (let i = target.belt.length - 1; i >= 0 && !last; i--) if (target.belt[i].lane === lane) last = target.belt[i];
     it.pos = Math.min(over, last ? last.pos - BELT_SPACING : 1);
+    it.lane = lane;
     target.belt.push(it);
     this.movedThisTick.add(it);
     return true;
@@ -1333,31 +1412,58 @@ export class World {
     });
   }
 
+  /** Which of a splitter's two lanes (see splitterLanes) is on its left, looking the way it faces. */
+  splitterLeft(b: Building): 0 | 1 {
+    const left = (b.dir + 3) % 4;
+    const across = b.dir % 2 ? 0 : 1; // the direction from lane 0 to lane 1: east (0) or south (1)
+    return left === across ? 1 : 0;
+  }
+
+  /**
+   * Sends the buffered item on, keeping the belt lane it came in on (#61). With a filter, that item
+   * goes out of its chosen side and everything else out of the other (#62); without one, the two sides
+   * take turns, and a blocked side is skipped.
+   */
   private tickSplitter(b: Building): void {
     if (!b.outputs.length) return;
-    // Out of the two lanes in turn, starting from the one after the last used; a blocked lane is skipped.
+    const item = b.outputs[0];
+    const lane = b.outLanes?.[0] ?? RIGHT;
     const lanes = this.splitterLanes(b);
-    for (let i = 0; i < 2; i++) {
-      const k = (b.rr + i) % 2;
+    let order: number[];
+    if (b.filter) {
+      const leftSide = (item === b.filter) === ((b.side ?? 'left') === 'left');
+      const left = this.splitterLeft(b);
+      order = [leftSide ? left : 1 - left];
+    } else order = [b.rr % 2, (b.rr + 1) % 2];
+    for (const k of order) {
       const l = lanes[k];
       const target = this.buildingAt(l.outX, l.outY);
-      if (target && target !== b && this.insert(target, b.outputs[0], l.x, l.y)) {
+      if (target && target !== b && this.insert(target, item, l.x, l.y, lane)) {
         b.outputs.shift();
-        b.rr = (k + 1) % 2;
+        b.outLanes?.shift();
+        if (!b.filter) b.rr = (k + 1) % 2;
         return;
       }
     }
   }
 
   private tickTunnel(b: Building, dt: number): void {
-    this.pushOutput(b); // exits, or a former exit whose entrance was removed
-    if (this.isTunnelExit(b)) return;
+    this.pushOutput(b); // items buffered by older saves, or a former exit whose entrance was removed
+    if (this.isTunnelExit(b)) {
+      this.tickBelt(b, dt); // items come up on the lane they went down on (#61)
+      return;
+    }
     const exit = b.link != null ? this.byId.get(b.link) : undefined;
     this.advanceItems(b.belt, dt, this.tunnelLength(b));
-    const front = b.belt[0];
-    if (exit && front && front.pos >= 1 && exit.outputs.length < OUTPUT_BUFFER) {
-      exit.outputs.push(front.item);
-      b.belt.shift();
+    if (!exit) return;
+    for (const lane of [LEFT, RIGHT]) {
+      const i = b.belt.findIndex((it) => it.lane === lane);
+      const front = b.belt[i];
+      if (!front || front.pos < 1 || !this.roomOn(exit.belt, lane, BELT_SPACING)) continue;
+      b.belt.splice(i, 1);
+      front.pos = 0;
+      exit.belt.push(front);
+      this.movedThisTick.add(front);
     }
   }
 

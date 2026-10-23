@@ -36,7 +36,8 @@ const at = (page: Page, x: number, y: number) =>
     return b ? { type: b.type as string, dir: b.dir as number } : null;
   }, [x, y] as const);
 const planLength = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles.length ?? 0);
-const planTiles = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles ?? null);
+// Just the tiles (a plan also remembers where in a tile the pointer was, for snapping splitters).
+const planTiles = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles.map((t: { x: number; y: number }) => ({ x: t.x, y: t.y })) ?? null);
 
 /** One finger pressed at `from`, slid to `to`, and lifted. */
 async function touchDrag(page: Page, from: [number, number], to: [number, number]): Promise<void> {
@@ -158,7 +159,7 @@ test.describe('touch', () => {
     // Another spot moves the blueprint; ✕ cancels.
     await page.touchscreen.tap(...(await tilePoint(page, x0 + 4, y0)));
     await page.touchscreen.tap(...(await tilePoint(page, x0 + 5, y0)));
-    expect(await page.evaluate(() => window.game.ui.plan?.tiles)).toEqual([{ x: x0 + 5, y: y0 }]);
+    expect(await planTiles(page)).toEqual([{ x: x0 + 5, y: y0 }]);
     await page.click('[data-plan="cancel"]');
     expect(await planLength(page)).toBe(0);
     expect(await at(page, x0 + 5, y0)).toBeNull();

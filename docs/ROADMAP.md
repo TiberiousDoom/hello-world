@@ -52,6 +52,7 @@ quality and business work don't get left until the end.
 21. **Nests (D-065, #53):** phase 1 (mounds and chitin) is done in 0.31.0; the rest follows the phases under Gameplay → Nests.
 22. ✅ **Player character** (0.32.0, #40, D-067): an engineer who walks (tap or WASD), mines by hand, carries items that trail behind, drops them at the hub, and fetches or hands over items. Next: bugs that notice the engineer, then co-op phase 1.
 23. ✅ **Day, night and seasons** (0.33.0, #42, D-068): a 9-minute day, bugs ranging further at night, four seasons changing tree regrowth and the look of the map, a clock, and a short piece of music for each season. Night raids (D-065) can come next. Belt feedback batch filed as #61–#65.
+24. 🚧 **Belt batch** (playtest #61–#65): ✅ two-lane belts, splitter filters and side snapping (0.34.0, D-069); ⬜ choosing an underground belt's exit with a blueprint (#64); ⬜ belts dragged across a belt go under it automatically (#65).
 
 ---
 
@@ -68,7 +69,10 @@ quality and business work don't get left until the end.
 - ✅ Standard and hardcore modes, with the hardcore unlock (M2b)
 - ✅ Spread-out resource nodes for new games, and longer gaps between waves (playtest batch 2, D-029, D-031)
 - ✅ Procedural 256×256 map with noise ore fields; bug territories in 10×10 cells that attack when provoked and calm down after 30 s (D-038)
-- ✅ Building sizes: extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5, with a marked output port (D-039)
+- ✅ Building sizes: extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5, with a marked output port (D-039); later a 2×2 workshop, 3×3 assembler and 1×2 splitter (D-063)
+- ✅ Nest mounds with health and chitin (D-065, D-066), and the engineer (D-067)
+- ✅ Day, night and seasons (D-068)
+- ✅ Two-lane belts, splitter filters, and splitters that snap to either side of a belt (#61, #62, #63, D-069)
 
 ### Story layer (M4s, [STORY.md](STORY.md))
 - ✖ Phases 1 and 2 (Company contracts, inbox, store, black market, suspicion) were built, then dropped (D-040)
@@ -80,7 +84,7 @@ quality and business work don't get left until the end.
     - ✅ **2a, blueprints and a heavier ship:** after each delivery the colony offers two blueprints you can't research, and you pick one (a screen that pauses the game). The other stays on offer for later runs; with one left it's simply given, with none left there's no offer. The offer and the blueprints you have are saved (v11), so a reload doesn't lose a pending choice. Research shows a "From the colony" section. Each run's launch wakes nests further out: 48 tiles, +8 per run delivered, up to 96, because the loaded ship is heavier and needs more thrust. Woken bugs keep coming for the shipyard, and the floor of 3 nests stays (both built in phase 1, D-048). The shipyard panel shows the radius and how many nests it will wake before you launch
     - ✅ **2b, Express Belt:** 3 tiles/s (twice a belt). With the Express Belt selected, **a single tap or click on a belt upgrades that whole belt line in place**: no demolishing, no dragging, and no ✓ blueprint step on touch. A line is every belt joined to the tapped one belt-to-belt, in both directions, including belts merging in from the side; it stops at any other building (a splitter, tunnel, machine or the hub). Each belt keeps its facing and the items on it, and the old belts are refunded. If stock runs short, it upgrades as many as it can afford, starting from the tapped belt, and says how many were left. Sprite, and its own chevron speed
     - ✅ **2c, Tesla Turret:** fed by copper wire by belt. Each shot arcs from the nearest bug to up to 2 more within 2 tiles. Sprite, a lightning effect and a zap sound
-    - ⬜ **Later blueprints (D-055):** each joins the pool once it's built: the Sorting Splitter, Steel Extractor mk2 and Blast Furnace mk2 (with steel), Mortar, Conveyor Drone Pad, Tree Nursery (with wood phase 3), Shield Pylon, Storage Silo and Floodlights. The order is still to choose
+    - ⬜ **Later blueprints (D-055):** each joins the pool once it's built: the Steel Extractor mk2 and Blast Furnace mk2 (with steel), Mortar, Conveyor Drone Pad, Tree Nursery (with wood phase 3), Shield Pylon, Storage Silo and Floodlights. The order is still to choose
     - Tests for each step: unit tests for offers, picking, unlocks, the wake radius, express belt speed and upgrading, and tesla chains; a browser test that picks a blueprint after a delivery
 - ⏸ Vehicles and gear (D-021)
 
@@ -114,7 +118,7 @@ In this order:
 ### Next (M4)
 - ✅ Faster belts: the Express Belt, a colony blueprint (D-049, D-050)
 - ⬜ A mk2 tier for each machine, made with steel (D-044); the Steel Extractor and Blast Furnace come first, as colony blueprints (D-055)
-- ⬜ Item filters on splitters: the Sorting Splitter, a colony blueprint (D-055)
+- ✅ Item filters on splitters: every splitter sorts one item to a side (#62, D-069; the Sorting Splitter blueprint was dropped)
 - ⬜ More enemy types: flying (ignores walls) and armoured (resists turrets)
 - ✅ A tesla turret fed by wire (a colony blueprint, D-050) and the Ballista, firing stakes (D-054)
 - ⬜ More defence as colony blueprints: the Mortar, Shield Pylon and Floodlights (D-055)
@@ -130,7 +134,7 @@ In this order:
 - 🚧 First playtest by the project owner. Notes go in issues labelled `playtest`
 - ⬜ A balance pass on nest density and toughness, research costs and starting stock
 - ⬜ A headless balance script that pits nests of each distance against a reference defence, run in CI
-- ⬜ Outside playtesters (5–10), with a short feedback form
+- ⬜ Outside playtesters (5–10); the in-game feedback form is ready (D-064)
 
 ## 3. UX and onboarding
 - ✅ Spotlight tutorial (M2b)
@@ -169,7 +173,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects, UI icons, app icon
 - ⬜ Loading animation strips (frame sheets) for belts, machines and enemies
-- ✅ Music: nine original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, and a fanfare for the first delivery. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
+- ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
 - 🚧 Animation: belts (chevrons, corners), turret aim and two-frame enemy walk cycles are in code; machine animations to come
@@ -180,8 +184,8 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Browser tests (Playwright, `e2e/`) in CI on desktop and phone viewports: lessons, blueprints, HUD, controls, music, the supply ship and wood (D-035)
 - ⬜ A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies
 - ⬜ Lint and format checks (ESLint, Prettier)
-- ⬜ Error reporting (Q-7)
-- ⬜ Save export and import (backup, or moving between devices)
+- 🚧 Error reporting (Q-7): the feedback form includes recent page errors when a player sends a report (D-064); automatic reporting is still open
+- 🚧 Save export and import: the feedback form can download the current game; importing a save is still to come
 
 ## 6. Platform and release
 - ✅ Single-file build for sharing (claude.ai artifact)

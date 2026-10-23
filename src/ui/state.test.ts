@@ -55,3 +55,18 @@ describe('Buildings line up with belts while aiming', () => {
     expect(placementAt(w, 'furnace', { x: x0, y: y + 1 }, 0, true).dir).toBe(1);
   });
 });
+
+describe('Splitters snap onto either side of a belt (#63)', () => {
+  it("the splitter's second lane goes on the side of the belt the pointer is nearer, unless that side is blocked", () => {
+    const w = clearWorld();
+    const x0 = w.hub!.x - 20;
+    const y = w.hub!.y - 10;
+    for (let i = 0; i < 4; i++) w.place('belt', x0 + i, y, 0); // running east
+    expect(placementAt(w, 'splitter', { x: x0 + 1, y, fx: 0.5, fy: 0.2 }, 0, true)).toEqual({ x: x0 + 1, y: y - 1, dir: 0 });
+    expect(placementAt(w, 'splitter', { x: x0 + 1, y, fx: 0.5, fy: 0.8 }, 0, true)).toEqual({ x: x0 + 1, y, dir: 0 });
+    w.place('wall', x0 + 1, y - 1, 0);
+    expect(placementAt(w, 'splitter', { x: x0 + 1, y, fx: 0.5, fy: 0.2 }, 0, true)).toEqual({ x: x0 + 1, y, dir: 0 });
+    for (let i = 0; i < 4; i++) w.place('belt', x0 + 10, y + i, 1); // running south: the lanes go east and west
+    expect(placementAt(w, 'splitter', { x: x0 + 10, y: y + 1, fx: 0.1, fy: 0.5 }, 3, true)).toEqual({ x: x0 + 9, y: y + 1, dir: 1 });
+  });
+});

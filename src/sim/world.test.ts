@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
 import { Nest, cellKey, isAngry, nestCentre, newNest } from './nests';
-import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
+import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
@@ -263,7 +263,7 @@ describe('Production', () => {
     const x0 = w.hub!.x - 20;
     const y = w.hub!.y - 6;
     const line = Array.from({ length: 10 }, (_, i) => placed(w.place('belt', x0 + i, y, 0)));
-    const it = { item: 'iron_plate' as ItemId, pos: 0 };
+    const it = { item: 'iron_plate' as ItemId, pos: 0, lane: 1 as const };
     line[0].belt.push(it);
     const travelled = () => line.findIndex((b) => b.belt.includes(it)) + it.pos;
     let last = travelled();
@@ -738,8 +738,8 @@ describe('Colony blueprints', () => {
     w.state.ship.blueprints = ['express_belt'];
     const fast = placed(w.place('express_belt', x, y, 0));
     const slow = placed(w.place('belt', x, y + 2, 0));
-    fast.belt.push({ item: 'iron_plate', pos: 0 });
-    slow.belt.push({ item: 'iron_plate', pos: 0 });
+    fast.belt.push({ item: 'iron_plate', pos: 0, lane: 1 });
+    slow.belt.push({ item: 'iron_plate', pos: 0, lane: 1 });
     run(w, 0.2);
     expect(fast.belt[0].pos).toBeCloseTo(2 * slow.belt[0].pos, 1);
   });
@@ -754,12 +754,12 @@ describe('Colony blueprints', () => {
     placed(w.place('splitter', x0 + 6, y, 0));
     const after = placed(w.place('belt', x0 + 7, y, 0)); // past the splitter: another line
     const apart = placed(w.place('belt', x0, y + 3, 0)); // not joined at all
-    line[3].belt.push({ item: 'gear', pos: 0.5 });
+    line[3].belt.push({ item: 'gear', pos: 0.5, lane: 1 });
     const inv = { ...w.state.inventory };
     expect(w.upgradeBeltLine(x0 + 3, y)).toEqual({ upgraded: 7, left: 0 });
     for (const b of [...line, merge]) expect(b.type).toBe('express_belt');
     expect(merge.dir).toBe(3);
-    expect(line[3].belt).toEqual([{ item: 'gear', pos: 0.5 }]);
+    expect(line[3].belt).toEqual([{ item: 'gear', pos: 0.5, lane: 1 }]);
     expect(after.type).toBe('belt');
     expect(apart.type).toBe('belt');
     // Each upgrade refunds the old belt's plate, so only the gears are spent.
@@ -1105,5 +1105,90 @@ describe('The player character (#40)', () => {
     const p = loaded.state.players[0];
     expect([p.x, p.y]).toEqual([loaded.hub!.x + 2.5, loaded.hub!.y + 5.5]);
     expect(p.carry).toEqual([]);
+  });
+});
+
+describe('Two-lane belts and splitter filters (#61, #62)', () => {
+  const lanesOf = (b: Building) => b.belt.map((it) => it.lane);
+
+  it("buildings put items on a belt's right lane; a belt fed from the side puts them on the near lane", () => {
+    const w = emptyWorld();
+    const line = [20, 21, 22, 23, 24].map((x) => placed(w.place('belt', x, 20, 0))); // east
+    expect(w.insert(line[0], 'gear', 19, 20)).toBe(true); // from a building behind it
+    expect(lanesOf(line[0])).toEqual([RIGHT]);
+    const north = placed(w.place('belt', 22, 19, 1)); // runs south into the line's left side
+    const south = placed(w.place('belt', 23, 21, 3)); // runs north into its right side
+    north.belt.push({ item: 'wire', pos: 1, lane: RIGHT });
+    south.belt.push({ item: 'plank', pos: 1, lane: LEFT });
+    w.tick();
+    expect(line[2].belt.find((it) => it.item === 'wire')?.lane).toBe(LEFT);
+    expect(line[3].belt.find((it) => it.item === 'plank')?.lane).toBe(RIGHT);
+  });
+
+  it('a belt holds two lanes, each as full as a whole belt used to be', () => {
+    const w = emptyWorld();
+    const b = placed(w.place('belt', 20, 20, 0));
+    let n = 0;
+    for (const lane of [LEFT, RIGHT]) {
+      for (let i = 0; i < 10; i++) {
+        if (w.insert(b, 'gear', 19, 20, lane)) n++;
+        b.belt.forEach((it) => it.lane === lane && (it.pos += BELT_SPEED * TICK * 4));
+      }
+    }
+    expect(b.belt.filter((it) => it.lane === LEFT).length).toBeGreaterThan(1);
+    expect(b.belt.filter((it) => it.lane === RIGHT).length).toBe(b.belt.filter((it) => it.lane === LEFT).length);
+    expect(n).toBe(b.belt.length);
+  });
+
+  it('items keep their lane round a corner and through an underground belt', () => {
+    const w = emptyWorld();
+    const a = placed(w.place('belt', 20, 20, 0)); // east
+    placed(w.place('belt', 21, 20, 1)); // then south: a corner
+    const c = placed(w.place('belt', 21, 21, 1));
+    a.belt.push({ item: 'gear', pos: 0.9, lane: LEFT });
+    run(w, 1);
+    expect(c.belt.some((it) => it.item === 'gear' && it.lane === LEFT)).toBe(true);
+
+    const t = emptyWorld();
+    const feed = placed(t.place('belt', 30, 30, 0));
+    placed(t.place('tunnel', 31, 30, 0));
+    placed(t.place('tunnel', 34, 30, 0));
+    const after = placed(t.place('belt', 35, 30, 0));
+    feed.belt.push({ item: 'wire', pos: 0.9, lane: LEFT });
+    run(t, 4);
+    expect(after.belt.some((it) => it.item === 'wire' && it.lane === LEFT)).toBe(true);
+  });
+
+  it('a splitter keeps lanes; with a filter, that item goes out of its side and the rest out of the other', () => {
+    const w = emptyWorld();
+    const sp = placed(w.place('splitter', 20, 20, 0)); // facing east: lane 0 (north) is its left
+    expect(w.splitterLeft(sp)).toBe(0);
+    const top = placed(w.place('belt', 21, 20, 0));
+    const bottom = placed(w.place('belt', 21, 21, 0));
+    expect(w.insert(sp, 'gear', 19, 20, LEFT)).toBe(true);
+    w.tick();
+    expect([...top.belt, ...bottom.belt].map((it) => it.lane)).toEqual([LEFT]);
+    w.setFilter(sp.id, 'wire');
+    w.setSplitterSide(sp.id, 'right');
+    const feed = (item: ItemId) => {
+      expect(w.insert(sp, item, 19, 20, RIGHT)).toBe(true);
+      for (let i = 0; i < 10; i++) w.tick();
+    };
+    for (const item of ['wire', 'gear', 'wire', 'plank'] as ItemId[]) feed(item);
+    const items = (b: Building) => b.belt.map((it) => it.item).sort();
+    expect(items(bottom)).toEqual(['wire', 'wire']); // right side, facing east
+    expect(items(top)).toEqual(['gear', 'gear', 'plank']);
+    expect(w.splitterLeft(placed(w.place('splitter', 40, 40, 2)))).toBe(1); // facing west, lane 1 (south) is on its left
+  });
+
+  it('v17 saves put belt items on the right lane', () => {
+    const w = emptyWorld();
+    const b = placed(w.place('belt', 20, 20, 0));
+    b.belt.push({ item: 'gear', pos: 0.5, lane: LEFT });
+    const old = JSON.parse(w.toJSON());
+    old.version = 17;
+    for (const ob of old.buildings) for (const it of ob.belt) delete it.lane;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.byId.get(b.id)!.belt[0].lane).toBe(RIGHT);
   });
 });

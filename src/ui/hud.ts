@@ -303,6 +303,9 @@ export class Hud {
         case 'filter':
           if (id != null) this.actions.issue({ kind: 'filter', id, item: (btn.dataset.item || null) as ItemId | null });
           break;
+        case 'side':
+          if (id != null) this.actions.issue({ kind: 'splitter-side', id, side: btn.dataset.side as 'left' | 'right' });
+          break;
         case 'rotate':
           this.rotate();
           break;
@@ -509,7 +512,7 @@ export class Hud {
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -526,6 +529,16 @@ export class Hud {
                 `<button data-action="recipe" data-recipe="${r.id}" class="${b!.recipe === r.id ? 'active' : ''}">${swatch(r.output)}${esc(ITEMS[r.output].name)}</button>`,
             )
             .join('')}</div>`;
+        }
+        if (b!.type === 'splitter') {
+          // Sort one item to a side (#62); with none chosen, the sides take turns.
+          const side = b!.side ?? 'left';
+          actions += `<p class="small muted">Sort one item to a side; everything else goes out of the other.</p><div class="row seg-row">${(['left', 'right'] as const)
+            .map((s) => `<button data-action="side" data-side="${s}" class="${side === s ? 'active' : ''}">${s === 'left' ? '← Left' : 'Right →'}</button>`)
+            .join('')}</div><div class="recipes">${ITEM_IDS.map(
+            (i) =>
+              `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
+          ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         if (b!.type === 'port') {
           actions += `<div class="recipes">${ITEM_IDS.map(
@@ -615,6 +628,12 @@ export class Hud {
         stats += b.filter
           ? `<br>Sending ${swatch(b.filter)}${ITEMS[b.filter].name} (${world.state.inventory[b.filter] ?? 0} in stock)`
           : '<br>Choose an item to send out.';
+      }
+      if (b.type === 'splitter') {
+        const side = b.side ?? 'left';
+        stats += b.filter
+          ? `<br>${swatch(b.filter)}${ITEMS[b.filter].name} out of the ${side}, everything else out of the ${side === 'left' ? 'right' : 'left'}`
+          : '<br>Items go out of each side in turn.';
       }
       if (b.type === 'hub') {
         stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : 'Standard'}`;

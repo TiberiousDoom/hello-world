@@ -37,6 +37,8 @@ type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' |
 interface Tile {
   x: number;
   y: number;
+  fx?: number;
+  fy?: number;
 }
 
 export interface InputCallbacks {
@@ -149,9 +151,12 @@ export class Input {
     return [e.clientX - r.left, e.clientY - r.top];
   }
 
+  /** The tile under a screen point, and where in it the point is (for snapping a splitter to a side, #63). */
   private tileAt(x: number, y: number): Tile {
     const [wx, wy] = this.camera.toWorld(x, y);
-    return { x: Math.floor(wx), y: Math.floor(wy) };
+    const tx = Math.floor(wx);
+    const ty = Math.floor(wy);
+    return { x: tx, y: ty, fx: wx - tx, fy: wy - ty };
   }
 
   private down(e: PointerEvent): void {

@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.34.0 · 2026-10-23 · Two-lane belts
+### New
+- **Belts have two lanes**, side by side, so each belt carries twice as much. Buildings put items on the right lane. A belt that feeds into another from the side puts its items on the near lane, so you can merge two kinds of item onto one belt.
+- **Splitters can sort:** select one, pick an item and Left or Right. That item goes out of that side and everything else out of the other. Off makes the sides take turns, as before.
+- **Dropping a splitter onto a belt** puts its other half on the side your pointer or finger is nearer.
+- Saved games: items already on belts move onto the right lane.
+
 ## 0.33.1 · 2026-10-23 · Day and night, now live
 - Nothing changes in play. A browser test that blocked 0.33.0 from going live is fixed, so day, night and the seasons reach the game.
 

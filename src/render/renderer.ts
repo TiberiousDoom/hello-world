@@ -30,8 +30,8 @@ import {
   isMachine,
   type Season,
 } from '../sim/data';
-import { Building, STUMP, Shot, TICK, TREE, World } from '../sim/world';
-import { Plan, UIState, placementAt, planDirs } from '../ui/state';
+import { Building, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
+import { Plan, Spot, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
 import { clockAt, darkness } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell } from '../sim/nests';
@@ -49,6 +49,9 @@ const SHIP_SIZE = 3;
 
 // The forest (D-028).
 const FOREST_FLOOR = '#1d3324';
+/** Belt lanes (#61): how far each lane is from the middle, and the size of items on them. */
+const LANE_OFFSET = 0.21;
+const ITEM_ON_BELT = 0.34;
 /** A wash over the ground for each season (#42); spring is the ground as drawn. */
 const SEASON_TINT: Record<Season['id'], string | null> = {
   spring: null,
@@ -279,7 +282,7 @@ export class Renderer {
     const hovered = ui.hover && ui.tool === 'express_belt' ? world.buildingAt(ui.hover.x, ui.hover.y) : undefined;
     if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
     else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
-    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover.x, ui.hover.y, ui.dir, z);
+    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover, ui.dir, z);
   }
 
   /** The belts a tap with the Express Belt would upgrade; red where stock runs out. */
@@ -311,7 +314,7 @@ export class Renderer {
     const single = plan.tiles.length === 1;
     plan.tiles.forEach((t, i) => {
       if (status[i] === 'occupied') return;
-      this.drawGhost(world, plan.tool, t.x, t.y, dirs[i], z, { ok: status[i] === null, range: single, dashed: true, replaceBelt: single });
+      this.drawGhost(world, plan.tool, t, dirs[i], z, { ok: status[i] === null, range: single, dashed: true, replaceBelt: single });
     });
   }
 
@@ -729,10 +732,8 @@ export class Renderer {
         ctx.fill();
       }
     }
-    for (const it of b.belt) {
-      const t = it.pos - 0.5;
-      this.drawItem(it.item, ...this.smooth(it, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t), 0.42);
-    }
+    // Two lanes (#61): left and right of the middle, looking the way the belt runs.
+    for (const it of b.belt) this.drawItem(it.item, ...this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET)), ITEM_ON_BELT);
   }
 
   /** A belt's arrow offset for this frame: moved on by game time unless the belt is backed up. */
@@ -823,9 +824,12 @@ export class Renderer {
       ctx.lineTo(px + Math.cos(a) * 0.8, py + Math.sin(a) * 0.8);
     }
     ctx.stroke();
+    // The left lane is on the outside of a turn one way and the inside the other.
+    const side = Math.sign(sweep);
     for (const it of b.belt) {
       const a = a0 + sweep * it.pos;
-      this.drawItem(it.item, ...this.smooth(it, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5), 0.42);
+      const r = 0.5 + (it.lane === LEFT ? side : -side) * LANE_OFFSET;
+      this.drawItem(it.item, ...this.smooth(it, px + Math.cos(a) * r, py + Math.sin(a) * r), ITEM_ON_BELT);
     }
   }
 
@@ -1081,13 +1085,13 @@ export class Renderer {
   private drawGhost(
     world: World,
     tool: BuildingType | 'demolish',
-    x: number,
-    y: number,
+    spot: Spot,
     dir: Dir,
     z: number,
     opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean } = {},
   ): void {
     const ctx = this.ctx;
+    let { x, y } = spot;
     if (tool === 'demolish') {
       ctx.strokeStyle = '#e0445a';
       ctx.lineWidth = 3 / z;
@@ -1101,7 +1105,7 @@ export class Renderer {
     }
     // Big buildings centre on the hovered tile; dropped onto a belt, a building faces the way it runs.
     const replaceBelt = opts.replaceBelt ?? true;
-    ({ x, y, dir } = placementAt(world, tool, { x, y }, dir, replaceBelt));
+    ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt));
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
     const turret = !!TURRETS[tool];

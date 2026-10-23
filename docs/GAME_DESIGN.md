@@ -85,10 +85,14 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 ## Logistics rules
 
-- **Belts** move 1.5 tiles/s and hold about 3 items per tile, so a belt line carries up to about
-  **265 items a minute** (an express belt about 530). A belt accepts items from any side except the
-  tile it points into. An item reaching the end of a belt carries straight on onto the next one, at
-  an even speed (#49).
+- **Belts** move 1.5 tiles/s and have **two lanes** side by side (#61, D-069), each holding about 3
+  items per tile, so a belt line carries up to about **530 items a minute** (an express belt about
+  1,060). A belt accepts items from any side except the tile it points into. An item reaching the end
+  of a belt carries straight on onto the next one, at an even speed (#49).
+- **Lanes:** buildings (extractors, machines, lumber camps, hub ports) put items onto a belt's **right
+  lane** (right as you look the way it runs). A belt feeding into another from the side puts its items
+  onto the **near lane**; coming from behind, round a corner, through an underground belt or a splitter,
+  items keep their lane. Machines and the hub take from both lanes.
 - **Express belts** (a colony blueprint) work the same way at 3 tiles/s. They can be laid like belts,
   but the quick way is to **tap or click an existing belt with the Express Belt selected: its whole line
   is upgraded in place**, with no ✓ step on touch. The line is every belt joined to the tapped one,
@@ -100,8 +104,13 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   width, the tile left of centre as seen facing out). A small port with an arrow shows the spot.
   Machines accept input on any tile of any side, and buffer up to 3 crafts' worth of each input.
 - **Extractors** need ore under at least one tile of their base, and mine whichever ore covers most of it.
-- **Splitters** (1×2, #34) span two belt lanes. They accept items from directly behind either lane,
-  and send them out of the front of both lanes in turn, skipping a blocked lane.
+- **Splitters** (1×2, #34) span two belts side by side. They accept items from directly behind either
+  belt, and send them out of the front of both in turn, skipping a blocked one. Items keep their lane.
+- **Splitter filter (#62):** select a splitter, pick an item and **← Left** or **Right →**. That item
+  goes out of that side only, and everything else out of the other. With **Off**, the sides take turns.
+- **Dropping a splitter onto a belt (#63):** it faces along the belt, and its second half goes on the
+  side of the belt your pointer or finger is nearer (the other side if that one is blocked). Dropped
+  between two parallel belts, it replaces both.
 - **Underground belts** pair an entrance with the next tunnel placed up to 5
   tiles ahead in the same direction. Exits accept no input. Items in transit
   are lost if either end is removed.

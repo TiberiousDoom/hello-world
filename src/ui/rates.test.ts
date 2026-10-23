@@ -5,8 +5,8 @@ import { beltPerMinute, buildingRates, rateSummary, recipePerMinute } from './ra
 
 describe('Rates', () => {
   it('come from the game numbers', () => {
-    expect(Math.round(beltPerMinute('belt'))).toBe(265);
-    expect(Math.round(beltPerMinute('express_belt'))).toBe(529);
+    expect(Math.round(beltPerMinute('belt'))).toBe(529); // two lanes (#61)
+    expect(Math.round(beltPerMinute('express_belt'))).toBe(1059);
     const plate = RECIPES.find((r) => r.output === 'iron_plate')!;
     expect(recipePerMinute(plate).output).toBeCloseTo((plate.count * 60) / plate.time);
     expect(rateSummary('extractor')).toBe('40 ore/min');
