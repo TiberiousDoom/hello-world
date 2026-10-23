@@ -18,6 +18,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Playwright's image has the test browsers and their system libraries already installed; installing
+    # them on each run took up to an hour when the Ubuntu package mirror was slow. Its version must match
+    # @playwright/test in package-lock.json (the step below checks).
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    env:
+      HOME: /root # Firefox refuses to start under a home folder owned by another user
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,7 +35,10 @@ jobs:
       - run: npm test
       - run: npm run build
       # Browser tests on desktop and phone viewports (e2e/, Playwright).
-      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Check the Playwright image matches the installed version
+        run: |
+          v=$(node -p "require('@playwright/test/package.json').version")
+          [ "$v" = "1.56.1" ] || { echo "Update the container image to v$v in deploy.yml"; exit 1; }
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
