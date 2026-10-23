@@ -41,7 +41,7 @@ quality and business work don't get left until the end.
 11. ✅ **Owner's notes, round 4:** buildings onto belts (D-037), hub port collar, hub-touching turrets reload from stock (D-036), see-through stock panel, and a fix for a pathfinding crash.
 12. ✅ **The open map redesign:** a procedural 256×256 map, bug territories that attack only when provoked (no waves), building sizes (extractor and furnace 2×2, workshop 3×2, assembler 4×2, hub 5×5), the Company and black market removed, research inside the hub, a leaner top bar, and tap-to-select with a tool in hand (D-038 to D-042).
 13. ✅ **Sound effects** (D-043).
-14. **Next:** playtest the open map, wood phase 1 and supply runs (nest density, territory sizes, how far bugs chase, forest density and regrowth, launch difficulty, cargo sizes); then wood phase 2 (D-044, see Gameplay → Wood).
+14. **Next:** playtest the open map, wood phases 1 and 2, supply runs and the colony blueprints (nest density, territory sizes, how far bugs chase, forest density and regrowth, launch difficulty, cargo sizes, ballista and tesla balance); then the next colony blueprints (D-055, see Gameplay → Colony supply runs).
 15. ✅ **Playtest batch 4, quick fixes** (issues #32, #35, #36, #37): bugs no longer twitch at the end of their leash, the research menu's ✕ is at the top right, Underground Transport research is renamed Underground Belt, and single buildings can be dragged into place (D-057). The rest of batch 4 is in the `playtest` issues.
 
 ---
@@ -70,7 +70,7 @@ quality and business work don't get left until the end.
     - ✅ **2a, blueprints and a heavier ship:** after each delivery the colony offers two blueprints you can't research, and you pick one (a screen that pauses the game). The other stays on offer for later runs; with one left it's simply given, with none left there's no offer. The offer and the blueprints you have are saved (v11), so a reload doesn't lose a pending choice. Research shows a "From the colony" section. Each run's launch wakes nests further out: 48 tiles, +8 per run delivered, up to 96, because the loaded ship is heavier and needs more thrust. Woken bugs keep coming for the shipyard, and the floor of 3 nests stays (both built in phase 1, D-048). The shipyard panel shows the radius and how many nests it will wake before you launch
     - ✅ **2b, Express Belt:** 3 tiles/s (twice a belt). With the Express Belt selected, **a single tap or click on a belt upgrades that whole belt line in place**: no demolishing, no dragging, and no ✓ blueprint step on touch. A line is every belt joined to the tapped one belt-to-belt, in both directions, including belts merging in from the side; it stops at any other building (a splitter, tunnel, machine or the hub). Each belt keeps its facing and the items on it, and the old belts are refunded. If stock runs short, it upgrades as many as it can afford, starting from the tapped belt, and says how many were left. Sprite, and its own chevron speed
     - ✅ **2c, Tesla Turret:** fed by copper wire by belt. Each shot arcs from the nearest bug to up to 2 more within 2 tiles. Sprite, a lightning effect and a zap sound
-    - ⬜ **Later blueprints:** sorting splitters and mk2 machines (after steel, wood phase 2) join the pool when they're built
+    - ⬜ **Later blueprints (D-055):** each joins the pool once it's built: the Sorting Splitter, Steel Extractor mk2 and Blast Furnace mk2 (with steel), Mortar, Conveyor Drone Pad, Tree Nursery (with wood phase 3), Shield Pylon, Storage Silo and Floodlights. The order is still to choose
     - Tests for each step: unit tests for offers, picking, unlocks, the wake radius, express belt speed and upgrading, and tesla chains; a browser test that picks a blueprint after a delivery
 - ⏸ Vehicles and gear (D-021)
 
@@ -82,13 +82,15 @@ Not the escape ship's hull. In this order:
 - ✅ **Phase 1, trees and the basics:** forest from map generation, saved (v9, with a v8 migration); trees block building and stumps don't. A Lumber Camp cuts the nearest tree in reach into logs, and stumps regrow. A Sawmill makes planks (D-045). Palisade walls made of planks. Forestry and Palisades research. Placeholder sprites, a chop sound and a leaf burst
 - ✅ **Phase 1 follow-ups:** a Wood lesson when Forestry is researched, a lumber camp and sawmill in the main-menu demo, and a browser test
 - ✅ **Phase 2, wood in the economy (D-054):** the Ballista, firing stakes sawn from planks; repair stations also burn planks; planks in the Workshop, Repair Station and Shipyard (Workshops now needs Forestry); charcoal (furnace, from logs), then steel (charcoal and iron plates), carried from the fourth supply run on and the material for upgrades to come. Also: Reset tutorials in Menu → Tutorials
-- ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a tree nursery that plants new forest
+- ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a Tree Nursery that plants new forest (a colony blueprint, D-055)
 
 ### Next (M4)
-- ⬜ Upgrades: faster belts (the Express Belt, a colony blueprint, D-049) and a mk2 tier for each machine (made with steel, D-044)
-- ⬜ Item filters on splitters
+- ✅ Faster belts: the Express Belt, a colony blueprint (D-049, D-050)
+- ⬜ A mk2 tier for each machine, made with steel (D-044); the Steel Extractor and Blast Furnace come first, as colony blueprints (D-055)
+- ⬜ Item filters on splitters: the Sorting Splitter, a colony blueprint (D-055)
 - ⬜ More enemy types: flying (ignores walls) and armoured (resists turrets)
-- ⬜ A tesla turret fed by wire (a colony blueprint, D-049), and other ammo options (a wooden stake turret is planned under Wood)
+- ✅ A tesla turret fed by wire (a colony blueprint, D-050) and the Ballista, firing stakes (D-054)
+- ⬜ More defence as colony blueprints: the Mortar, Shield Pylon and Floodlights (D-055)
 - ⬜ Better ammo as optional upgrades (D-006, option D)
 - ⬜ More recipes and research to extend the mid- and late game
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
@@ -112,7 +114,7 @@ Not the escape ship's hull. In this order:
 - ✅ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a long press on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
 - ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
 - ✅ **Hub stock only while the hub is selected or pointed at** (D-053), so the map around the hub stays clear
-- ⬜ **Clear a belt line** (owner's note, for later): one action empties every item off a whole belt line (the same line the Express Belt upgrade uses), leaving the belts in place. Where the items go (back into hub stock, or lost) is to be decided
+- ⬜ **Clear a belt line** (owner's note, for later): one action empties every item off a whole belt line (the same line the Express Belt upgrade uses), leaving the belts in place. Where the items go (back into hub stock, or lost) is to be decided (Q-19)
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory
 - ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)
