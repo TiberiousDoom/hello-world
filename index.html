@@ -84,6 +84,7 @@
           <button id="btn-tutorial"><i data-icon="help"></i>Tutorials</button>
           <button id="btn-help"><i data-icon="research"></i>How to play</button>
           <button id="btn-whatsnew"><i data-icon="new"></i>What's new<span class="new-dot" hidden></span></button>
+          <button id="btn-feedback"><i data-icon="feedback"></i>Send feedback</button>
           <button id="btn-mainmenu"><i data-icon="home"></i>Main menu</button>
           <button id="btn-new" class="danger"><i data-icon="new"></i>New game</button>
         </div>
@@ -92,6 +93,28 @@
         <label class="toggle volume">Music <input type="range" id="music-volume" min="0" max="100" step="5" /></label>
         <label class="toggle volume">Sound effects <input type="range" id="sfx-volume" min="0" max="100" step="5" /></label>
         <p class="muted small">Progress saves automatically in this browser. Foundry Front v<span class="app-version"></span>.</p>
+      </div>
+    </div>
+
+    <div id="feedback" class="modal" hidden>
+      <div class="card">
+        <div class="card-head"><h2>Send feedback</h2><button data-close aria-label="Close feedback" title="Close"><i data-icon="close"></i></button></div>
+        <p class="muted">Found a bug, or have an idea? Nothing is sent until you pick how to send it below.</p>
+        <div class="fb-kinds" role="radiogroup" aria-label="Kind of feedback">
+          <label><input type="radio" name="fb-kind" value="bug" checked /> Bug</label>
+          <label><input type="radio" name="fb-kind" value="idea" /> Idea</label>
+          <label><input type="radio" name="fb-kind" value="other" /> Other</label>
+        </div>
+        <textarea id="fb-text" rows="5" maxlength="4000" placeholder="What happened, and what did you expect? Or what would you like?"></textarea>
+        <label class="toggle"><input type="checkbox" id="fb-diag" checked /> Include diagnostics (game version, device, frame rate, this game's progress, recent errors)</label>
+        <details id="fb-details"><summary>See what's included</summary><pre id="fb-diag-text"></pre></details>
+        <div class="row">
+          <button id="fb-github" class="primary">Open on GitHub</button>
+          <button id="fb-copy">Copy</button>
+          <button id="fb-save">Download save</button>
+        </div>
+        <p id="fb-status" class="muted small" aria-live="polite"></p>
+        <p class="muted small">Open on GitHub needs a GitHub account, and you press Submit there. Without one, press Copy and paste the report into a message. Download save keeps a copy of this game to attach.</p>
       </div>
     </div>
 

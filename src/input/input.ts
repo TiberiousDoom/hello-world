@@ -502,7 +502,7 @@ export class Input {
   }
 
   private key(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement || document.body.classList.contains('in-menu')) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || document.body.classList.contains('in-menu')) return;
     const k = e.key.toLowerCase();
     const pan = 40;
     if (this.ui.plan && (k === 'enter' || k === 'r' || k === 'escape')) {

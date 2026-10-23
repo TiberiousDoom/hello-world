@@ -355,6 +355,12 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 - **Version and What's new:** the main menu shows the game's version (from `CHANGELOG.md`).
   "What's new", on the main menu and in the pause menu, shows the changelog, newest first, with a dot
   until you've opened this version's notes.
+- **Send feedback** (pause menu, D-064): pick Bug, Idea or Other and describe it. "Include
+  diagnostics" (on by default, and shown before sending) adds the version, browser, screen, frame rate,
+  this game's progress (mode, time, seed, buildings, research, nests, supply ship) and the last few page
+  errors. **Open on GitHub** opens a new issue with all of it filled in (labelled playtest, plus bug or
+  enhancement), for the player to submit; **Copy** puts it on the clipboard for players without a GitHub
+  account; **Download save** saves the current game as a file to attach. The game sends nothing itself.
 - **Battery saver** (pause menu): draws at normal resolution and 30 frames a second. Otherwise the
   game draws at most 60 frames a second, and 30 while paused or on the main menu (#46).
 - Hub stock floats above the hub (see [Map](#map)).

@@ -48,6 +48,7 @@ quality and business work don't get left until the end.
 17. ✅ **Playtest round 5** (0.26.0): version numbers and What's new; cooler drawing and a battery saver (#46, D-061); readable rates (#48); smooth belts (#49); staggered regrowth (#50); spreading territories (#51, D-059).
 18. ✅ **Start from nothing** (0.28.0, #38, D-062): the hub starts empty; mine stone and ore by hand, build a furnace and an extractor, collect plates by hand, then research Logistics (now the first research) for belts, splitters and underground belts. The Essentials lesson follows the new start.
 19. ✅ **Building shapes** (0.29.0, #33, #34, #35, D-063): a 2×2 workshop, a 3×3 assembler, a 1×2 splitter spanning two lanes, and underground belts that look like belts going underground.
+20. ✅ **Feedback form** (0.30.0, D-064): Send feedback in the pause menu, with diagnostics, a GitHub issue link, Copy and Download save. CI runs in Playwright's container, so browsers aren't installed on every run.
 
 ---
 

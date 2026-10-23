@@ -93,3 +93,42 @@ test("the main menu shows the version, and What's new lists the changes until it
   await page.reload();
   await expect(page.locator('#mm-whatsnew .new-dot')).toBeHidden(); // remembered
 });
+
+test('Send feedback builds a report with diagnostics, opens GitHub, copies it and downloads the save', async ({ page, context }, info) => {
+  await newGame(page);
+  await page.click('#menu-btn');
+  await page.click('#btn-feedback');
+  await expect(page.locator('#feedback')).toBeVisible();
+  const speed = await page.evaluate(() => window.game.ui.speed);
+  await page.fill('#fb-text', 'The splitter ate my plates');
+  await page.press('#fb-text', ' '); // typing a space doesn't pause or unpause the game
+  expect(await page.evaluate(() => window.game.ui.speed)).toBe(speed);
+  await page.click('#fb-details summary');
+  await expect(page.locator('#fb-diag-text')).toContainText(`Version: ${await page.evaluate(() => window.game.version)}`);
+
+  await page.evaluate(() => {
+    (window as unknown as { opened: string[] }).opened = [];
+    window.open = (url?: string | URL) => {
+      (window as unknown as { opened: string[] }).opened.push(String(url));
+      return null;
+    };
+  });
+  await page.click('#fb-github');
+  const opened = await page.evaluate(() => (window as unknown as { opened: string[] }).opened);
+  expect(opened).toHaveLength(1);
+  const url = new URL(opened[0]);
+  expect(url.searchParams.get('title')).toBe('Bug: The splitter ate my plates');
+  expect(url.searchParams.get('body')).toContain('### Diagnostics');
+  await expect(page.locator('#fb-status')).toContainText('Submit');
+
+  if (info.project.name !== 'phone') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.click('#fb-copy');
+    await expect(page.locator('#fb-status')).toContainText('Copied');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('The splitter ate my plates');
+  }
+
+  const download = page.waitForEvent('download');
+  await page.click('#fb-save');
+  expect((await download).suggestedFilename()).toMatch(/^foundry-front-.*-save\.json$/);
+});
