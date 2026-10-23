@@ -99,7 +99,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return [f.x, f.y] as [number, number];
   });
   await tap(page, info, ...(await uncoveredTile(page, ...furnace)));
-  await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect 2/);
+  await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect [2-4]/); // it may finish more plates meanwhile
   await page.click('#info [data-action="collect"]');
   // The engineer fetches them, then carries them back to the hub.
   await expect

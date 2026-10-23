@@ -173,6 +173,31 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 
 The hub starts empty.
 
+## Day, night and seasons
+
+Always on (#42, D-068). It all follows from game time, so it's saved and the same in co-op. Numbers are
+in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
+
+- **A day** is 6 minutes of daylight and 3 of night (9 minutes in all). Dusk and dawn each fade over
+  30 s. A game starts on the first morning of spring.
+- **Night:** the map darkens to a deep blue, with pools of light around the hub, your engineer,
+  turrets, repair stations and working machines. **Bugs range further:** a provoked nest's bugs chase
+  up to **30 tiles** from home (22 by day), and a building within **5 tiles** of a calm bug provokes
+  its nest (3 by day).
+- **Seasons**, a 12-day (108-minute) year:
+
+  | Season | Days | Tree regrowth | Look |
+  |---|---|---|---|
+  | Spring | 4 (36 min) | 1.5× faster | Green |
+  | Summer | 2 (18 min) | 2× faster | A warm light |
+  | Fall | 4 (36 min) | 0.75× (slower) | Orange broadleaf trees, an amber tint |
+  | Winter | 2 (18 min) | 0.5× (slowest) | Frost on the ground and trees |
+
+  A stump's regrowth time is set by the season it's cut in.
+- A message marks nightfall, each morning and each new season, and the top bar shows the season, the
+  day and a sun or moon (its tooltip says how long until morning or nightfall).
+- Each new season plays its own short piece of music (see [Music](#music)).
+
 ## Your engineer
 
 You have a character, an engineer (#40, D-067), who starts just below the hub. Numbers are in `PLAYER`
@@ -446,10 +471,12 @@ strings and light percussion, with a roomy reverb.
 | Market Day | In game | Upbeat, swung accordion and marimba, 112 bpm |
 | Starlit Night | In game | Slow, dreamy bells and flute, 6/8, C Lydian |
 | Supplies Delivered | The first delivery's screen | A brass fanfare with timpani |
+| Spring, Summer, Fall, Winter | When that season begins (#42) | About 20 s each: rising flute and harp (G); swung marimba and accordion (D); a wistful clarinet (A minor); slow bells (E minor) |
 
 - In game, the seven tracks play in a shuffled order. Tracks crossfade over 4 s.
 - **Moving between the main menu and the game never cuts the music:** the track playing carries on to
-  its end, then crossfades into the next mood's tracks. Only the fanfare starts at once (1.5 s crossfade).
+  its end, then crossfades into the next mood's tracks. Only the fanfare and the season pieces start at once
+  (1.5 s crossfade); after a season piece, the game tracks carry on.
 - Every track is brought to the same average loudness, so the playlist doesn't jump in volume.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
 - Menu → Music sets the volume (saved per device). Zero mutes it. Sound effects have their own slider ([Sound effects](#sound-effects)).

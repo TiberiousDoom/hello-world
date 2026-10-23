@@ -52,3 +52,24 @@ test('music: silent until a click, the menu theme flows into the game tracks and
   await nearEnd();
   await expect.poll(async () => (await music()).track, { timeout: 10_000 }).toBe('menu-theme');
 });
+
+test('a new season plays its interlude, then the game tracks carry on', async ({ page }) => {
+  await setProfile(page, { lessonsSeen: ['essentials'], tipsOff: true });
+  await page.goto('/');
+  const music = () => page.evaluate(() => window.game.music.state);
+  await page.mouse.click(900, 600);
+  await page.click('#mm-new');
+  await page.click('[data-mode="standard"]');
+  await expect.poll(async () => (await music()).mood).toBe('game');
+  await expect(page.locator('#clock')).toContainText('Spring · Day 1');
+  // Jump to the last moment of spring: summer begins on the next tick.
+  await page.evaluate(() => (window.game.world.state.time = 4 * 540 - 0.01));
+  await expect.poll(async () => (await music()).track, { timeout: 10_000 }).toBe('season-summer');
+  await expect(page.locator('#clock')).toContainText('Summer · Day 5');
+  await expect.poll(() => page.evaluate(() => Number.isFinite(window.game.music.current.el.duration))).toBe(true);
+  await page.evaluate(() => {
+    const el = window.game.music.current.el;
+    el.currentTime = el.duration - 3;
+  });
+  await expect.poll(async () => GAME_TRACKS.includes((await music()).track!), { timeout: 10_000 }).toBe(true);
+});

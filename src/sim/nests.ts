@@ -11,7 +11,8 @@
 // for good and drops chitin; its surviving bugs stay angry, with no home and no
 // leash, until they're killed.
 
-import { BUILDINGS, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, chitinFor, moundHp, nestComposition } from './data';
+import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, chitinFor, moundHp, nestComposition } from './data';
+import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
 
@@ -214,6 +215,10 @@ export function tickBugs(w: World, dt: number): void {
   // Looking around for nearby buildings is done a few times a second, not every tick.
   const look = Math.floor(s.time * 4) !== Math.floor((s.time - dt) * 4);
   const drawn = new Set(s.ship.launchAt != null ? s.ship.drawn : []);
+  // Bugs range further in the dark (#42).
+  const night = clockAt(s.time).night;
+  const leash = night ? CLOCK.nightLeash : NESTS.leash;
+  const closeRadius = night ? CLOCK.nightCloseRadius : NESTS.closeRadius;
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
     const n = s.nests[e.nest];
@@ -227,11 +232,11 @@ export function tickBugs(w: World, dt: number): void {
       chase(w, e, n, dt, w.shipFlow);
       continue;
     }
-    if (isAngry(w, n) && hypot(e.x - hx, e.y - hy) <= NESTS.leash) {
-      chase(w, e, n, dt, w.flow, NESTS.leash);
+    if (isAngry(w, n) && hypot(e.x - hx, e.y - hy) <= leash) {
+      chase(w, e, n, dt, w.flow, leash);
       continue;
     }
-    if (look && buildingNear(w, e.x, e.y, NESTS.closeRadius)) {
+    if (look && buildingNear(w, e.x, e.y, closeRadius)) {
       provoke(w, n);
       continue;
     }

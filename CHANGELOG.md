@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.33.0 · 2026-10-23 · Day, night and seasons
+### New
+- **Day and night:** 6 minutes of day, then 3 of night. The map darkens, with light around your hub, engineer, turrets and working machines.
+- **Bugs range further at night:** angry bugs chase further from their nest, and calm ones notice buildings from further away.
+- **Seasons:** spring (4 days), summer (2), fall (4) and winter (2). Trees grow back faster in spring and fastest in summer, slower in fall and slowest in winter. Fall turns the trees orange and winter brings frost.
+- **A clock** in the top bar shows the season, the day and whether it's night.
+- **Each season has its own short piece of music** when it begins.
+
 ## 0.32.0 · 2026-10-23 · Your engineer
 ### New
 - **You have an engineer.** Tap or click empty ground to walk there; on a keyboard, WASD or the arrow keys walk too, and the camera follows.

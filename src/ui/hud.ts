@@ -20,7 +20,9 @@ import {
   TUNNEL_RANGE,
   TURRETS,
   isMachine,
+  CLOCK,
 } from '../sim/data';
+import { clockAt } from '../sim/clock';
 import { artUrl, icon } from '../art';
 import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
@@ -417,6 +419,7 @@ export class Hud {
     if (now - this.lastUpdate < 150) return;
     this.lastUpdate = now;
     const s = world.state;
+    this.updateClock(s.time);
 
     if (!$('research').hidden) this.renderResearch(world);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
@@ -722,6 +725,22 @@ export class Hud {
       : 'Locked: deliver a supply run in Standard to unlock.';
     $('standard-note').textContent = `If the hub falls, the bugs go home but you lose ${BREACH.stockLost * 100}% of hub stock.`;
     this.openModal('newgame');
+  }
+
+  /** The season, the day and whether it's night, in the top bar (#42). */
+  private updateClock(time: number): void {
+    const c = clockAt(time);
+    const text = `${c.season.name} · Day ${c.day}`;
+    const el = $('clock');
+    const label = el.querySelector('.clock-text')!;
+    if (label.textContent !== text) label.textContent = text;
+    const icon = c.night ? '☾' : '☀';
+    const iconEl = el.querySelector('.clock-icon')!;
+    if (iconEl.textContent !== icon) iconEl.textContent = icon;
+    el.classList.toggle('night', c.night);
+    el.dataset.season = c.season.id;
+    const left = Math.ceil(((1 - c.part) * (c.night ? CLOCK.night : CLOCK.day)) / 60);
+    el.title = `${c.night ? 'Night' : 'Day'}: about ${left} min until ${c.night ? 'morning' : 'nightfall'}. Day ${c.seasonDay} of ${c.season.days} in ${c.season.name}.`;
   }
 
   openModal(id: string): void {

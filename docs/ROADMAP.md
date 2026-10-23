@@ -51,6 +51,7 @@ quality and business work don't get left until the end.
 20. ✅ **Feedback form** (0.30.0, D-064): Send feedback in the pause menu, with diagnostics, a GitHub issue link, Copy and Download save. CI runs in Playwright's container, so browsers aren't installed on every run.
 21. **Nests (D-065, #53):** phase 1 (mounds and chitin) is done in 0.31.0; the rest follows the phases under Gameplay → Nests.
 22. ✅ **Player character** (0.32.0, #40, D-067): an engineer who walks (tap or WASD), mines by hand, carries items that trail behind, drops them at the hub, and fetches or hands over items. Next: bugs that notice the engineer, then co-op phase 1.
+23. ✅ **Day, night and seasons** (0.33.0, #42, D-068): a 9-minute day, bugs ranging further at night, four seasons changing tree regrowth and the look of the map, a clock, and a short piece of music for each season. Night raids (D-065) can come next. Belt feedback batch filed as #61–#65.
 
 ---
 

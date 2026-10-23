@@ -40,7 +40,7 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   front end. Deterministic: fixed tick (`TICK` = 1/20 s) and a seeded RNG (`w.random()`); don't use
   `Math.random()` in the rules (only `World.create` uses it, to pick a seed when none is given).
   - `data.ts` holds all balance numbers and content. It is the source of truth; docs follow it.
-  - `world.ts` (simulation), `mapgen.ts` (256×256 map, ore noise, nests), `nests.ts` (bug territories), `player.ts` (the engineer: walking, carrying),
+  - `world.ts` (simulation), `mapgen.ts` (256×256 map, ore noise, nests), `nests.ts` (bug territories), `player.ts` (the engineer: walking, carrying), `clock.ts` (day, night, seasons),
     `ship.ts` (escape ship), `research.ts`, `demo.ts` (the main-menu factory).
   - `commands.ts` and `session.ts`: every change a player makes is a `Command`, applied through the game's
     `Session` (its world, clock and command log). This is what co-op sends between games (D-056, D-058).

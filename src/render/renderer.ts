@@ -28,10 +28,12 @@ import {
   beltSpeed,
   isBelt,
   isMachine,
+  type Season,
 } from '../sim/data';
 import { Building, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { Plan, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
+import { clockAt, darkness } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell } from '../sim/nests';
 import { planStatus } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
@@ -47,6 +49,15 @@ const SHIP_SIZE = 3;
 
 // The forest (D-028).
 const FOREST_FLOOR = '#1d3324';
+/** A wash over the ground for each season (#42); spring is the ground as drawn. */
+const SEASON_TINT: Record<Season['id'], string | null> = {
+  spring: null,
+  summer: 'rgba(255,214,110,0.07)',
+  fall: 'rgba(214,120,40,0.13)',
+  winter: 'rgba(228,238,255,0.34)',
+};
+/** Night (#42): how dark it gets, and lights that keep the factory readable. */
+const NIGHT = { color: '8,14,40', alpha: 0.58 };
 const FOREST_CANOPY = '#1f4a2e';
 const FIREFLIES = 70;
 const LEAVES = 9;
@@ -112,6 +123,9 @@ export class Renderer {
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
+  /** The season being drawn (#42), and the night overlay's canvas. */
+  private season: Season['id'] = 'spring';
+  private night = document.createElement('canvas');
   /** Each character as drawn: eased toward its position between ticks, its heading, how far it has walked, and where it has been (for the trail of carried items). */
   private players = new Map<number, { x: number; y: number; angle: number; walked: number; trail: [number, number][]; at: number }>();
   private world: World | null = null;
@@ -186,7 +200,8 @@ export class Renderer {
     this.trackEffects(world, now);
 
     // Ground, decorations and resources (cached). Beyond the map's edge is forest.
-    const stamp = `${world.layout}|${spritesLoaded()}`;
+    this.season = clockAt(world.state.time).season.id;
+    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}`;
     const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
     this.drawLayer(this.ground, stamp, view, (lx0, ly0, lx1, ly1) => this.paintGround(world, lx0, ly0, lx1, ly1));
 
@@ -216,6 +231,7 @@ export class Renderer {
       const cx0 = Math.max(0, lx0 - 1);
       const cy0 = Math.max(0, ly0 - 1);
       this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
+      this.frostTrees(lx0, ly0, lx1, ly1);
     });
 
     if (ui) this.drawPlayers(world, now, z);
@@ -243,6 +259,7 @@ export class Renderer {
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
     this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
+    if (ui) this.drawNight(world, x0, y0, x1, y1);
 
     if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
@@ -444,6 +461,62 @@ export class Renderer {
       }
     }
     this.drawMapEdge(s.width, s.height);
+    const tint = SEASON_TINT[this.season];
+    if (tint) {
+      ctx.fillStyle = tint;
+      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    }
+  }
+
+  /**
+   * Night (#42): a dark blue wash over the map, with pools of light around the hub, the engineer,
+   * turrets and working machines so the factory stays readable. Fades in at dusk and out at dawn.
+   */
+  private drawNight(world: World, x0: number, y0: number, x1: number, y1: number): void {
+    const dark = darkness(world.state.time);
+    if (dark <= 0) return;
+    const { width, height } = this.night;
+    const w = Math.ceil(this.camera.width * this.dpr);
+    const h = Math.ceil(this.camera.height * this.dpr);
+    if (width !== w || height !== h) [this.night.width, this.night.height] = [w, h];
+    const nctx = this.night.getContext('2d')!;
+    nctx.setTransform(1, 0, 0, 1, 0, 0);
+    nctx.globalCompositeOperation = 'source-over';
+    nctx.clearRect(0, 0, w, h);
+    nctx.fillStyle = `rgba(${NIGHT.color},${NIGHT.alpha * dark})`;
+    nctx.fillRect(0, 0, w, h);
+    // Lights cut holes in the dark.
+    nctx.globalCompositeOperation = 'destination-out';
+    const scale = this.camera.zoom * this.dpr;
+    const light = (x: number, y: number, r: number) => {
+      const [sx, sy] = this.camera.toScreen(x, y);
+      const px = sx * this.dpr;
+      const py = sy * this.dpr;
+      const pr = r * scale;
+      const g = nctx.createRadialGradient(px, py, pr * 0.2, px, py, pr);
+      g.addColorStop(0, 'rgba(0,0,0,0.85)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      nctx.fillStyle = g;
+      nctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+    };
+    let lights = 0;
+    for (const b of world.state.buildings) {
+      if (lights > 60) break;
+      const [fw, fh] = world.footprintOf(b);
+      if (b.x + fw < x0 - 6 || b.y + fh < y0 - 6 || b.x > x1 + 6 || b.y > y1 + 6) continue;
+      const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0;
+      const r = b.type === 'hub' ? 8 : TURRETS[b.type] || b.type === 'repair' ? 3 : working ? 2.2 : 0;
+      if (!r) continue;
+      const [cx, cy] = world.centreOf(b);
+      light(cx, cy, r);
+      lights++;
+    }
+    for (const p of world.state.players) light(p.x, p.y, 4);
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.night, 0, 0);
+    ctx.restore();
   }
 
   private drawGround(w: number, h: number): void {
@@ -537,7 +610,8 @@ export class Renderer {
         if (trees[world.idx(x, y)] !== TREE) continue;
         const hv = hash(x + 5000, y + 5000);
         const kind = hv % 10;
-        const key = kind < 5 ? 'terrain/tree_round' : kind < 9 ? 'terrain/tree_pine' : 'terrain/tree_autumn';
+        // In fall the broadleaf trees turn (#42).
+        const key = kind < 5 ? (this.season === 'fall' ? 'terrain/tree_autumn' : 'terrain/tree_round') : kind < 9 ? 'terrain/tree_pine' : 'terrain/tree_autumn';
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const jx = ((hv >>> 12) % 20) / 100 - 0.1;
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
@@ -547,6 +621,17 @@ export class Renderer {
         }
       }
     }
+  }
+
+  /** Winter frost on the trees drawn into a cached canopy (only where trees were painted). */
+  private frostTrees(x0: number, y0: number, x1: number, y1: number): void {
+    if (this.season !== 'winter') return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(236,243,255,0.42)';
+    ctx.fillRect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4);
+    ctx.restore();
   }
 
   /** Fireflies drifting over the map and a few leaves blowing across the view. */
