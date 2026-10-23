@@ -335,6 +335,24 @@ describe('Bugs', () => {
     expect(isAngry(w, n)).toBe(false);
   });
 
+  it('hold still at the end of their leash instead of twitching back and forth', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 3);
+    const [cx, cy] = nestCentre(n);
+    placed(w.place('wall', Math.round(cx) + NESTS.leash + 3, Math.round(cy), 0));
+    n.angryUntil = w.state.time + 120;
+    w.markFlowDirty();
+    run(w, 60); // time to reach the edge
+    let moved = 0;
+    for (let t = 0; t < 3; t += TICK) {
+      const last = w.state.enemies.map((e) => [e.x, e.y]);
+      w.tick();
+      w.state.enemies.forEach((e, i) => (moved += Math.hypot(e.x - last[i][0], e.y - last[i][1])));
+    }
+    expect(moved).toBeLessThan(0.01);
+    for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeGreaterThan(NESTS.leash - 1);
+  });
+
   it('standard mode survives losing the hub, at a cost, and the bugs go home', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50);

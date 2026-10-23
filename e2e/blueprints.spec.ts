@@ -36,6 +36,20 @@ const at = (page: Page, x: number, y: number) =>
     return b ? { type: b.type as string, dir: b.dir as number } : null;
   }, [x, y] as const);
 const planLength = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles.length ?? 0);
+const planTiles = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles ?? null);
+
+/** One finger pressed at `from`, slid to `to`, and lifted. */
+async function touchDrag(page: Page, from: [number, number], to: [number, number]): Promise<void> {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
+  for (let i = 1; i <= 6; i++) {
+    const x = from[0] + ((to[0] - from[0]) * i) / 6;
+    const y = from[1] + ((to[1] - from[1]) * i) / 6;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
+}
 
 async function drag(page: Page, from: [number, number], ...to: [number, number][]): Promise<void> {
   await page.mouse.move(...from);
@@ -87,6 +101,30 @@ test.describe('desktop', () => {
     await page.click('[data-plan="confirm"]');
     await expect.poll(() => count(page, 'wall')).toBe(4);
   });
+
+  test('a single building dragged into place waits for a click on it', async ({ page }) => {
+    await newGame(page);
+    await calm(page);
+    const { x0, y0 } = await clearArea(page);
+    await page.click('[data-tool="turret"]');
+
+    await drag(page, await tilePoint(page, x0, y0), await tilePoint(page, x0 + 4, y0 + 2));
+    expect(await planTiles(page)).toEqual([{ x: x0 + 4, y: y0 + 2 }]);
+    expect(await count(page, 'turret')).toBe(0);
+    await expect(page.locator('#plan-bar')).toBeVisible();
+
+    // Dragging the blueprint moves it; clicking it builds.
+    await drag(page, await tilePoint(page, x0 + 4, y0 + 2), await tilePoint(page, x0 + 2, y0 + 3));
+    expect(await planTiles(page)).toEqual([{ x: x0 + 2, y: y0 + 3 }]);
+    expect(await count(page, 'turret')).toBe(0);
+    await page.mouse.click(...(await tilePoint(page, x0 + 2, y0 + 3)));
+    await expect.poll(async () => (await at(page, x0 + 2, y0 + 3))?.type).toBe('turret');
+    expect(await planLength(page)).toBe(0);
+
+    // A plain click still builds at once.
+    await page.mouse.click(...(await tilePoint(page, x0 + 6, y0)));
+    expect((await at(page, x0 + 6, y0))?.type).toBe('turret');
+  });
 });
 
 test.describe('touch', () => {
@@ -124,6 +162,17 @@ test.describe('touch', () => {
     await page.click('[data-plan="cancel"]');
     expect(await planLength(page)).toBe(0);
     expect(await at(page, x0 + 5, y0)).toBeNull();
+
+    // A single building dragged into place, then moved by dragging its blueprint, waits for ✓.
+    await page.click('[data-tool="turret"]');
+    await touchDrag(page, await tilePoint(page, x0 + 4, y0 + 2), await tilePoint(page, x0 + 6, y0 + 3));
+    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 6, y: y0 + 3 }]);
+    await touchDrag(page, await tilePoint(page, x0 + 6, y0 + 3), await tilePoint(page, x0 + 7, y0 + 4));
+    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 7, y: y0 + 4 }]);
+    expect(await count(page, 'turret')).toBe(0);
+    await page.click('[data-plan="confirm"]');
+    await expect.poll(async () => (await at(page, x0 + 7, y0 + 4))?.type).toBe('turret');
+    await page.click('[data-tool="belt"]');
 
     // Switched off in the menu: a tap builds.
     await page.click('#menu-btn');

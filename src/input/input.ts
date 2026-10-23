@@ -12,15 +12,20 @@
 // Soft placement (D-030): on touch (unless switched off), and on desktop when
 // dragging out a belt or wall line, building first shows a blueprint to
 // confirm (✓, Enter), rotate (⟳, R, wheel) or cancel (✕, Esc, right-click).
-// Dragging back along a blueprint shortens it. On touch, tapping the same
-// single-tile blueprint again builds it.
+// Dragging back along a blueprint shortens it.
+//
+// A single building (anything not drawn as a line) can be dragged into place:
+// pressing with it in hand starts a blueprint that follows the pointer. On
+// desktop a click without a drag still builds at once; after a drag the
+// blueprint waits for a click on it (or Enter, or ✓). Pressing a waiting
+// blueprint moves it, and tapping or clicking it builds it.
 
-import { Dir } from '../sim/data';
+import { BuildingType, Dir, footprint } from '../sim/data';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs } from '../ui/state';
 
-type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'pinch';
+type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch';
 
 interface Tile {
   x: number;
@@ -36,6 +41,8 @@ export interface InputCallbacks {
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 const LONG_PRESS = 450; // ms a finger rests on a building to pick it
+/** Tools drawn out as lines by dragging; everything else is dragged into place. */
+const LINE_TOOLS: readonly string[] = ['belt', 'express_belt', 'wall', 'palisade'];
 
 export class Input {
   private pointers = new Map<number, { x: number; y: number }>();
@@ -48,6 +55,8 @@ export class Input {
   private wheelTurn = 0;
   private prevPlan: Plan | null = null; // the blueprint before this gesture started a new one
   private pressTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Dragging a single building's blueprint: where the press began, where the blueprint was, and whether it moved. */
+  private moving = { from: { x: 0, y: 0 }, start: { x: 0, y: 0 }, existing: false, dragged: false };
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -125,6 +134,7 @@ export class Input {
 
     if (this.pointers.size === 2) {
       if (this.mode === 'plan') this.ui.plan = this.prevPlan; // that finger was the start of a pinch
+      if (this.mode === 'move') this.abandonMove();
       this.mode = 'pinch';
       this.startPinch();
       return;
@@ -146,12 +156,20 @@ export class Input {
       if (typeof result === 'string') this.cb.onPlaceError(result);
       this.mode = 'none';
       this.cb.onChange();
+    } else if (this.onPlan(this.ui.hover)) {
+      // Pressing a single building's blueprint: a tap builds it, a drag moves it.
+      this.startMove(this.ui.hover, true);
     } else if (this.takesOver(this.ui.hover)) {
       // Pressing on a different kind of building selects it instead of building there.
       this.ui.tool = null;
       this.ui.plan = null;
       this.mode = 'pending';
       this.cb.onChange();
+    } else if (this.ui.tool && this.ui.tool !== 'demolish' && !LINE_TOOLS.includes(this.ui.tool)) {
+      // A single building: its blueprint follows the drag, so it can be put exactly in place.
+      this.prevPlan = this.ui.plan;
+      this.ui.plan = { tool: this.ui.tool, tiles: [this.ui.hover] };
+      this.startMove(this.ui.hover, false);
     } else if (this.ui.tool && this.ui.tool !== 'demolish' && this.softPlace(e.pointerType, this.ui.tool)) {
       this.mode = 'plan';
       this.prevPlan = this.ui.plan;
@@ -187,6 +205,7 @@ export class Input {
     if (this.mode === 'pan') this.camera.pan(x - prev.x, y - prev.y);
     if (this.mode === 'paint') this.paintTo(this.ui.hover);
     if (this.mode === 'plan') this.extendPlan(this.ui.hover);
+    if (this.mode === 'move') this.movePlan(this.ui.hover, moved);
   }
 
   private up(e: PointerEvent, completed: boolean): void {
@@ -198,6 +217,7 @@ export class Input {
     if (completed && this.mode === 'right') this.clearSelection();
     if (completed && this.mode === 'middle') this.pick(this.tileAt(x, y));
     if (this.mode === 'plan') this.endPlanGesture(e.pointerType, completed);
+    if (this.mode === 'move') this.endMove(e.pointerType, completed);
     if (e.pointerType !== 'mouse') this.ui.hover = null;
     // After a pinch, the remaining finger pans rather than building.
     this.mode = this.pointers.size === 1 ? 'pan' : 'none';
@@ -212,6 +232,7 @@ export class Input {
       this.pressTimer = null;
       if (this.pointers.size !== 1 || this.lastPlacedId != null) return;
       if (this.mode === 'plan') this.ui.plan = this.prevPlan; // the press started a blueprint: drop it
+      if (this.mode === 'move') this.abandonMove();
       this.mode = 'none'; // lifting the finger does nothing more
       this.pick(t);
       navigator.vibrate?.(15);
@@ -263,8 +284,48 @@ export class Input {
   }
 
   private softPlace(pointerType: string, tool: string): boolean {
-    if (pointerType === 'mouse') return tool === 'belt' || tool === 'express_belt' || tool === 'wall' || tool === 'palisade';
+    if (pointerType === 'mouse') return LINE_TOOLS.includes(tool);
     return this.ui.confirmTouch;
+  }
+
+  /** Whether `t` is under a waiting single-building blueprint (where it would actually go, after lining up). */
+  private onPlan(t: Tile): boolean {
+    const plan = this.ui.plan;
+    if (!plan || plan.tiles.length !== 1 || LINE_TOOLS.includes(plan.tool)) return false;
+    const at = placementAt(this.cb.getWorld(), plan.tool, plan.tiles[0], this.ui.dir, true);
+    const [w, h] = footprint(plan.tool as BuildingType, at.dir);
+    return t.x >= at.x && t.x < at.x + w && t.y >= at.y && t.y < at.y + h;
+  }
+
+  private startMove(t: Tile, existing: boolean): void {
+    this.mode = 'move';
+    this.moving = { from: t, start: { ...this.ui.plan!.tiles[0] }, existing, dragged: false };
+    this.cb.onChange();
+  }
+
+  /** The blueprint keeps its offset from the pointer, so it doesn't jump under a finger. */
+  private movePlan(t: Tile, moved: boolean): void {
+    const plan = this.ui.plan;
+    if (!plan) return;
+    if (moved) this.moving.dragged = true;
+    if (!this.moving.dragged) return;
+    plan.tiles[0] = { x: this.moving.start.x + t.x - this.moving.from.x, y: this.moving.start.y + t.y - this.moving.from.y };
+  }
+
+  /** A cancelled press or a pinch: put the blueprint back as it was. */
+  private abandonMove(): void {
+    if (!this.moving.existing) this.ui.plan = this.prevPlan;
+    else if (this.ui.plan) this.ui.plan.tiles[0] = { ...this.moving.start };
+  }
+
+  private endMove(pointerType: string, completed: boolean): void {
+    if (!completed || !this.ui.plan) return this.abandonMove();
+    const { existing, dragged } = this.moving;
+    // A tap or click on a waiting blueprint builds it; so does a plain desktop click.
+    if (!dragged && (existing || pointerType === 'mouse')) return this.confirmPlan();
+    // With touch confirmation off, letting go builds.
+    if (pointerType !== 'mouse' && !this.ui.confirmTouch) return this.confirmPlan();
+    this.cb.onChange(); // the blueprint waits for a click, a tap, Enter or ✓
   }
 
   /** Grows the blueprint along a 4-connected line to `t`; dragging back over it shortens it. */
