@@ -654,8 +654,7 @@ export class Hud {
         <div><b>${esc(bp.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br><span class="muted">${esc(bp.description)}</span></div>
         <div>${state}</div></div>`;
     });
-    $('research-body').innerHTML = `<h2>Research</h2>
-      <p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}
+    $('research-body').innerHTML = `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}
       <h3>From the colony</h3>
       <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`;
   }

@@ -86,7 +86,7 @@ export function tickBugs(w: World, dt: number): void {
       continue;
     }
     if (isAngry(w, n) && Math.hypot(e.x - hx, e.y - hy) <= NESTS.leash) {
-      chase(w, e, n, dt, w.flow);
+      chase(w, e, n, dt, w.flow, NESTS.leash);
       continue;
     }
     if (look && buildingNear(w, e.x, e.y, NESTS.closeRadius)) {
@@ -124,8 +124,12 @@ export function tickBugs(w: World, dt: number): void {
   }
 }
 
-/** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
-function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array): void {
+/**
+ * Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached.
+ * With a leash, a step that would leave it isn't taken: the bug holds at the edge. Otherwise it would
+ * step out, turn for home, step back in and chase again, twitching on the spot every tick.
+ */
+function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leash = Infinity): void {
   const def = ENEMIES[e.type];
   const tx = Math.floor(e.x);
   const ty = Math.floor(e.y);
@@ -159,8 +163,12 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array): voi
   }
   const step = Math.min(dist, def.speed * dt);
   if (dist > 0) {
-    e.x += ((gx - e.x) / dist) * step;
-    e.y += ((gy - e.y) / dist) * step;
+    const mx = e.x + ((gx - e.x) / dist) * step;
+    const my = e.y + ((gy - e.y) / dist) * step;
+    const [hx, hy] = nestCentre(n);
+    if (Math.hypot(mx - hx, my - hy) > leash) return;
+    e.x = mx;
+    e.y = my;
   }
 }
 
