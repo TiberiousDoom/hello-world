@@ -17,6 +17,8 @@ yet, **Final** = your art is in.
 
 **Art review 1 (2026-10-23):** the owner marked 7 sprites to polish and 6 to redraw, all done in 0.27.0. Still to come: bugs of different ages and sizes, and a Hardcore look (more horrifying bugs, nests as mounded holes); the nest plan is D-065.
 
+**Art review 2 (2026-10-23, for 0.39.0):** every sprite as it is now, with 5 new and 23 changed since round 1 tagged, and new screenshots (including the engineer by a nest, and night). Round 1's marks were cleared.
+
 Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
 They show the intended size, facing and silhouette.
 

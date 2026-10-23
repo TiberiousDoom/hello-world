@@ -149,8 +149,8 @@ service is fine to test with.
 1. **Two-player prototype:** room codes, a test relay, lockstep with input delay, both
    characters visible. Both players start together; no joining later.
 2. **Make it solid:** the real relay, joining mid-game by snapshot, desync detection and
-   resync, reconnecting after a phone sleeps, the host leaving (the game ends, saved on the
-   host).
+   resync, reconnecting after a phone sleeps, the host leaving (the game ends, saved in every
+   player's browser).
 3. **Co-op design:** pings, player colours, the blueprint pick without pausing, balance for
    more players, up to 4 players.
 
@@ -180,8 +180,11 @@ computing the same game as Node.
   anonymous: no accounts, no stored personal data. It limits message size and rate per player,
   and drops rooms once they're empty, so it can't be used to store or flood anything.
 
-## Open questions
+## Decided (D-075)
 
-- Is a co-op game saved only on the host, or can any player resume it?
-- Drop-in strangers (public rooms), or only friends with a room code? Suggestion: room codes
-  only.
+- **Any player can resume a co-op game.** Every browser in a game holds the same world, so each
+  player saves it locally, as in single player. Whoever resumes it hosts, gets a new room code,
+  and the others join with that code. Engineers are matched to players by their slot in the game
+  (first to join takes slot 1, and so on); an empty slot's engineer waits at the hub.
+- **Room codes only.** Friends join with a short code; no public rooms, no strangers, no
+  accounts.
