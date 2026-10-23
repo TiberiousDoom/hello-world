@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
+import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
 import { Nest, cellKey, isAngry, nestCentre } from './nests';
 import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
@@ -13,7 +13,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
   return w;
 }
 
@@ -183,7 +183,7 @@ describe('Production', () => {
     const plates = w.state.inventory.iron_plate!;
     const furnace = placed(w.place('furnace', x0 + 4, y, 0, true));
     expect(w.buildingAt(x0 + 5, y)).toBe(furnace);
-    expect(w.state.inventory.iron_plate).toBe(plates - 2 + 2); // furnace cost, two belts refunded
+    expect(w.state.inventory.iron_plate).toBe(plates + 2); // two belts refunded (a furnace costs stone)
     const start = w.state.inventory.iron_plate!;
     run(w, 30);
     expect(w.state.inventory.iron_plate! - start).toBeGreaterThan(10);
@@ -195,7 +195,7 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
     expect(w.researchNow('workshop')).toBe('requires'); // workshops need planks, so Forestry comes first
     for (const id of ['defense', 'forestry', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('turret')).toBe(true);
@@ -490,6 +490,8 @@ describe('Saves', () => {
     const w = World.create(5);
     const x = w.hub!.x - 30;
     w.state.trees.fill(NO_TREE);
+    w.state.researched.push('logistics');
+    w.state.inventory.iron_plate = 20;
     for (let i = 0; i < 20; i++) placed(w.place('belt', x + i, w.hub!.y, 0));
     const old = JSON.parse(w.toJSON());
     old.version = 8;
@@ -799,5 +801,95 @@ describe('Demo world', () => {
     expect(w.state.inventory.brick!).toBeGreaterThan(inv.brick!);
     expect(w.state.inventory.plank ?? 0).toBeGreaterThan(inv.plank ?? 0);
     expect(w.state.nests.every((n) => !isAngry(w, n))).toBe(true);
+  });
+});
+
+describe('Starting from nothing (#38)', () => {
+  it('starts with an empty hub, only extractors and furnaces, and Logistics to research first', () => {
+    const w = World.create(3);
+    expect(w.state.inventory).toEqual({});
+    expect(w.isUnlocked('furnace')).toBe(true);
+    expect(w.isUnlocked('extractor')).toBe(true);
+    expect(w.isUnlocked('belt')).toBe(false);
+    expect(w.availableResearch().map((r) => r.id)).toContain('logistics');
+    expect(BUILDINGS.furnace.cost).toEqual({ stone: 6 });
+    expect(Object.keys(BUILDINGS.extractor.cost).sort()).toEqual(['iron_ore', 'stone']);
+  });
+
+  it('eight taps in a row on an ore tile put one ore into the hub', () => {
+    const w = emptyWorld();
+    w.state.inventory = {};
+    const [x, y] = [w.hub!.x - 6, w.hub!.y];
+    ore(w, x, y, 3, 1);
+    for (let i = 1; i < HAND_MINING.taps; i++) {
+      const tap = w.mineByHand(x, y);
+      expect(typeof tap !== 'string' && tap.item).toBe(null);
+      expect(w.handMiningAt(x, y)).toBe(i);
+    }
+    const last = w.mineByHand(x, y);
+    expect(typeof last !== 'string' && last.item).toBe('stone');
+    expect(w.state.inventory.stone).toBe(1);
+    expect(w.handMiningAt(x, y)).toBe(0);
+    expect(w.taps.length).toBe(HAND_MINING.taps);
+    run(w, 1.1);
+    expect(w.taps.length).toBe(0); // the sparks have faded
+  });
+
+  it('the count starts over on another tile or after a pause, and bare ground or buildings cannot be mined', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 6, w.hub!.y];
+    ore(w, x, y, 1, 2);
+    for (let i = 0; i < 5; i++) w.mineByHand(x, y);
+    w.mineByHand(x + 1, y);
+    expect(w.handMiningAt(x, y)).toBe(0);
+    expect(w.handMiningAt(x + 1, y)).toBe(1);
+    run(w, HAND_MINING.resetAfter + 0.5);
+    expect(w.handMiningAt(x + 1, y)).toBe(0);
+    w.mineByHand(x + 1, y);
+    expect(w.handMiningAt(x + 1, y)).toBe(1);
+    expect(w.mineByHand(x - 3, y)).toBe('no-ore');
+    placed(w.place('extractor', x, y, 0));
+    expect(w.mineByHand(x, y)).toBe('occupied');
+  });
+
+  it('from nothing: mine by hand, build a furnace and an extractor, and collect plates without belts', () => {
+    const w = emptyWorld();
+    w.state.researched = [];
+    w.state.inventory = {};
+    const [x, y] = [w.hub!.x - 14, w.hub!.y];
+    ore(w, x, y, 3, 1); // one stone tile
+    ore(w, x, y + 2, 1, 2); // iron ore
+    const mine = (tx: number, ty: number, n: number) => {
+      for (let i = 0; i < n * HAND_MINING.taps; i++) w.mineByHand(tx, ty);
+    };
+    mine(x, y, 10);
+    mine(x, y + 2, 4);
+    expect(w.state.inventory).toEqual({ stone: 10, iron_ore: 4 });
+    placed(w.place('extractor', x, y + 2, 0));
+    const fu = placed(w.place('furnace', x + 2, y + 2, 0));
+    expect(w.state.inventory).toEqual({ stone: 0, iron_ore: 0 });
+    run(w, 12);
+    expect(fu.outputs.length).toBeGreaterThan(0);
+    const n = fu.outputs.length;
+    expect(w.collect(fu.id)).toBe(n);
+    expect(w.state.inventory.iron_plate).toBe(n);
+    expect(fu.outputs.length).toBe(0);
+    expect(w.collect(w.hub!.id)).toBe(0);
+  });
+
+  it('v13 saves get Logistics as done, and the old Underground Belt research goes away', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 13;
+    old.researched = ['forestry', 'underground'];
+    old.research.active = 'logistics';
+    old.research.paid = { logistics: { iron_plate: 5 } };
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.state.researched.sort()).toEqual(['forestry', 'logistics']);
+    expect(loaded.state.research.active).toBe(null);
+    expect(loaded.state.research.paid).toEqual({});
+    expect(loaded.isUnlocked('belt')).toBe(true);
+    expect(loaded.isUnlocked('tunnel')).toBe(true);
   });
 });

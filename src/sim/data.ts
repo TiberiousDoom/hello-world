@@ -103,8 +103,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Takes items from behind and sends them out front, left and right in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
-  extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { iron_plate: 6 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
-  furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { brick: 4, iron_plate: 2 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
+  extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { stone: 4, iron_ore: 4 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
+  furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { stone: 6 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
   workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [3, 2], cost: { iron_plate: 6, copper_ingot: 4, plank: 4 }, blocking: true, description: 'Makes gears and wire.' },
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [4, 2], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
@@ -185,6 +185,13 @@ export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, 
 
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
 
+/** Mining by hand (#38): taps on one ore tile put one of its ore into the hub. */
+export const HAND_MINING = {
+  taps: 8, // taps for one item
+  resetAfter: 3, // seconds without a tap before the count starts over
+  holdRate: 4, // taps per second while a finger or mouse button is held down
+};
+
 /** Trees and the Lumber Camp (D-044). Unlike ore, wood runs out until the stumps grow back. */
 export const LUMBER = {
   range: 4, // tiles from the camp's centre to a tree's centre
@@ -226,7 +233,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
 };
 
 /** Buildings available at the start; everything else is researched. */
-export const STARTING_BUILDINGS: BuildingType[] = ['belt', 'extractor', 'furnace'];
+export const STARTING_BUILDINGS: BuildingType[] = ['extractor', 'furnace'];
 
 export interface Research {
   id: string;
@@ -239,6 +246,7 @@ export interface Research {
 }
 
 export const RESEARCH: Research[] = [
+  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: [], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
   { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: [], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
   { id: 'forestry', name: 'Forestry', cost: { iron_plate: 15 }, time: 30, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
   { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
@@ -246,8 +254,6 @@ export const RESEARCH: Research[] = [
   { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
   { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['forestry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
-  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 20, gear: 10 }, time: 75, requires: ['workshop'], unlocks: ['splitter'], description: 'Splitters branch a line three ways.' },
-  { id: 'underground', name: 'Underground Belt', cost: { gear: 20, brick: 10 }, time: 90, requires: ['logistics'], unlocks: ['tunnel'], description: 'Belts that pass under anything.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
@@ -323,7 +329,8 @@ export function cargoFor(run: number): ItemCounts {
   return out;
 }
 
-export const START_INVENTORY: ItemCounts = { iron_plate: 100, brick: 24, copper_ingot: 16 };
+/** The hub starts empty: the first stone and ore are mined by hand (#38). */
+export const START_INVENTORY: ItemCounts = {};
 
 export const MAP_SIZE = 256;
 export const HUB_SIZE = 5;

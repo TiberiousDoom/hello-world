@@ -16,7 +16,7 @@ describe('Rates', () => {
   it('show what a machine is doing, and how fast it has been going', () => {
     const w = World.create(1);
     w.state.researched = RESEARCH.map((r) => r.id);
-    w.state.inventory = { iron_plate: 99, brick: 99 };
+    w.state.inventory = { iron_plate: 99, stone: 99, brick: 99 };
     const hub = w.hub!;
     const x = hub.x - 10;
     const y = hub.y;

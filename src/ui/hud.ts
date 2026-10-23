@@ -24,7 +24,7 @@ import {
 import { artUrl, icon } from '../art';
 import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
-import { PlaceError, World } from '../sim/world';
+import { PlaceError, World, canCollect } from '../sim/world';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
 import { Tool, UIState } from './state';
@@ -307,6 +307,9 @@ export class Hud {
         case 'launch':
           this.actions.issue({ kind: 'launch' });
           break;
+        case 'collect':
+          if (id != null) this.actions.issue({ kind: 'collect', id });
+          break;
         case 'research':
           this.openResearch();
           break;
@@ -520,6 +523,10 @@ export class Hud {
               `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
           ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
+        // Before belts, finished items are carried to the hub by hand (#38).
+        if (canCollect(b!.type)) {
+          actions += `<div class="row"><button data-action="collect" title="Carry what it has made to the hub">${ico('collect')}<span class="collect-label">Collect</span></button></div>`;
+        }
         if (b!.type === 'shipyard' && checkLaunch(world) === null) {
           actions += `<div class="row"><button data-action="launch" class="primary launch">🚀 Launch</button></div>`;
         }
@@ -566,6 +573,13 @@ export class Hud {
         }
       }
       if (b.outputs.length) stats += `<br>Output buffer ${b.outputs.map(swatch).join('')}`;
+      const collect = panel.querySelector<HTMLButtonElement>('[data-action="collect"]');
+      if (collect) {
+        collect.disabled = !b.outputs.length;
+        const label = b.outputs.length ? `Collect ${b.outputs.length}` : 'Collect';
+        const span = collect.querySelector('.collect-label')!;
+        if (span.textContent !== label) span.textContent = label;
+      }
       if (b.type === 'repair') stats += `<br>Stored repairs ${Math.floor(b.ammo)} / ${REPAIR.maxCharge} HP`;
       if (b.type === 'tunnel') {
         const p = b.link != null ? world.byId.get(b.link) : undefined;

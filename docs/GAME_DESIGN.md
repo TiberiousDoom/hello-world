@@ -5,7 +5,8 @@ How the game works on `master` today. Balance numbers live in
 
 ## Core loop
 
-1. Mine raw resources with **extractors** placed over ore, and cut trees with **lumber camps**.
+1. Mine raw resources with **extractors** placed over ore, and cut trees with **lumber camps**. At the
+   very start, mine by hand (see [Starting from nothing](#starting-from-nothing)).
 2. Carry them on **belts** to machines that turn them into parts.
 3. Deliver items to the **hub**. Its stock pays for buildings and research.
 4. **Research** (in the hub) unlocks new buildings.
@@ -53,16 +54,16 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 | Building | Size | Cost | HP | Unlocked by |
 |---|---|---|---|---|
-| Belt | 1×1 | 1 iron plate | 30 | start |
-| Extractor | 2×2 | 6 iron plates | 80 | start |
-| Furnace | 2×2 | 4 bricks, 2 iron plates | 120 | start |
+| Belt | 1×1 | 1 iron plate | 30 | Logistics |
+| Extractor | 2×2 | 4 stone, 4 iron ore | 80 | start |
+| Furnace | 2×2 | 6 stone | 120 | start |
 | Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Basic Defense |
 | Ballista | 1×1 | 8 planks, 4 iron plates | 140 | Ballistae |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
 | Workshop | 3×2 | 6 iron plates, 4 copper ingots, 4 planks | 120 | Workshops |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×1 | 3 iron plates, 1 copper ingot | 40 | Logistics |
-| Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Underground Belt |
+| Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Logistics |
 | Assembler | 4×2 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
@@ -144,7 +145,7 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 
 ## Research
 
-You start with the belt, extractor and furnace. Everything else is researched, except colony
+You start with the extractor and furnace. Everything else is researched, except colony
 blueprints, which come from supply runs. **Select the hub** and press **Research** to open the list.
 
 - **Start** a research, and it draws its items from hub stock at a steady pace over its research
@@ -155,6 +156,7 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 
 | Research | Items | Time | Needs | Unlocks |
 |---|---|---|---|---|
+| Logistics | 10 iron plates | 20 s | — | Belt, Splitter, Underground Belt |
 | Basic Defense | 20 iron plates | 30 s | — | Turret |
 | Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
 | Palisades | 12 planks | 30 s | Forestry | Palisade |
@@ -162,14 +164,31 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 | Masonry | 12 bricks | 30 s | — | Wall |
 | Workshops | 30 iron plates, 10 copper | 60 s | Forestry | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
-| Logistics | 20 iron plates, 10 gears | 75 s | Workshops | Splitter |
-| Underground Belt | 20 gears, 10 bricks | 90 s | Logistics | Underground Belt |
 | Assembly | 30 gears, 30 wire | 120 s | Workshops | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
 | Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
 | Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Basic Defense | Cannon |
 
-Starting stock: 100 iron plates, 24 bricks, 16 copper ingots.
+The hub starts empty.
+
+## Starting from nothing
+
+A new game starts with an empty hub and no belts (#38, D-062). The first minutes go:
+
+1. **Mine by hand.** With no tool in hand, tap or click a tile of bare ore or stone. Every **8 taps** in
+   a row put **1** of it into the hub; a ring around the tile fills with each tap, with sparks and a
+   pickaxe sound. Holding the finger or mouse button down taps **4 times a second**. Tapping another
+   tile, or **3 s** without a tap, starts the count over. Dragging from there pans, as usual.
+2. **Build a furnace** (6 stone) and an **extractor** (4 stone, 4 iron ore) over iron ore, with the
+   furnace in front of the extractor's arrow: a building's output passes straight into a building
+   in front of it.
+3. **Collect by hand.** Select a machine, extractor or lumber camp and press **Collect** to carry its
+   finished items (up to 3) to the hub.
+4. **Research Logistics** (10 iron plates) to unlock belts, splitters and underground belts. From
+   there, belts do the carrying.
+
+Mining by hand and Collect are commands like building, so they will work in co-op. When the player
+character arrives (#40), they are expected to fill the character's pack instead.
 
 ## Bugs
 
@@ -305,9 +324,9 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
   | Lesson | Starts when | Steps |
   |---|---|---|
-  | Essentials | A game has no extractors or belts yet | The hub → pick the extractor → place it over iron ore → lay 3 belts → build a furnace → deliver a plate → hub stock → Research is in the hub |
+  | Essentials | A game has no extractors, furnaces or belts yet | The hub → mine 10 stone by hand → mine 4 iron ore → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate → hub stock → research Logistics → lay 3 belts → the loop |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense from the hub |
-  | Splitters and tunnels | The splitter is unlocked | What splitters do |
+  | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
   | Wood | Forestry is researched | Pick the Lumber Camp → place it beside the nearest trees → stumps and regrowth → pick and place the Sawmill → what planks are for |
   | Breaches | The hub is breached for the first time | What a breach costs |
@@ -346,6 +365,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 |---|---|---|
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
 | Select | Click a building | Tap a building |
+| Mine by hand | Click bare ore or stone with no tool (hold to keep mining) | Tap it with no tool (hold to keep mining) |
 | Lay belts, walls or palisades | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Drag a building into place | Press and drag, then click it (or ✓ or Enter) | Press and drag, then ✓ |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |

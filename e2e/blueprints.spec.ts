@@ -6,7 +6,7 @@ async function clearArea(page: Page): Promise<{ x0: number; y0: number }> {
   const area = await page.evaluate(() => {
     const w = window.game.world;
     const c = window.game.camera;
-    w.state.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999 };
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999 };
     w.state.researched.push('masonry', 'defense');
     const h = w.hub;
     for (let oy = 7; oy < 30; oy++) {

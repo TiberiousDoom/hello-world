@@ -9,7 +9,7 @@
 
 import { shipyard } from '../sim/ship';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
-import { BREACH, BuildingType, HUB_SIZE, ItemId, LUMBER, NESTS, SHIP } from '../sim/data';
+import { BREACH, BUILDINGS, BuildingType, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RESEARCH_BY_ID, SHIP } from '../sim/data';
 import { TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -130,6 +130,32 @@ function nearestNode(w: World, item: ItemId): TileTarget | null {
   return best;
 }
 
+/** Stone and iron ore for the first furnace and extractor (#38). */
+const FIRST_STONE = (BUILDINGS.furnace.cost.stone ?? 0) + (BUILDINGS.extractor.cost.stone ?? 0);
+const FIRST_ORE = BUILDINGS.extractor.cost.iron_ore ?? 0;
+
+/** How much of an item the player has mined by hand this step: what's in stock, plus what the furnaces and extractors built since cost. */
+function mined(c: StepContext, item: ItemId): number {
+  const spent = (['furnace', 'extractor'] as const).reduce(
+    (sum, t) => sum + (BUILDINGS[t].cost[item] ?? 0) * Math.max(0, count(c.world, t) - (c.start.buildings[t] ?? 0)),
+    0,
+  );
+  return (c.world.state.inventory[item] ?? 0) + spent;
+}
+
+/** The tile in front of the first extractor's arrow, where the first furnace goes. */
+function extractorOutput(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'extractor');
+  if (!b) return null;
+  const o = w.outputTile(b);
+  return { tx: o.x, ty: o.y, size: 1 };
+}
+
+function furnaceTarget(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'furnace');
+  return b ? { tx: b.x, ty: b.y, size: 2 } : null;
+}
+
 /** The trees nearest the hub, for the wood lesson's first Lumber Camp. */
 function nearestTrees(w: World): TileTarget | null {
   const hub = w.hub;
@@ -168,12 +194,24 @@ export const LESSONS: Lesson[] = [
     id: 'essentials',
     title: 'Essentials',
     // A fresh factory: nothing built yet.
-    trigger: (w) => count(w, 'extractor') === 0 && count(w, 'belt') === 0,
+    trigger: (w) => count(w, 'extractor') === 0 && count(w, 'furnace') === 0 && count(w, 'belt') === 0,
     steps: [
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         text: () =>
-          'This is your hub. Everything you deliver here goes into its stock, which pays for buildings and research. It has a small gun of its own.',
+          'This is your hub. Everything you deliver here goes into its stock, which pays for buildings and research. It starts empty, and it has a small gun of its own.',
+      },
+      {
+        target: (c) => ({ tiles: nearestNode(c.world, 'stone'), shape: 'circle' }),
+        done: (c) => mined(c, 'stone') >= FIRST_STONE,
+        text: (c) =>
+          `Start by mining by hand. Tap the grey stone (or click it): every ${HAND_MINING.taps} taps put one stone into the hub. Hold your finger or the mouse button down to keep mining. ` +
+          `A furnace and an extractor need ${FIRST_STONE} stone: ${Math.min(FIRST_STONE, mined(c, 'stone'))} of ${FIRST_STONE}.`,
+      },
+      {
+        target: (c) => ({ tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
+        done: (c) => mined(c, 'iron_ore') >= FIRST_ORE,
+        text: (c) => `Now mine ${FIRST_ORE} iron ore the same way, for the extractor: ${Math.min(FIRST_ORE, mined(c, 'iron_ore'))} of ${FIRST_ORE}.`,
       },
       {
         target: (c) => toolThen(c, 'extractor', { tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
@@ -182,38 +220,55 @@ export const LESSONS: Lesson[] = [
           c.ui.tool === 'extractor'
             ? 'Now tap the iron ore to place the extractor over it. Its arrow shows the side ore comes out of; turn it with Rotate (or the mouse wheel) first.' +
               confirmHint(c)
-            : 'Iron ore never runs out. Pick the Extractor to mine it.',
+            : 'An extractor mines for you, and iron ore never runs out. Pick the Extractor.',
+      },
+      {
+        target: (c) => toolThen(c, 'furnace', { tiles: extractorOutput(c.world), shape: 'circle' }),
+        done: (c) => built(c, 'furnace'),
+        text: (c) =>
+          c.ui.tool === 'furnace'
+            ? "Place the furnace touching the extractor's arrow, so the ore goes straight in. A building's output passes straight into a building in front of it." +
+              confirmHint(c)
+            : 'Ore needs smelting into plates. Pick the Furnace.',
+      },
+      {
+        // Once the furnace is selected, point at its Collect button.
+        target: (c) =>
+          document.querySelector('#info:not([hidden]) [data-action="collect"]')
+            ? { el: '#info [data-action="collect"]' }
+            : { tiles: furnaceTarget(c.world), shape: 'circle' },
+        done: (c) => (c.world.delivered.iron_plate ?? 0) > (c.start.delivered.iron_plate ?? 0),
+        text: () => 'Plates pile up in the furnace. Select it and tap Collect to carry them to the hub. Soon belts will do this for you.',
+      },
+      {
+        target: () => ({ el: '#inventory' }),
+        text: () =>
+          'Your stock went up. It shows above the hub while you point at it or select it. Right-click (or tap the tool again) to put a tool down.',
+      },
+      {
+        target: (c) =>
+          document.querySelector('#info:not([hidden]) [data-action="research"]')
+            ? { el: '#info [data-action="research"]' }
+            : { tiles: hubTarget(c.world), shape: 'circle' },
+        done: (c) => c.world.state.researched.includes('logistics') || c.world.state.research.active === 'logistics',
+        text: () =>
+          `Select the hub, open Research and start Logistics. It unlocks belts, and uses ${RESEARCH_BY_ID.logistics.cost.iron_plate} iron plates from stock: keep collecting from the furnace until it's done.`,
       },
       {
         target: (c) => toolThen(c, 'belt'),
         done: (c) => built(c, 'belt', 3),
         text: (c) =>
-          c.ui.tool === 'belt'
-            ? "Drag from the extractor's arrow toward the hub to lay a line of belts. Each belt points the way you dragged. " +
-              'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
-            : 'Belts carry items. Pick the Belt.',
-      },
-      {
-        target: (c) => toolThen(c, 'furnace'),
-        done: (c) => built(c, 'furnace'),
-        text: (c) =>
-          c.ui.tool === 'furnace'
-            ? 'Tap a belt in your line to drop the furnace into it, so ore runs in. It takes input from any side and outputs from the side its arrow marks.'
-            : 'Ore needs smelting into plates. Pick the Furnace.',
+          !c.world.isUnlocked('belt')
+            ? 'Logistics is researching. Keep collecting plates for it; this step goes on once belts are unlocked.'
+            : c.ui.tool === 'belt'
+              ? "Drag from the furnace's arrow toward the hub to lay a line of belts. Each belt points the way you dragged. " +
+                'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
+              : 'Belts carry items to the hub on their own. Pick the Belt.',
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
-        done: (c) => (c.world.delivered.iron_plate ?? 0) > (c.start.delivered.iron_plate ?? 0),
-        text: () => "Belt the furnace's plates into the hub. This step finishes when the first plate arrives.",
-      },
-      {
-        target: () => ({ el: '#inventory' }),
         text: () =>
-          'Your stock went up. It shows above the hub while you point at it or select it. That is the whole loop: mine, move, make, deliver. Everything else builds on it. Right-click (or tap the tool again) to put a tool down.',
-      },
-      {
-        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
-        text: () => 'Select the hub any time to open Research. Research uses hub stock to unlock new buildings.',
+          'That is the whole loop: mine, move, make, deliver. Everything else builds on it. Select the hub any time to open Research, which unlocks new buildings.',
       },
     ],
   },

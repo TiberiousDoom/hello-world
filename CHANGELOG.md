@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.28.0 · 2026-10-23 · Start from nothing
+### New
+- **Start from nothing:** the hub starts empty, and you begin with only the extractor and furnace. Tap bare stone or ore (or click it) to mine it by hand: every 8 taps put one into the hub, with sparks and a pickaxe sound. Hold your finger or the mouse button down to keep mining.
+- **Cheaper first buildings:** a furnace costs 6 stone, and an extractor 4 stone and 4 iron ore.
+- **Collect:** select a furnace (or any machine, extractor or lumber camp) and press Collect to carry what it has made to the hub. That's how the first plates get there before belts.
+- **Logistics is the first research** (10 iron plates) and unlocks belts, splitters and underground belts together. The separate Underground Belt research is gone; saved games get Logistics as done.
+- **A new Essentials lesson** walks through the new start: mine, build a furnace and an extractor, collect, research Logistics, lay belts.
+
 ## 0.27.0 · 2026-10-23 · Art review: new bugs, a standing ship and tidier sprites
 ### New
 - **New bugs:** the crawler is long, flat and segmented, dark orange; the runner is a glossy black, many-legged scuttler; the brute is a four-legged, centaur-like beast in very dark red, with two big claws.
