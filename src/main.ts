@@ -362,7 +362,7 @@ function frame(now: number): void {
     camera.y = hub.y + HUB_SIZE / 2 + Math.cos(t * 0.05) * 4 + (window.innerWidth < 600 ? 5 : 0);
   }
   camera.clampTo(world.state.width, world.state.height);
-  renderer.draw(world, inMenu ? null : ui, now);
+  renderer.draw(world, inMenu ? null : ui, now, Math.min(1, acc / TICK));
   planBar.update(world, !inMenu);
   if (!inMenu) {
     hud.update(world, now);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
+import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
 import { Nest, cellKey, isAngry, nestCentre } from './nests';
 import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
@@ -239,6 +239,23 @@ describe('Production', () => {
       w.tick();
     }
     expect(out.map((b) => b.belt.length)).toEqual([1, 1, 1]);
+  });
+
+  it('move items at an even speed across belt tiles, with no pause or jump at the edges', () => {
+    const w = emptyWorld();
+    const x0 = w.hub!.x - 20;
+    const y = w.hub!.y - 6;
+    const line = Array.from({ length: 10 }, (_, i) => placed(w.place('belt', x0 + i, y, 0)));
+    const it = { item: 'iron_plate' as ItemId, pos: 0 };
+    line[0].belt.push(it);
+    const travelled = () => line.findIndex((b) => b.belt.includes(it)) + it.pos;
+    let last = travelled();
+    for (let t = 0; t < 4; t += TICK) {
+      w.tick();
+      const now = travelled();
+      expect(now - last).toBeCloseTo(BELT_SPEED * TICK, 9);
+      last = now;
+    }
   });
 
   it('underground belts carry items under walls', () => {

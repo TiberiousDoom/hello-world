@@ -28,7 +28,7 @@ import {
   isBelt,
   isMachine,
 } from '../sim/data';
-import { Building, STUMP, Shot, TREE, World } from '../sim/world';
+import { Building, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { Plan, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
 import { Nest, isAngry, nestCentre } from '../sim/nests';
@@ -111,6 +111,15 @@ export class Renderer {
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
   private world: World | null = null;
+  /** How far the game is between its last tick and the next (0–1); things are drawn that far along (#49). */
+  private alpha = 1;
+  /** Game seconds since the last frame, for belt arrows. */
+  private frameDt = 0;
+  private drawnAt = 0;
+  /** Each belt's arrow offset: it moves with game time, and stops while the belt is backed up. */
+  private beltPhase = new Map<number, number>();
+  /** Where moving things were on the last two ticks, to draw them part way between (#49). */
+  private smoothed = new WeakMap<object, { t: number; x: number; y: number; px: number; py: number }>();
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -129,7 +138,8 @@ export class Renderer {
     this.camera.height = h;
   }
 
-  draw(world: World, ui: UIState | null, now: number): void {
+  /** `alpha`: how far the game is towards its next tick (0–1); moving things are drawn that far along. */
+  draw(world: World, ui: UIState | null, now: number, alpha = 1): void {
     // iOS Safari can change the visible area (toolbars, opening from another app)
     // without a resize event, which left the picture stretched. Check every frame.
     const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
@@ -143,7 +153,13 @@ export class Renderer {
       this.enemies.clear();
       this.effects = [];
       this.breaches = world.state.breaches;
+      this.beltPhase.clear();
+      this.drawnAt = world.state.time;
     }
+    this.alpha = alpha;
+    const gameNow = world.state.time + alpha * TICK;
+    this.frameDt = Math.min(0.25, Math.max(0, gameNow - this.drawnAt));
+    this.drawnAt = gameNow;
     const { ctx, camera } = this;
     const z = camera.zoom;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -179,7 +195,7 @@ export class Renderer {
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
     const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
-    belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
+    belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
     for (const b of s.buildings) {
       if (isBelt(b.type)) continue;
       const [fw, fh] = world.footprintOf(b);
@@ -202,16 +218,17 @@ export class Renderer {
       const def = ENEMIES[e.type];
       const track = this.enemies.get(e.id);
       const angle = track?.angle ?? 0;
+      const [ex, ey] = this.smooth(e, e.x, e.y);
       // Walk cycle: the legs swap every short stride, so bugs only scuttle while moving.
       const stride = def.radius * 0.7;
       const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
       const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob;
-      if (!this.drawSprite(`enemies/${e.type}${frame}`, e.x - size / 2, e.y - size / 2, size, angle)) {
+      if (!this.drawSprite(`enemies/${e.type}${frame}`, ex - size / 2, ey - size / 2, size, angle)) {
         ctx.fillStyle = def.color;
-        dot(ctx, e.x, e.y, def.radius);
+        dot(ctx, ex, ey, def.radius);
       }
-      if (e.hp < e.maxHp) bar(ctx, e.x - 0.3, e.y - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
+      if (e.hp < e.maxHp) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
     }
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
@@ -560,8 +577,8 @@ export class Renderer {
 
   // ----------------------------------------------------------- buildings
 
-  private drawBelt(b: Building, look: BeltLook, now: number, z: number): void {
-    if (look.curved) return this.drawCurvedBelt(b, look.from, now, z);
+  private drawBelt(b: Building, look: BeltLook, z: number): void {
+    if (look.curved) return this.drawCurvedBelt(b, look.from, z);
     const ctx = this.ctx;
     const angle = (b.dir * Math.PI) / 2;
     if (!this.drawSprite(`buildings/${b.type}`, b.x, b.y, 1, angle)) {
@@ -573,7 +590,7 @@ export class Renderer {
     // Along the belt (u) and across it (v), from the tile's centre.
     const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
     // Moving chevrons show the direction of travel.
-    const phase = ((now / 1000) * beltSpeed(b.type)) % 0.25;
+    const phase = this.beltPhaseOf(b);
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.lineCap = 'round';
@@ -605,8 +622,41 @@ export class Renderer {
     }
     for (const it of b.belt) {
       const t = it.pos - 0.5;
-      this.drawItem(it.item, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t, 0.42);
+      this.drawItem(it.item, ...this.smooth(it, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t), 0.42);
     }
+  }
+
+  /** A belt's arrow offset for this frame: moved on by game time unless the belt is backed up. */
+  private beltPhaseOf(b: Building): number {
+    let p = this.beltPhase.get(b.id) ?? 0;
+    const blocked = b.belt.length > 0 && b.belt[0].pos >= 1;
+    if (!blocked) p = (p + beltSpeed(b.type) * this.frameDt) % 0.25;
+    this.beltPhase.set(b.id, p);
+    return p;
+  }
+
+  /**
+   * Where to draw something that moves each tick (an item, a bug): part way from where it was on the
+   * previous tick to where it is now. The game ticks 20 times a second and the screen draws 60, so
+   * drawing the tick's position alone makes things move in small jumps (#49). Jumps of over a tile
+   * (an item handed on far, a game loaded) aren't smoothed.
+   */
+  private smooth(obj: object, x: number, y: number): [number, number] {
+    const t = this.world!.state.time;
+    let r = this.smoothed.get(obj);
+    if (!r) {
+      r = { t, x, y, px: x, py: y };
+      this.smoothed.set(obj, r);
+    } else if (r.t !== t) {
+      const recent = t - r.t <= TICK * 4; // seen a moment ago: move on from there
+      r.px = recent ? r.x : x;
+      r.py = recent ? r.y : y;
+      r.x = x;
+      r.y = y;
+      r.t = t;
+    }
+    if (Math.abs(r.x - r.px) + Math.abs(r.y - r.py) > 1) return [x, y];
+    return [r.px + (r.x - r.px) * this.alpha, r.py + (r.y - r.py) * this.alpha];
   }
 
   /** A bar across the belt from `u` to `u + depth` along it. */
@@ -621,7 +671,7 @@ export class Renderer {
   }
 
   /** A quarter-turn belt: items come in from side `from` and leave towards the belt's facing. */
-  private drawCurvedBelt(b: Building, from: Dir, now: number, z: number): void {
+  private drawCurvedBelt(b: Building, from: Dir, z: number): void {
     const ctx = this.ctx;
     // The curve turns about the tile corner shared by its entry and exit sides.
     const px = b.x + 0.5 + (DX[from] + DX[b.dir]) * 0.5;
@@ -654,7 +704,7 @@ export class Renderer {
     ctx.fillStyle = '#8a96a8';
     for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
     // Slats fan out around the bend.
-    const phase = ((now / 1000) * beltSpeed(b.type)) % 0.25;
+    const phase = this.beltPhaseOf(b);
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.beginPath();
@@ -666,7 +716,7 @@ export class Renderer {
     ctx.stroke();
     for (const it of b.belt) {
       const a = a0 + sweep * it.pos;
-      this.drawItem(it.item, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5, 0.42);
+      this.drawItem(it.item, ...this.smooth(it, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5), 0.42);
     }
   }
 

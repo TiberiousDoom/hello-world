@@ -189,6 +189,8 @@ export class World {
   felled: { x: number; y: number; age: number }[] = [];
   /** Counts changes to what stands on the ground: buildings and trees (not saved). Lets the renderer keep a cached picture of the ground until it changes. */
   layout = 0;
+  /** Items handed to the next belt this tick: they've had their move, even if that belt is updated later in the tick. */
+  private movedThisTick = new Set<BeltItem>();
   /** When each building made something in the last minute, and since when it's been watched (not saved), for the rates in its panel. */
   private made = new Map<number, number[]>();
   private watchedSince = new Map<number, number>();
@@ -896,6 +898,7 @@ export class World {
     const s = this.state;
     if (s.gameOver) return;
     s.time += dt;
+    this.movedThisTick.clear();
 
     for (const b of s.buildings) {
       switch (b.type) {
@@ -1013,22 +1016,47 @@ export class World {
   }
 
   /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */
-  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): void {
+  /**
+   * Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. Returns how far (in
+   * tiles) the front item would have gone past the end, so it can carry on onto the next belt.
+   */
+  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): number {
     const spacing = BELT_SPACING / length;
+    let over = 0;
     for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (this.movedThisTick.has(it)) continue;
+      const want = it.pos + (speed * dt) / length;
       const limit = i === 0 ? 1 : items[i - 1].pos - spacing;
-      items[i].pos = Math.max(items[i].pos, Math.min(items[i].pos + (speed * dt) / length, limit));
+      if (i === 0 && want > 1) over = (want - 1) * length;
+      it.pos = Math.max(it.pos, Math.min(want, limit));
     }
+    return over;
   }
 
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
-    this.advanceItems(items, dt, 1, beltSpeed(b.type));
+    const over = this.advanceItems(items, dt, 1, beltSpeed(b.type));
     const front = items[0];
     if (front && front.pos >= 1) {
       const target = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-      if (target && this.insert(target, front.item, b.x, b.y)) items.shift();
+      if (target && (isBelt(target.type) ? this.passAlong(target, front, over, b.x, b.y) : this.insert(target, front.item, b.x, b.y))) items.shift();
     }
+  }
+
+  /**
+   * Hands an item from the end of one belt onto the next, keeping the distance it still had to go this
+   * tick, so items flow across tile edges without pausing or jumping (#49). It counts as moved this tick.
+   */
+  private passAlong(target: Building, it: BeltItem, over: number, fromX: number, fromY: number): boolean {
+    // Don't accept items from the tile this belt feeds into.
+    if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
+    const last = target.belt[target.belt.length - 1];
+    if (last && last.pos < BELT_SPACING) return false;
+    it.pos = Math.min(over, last ? last.pos - BELT_SPACING : 1);
+    target.belt.push(it);
+    this.movedThisTick.add(it);
+    return true;
   }
 
   private tickSplitter(b: Building): void {
