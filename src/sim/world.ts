@@ -44,7 +44,7 @@ import {
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
-import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs } from './nests';
+import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs, tickSpread } from './nests';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -57,7 +57,7 @@ export type { ResearchState };
  * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
  * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
  */
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -128,6 +128,8 @@ export interface GameState {
   paths: PathTimers;
   /** Who is playing. One in single player; co-op adds more (D-056). */
   players: Player[];
+  /** Game time when a bug territory next spreads (#51). */
+  nextSpread: number;
 }
 
 export interface PathTimers {
@@ -187,6 +189,13 @@ export class World {
   events: string[] = [];
   /** Trees cut in the last moment (not saved), for effects and sound. */
   felled: { x: number; y: number; age: number }[] = [];
+  /** Counts changes to what stands on the ground: buildings and trees (not saved). Lets the renderer keep a cached picture of the ground until it changes. */
+  layout = 0;
+  /** Items handed to the next belt this tick: they've had their move, even if that belt is updated later in the tick. */
+  private movedThisTick = new Set<BeltItem>();
+  /** When each building made something in the last minute, and since when it's been watched (not saved), for the rates in its panel. */
+  private made = new Map<number, number[]>();
+  private watchedSince = new Map<number, number>();
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
 
@@ -225,6 +234,7 @@ export class World {
       ship: createShipState(),
       paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
       players: [{ id: 0 }],
+      nextSpread: NESTS.spreadEvery,
     };
     const world = new World(state);
     const hx = Math.floor((size - HUB_SIZE) / 2);
@@ -245,10 +255,17 @@ export class World {
     if (state.version === 9) World.migrateV9(state);
     if (state.version === 10) World.migrateV10(state);
     if (state.version === 11) World.migrateV11(state);
+    if (state.version === 12) World.migrateV12(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v12 to v13: territories spread (#51); the first spread comes a full interval after loading. */
+  private static migrateV12(state: GameState): void {
+    state.nextSpread = state.time + NESTS.spreadEvery;
+    state.version = 13;
   }
 
   /** v11 to v12: path timers and players move into the save (co-op phase 0). Paths rebuild at once. */
@@ -501,6 +518,8 @@ export class World {
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
     if (changed) this.state.paths.dirty = this.state.paths.shipDirty = true;
+    this.layout++;
+    this.watchedSince.set(b.id, this.state.time);
   }
 
   private unindex(b: Building): void {
@@ -508,6 +527,9 @@ export class World {
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
     this.state.paths.dirty = this.state.paths.shipDirty = true;
+    this.layout++;
+    this.made.delete(b.id);
+    this.watchedSince.delete(b.id);
   }
 
   private addBuilding(type: BuildingType, x: number, y: number, dir: Dir): Building {
@@ -886,6 +908,7 @@ export class World {
     const s = this.state;
     if (s.gameOver) return;
     s.time += dt;
+    this.movedThisTick.clear();
 
     for (const b of s.buildings) {
       switch (b.type) {
@@ -935,6 +958,7 @@ export class World {
     if (p.dirty && (p.at == null || s.time - p.at >= FLOW_REFRESH) && anyAngry(this)) this.computeFlow();
     if (s.ship.launchAt != null && p.shipDirty && (p.shipAt == null || s.time - p.shipAt >= FLOW_REFRESH)) this.computeShipFlow();
     tickBugs(this, dt);
+    tickSpread(this);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {
@@ -967,6 +991,7 @@ export class World {
       if (s.regrow[i] > s.time) continue;
       delete s.regrow[i];
       if (s.trees[i] === STUMP) s.trees[i] = TREE;
+      this.layout++;
     }
   }
 
@@ -990,9 +1015,11 @@ export class World {
             if (d < best) [pick, best] = [i, d];
           }
           s.trees[pick] = STUMP;
-          s.regrow[pick] = s.time + LUMBER.regrow;
+          this.layout++;
+          s.regrow[pick] = s.time + LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread;
           this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
           for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');
+          this.noteMade(b, LUMBER.logsPerTree);
         }
       }
     }
@@ -1000,22 +1027,47 @@ export class World {
   }
 
   /** Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. */
-  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): void {
+  /**
+   * Moves items along a belt (or tunnel) of `length` tiles, keeping them spaced. Returns how far (in
+   * tiles) the front item would have gone past the end, so it can carry on onto the next belt.
+   */
+  private advanceItems(items: BeltItem[], dt: number, length: number, speed = BELT_SPEED): number {
     const spacing = BELT_SPACING / length;
+    let over = 0;
     for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (this.movedThisTick.has(it)) continue;
+      const want = it.pos + (speed * dt) / length;
       const limit = i === 0 ? 1 : items[i - 1].pos - spacing;
-      items[i].pos = Math.max(items[i].pos, Math.min(items[i].pos + (speed * dt) / length, limit));
+      if (i === 0 && want > 1) over = (want - 1) * length;
+      it.pos = Math.max(it.pos, Math.min(want, limit));
     }
+    return over;
   }
 
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
-    this.advanceItems(items, dt, 1, beltSpeed(b.type));
+    const over = this.advanceItems(items, dt, 1, beltSpeed(b.type));
     const front = items[0];
     if (front && front.pos >= 1) {
       const target = this.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-      if (target && this.insert(target, front.item, b.x, b.y)) items.shift();
+      if (target && (isBelt(target.type) ? this.passAlong(target, front, over, b.x, b.y) : this.insert(target, front.item, b.x, b.y))) items.shift();
     }
+  }
+
+  /**
+   * Hands an item from the end of one belt onto the next, keeping the distance it still had to go this
+   * tick, so items flow across tile edges without pausing or jumping (#49). It counts as moved this tick.
+   */
+  private passAlong(target: Building, it: BeltItem, over: number, fromX: number, fromY: number): boolean {
+    // Don't accept items from the tile this belt feeds into.
+    if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
+    const last = target.belt[target.belt.length - 1];
+    if (last && last.pos < BELT_SPACING) return false;
+    it.pos = Math.min(over, last ? last.pos - BELT_SPACING : 1);
+    target.belt.push(it);
+    this.movedThisTick.add(it);
+    return true;
   }
 
   private tickSplitter(b: Building): void {
@@ -1086,9 +1138,25 @@ export class World {
       if (b.progress >= EXTRACTOR_PERIOD) {
         b.progress = 0;
         b.outputs.push(item);
+        this.noteMade(b, 1);
       }
     }
     this.pushOutput(b);
+  }
+
+  private noteMade(b: Building, n: number): void {
+    const now = this.state.time;
+    const times = this.made.get(b.id) ?? [];
+    for (let i = 0; i < n; i++) times.push(now);
+    while (times.length && times[0] <= now - 60) times.shift();
+    this.made.set(b.id, times);
+  }
+
+  /** How many items a building made in the last minute, over how many seconds it's been watched (up to 60). */
+  madeRecently(id: number): { count: number; seconds: number } {
+    const now = this.state.time;
+    const count = (this.made.get(id) ?? []).filter((t) => t > now - 60).length;
+    return { count, seconds: Math.min(60, now - (this.watchedSince.get(id) ?? now)) };
   }
 
   private tickMachine(b: Building, dt: number): void {
@@ -1105,6 +1173,7 @@ export class World {
         b.progress += dt;
         if (b.progress >= recipe.time) {
           for (let i = 0; i < recipe.count; i++) b.outputs.push(recipe.output);
+          this.noteMade(b, recipe.count);
           b.progress = -1;
         }
       }

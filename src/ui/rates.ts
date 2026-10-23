@@ -1,0 +1,107 @@
+// Production and belt rates, worked out from the numbers in data.ts so they can
+// be shown in the game (#48): what a building can do at most, what it's doing
+// now, and why not more.
+
+import {
+  BELT_SPACING,
+  BUILDINGS,
+  BuildingType,
+  EXTRACTOR_PERIOD,
+  ITEMS,
+  ItemId,
+  LUMBER,
+  OUTPUT_BUFFER,
+  RECIPES,
+  RECIPE_BY_ID,
+  REPAIR,
+  Recipe,
+  TURRETS,
+  beltSpeed,
+  isBelt,
+  isMachine,
+} from '../sim/data';
+import type { Building, World } from '../sim/world';
+
+/** Rounds a per-minute rate for display: whole numbers, or one decimal below 10. */
+export function fmt(perMinute: number): string {
+  return perMinute >= 10 || Number.isInteger(perMinute) ? String(Math.round(perMinute)) : perMinute.toFixed(1);
+}
+
+/** Most items a belt can carry in a minute: its speed over the gap between items. */
+export function beltPerMinute(type: BuildingType): number {
+  return (beltSpeed(type) / BELT_SPACING) * 60;
+}
+
+/** A recipe's output, and each input, per minute when the machine never waits. */
+export function recipePerMinute(r: Recipe): { output: number; inputs: [ItemId, number][] } {
+  const runs = 60 / r.time;
+  return { output: r.count * runs, inputs: Object.entries(r.inputs).map(([k, n]) => [k as ItemId, n! * runs]) };
+}
+
+const name = (i: ItemId) => ITEMS[i].name.toLowerCase();
+
+/** One line on what a kind of building can do at most, for toolbar tooltips. */
+export function rateSummary(type: BuildingType): string {
+  if (isBelt(type)) return `${beltSpeed(type)} tiles/s, up to ${fmt(beltPerMinute(type))} items/min`;
+  if (type === 'tunnel' || type === 'splitter') return `up to ${fmt(beltPerMinute('belt'))} items/min, like a belt`;
+  if (type === 'extractor') return `${fmt(60 / EXTRACTOR_PERIOD)} ore/min`;
+  if (type === 'lumber_camp') return `up to ${fmt((LUMBER.logsPerTree * 60) / LUMBER.period)} logs/min while trees last`;
+  if (isMachine(type)) {
+    return RECIPES.filter((r) => r.machine === type)
+      .map((r) => `${name(r.output)} ${fmt(recipePerMinute(r).output)}/min`)
+      .join(', ');
+  }
+  const t = TURRETS[type];
+  if (t) return `${t.rate} shots/s, ${fmt((t.rate * 60) / t.shotsPerItem)} ${name(t.ammoItem)}/min while firing`;
+  if (type === 'repair') return `heals ${REPAIR.hpPerSecond} HP/s`;
+  return '';
+}
+
+/** Lines for a placed building's panel: its top rate, and what it's doing now. Empty if it doesn't make or move things. */
+export function buildingRates(world: World, b: Building): { max: string; now: string } | null {
+  if (isBelt(b.type)) return { max: rateSummary(b.type), now: '' };
+  if (b.type === 'extractor') {
+    const ore = b.recipe as ItemId | null;
+    if (!ore) return { max: rateSummary(b.type), now: 'Not on ore' };
+    return { max: `${fmt(60 / EXTRACTOR_PERIOD)} ${name(ore)}/min`, now: nowLine(world, b, b.outputs.length >= OUTPUT_BUFFER ? 'Output full: nothing is taking it' : 'Mining') };
+  }
+  if (b.type === 'lumber_camp') {
+    const [fw, fh] = world.footprintOf(b);
+    const status =
+      b.outputs.length + LUMBER.logsPerTree > OUTPUT_BUFFER ? 'Output full: nothing is taking it' : world.treesInReach(b.x, b.y, fw, fh).trees.length ? 'Cutting' : 'Waiting for trees to grow back';
+    return { max: rateSummary(b.type), now: nowLine(world, b, status) };
+  }
+  if (isMachine(b.type)) {
+    const r = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
+    if (!r) return null;
+    const pm = recipePerMinute(r);
+    const uses = pm.inputs.map(([i, n]) => `${fmt(n)} ${name(i)}`).join(' + ');
+    return { max: `${fmt(pm.output)} ${name(r.output)}/min, using ${uses}/min`, now: nowLine(world, b, machineStatus(b, r)) };
+  }
+  const t = TURRETS[b.type];
+  if (t) return { max: rateSummary(b.type), now: '' };
+  return null;
+}
+
+function machineStatus(b: Building, r: Recipe): string {
+  if (b.progress >= 0) return 'Working';
+  if (b.outputs.length + r.count > OUTPUT_BUFFER + 1) return 'Output full: nothing is taking it';
+  const missing = Object.entries(r.inputs)
+    .filter(([k, n]) => (b.inputs[k as ItemId] ?? 0) < n!)
+    .map(([k]) => name(k as ItemId));
+  return missing.length ? `Waiting for ${missing.join(' and ')}` : 'Starting';
+}
+
+/** How many it made in the last minute (or since it was built, scaled up), and what it's doing. */
+function nowLine(world: World, b: Building, status: string): string {
+  const { count, seconds } = world.madeRecently(b.id);
+  if (seconds < 5) return status;
+  const perMinute = (count * 60) / seconds;
+  return `${fmt(perMinute)}/min lately · ${status}`;
+}
+
+/** Plain text for a tooltip on a toolbar button. */
+export function toolTitle(type: BuildingType, key: number): string {
+  const rates = rateSummary(type);
+  return `${BUILDINGS[type].name} (${key})${rates ? `: ${rates}` : ''}`;
+}

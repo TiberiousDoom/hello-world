@@ -3,9 +3,9 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { FOREST, NESTS, nestComposition } from './data';
+import { FOREST, NESTS } from './data';
 import { hypot } from './math';
-import type { Nest } from './nests';
+import { Nest, nearHub, populate } from './nests';
 import type { World } from './world';
 
 /** Smooth value noise in [0, 1), from a lattice of random values. */
@@ -116,23 +116,11 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
   const nests: Nest[] = [];
   for (let cy = 0; cy + c <= height; cy += c) {
     for (let cx = 0; cx + c <= width; cx += c) {
-      // Distance from the hub to the nearest tile of the cell.
-      const nx = Math.max(cx, Math.min(hubCx, cx + c - 1));
-      const ny = Math.max(cy, Math.min(hubCy, cy + c - 1));
-      if (hypot(nx - hubCx, ny - hubCy) < NESTS.safeRadius) continue;
+      if (nearHub(cx, cy, hubCx, hubCy)) continue;
       if (w.random() >= NESTS.chance) continue;
       nests.push({ id: nests.length, x: cx, y: cy, angryUntil: 0 });
     }
   }
-  for (const nest of nests) {
-    const dist = hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy);
-    const comp = nestComposition(dist);
-    const types = [
-      ...Array<'crawler'>(comp.crawlers).fill('crawler'),
-      ...Array<'runner'>(comp.runners).fill('runner'),
-      ...Array<'brute'>(comp.brutes).fill('brute'),
-    ];
-    for (const type of types) w.spawnBug(type, nest, comp.hpMult);
-  }
+  for (const nest of nests) populate(w, nest, hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy));
   return nests;
 }

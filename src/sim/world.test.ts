@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
+import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
 import { Nest, cellKey, isAngry, nestCentre } from './nests';
 import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
@@ -241,6 +241,23 @@ describe('Production', () => {
     expect(out.map((b) => b.belt.length)).toEqual([1, 1, 1]);
   });
 
+  it('move items at an even speed across belt tiles, with no pause or jump at the edges', () => {
+    const w = emptyWorld();
+    const x0 = w.hub!.x - 20;
+    const y = w.hub!.y - 6;
+    const line = Array.from({ length: 10 }, (_, i) => placed(w.place('belt', x0 + i, y, 0)));
+    const it = { item: 'iron_plate' as ItemId, pos: 0 };
+    line[0].belt.push(it);
+    const travelled = () => line.findIndex((b) => b.belt.includes(it)) + it.pos;
+    let last = travelled();
+    for (let t = 0; t < 4; t += TICK) {
+      w.tick();
+      const now = travelled();
+      expect(now - last).toBeCloseTo(BELT_SPEED * TICK, 9);
+      last = now;
+    }
+  });
+
   it('underground belts carry items under walls', () => {
     const w = emptyWorld();
     const entrance = placed(w.place('tunnel', 20, 20, 0));
@@ -333,6 +350,41 @@ describe('Bugs', () => {
     expect(far.hp).toBe(BUILDINGS.wall.hp);
     for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeLessThanOrEqual(NESTS.leash + 1);
     expect(isAngry(w, n)).toBe(false);
+  });
+
+  it('spread into neighbouring cells without a live nest, never into a live one or onto buildings', () => {
+    const w = emptyWorld();
+    addNest(w, 50, 50, 2);
+    const b = addNest(w, 60, 50, 2); // a live neighbour: its cell is never taken
+    addNest(w, 50, 60, 0); // a cleared neighbour: can be taken over
+    placed(w.place('wall', 45, 55, 0)); // the cell to the left holds a building: stays clear
+    const spreads = () => w.state.nests.length - 3;
+    for (let i = 0; i < 6; i++) {
+      w.state.nextSpread = w.state.time; // spread now
+      w.tick();
+    }
+    expect(spreads()).toBe(6);
+    const owners = new Map<string, number>();
+    for (const n of w.state.nests.slice(3)) {
+      const key = `${n.x},${n.y}`;
+      expect(owners.has(key), `two new nests in ${key}`).toBe(false);
+      owners.set(key, n.id);
+      expect(n.x === b.x && n.y === b.y, 'took the live neighbour').toBe(false);
+      expect(n.x === 40 && n.y === 50, 'settled on a building').toBe(false);
+      expect(w.state.enemies.some((e) => e.nest === n.id)).toBe(true);
+    }
+    // The first spreads can only come from a or b; each new nest borders an older live one.
+    expect(w.state.nests.slice(3).every((n) => w.state.nests.some((o) => o.id < n.id && Math.abs(o.x - n.x) + Math.abs(o.y - n.y) === NESTS.cell))).toBe(true);
+  });
+
+  it('spread on a timer, a few minutes apart', () => {
+    const w = emptyWorld();
+    addNest(w, 50, 50, 2);
+    run(w, NESTS.spreadEvery - 1);
+    expect(w.state.nests.length).toBe(1);
+    run(w, 2);
+    expect(w.state.nests.length).toBe(2);
+    expect(w.events).toContain('Bugs have spread into a new territory.');
   });
 
   it('hold still at the end of their leash instead of twitching back and forth', () => {
@@ -469,6 +521,17 @@ describe('Saves', () => {
     expect(Number.isFinite(near)).toBe(true);
   });
 
+  it('v12 saves get a timer for territories spreading', () => {
+    const w = World.create(5);
+    run(w, 10);
+    const old = JSON.parse(w.toJSON());
+    old.version = 12;
+    delete old.nextSpread;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.state.nextSpread).toBeCloseTo(w.state.time + NESTS.spreadEvery);
+  });
+
   it('refuse older versions (a different kind of map)', () => {
     const old = JSON.parse(World.create(5).toJSON());
     old.version = 7;
@@ -535,8 +598,29 @@ describe('Wood', () => {
     expect(camp.outputs).toEqual([]);
     expect(camp.progress).toBe(-1);
     w.demolish(camp.id); // or it would cut the tree again as soon as it grows back
-    run(w, LUMBER.regrow);
+    run(w, LUMBER.regrow + LUMBER.regrowSpread);
     expect(w.treeAt(x - 1, y)).toBe(TREE);
+  });
+
+  it("stumps grow back at staggered times, so a camp's output evens out", () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const x = hub.x - 14;
+    const y = hub.y + 2;
+    grove(w, x - 3, y - 3, 3);
+    const camp = placed(w.place('lumber_camp', x, y, 0));
+    for (let t = 0; t < 40; t += TICK) {
+      camp.outputs = [];
+      w.tick();
+    }
+    const times = Object.values(w.state.regrow);
+    expect(times.length).toBeGreaterThan(5);
+    const growIn = times.map((t) => t - w.state.time);
+    for (const g of growIn) expect(g).toBeLessThanOrEqual(LUMBER.regrow + LUMBER.regrowSpread);
+    // Not all on the same schedule: cut 3 s apart, they'd otherwise come back 3 s apart too.
+    const sorted = [...times].sort((p, q) => p - q);
+    const gaps = sorted.slice(1).map((t, i) => t - sorted[i]);
+    expect(gaps.some((g) => Math.abs(g - LUMBER.period) > 5)).toBe(true);
   });
 
   it('logs go by belt into a sawmill, and planks reach the hub', () => {

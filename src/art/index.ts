@@ -40,6 +40,11 @@ export function artUrl(key: string): string | undefined {
   return urls.get(key);
 }
 
+/** How many sprites have loaded so far; pictures cached from sprites redraw when it changes. */
+export function spritesLoaded(): number {
+  return cache.size;
+}
+
 /** A pre-rendered sprite for the canvas, if it exists and has loaded. */
 export function sprite(key: string): HTMLCanvasElement | undefined {
   return cache.get(key);

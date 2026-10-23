@@ -83,8 +83,10 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 ## Logistics rules
 
-- **Belts** move 1.5 tiles/s and hold about 3 items per tile. A belt accepts items from
-  any side except the tile it points into.
+- **Belts** move 1.5 tiles/s and hold about 3 items per tile, so a belt line carries up to about
+  **265 items a minute** (an express belt about 530). A belt accepts items from any side except the
+  tile it points into. An item reaching the end of a belt carries straight on onto the next one, at
+  an even speed (#49).
 - **Express belts** (a colony blueprint) work the same way at 3 tiles/s. They can be laid like belts,
   but the quick way is to **tap or click an existing belt with the Express Belt selected: its whole line
   is upgraded in place**, with no ✓ step on touch. The line is every belt joined to the tapped one,
@@ -124,7 +126,8 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 - A **Lumber Camp** (2×2) must have at least one tree or stump within **4 tiles** of its centre. Every
   3 s it cuts the nearest tree in reach into **2 logs**, and outputs them like an extractor. It waits
   while its output is full, and goes idle when nothing in reach is grown.
-- A cut tree leaves a **stump**, which grows back into a tree after **180 s**. Stumps don't block
+- A cut tree leaves a **stump**, which grows back into a tree after **2 to 4 minutes** (3 on average,
+  at random, so a grove grows back gradually and a camp's logs come steadily, #50). Stumps don't block
   building: building over one clears it for good. So a camp can clear land, or keep cutting the same
   woods as they regrow.
 - The **Sawmill** (2×2 machine) turns 1 log into 2 planks.
@@ -187,6 +190,12 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - Territories show a red dashed outline while you're placing a building, and a pulsing one while
   they're angry.
 - Killed bugs don't come back: a nest with no bugs left is cleared, and its mound goes flat.
+- **Territories spread (D-059).** Every **4 minutes**, one live territory, picked at random, spreads
+  into a neighbouring cell (left, right, above or below) that has no live nest: a cleared territory
+  or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
+  with any of your buildings in them, stay clear, so building on cleared land holds it. A new
+  territory starts with **half** the bugs a nest that far out would have. A message says when it
+  happens.
 - Nests further from the hub are bigger and tougher:
 
   | Bugs in a nest *d* tiles from the hub | Count |
@@ -321,6 +330,14 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 - The **toolbar** at the bottom lists the unlocked buildings with their costs, plus Rotate and Demolish.
 - The **info panel** opens only for a building that's already placed (select it). Picking a tool from the
   toolbar shows no panel.
+- **Rates (#48):** the info panel shows a building's top rate (items a minute in and out, belt
+  capacity, turret ammo use) and what it's doing now: how many it made a minute lately, and a status
+  such as "Waiting for iron ore" or "Output full". Toolbar tooltips show each building's rates.
+- **Version and What's new:** the main menu shows the game's version (from `CHANGELOG.md`).
+  "What's new", on the main menu and in the pause menu, shows the changelog, newest first, with a dot
+  until you've opened this version's notes.
+- **Battery saver** (pause menu): draws at normal resolution and 30 frames a second. Otherwise the
+  game draws at most 60 frames a second, and 30 while paused or on the main menu (#46).
 - Hub stock floats above the hub (see [Map](#map)).
 
 ## Controls
@@ -407,8 +424,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v11**). v11 adds colony blueprints: a game that had delivered
-  runs loads with an offer of both blueprints to pick from.
+- Save files are versioned (currently **v13**). v13 adds the timer for territories spreading. v12 saved
+  the attack-path timers and a player list (co-op groundwork, D-058). v11 added colony blueprints: a game
+  that had delivered runs loads with an offer of both blueprints to pick from.
 - v10 turned the escape ship into the supply ship: a game
   that had escaped loads with one run delivered, and the ship built and back at the shipyard; other
   games keep their ship progress.

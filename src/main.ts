@@ -11,6 +11,7 @@ import { createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
 import { Session } from './sim/session';
 import { OldSaveError, TICK, World } from './sim/world';
+import { VERSION, changelogHtml } from './ui/changelog';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
@@ -48,10 +49,12 @@ interface Profile {
   confirmTouch: boolean;
   musicVolume: number; // 0–1
   sfxVolume: number; // 0–1
+  lastSeenVersion: string; // the newest version whose What's new this player has opened
+  batterySaver: boolean; // draw at normal resolution and 30 frames a second
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0 };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0, lastSeenVersion: '', batterySaver: false };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -108,6 +111,7 @@ ui.confirmTouch = profile.confirmTouch;
 const camera = new Camera();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas, camera);
+renderer.maxDpr = profile.batterySaver ? 1 : 2;
 
 function centreOnHub(world: World): void {
   const hub = world.hub;
@@ -265,6 +269,15 @@ document.addEventListener('click', (e) => {
   if ((e.target as Element).closest?.('button')) sfx.play('click');
 });
 
+const saverToggle = document.getElementById('saver-toggle') as HTMLInputElement;
+saverToggle.checked = profile.batterySaver;
+saverToggle.addEventListener('change', () => {
+  profile.batterySaver = saverToggle.checked;
+  renderer.maxDpr = profile.batterySaver ? 1 : 2;
+  renderer.resize();
+  saveProfile();
+});
+
 const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
 confirmToggle.checked = profile.confirmTouch;
 confirmToggle.addEventListener('change', () => {
@@ -279,6 +292,24 @@ document.getElementById('mm-continue')!.addEventListener('click', () => {
 });
 document.getElementById('mm-new')!.addEventListener('click', () => hud.openNewGame());
 document.getElementById('mm-help')!.addEventListener('click', () => hud.openModal('help'));
+
+/** The version, and a dot on "What's new" until this player has looked at this version's changes. */
+function showVersion(): void {
+  for (const el of document.querySelectorAll('.app-version')) el.textContent = VERSION;
+  for (const dot of document.querySelectorAll<HTMLElement>('.new-dot')) dot.hidden = profile.lastSeenVersion === VERSION;
+}
+
+function openWhatsNew(): void {
+  const body = document.getElementById('changelog-body')!;
+  if (!body.firstChild) body.innerHTML = changelogHtml();
+  hud.openModal('changelog');
+  profile.lastSeenVersion = VERSION;
+  saveProfile();
+  showVersion();
+}
+document.getElementById('mm-whatsnew')!.addEventListener('click', openWhatsNew);
+document.getElementById('btn-whatsnew')!.addEventListener('click', openWhatsNew);
+showVersion();
 
 window.addEventListener('resize', () => renderer.resize());
 document.addEventListener('visibilitychange', () => {
@@ -295,7 +326,21 @@ loadArt(); // sprites appear as they finish loading; shapes are drawn until then
 
 let last = performance.now();
 let acc = 0;
+let lastFrame = 0;
+/**
+ * Frame pacing (#46): at most 60 frames a second (a 120 Hz screen would otherwise
+ * draw twice as often), and 30 while paused, on the main menu or in battery saver.
+ */
+function frameInterval(): number {
+  return profile.batterySaver || inMenu || ui.speed === 0 ? 1000 / 30 : 1000 / 60;
+}
 function frame(now: number): void {
+  // A little slack, so a 60 Hz screen keeps every frame and a 120 Hz one keeps every other.
+  if (now - lastFrame < frameInterval() - 3) {
+    requestAnimationFrame(frame);
+    return;
+  }
+  lastFrame = now;
   const world = active();
   const elapsed = Math.min(0.25, (now - last) / 1000);
   last = now;
@@ -317,7 +362,7 @@ function frame(now: number): void {
     camera.y = hub.y + HUB_SIZE / 2 + Math.cos(t * 0.05) * 4 + (window.innerWidth < 600 ? 5 : 0);
   }
   camera.clampTo(world.state.width, world.state.height);
-  renderer.draw(world, inMenu ? null : ui, now);
+  renderer.draw(world, inMenu ? null : ui, now, Math.min(1, acc / TICK));
   planBar.update(world, !inMenu);
   if (!inMenu) {
     hud.update(world, now);
@@ -344,6 +389,7 @@ requestAnimationFrame(frame);
   ui,
   music,
   sfx,
+  version: VERSION,
   /** The scripted game the cross-browser determinism test runs (D-058). */
   runScenario,
 };

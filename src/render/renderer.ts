@@ -2,7 +2,7 @@
 // shapes if one is missing) and only reads the simulation, so a 3D renderer
 // can replace it later behind the same draw() call.
 
-import { sprite } from '../art';
+import { sprite, spritesLoaded } from '../art';
 import {
   BUILDINGS,
   BuildingType,
@@ -28,10 +28,10 @@ import {
   isBelt,
   isMachine,
 } from '../sim/data';
-import { Building, STUMP, Shot, TREE, World } from '../sim/world';
+import { Building, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { Plan, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
-import { Nest, isAngry, nestCentre } from '../sim/nests';
+import { Nest, isAngry, nestCentre, ownsCell } from '../sim/nests';
 import { planStatus } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
@@ -65,6 +65,26 @@ const BELT_RAIL = '#5a6478';
 const EXPRESS_RAIL = '#d9a93a';
 const BELT_SLAT = 'rgba(138,150,168,0.5)';
 
+/** Tiles of spare picture around the view in a cached layer, so panning doesn't redraw it every frame. */
+const LAYER_MARGIN = 6;
+
+/**
+ * A cached picture of tiles that rarely change (ground, decoration, ore, trees), so
+ * they're drawn once instead of every frame (#46). Redrawn when the view leaves it,
+ * the zoom changes, sprites finish loading, or something is built or cut down.
+ */
+interface Layer {
+  canvas: HTMLCanvasElement;
+  key: string;
+  x0: number;
+  y0: number;
+  x1: number; // exclusive
+  y1: number;
+  scale: number; // canvas pixels per tile
+}
+
+const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
+
 interface Effect {
   kind: 'puff' | 'blast' | 'shockwave';
   x: number;
@@ -78,7 +98,10 @@ interface Effect {
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
-  private groundPattern: CanvasPattern | null = null;
+  /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
+  maxDpr = 2;
+  private ground = newLayer();
+  private canopy = newLayer();
   /** Turret aim angles, from their most recent shot. */
   private aims = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
@@ -88,6 +111,15 @@ export class Renderer {
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
   private world: World | null = null;
+  /** How far the game is between its last tick and the next (0–1); things are drawn that far along (#49). */
+  private alpha = 1;
+  /** Game seconds since the last frame, for belt arrows. */
+  private frameDt = 0;
+  private drawnAt = 0;
+  /** Each belt's arrow offset: it moves with game time, and stops while the belt is backed up. */
+  private beltPhase = new Map<number, number>();
+  /** Where moving things were on the last two ticks, to draw them part way between (#49). */
+  private smoothed = new WeakMap<object, { t: number; x: number; y: number; px: number; py: number }>();
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -97,7 +129,7 @@ export class Renderer {
   }
 
   resize(): void {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
     this.canvas.width = Math.round(w * this.dpr);
@@ -106,10 +138,11 @@ export class Renderer {
     this.camera.height = h;
   }
 
-  draw(world: World, ui: UIState | null, now: number): void {
+  /** `alpha`: how far the game is towards its next tick (0–1); moving things are drawn that far along. */
+  draw(world: World, ui: UIState | null, now: number, alpha = 1): void {
     // iOS Safari can change the visible area (toolbars, opening from another app)
     // without a resize event, which left the picture stretched. Check every frame.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
     if (this.canvas.clientWidth !== this.camera.width || this.canvas.clientHeight !== this.camera.height || dpr !== this.dpr) {
       this.resize();
     }
@@ -120,7 +153,13 @@ export class Renderer {
       this.enemies.clear();
       this.effects = [];
       this.breaches = world.state.breaches;
+      this.beltPhase.clear();
+      this.drawnAt = world.state.time;
     }
+    this.alpha = alpha;
+    const gameNow = world.state.time + alpha * TICK;
+    this.frameDt = Math.min(0.25, Math.max(0, gameNow - this.drawnAt));
+    this.drawnAt = gameNow;
     const { ctx, camera } = this;
     const z = camera.zoom;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -142,21 +181,10 @@ export class Renderer {
 
     this.trackEffects(world, now);
 
-    // Ground, decorations and resources. Beyond the map's edge is forest.
-    ctx.fillStyle = FOREST_FLOOR;
-    ctx.fillRect(Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f - x0f) + 3, Math.ceil(y1f - y0f) + 3);
-    this.drawGround(s.width, s.height);
-    const decorate = z >= 14;
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        const i = world.idx(x, y);
-        const r = s.resources[i];
-        if (r) this.drawNode(r, x, y);
-        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
-        else if (decorate && !world.tiles[i] && !s.trees[i]) this.drawDecoration(x, y);
-      }
-    }
-    this.drawMapEdge(s.width, s.height);
+    // Ground, decorations and resources (cached). Beyond the map's edge is forest.
+    const stamp = `${world.layout}|${spritesLoaded()}`;
+    const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
+    this.drawLayer(this.ground, stamp, view, (lx0, ly0, lx1, ly1) => this.paintGround(world, lx0, ly0, lx1, ly1));
 
     // Paired tunnels: a faint dotted line where the belt runs underground.
     for (const b of s.buildings) {
@@ -167,7 +195,7 @@ export class Renderer {
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
     const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
-    belts.forEach((b, i) => this.drawBelt(b, looks[i], now, z));
+    belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
     for (const b of s.buildings) {
       if (isBelt(b.type)) continue;
       const [fw, fh] = world.footprintOf(b);
@@ -176,25 +204,32 @@ export class Renderer {
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
-    for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
+    // (A cleared territory taken over by a newer nest is drawn as that nest.)
+    for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
 
-    this.drawTrees(world, x0, y0, x1, y1, z);
+    this.drawLayer(this.canopy, stamp, view, (lx0, ly0, lx1, ly1) => {
+      // One tile more each way: canopies spill over their neighbours.
+      const cx0 = Math.max(0, lx0 - 1);
+      const cy0 = Math.max(0, ly0 - 1);
+      this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
+    });
 
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
       const def = ENEMIES[e.type];
       const track = this.enemies.get(e.id);
       const angle = track?.angle ?? 0;
+      const [ex, ey] = this.smooth(e, e.x, e.y);
       // Walk cycle: the legs swap every short stride, so bugs only scuttle while moving.
       const stride = def.radius * 0.7;
       const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
       const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob;
-      if (!this.drawSprite(`enemies/${e.type}${frame}`, e.x - size / 2, e.y - size / 2, size, angle)) {
+      if (!this.drawSprite(`enemies/${e.type}${frame}`, ex - size / 2, ey - size / 2, size, angle)) {
         ctx.fillStyle = def.color;
-        dot(ctx, e.x, e.y, def.radius);
+        dot(ctx, ex, ey, def.radius);
       }
-      if (e.hp < e.maxHp) bar(ctx, e.x - 0.3, e.y - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
+      if (e.hp < e.maxHp) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
     }
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
@@ -334,14 +369,67 @@ export class Renderer {
     }
   }
 
+  /**
+   * Draws a cached layer covering `view` (tiles x0, y0 to x1, y1, exclusive), first
+   * repainting it with `paint` if it's out of date or the view has moved off it.
+   */
+  private drawLayer(l: Layer, stamp: string, view: [number, number, number, number], paint: (x0: number, y0: number, x1: number, y1: number) => void): void {
+    const [vx0, vy0, vx1, vy1] = view;
+    const scale = this.camera.zoom * this.dpr;
+    const key = `${scale}|${stamp}`;
+    if (l.key !== key || vx0 < l.x0 || vy0 < l.y0 || vx1 > l.x1 || vy1 > l.y1) {
+      l.x0 = vx0 - LAYER_MARGIN;
+      l.y0 = vy0 - LAYER_MARGIN;
+      l.x1 = vx1 + LAYER_MARGIN;
+      l.y1 = vy1 + LAYER_MARGIN;
+      l.scale = scale;
+      l.key = key;
+      l.canvas.width = Math.ceil((l.x1 - l.x0) * scale);
+      l.canvas.height = Math.ceil((l.y1 - l.y0) * scale); // resizing also clears it
+      const lctx = l.canvas.getContext('2d')!;
+      lctx.setTransform(scale, 0, 0, scale, -l.x0 * scale, -l.y0 * scale);
+      const main = this.ctx;
+      this.ctx = lctx;
+      paint(l.x0, l.y0, l.x1, l.y1);
+      this.ctx = main;
+    }
+    // Copy it pixel for pixel, at a whole device pixel: scaling or a fractional offset would make the
+    // browser resample the whole picture every frame, which is slow without a GPU (and blurs it).
+    const ctx = this.ctx;
+    const [sx, sy] = this.camera.toScreen(l.x0, l.y0);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(l.canvas, Math.round(sx * this.dpr), Math.round(sy * this.dpr));
+    ctx.restore();
+  }
+
+  /** Forest floor beyond the map, the grass, ore, stumps and decoration, and the shadow at the map's edge. */
+  private paintGround(world: World, x0: number, y0: number, x1: number, y1: number): void {
+    const s = world.state;
+    const ctx = this.ctx;
+    ctx.fillStyle = FOREST_FLOOR;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    this.drawGround(s.width, s.height);
+    const decorate = this.camera.zoom >= 14;
+    for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
+      for (let x = Math.max(0, x0); x < Math.min(s.width, x1); x++) {
+        const i = world.idx(x, y);
+        const r = s.resources[i];
+        if (r) this.drawNode(r, x, y);
+        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
+        else if (decorate && !world.tiles[i] && !s.trees[i]) this.drawDecoration(x, y);
+      }
+    }
+    this.drawMapEdge(s.width, s.height);
+  }
+
   private drawGround(w: number, h: number): void {
     const ctx = this.ctx;
     const img = sprite('terrain/ground');
-    if (img && !this.groundPattern) {
-      this.groundPattern = ctx.createPattern(img, 'repeat');
-      this.groundPattern?.setTransform(new DOMMatrix().scale(1 / img.width));
-    }
-    ctx.fillStyle = this.groundPattern ?? '#2e4d33';
+    // A pattern belongs to the context it was made in, and the ground is painted rarely, so make it each time.
+    const pattern = img ? ctx.createPattern(img, 'repeat') : null;
+    pattern?.setTransform(new DOMMatrix().scale(1 / img!.width));
+    ctx.fillStyle = pattern ?? '#2e4d33';
     ctx.fillRect(0, 0, w, h);
   }
 
@@ -490,8 +578,8 @@ export class Renderer {
 
   // ----------------------------------------------------------- buildings
 
-  private drawBelt(b: Building, look: BeltLook, now: number, z: number): void {
-    if (look.curved) return this.drawCurvedBelt(b, look.from, now, z);
+  private drawBelt(b: Building, look: BeltLook, z: number): void {
+    if (look.curved) return this.drawCurvedBelt(b, look.from, z);
     const ctx = this.ctx;
     const angle = (b.dir * Math.PI) / 2;
     if (!this.drawSprite(`buildings/${b.type}`, b.x, b.y, 1, angle)) {
@@ -503,7 +591,7 @@ export class Renderer {
     // Along the belt (u) and across it (v), from the tile's centre.
     const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
     // Moving chevrons show the direction of travel.
-    const phase = ((now / 1000) * beltSpeed(b.type)) % 0.25;
+    const phase = this.beltPhaseOf(b);
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.lineCap = 'round';
@@ -535,8 +623,41 @@ export class Renderer {
     }
     for (const it of b.belt) {
       const t = it.pos - 0.5;
-      this.drawItem(it.item, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t, 0.42);
+      this.drawItem(it.item, ...this.smooth(it, b.x + 0.5 + dx * t, b.y + 0.5 + dy * t), 0.42);
     }
+  }
+
+  /** A belt's arrow offset for this frame: moved on by game time unless the belt is backed up. */
+  private beltPhaseOf(b: Building): number {
+    let p = this.beltPhase.get(b.id) ?? 0;
+    const blocked = b.belt.length > 0 && b.belt[0].pos >= 1;
+    if (!blocked) p = (p + beltSpeed(b.type) * this.frameDt) % 0.25;
+    this.beltPhase.set(b.id, p);
+    return p;
+  }
+
+  /**
+   * Where to draw something that moves each tick (an item, a bug): part way from where it was on the
+   * previous tick to where it is now. The game ticks 20 times a second and the screen draws 60, so
+   * drawing the tick's position alone makes things move in small jumps (#49). Jumps of over a tile
+   * (an item handed on far, a game loaded) aren't smoothed.
+   */
+  private smooth(obj: object, x: number, y: number): [number, number] {
+    const t = this.world!.state.time;
+    let r = this.smoothed.get(obj);
+    if (!r) {
+      r = { t, x, y, px: x, py: y };
+      this.smoothed.set(obj, r);
+    } else if (r.t !== t) {
+      const recent = t - r.t <= TICK * 4; // seen a moment ago: move on from there
+      r.px = recent ? r.x : x;
+      r.py = recent ? r.y : y;
+      r.x = x;
+      r.y = y;
+      r.t = t;
+    }
+    if (Math.abs(r.x - r.px) + Math.abs(r.y - r.py) > 1) return [x, y];
+    return [r.px + (r.x - r.px) * this.alpha, r.py + (r.y - r.py) * this.alpha];
   }
 
   /** A bar across the belt from `u` to `u + depth` along it. */
@@ -551,7 +672,7 @@ export class Renderer {
   }
 
   /** A quarter-turn belt: items come in from side `from` and leave towards the belt's facing. */
-  private drawCurvedBelt(b: Building, from: Dir, now: number, z: number): void {
+  private drawCurvedBelt(b: Building, from: Dir, z: number): void {
     const ctx = this.ctx;
     // The curve turns about the tile corner shared by its entry and exit sides.
     const px = b.x + 0.5 + (DX[from] + DX[b.dir]) * 0.5;
@@ -584,7 +705,7 @@ export class Renderer {
     ctx.fillStyle = '#8a96a8';
     for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
     // Slats fan out around the bend.
-    const phase = ((now / 1000) * beltSpeed(b.type)) % 0.25;
+    const phase = this.beltPhaseOf(b);
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.beginPath();
@@ -596,7 +717,7 @@ export class Renderer {
     ctx.stroke();
     for (const it of b.belt) {
       const a = a0 + sweep * it.pos;
-      this.drawItem(it.item, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5, 0.42);
+      this.drawItem(it.item, ...this.smooth(it, px + Math.cos(a) * 0.5, py + Math.sin(a) * 0.5), 0.42);
     }
   }
 
