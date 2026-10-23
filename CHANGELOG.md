@@ -3,6 +3,9 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.30.1 · 2026-10-23 · Plans for nests
+- Nothing changes in play. The plans for nests are written down: mounds you can destroy for chitin, nests that breed young bugs, a threat that rises over time, night raids, nest kinds and queen nests, and tougher Hardcore nests you have to build over.
+
 ## 0.30.0 · 2026-10-23 · Send feedback from the game
 ### New
 - **Send feedback** in the pause menu: pick Bug, Idea or Other and describe it. Diagnostics (the game's version, your browser and screen, the frame rate, this game's progress and any recent errors) are included unless you untick them, and you can see exactly what's in them first.
