@@ -103,6 +103,36 @@ test.describe('desktop', () => {
     await expect.poll(() => count(page, 'wall')).toBe(4);
   });
 
+  test('a belt dragged across a belt goes under it; a new underground entrance offers its exit', async ({ page }) => {
+    await newGame(page);
+    await calm(page);
+    const { x0, y0 } = await clearArea(page);
+    const link = (x: number, y: number) => page.evaluate(([x, y]) => window.game.world.buildingAt(x, y)?.link ?? null, [x, y] as const);
+    await page.click('[data-tool="belt"]');
+    await drag(page, await tilePoint(page, x0 + 3, y0), await tilePoint(page, x0 + 3, y0 + 4)); // a belt running south
+    await page.keyboard.press('Enter');
+    await expect.poll(() => count(page, 'belt')).toBe(5);
+
+    // Across it, eastward: the line goes under.
+    await drag(page, await tilePoint(page, x0, y0 + 2), await tilePoint(page, x0 + 6, y0 + 2));
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => (await at(page, x0 + 2, y0 + 2))?.type).toBe('tunnel');
+    expect(await at(page, x0 + 3, y0 + 2)).toEqual({ type: 'belt', dir: 1 }); // left alone
+    expect((await at(page, x0 + 4, y0 + 2))?.type).toBe('tunnel');
+    expect(await link(x0 + 2, y0 + 2)).not.toBeNull();
+    expect((await at(page, x0 + 6, y0 + 2))?.type).toBe('belt');
+
+    // The underground tool: the entrance, then an exit blueprint past the belt, built by clicking it.
+    await page.click('[data-tool="tunnel"]');
+    await page.mouse.click(...(await tilePoint(page, x0 + 2, y0 + 4)));
+    expect((await at(page, x0 + 2, y0 + 4))?.type).toBe('tunnel');
+    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 4, y: y0 + 4 }]);
+    await page.mouse.click(...(await tilePoint(page, x0 + 4, y0 + 4)));
+    await expect.poll(async () => (await at(page, x0 + 4, y0 + 4))?.type).toBe('tunnel');
+    expect(await link(x0 + 4, y0 + 4)).not.toBeNull();
+    expect(await planLength(page)).toBe(0);
+  });
+
   test('a single building dragged into place waits for a click on it', async ({ page }) => {
     await newGame(page);
     await calm(page);

@@ -9,7 +9,9 @@ export type Tool = BuildingType | 'demolish' | null;
  */
 export interface Plan {
   tool: BuildingType;
-  tiles: { x: number; y: number }[];
+  tiles: Spot[];
+  /** An underground belt's exit blueprint slides only along the line ahead of its entrance (#64). */
+  along?: { x: number; y: number; dir: Dir };
 }
 
 /** UI state shared between input, rendering and the HUD. */

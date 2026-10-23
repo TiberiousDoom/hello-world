@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.35.0 · 2026-10-23 · Easier underground belts
+### New
+- **Pick an underground belt's exit:** after you place an entrance, its exit appears as a blueprint just past whatever is in the way. Tap ✓ or click it to build it, or drag it along first.
+- **Belts go under belts:** drag a belt line straight across another belt and it goes under it, with an underground entrance and exit placed for you (and paid for). If you can't afford them, the line stops before the crossing.
+
 ## 0.34.0 · 2026-10-23 · Two-lane belts
 ### New
 - **Belts have two lanes**, side by side, so each belt carries twice as much. Buildings put items on the right lane. A belt that feeds into another from the side puts its items on the near lane, so you can merge two kinds of item onto one belt.
