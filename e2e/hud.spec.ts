@@ -86,7 +86,8 @@ test("the main menu shows the version, and What's new lists the changes until it
   await page.click('#mm-whatsnew');
   await expect(page.locator('#changelog')).toBeVisible();
   await expect(page.locator('#changelog .release[open] summary')).toContainText(`v${version}`);
-  await expect(page.locator('#changelog .release[open]')).toContainText('New');
+  await expect(page.locator('#changelog .release[open] li').first()).toBeVisible(); // its notes are shown
+  await expect(page.locator('#changelog .release:not([open])').first()).toBeAttached(); // older ones are folded
   await page.click('#changelog [data-close]');
   await expect(page.locator('#changelog')).toBeHidden();
   await expect(page.locator('#mm-whatsnew .new-dot')).toBeHidden();
