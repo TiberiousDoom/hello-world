@@ -6,6 +6,7 @@
 // bigger run.
 
 import { BLUEPRINTS, BLUEPRINT_BY_ID, ItemCounts, ItemId, NESTS, SHIP, ShipStage, cargoFor } from './data';
+import { hypot } from './math';
 import { Nest, nestAlive, nestCentre, provoke } from './nests';
 import type { Building, World } from './world';
 
@@ -124,7 +125,7 @@ export function nestsToWake(w: World): Nest[] {
   const [yx, yy] = w.centreOf(yard);
   const live = w.state.nests
     .filter((n) => nestAlive(w, n))
-    .map((n) => ({ n, d: Math.hypot(nestCentre(n)[0] - yx, nestCentre(n)[1] - yy) }))
+    .map((n) => ({ n, d: hypot(nestCentre(n)[0] - yx, nestCentre(n)[1] - yy) }))
     .sort((a, b) => a.d - b.d);
   const r = wakeRadius(w);
   return live.filter((x, i) => x.d <= r || i < SHIP.minWake).map((x) => x.n);

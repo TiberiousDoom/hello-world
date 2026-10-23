@@ -22,7 +22,7 @@ npm run build:single # one self-contained HTML file in dist-single/ (no music, n
 npm run test:e2e     # Playwright, desktop and phone viewports; builds and serves on :4173
 npx vitest run src/sim/ship.test.ts            # one unit test file (add -t "name" for one test)
 npx playwright test e2e/lessons.spec.ts        # one browser suite
-npx playwright test --project=desktop          # one viewport (projects: desktop, phone)
+npx playwright test --project=desktop          # one project (desktop, phone; firefox and webkit run only the determinism test)
 node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
 ```
 
@@ -41,6 +41,11 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   - `data.ts` holds all balance numbers and content. It is the source of truth; docs follow it.
   - `world.ts` (simulation), `mapgen.ts` (256×256 map, ore noise, nests), `nests.ts` (bug territories),
     `ship.ts` (escape ship), `research.ts`, `demo.ts` (the main-menu factory).
+  - `commands.ts` and `session.ts`: every change a player makes is a `Command`, applied through the game's
+    `Session` (its world, clock and command log). This is what co-op sends between games (D-056, D-058).
+  - Co-op games must compute exactly the same numbers in every browser: use `hypot` from `math.ts`, never
+    `Math.hypot`, and keep other `Math` functions whose last bit can vary (`sin`, `cos`, `exp`, `pow`, ...)
+    out of the rules (map generation is the one exception: only the host runs it).
 - `src/render/`: Canvas 2D renderer and camera. Visual effects come from diffing world state each frame.
 - `src/audio/`: music (crossfading tracks), synthesized sound effects (`sfx.ts`) and `sounds.ts`, which
   turns each frame's world changes into sounds (like the renderer's effects).
@@ -50,14 +55,17 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
 - `main.ts`: wiring, the game loop, save/load and the player profile (localStorage).
 
 How a frame flows: `main.ts` runs a fixed-step accumulator in `requestAnimationFrame` that calls
-`world.tick(TICK)` (scaled by the UI's game speed, capped per frame), then `renderer.draw`, the HUD,
-`sounds.update` and the tutorial check. Everything outside `src/sim/` only reads the world or calls
-`World` methods (`place`, `demolish`, `rotate`, `startResearch`, ...), which return an error code
-(`PlaceError`, `ResearchError`) instead of throwing. The main menu runs a live `World` too (`demo.ts`).
+`session.tick()` (scaled by the UI's game speed, capped per frame), then `renderer.draw`, the HUD,
+`sounds.update` and the tutorial check. Everything outside `src/sim/` only reads the world; to change
+it, the input and HUD call `issue({ kind: 'place', ... })`, which applies a `Command` through the
+session. Commands return what the `World` method returns: an error code (`PlaceError`,
+`ResearchError`) instead of throwing. A unit test fails if `src/ui` or `src/input` call `World`
+methods that change it. The main menu runs a live `World` too (`demo.ts`), without a session.
 - Buildings have rectangular footprints (`size` in `BUILDINGS`, width along the facing); use
   `footprint(type, dir)`, `world.footprintOf(b)`, `world.outputTile(b)` instead of assuming 1×1.
 - Saves are versioned (`SAVE_VERSION` in `world.ts`). If you change saved state, bump the version and
-  add a migration with a test (v8 deliberately can't load older saves; see D-038).
+  add a migration with a test (v8 deliberately can't load older saves; see D-038). State that steers the
+  rules belongs in `GameState`, not in private `World` fields, or co-op games loaded from a snapshot drift.
 - Match the surrounding style: short doc comments explaining *why*, and no `any`.
 
 ## Tests

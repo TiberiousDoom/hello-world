@@ -1,7 +1,9 @@
 import { defineConfig } from '@playwright/test';
 
 // Browser tests (e2e/). They build the game and serve it, because the music
-// only loads over HTTP. Each test runs on a desktop and a phone viewport.
+// only loads over HTTP. Each test runs on a desktop and a phone viewport; the
+// determinism test also runs in Firefox and WebKit (co-op needs every browser to
+// compute the same game, D-058).
 export default defineConfig({
   testDir: 'e2e',
   timeout: 90_000,
@@ -22,5 +24,7 @@ export default defineConfig({
   projects: [
     { name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1200, height: 780 } } },
     { name: 'phone', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
+    { name: 'firefox', testMatch: /determinism/, use: { browserName: 'firefox' } },
+    { name: 'webkit', testMatch: /determinism/, use: { browserName: 'webkit' } },
   ],
 });

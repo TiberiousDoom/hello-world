@@ -43,6 +43,7 @@ import {
 } from './data';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
+import { hypot } from './math';
 import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs } from './nests';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -56,7 +57,7 @@ export type { ResearchState };
  * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
  * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
  */
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -123,6 +124,21 @@ export interface GameState {
   nests: Nest[];
   gameOver: boolean;
   ship: ShipState;
+  /** When the attack-path fields were last rebuilt, and whether they're due (saved so co-op games agree, D-058). */
+  paths: PathTimers;
+  /** Who is playing. One in single player; co-op adds more (D-056). */
+  players: Player[];
+}
+
+export interface PathTimers {
+  dirty: boolean;
+  at: number | null; // game time of the last rebuild; null: never, or rebuild at once
+  shipDirty: boolean;
+  shipAt: number | null;
+}
+
+export interface Player {
+  id: number;
 }
 
 export interface Shot {
@@ -161,12 +177,8 @@ export class World {
    * or longer (tiles skipped, so bugs there had no path).
    */
   flow: Float64Array;
-  private flowDirty = true;
-  private flowAt = -Infinity;
   /** Cost to reach the shipyard from each tile, for bugs drawn to it by a launch (D-047). */
   shipFlow: Float64Array;
-  private shipFlowDirty = true;
-  private shipFlowAt = -Infinity;
   /** The nest owning each territory cell (see cellKey). */
   nestCells = new Map<number, Nest>();
   shots: Shot[] = [];
@@ -183,7 +195,7 @@ export class World {
     this.tiles = new Int32Array(state.width * state.height);
     this.flow = new Float64Array(state.width * state.height);
     this.shipFlow = new Float64Array(state.width * state.height);
-    for (const b of state.buildings) this.index(b);
+    for (const b of state.buildings) this.index(b, false);
     for (const n of state.nests) this.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
   }
 
@@ -211,6 +223,8 @@ export class World {
       nests: [],
       gameOver: false,
       ship: createShipState(),
+      paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
+      players: [{ id: 0 }],
     };
     const world = new World(state);
     const hx = Math.floor((size - HUB_SIZE) / 2);
@@ -230,8 +244,18 @@ export class World {
     if (state.version === 8) World.migrateV8(state);
     if (state.version === 9) World.migrateV9(state);
     if (state.version === 10) World.migrateV10(state);
+    if (state.version === 11) World.migrateV11(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
-    return new World(state);
+    const world = new World(state);
+    world.rebuildPaths();
+    return world;
+  }
+
+  /** v11 to v12: path timers and players move into the save (co-op phase 0). Paths rebuild at once. */
+  private static migrateV11(state: GameState): void {
+    state.paths = { dirty: true, at: null, shipDirty: true, shipAt: null };
+    state.players = [{ id: 0 }];
+    state.version = 12;
   }
 
   /** v8 to v9: grows forest on the existing map, around the buildings already there. */
@@ -317,7 +341,7 @@ export class World {
     let stumps = 0;
     for (let ty = Math.floor(cy - r); ty <= Math.ceil(cy + r); ty++) {
       for (let tx = Math.floor(cx - r); tx <= Math.ceil(cx + r); tx++) {
-        if (!this.inBounds(tx, ty) || Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy) > r) continue;
+        if (!this.inBounds(tx, ty) || hypot(tx + 0.5 - cx, ty + 0.5 - cy) > r) continue;
         if (tx >= x && tx < x + w && ty >= y && ty < y + h) continue;
         const t = this.state.trees[this.idx(tx, ty)];
         if (t === TREE) trees.push(this.idx(tx, ty));
@@ -340,8 +364,29 @@ export class World {
 
   /** Recomputes attack paths soon (buildings changed, or a nest got angry). */
   markFlowDirty(): void {
-    this.flowDirty = this.shipFlowDirty = true;
-    this.flowAt = this.shipFlowAt = -Infinity;
+    const p = this.state.paths;
+    p.dirty = p.shipDirty = true;
+    p.at = p.shipAt = null;
+  }
+
+  /**
+   * Rebuilds both attack-path fields from the world as it is, leaving the saved timers alone.
+   * The fields aren't saved, so a loaded game needs them before its first tick.
+   */
+  rebuildPaths(): void {
+    this.fillFlow(this.flow, this.state.buildings, FLOW_RANGE);
+    this.fillFlow(this.shipFlow, this.shipTargets(), this.shipRange());
+  }
+
+  /**
+   * A point every co-op game reaches on the same tick before a snapshot is taken: the path fields are
+   * rebuilt and marked fresh, so a game loading that snapshot (which rebuilds them too) has the same ones.
+   */
+  checkpoint(): void {
+    this.rebuildPaths();
+    const p = this.state.paths;
+    p.dirty = p.shipDirty = false;
+    p.at = p.shipAt = this.state.time;
   }
 
   /** Adds a calm bug at a random spot in its nest's territory. */
@@ -450,18 +495,19 @@ export class World {
     return Object.entries(cost).every(([item, n]) => (this.state.inventory[item as ItemId] ?? 0) >= n!);
   }
 
-  private index(b: Building): void {
+  /** `changed`: false while building the index from a save, whose path timers already say what's due. */
+  private index(b: Building, changed = true): void {
     this.byId.set(b.id, b);
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
-    this.flowDirty = this.shipFlowDirty = true;
+    if (changed) this.state.paths.dirty = this.state.paths.shipDirty = true;
   }
 
   private unindex(b: Building): void {
     this.byId.delete(b.id);
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
-    this.flowDirty = this.shipFlowDirty = true;
+    this.state.paths.dirty = this.state.paths.shipDirty = true;
   }
 
   private addBuilding(type: BuildingType, x: number, y: number, dir: Dir): Building {
@@ -885,8 +931,9 @@ export class World {
     this.tickRegrowth();
     tickShip(this);
     // Attack paths matter only while a nest is angry; buildings change often, so refresh them at most twice a second.
-    if (this.flowDirty && s.time - this.flowAt >= FLOW_REFRESH && anyAngry(this)) this.computeFlow();
-    if (s.ship.launchAt != null && this.shipFlowDirty && s.time - this.shipFlowAt >= FLOW_REFRESH) this.computeShipFlow();
+    const p = s.paths;
+    if (p.dirty && (p.at == null || s.time - p.at >= FLOW_REFRESH) && anyAngry(this)) this.computeFlow();
+    if (s.ship.launchAt != null && p.shipDirty && (p.shipAt == null || s.time - p.shipAt >= FLOW_REFRESH)) this.computeShipFlow();
     tickBugs(this, dt);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
@@ -939,7 +986,7 @@ export class World {
           let pick = trees[0];
           let best = Infinity;
           for (const i of trees) {
-            const d = Math.hypot((i % s.width) + 0.5 - cx, Math.floor(i / s.width) + 0.5 - cy);
+            const d = hypot((i % s.width) + 0.5 - cx, Math.floor(i / s.width) + 0.5 - cy);
             if (d < best) [pick, best] = [i, d];
           }
           s.trees[pick] = STUMP;
@@ -1020,7 +1067,7 @@ export class World {
       if (frac >= worstFrac) continue;
       const [cx, cy] = this.centreOf(o);
       const [ow, oh] = this.footprintOf(o);
-      const d = Math.hypot(cx - (b.x + 0.5), cy - (b.y + 0.5));
+      const d = hypot(cx - (b.x + 0.5), cy - (b.y + 0.5));
       if (d <= REPAIR.range + Math.max(ow, oh) / 2 - 0.5) {
         worst = o;
         worstFrac = frac;
@@ -1159,8 +1206,8 @@ export class World {
   /** Dijkstra from every building tile outwards, up to FLOW_RANGE: angry bugs follow it downhill. */
   computeFlow(): void {
     this.fillFlow(this.flow, this.state.buildings, FLOW_RANGE);
-    this.flowDirty = false;
-    this.flowAt = this.state.time;
+    this.state.paths.dirty = false;
+    this.state.paths.at = this.state.time;
   }
 
   /**
@@ -1169,7 +1216,17 @@ export class World {
    * keeps it cheap enough to refresh during a fight on a phone.
    */
   computeShipFlow(): void {
-    const yards = this.state.buildings.filter((b) => b.type === 'shipyard');
+    this.fillFlow(this.shipFlow, this.shipTargets(), this.shipRange());
+    this.state.paths.shipDirty = false;
+    this.state.paths.shipAt = this.state.time;
+  }
+
+  private shipTargets(): Building[] {
+    return this.state.buildings.filter((b) => b.type === 'shipyard');
+  }
+
+  private shipRange(): number {
+    const yards = this.shipTargets();
     let range = 0;
     if (yards.length) {
       const [yx, yy] = this.centreOf(yards[0]);
@@ -1178,9 +1235,7 @@ export class World {
         if (n) range = Math.max(range, Math.abs(n.x + NESTS.cell / 2 - yx) + Math.abs(n.y + NESTS.cell / 2 - yy));
       }
     }
-    this.fillFlow(this.shipFlow, yards, range + NESTS.cell + SHIP_FLOW_MARGIN);
-    this.shipFlowDirty = false;
-    this.shipFlowAt = this.state.time;
+    return range + NESTS.cell + SHIP_FLOW_MARGIN;
   }
 
   private fillFlow(flow: Float64Array, targets: Building[], range: number): void {

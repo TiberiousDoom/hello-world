@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased: groundwork for co-op
+- Nothing changes in play. Under the hood, everything you do to your factory is now recorded as a list of actions that can replay a game exactly, which co-op will send between players. Saves update automatically.
+
 ## Unreleased: playtest fixes
 - **Drag a building into place:** press with a building in hand and drag; its blueprint follows. Click it (desktop) or tap ✓ (phone) to build, or drag it again. A plain click still builds at once on desktop. Belts, walls and palisades still drag out as lines.
 - **No more twitching bugs:** an angry bug that reached the end of its leash used to flick back and forth on the spot (most often just after a launch). It now stops at the edge until its territory calms down.

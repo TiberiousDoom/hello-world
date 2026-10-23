@@ -453,6 +453,22 @@ describe('Saves', () => {
     expect(World.fromJSON(loaded.toJSON()).toJSON()).toBe(loaded.toJSON());
   });
 
+  it('v11 saves gain path timers and a player, and rebuild their paths on loading', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 11;
+    delete old.paths;
+    delete old.players;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.state.players).toEqual([{ id: 0 }]);
+    expect(loaded.state.paths).toEqual({ dirty: true, at: null, shipDirty: true, shipAt: null });
+    // Beside the hub there's a short, finite way to it: the field was built (an unbuilt one is all zeros).
+    const near = loaded.flow[loaded.idx(loaded.hub!.x - 2, loaded.hub!.y)];
+    expect(near).toBeGreaterThan(0);
+    expect(Number.isFinite(near)).toBe(true);
+  });
+
   it('refuse older versions (a different kind of map)', () => {
     const old = JSON.parse(World.create(5).toJSON());
     old.version = 7;
