@@ -76,3 +76,20 @@ test('the stock panel fades while the pointer is over it, and hides when the hub
   if (!isTouch(info)) await page.mouse.move(5, 300); // off the hub
   await expect(stock).toHaveClass(/away/);
 });
+
+test("the main menu shows the version, and What's new lists the changes until it's been seen", async ({ page }) => {
+  await page.goto('/');
+  const version = await page.evaluate(() => window.game.version);
+  expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+  await expect(page.locator('#mm-whatsnew')).toContainText(`v${version}`);
+  await expect(page.locator('#mm-whatsnew .new-dot')).toBeVisible();
+  await page.click('#mm-whatsnew');
+  await expect(page.locator('#changelog')).toBeVisible();
+  await expect(page.locator('#changelog .release[open] summary')).toContainText(`v${version}`);
+  await expect(page.locator('#changelog .release[open]')).toContainText('New');
+  await page.click('#changelog [data-close]');
+  await expect(page.locator('#changelog')).toBeHidden();
+  await expect(page.locator('#mm-whatsnew .new-dot')).toBeHidden();
+  await page.reload();
+  await expect(page.locator('#mm-whatsnew .new-dot')).toBeHidden(); // remembered
+});

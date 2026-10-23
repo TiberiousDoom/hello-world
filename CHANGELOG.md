@@ -6,6 +6,14 @@ what's **New** and what's **Fixed**.
 ## 0.26.0 · 2026-10-23 · Smoother belts, readable rates and spreading nests
 ### New
 - **Version numbers and What's new:** the main menu shows the game's version, and "What's new" (main menu and pause menu) lists what changed in each version. A dot marks it until you've looked.
+- **Readable rates:** select a building to see its top rate (items a minute in and out, a belt's capacity, a turret's ammo use) and what it's doing now, such as "24/min lately · Waiting for iron ore". Toolbar tooltips show rates before you build.
+- **Bug territories spread:** every few minutes a territory spreads into a neighbouring cell with no live nest, including ones you've cleared. Cells near the hub, or with your buildings in them, stay clear, so build on land you want to keep. New territories start smaller.
+- **Battery saver** in the pause menu: lower resolution and 30 frames a second, for laptops and phones.
+
+### Fixed
+- **Runs cooler, especially in Safari:** the ground and trees are drawn once instead of every frame, and the game draws at most 60 frames a second (30 while paused or on the main menu). A MacBook playtester's laptop was getting hot.
+- **Belts no longer stutter:** items used to pause or jump where one belt tile meets the next. They now flow at an even speed, move smoothly between the game's updates, and the belt arrows match them (and stop when a belt is backed up or the game is paused).
+- **Logs come steadily:** stumps grow back at slightly different times (2 to 4 minutes), so a lumber camp no longer gives a flood of logs and then nothing.
 
 ## 0.25.0 · 2026-10-22 · Groundwork for co-op
 - Nothing changes in play. Under the hood, everything you do to your factory is now recorded as a list of actions that can replay a game exactly, which co-op will send between players. Saves update automatically.

@@ -84,7 +84,9 @@ methods that change it. The main menu runs a live `World` too (`demo.ts`), witho
 Every change that alters the game updates, in the same PR:
 - `docs/GAME_DESIGN.md` (mechanics, numbers, controls),
 - `docs/ROADMAP.md` (status),
-- `CHANGELOG.md` (player-facing summary at the top),
+- `CHANGELOG.md`: every merge to `master` is a new version at the top (`## 0.27.0 · YYYY-MM-DD · Title`,
+  with `### New` and `### Fixed` lists), and `package.json`'s version matches it (a test checks). The
+  game shows this file as its version and under What's new, so write it for players,
 - `docs/DECISIONS.md` for any real choice: add a new `D-0xx` row at the bottom of the table and
   never edit old rows (supersede them). Open questions are `Q-xx`.
 - `docs/ART_LIST.md` when sprites or their sizes change; `docs/CREDITS.md` for third-party assets.
