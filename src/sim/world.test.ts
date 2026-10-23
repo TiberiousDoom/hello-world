@@ -552,8 +552,29 @@ describe('Wood', () => {
     expect(camp.outputs).toEqual([]);
     expect(camp.progress).toBe(-1);
     w.demolish(camp.id); // or it would cut the tree again as soon as it grows back
-    run(w, LUMBER.regrow);
+    run(w, LUMBER.regrow + LUMBER.regrowSpread);
     expect(w.treeAt(x - 1, y)).toBe(TREE);
+  });
+
+  it("stumps grow back at staggered times, so a camp's output evens out", () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const x = hub.x - 14;
+    const y = hub.y + 2;
+    grove(w, x - 3, y - 3, 3);
+    const camp = placed(w.place('lumber_camp', x, y, 0));
+    for (let t = 0; t < 40; t += TICK) {
+      camp.outputs = [];
+      w.tick();
+    }
+    const times = Object.values(w.state.regrow);
+    expect(times.length).toBeGreaterThan(5);
+    const growIn = times.map((t) => t - w.state.time);
+    for (const g of growIn) expect(g).toBeLessThanOrEqual(LUMBER.regrow + LUMBER.regrowSpread);
+    // Not all on the same schedule: cut 3 s apart, they'd otherwise come back 3 s apart too.
+    const sorted = [...times].sort((p, q) => p - q);
+    const gaps = sorted.slice(1).map((t, i) => t - sorted[i]);
+    expect(gaps.some((g) => Math.abs(g - LUMBER.period) > 5)).toBe(true);
   });
 
   it('logs go by belt into a sawmill, and planks reach the hub', () => {

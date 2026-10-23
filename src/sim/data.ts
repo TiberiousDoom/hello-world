@@ -190,7 +190,8 @@ export const LUMBER = {
   range: 4, // tiles from the camp's centre to a tree's centre
   period: 3, // seconds to cut one tree
   logsPerTree: 2,
-  regrow: 180, // seconds for a stump to become a tree again
+  regrow: 180, // average seconds for a stump to become a tree again
+  regrowSpread: 60, // each stump takes regrow ± this, at random, so a grove grows back gradually (#50)
 };
 
 /** Where map generation puts forest (D-044). */

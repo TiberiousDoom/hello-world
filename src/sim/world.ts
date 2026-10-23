@@ -1005,7 +1005,7 @@ export class World {
           }
           s.trees[pick] = STUMP;
           this.layout++;
-          s.regrow[pick] = s.time + LUMBER.regrow;
+          s.regrow[pick] = s.time + LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread;
           this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
           for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');
           this.noteMade(b, LUMBER.logsPerTree);
