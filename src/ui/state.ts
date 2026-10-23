@@ -16,7 +16,7 @@ export interface Plan {
 export interface UIState {
   tool: Tool;
   dir: Dir;
-  hover: { x: number; y: number } | null;
+  hover: Spot | null;
   selected: number | null;
   speed: number; // 0 = paused
   plan: Plan | null;
@@ -45,6 +45,24 @@ export function planDirs(plan: Plan, dir: Dir): Dir[] {
   const t = plan.tiles;
   if (!isBeltPath(plan)) return t.map(() => dir);
   return t.map((p, i) => (i < t.length - 1 ? dirBetween(p, t[i + 1]) : dirBetween(t[i - 1], p)));
+}
+
+/**
+ * A splitter dropped onto a belt (#63): it faces along the belt, and its second lane goes on the side
+ * of the belt the pointer is nearer, or the other side if that one is blocked.
+ */
+function splitterOnBelt(world: World, t: Spot, dir: Dir): { x: number; y: number; dir: Dir } {
+  // Its two tiles run east (facing north or south) or south (facing east or west) from its top-left.
+  const acrossX = dir % 2 === 1;
+  const frac = acrossX ? (t.fx ?? 0.75) : (t.fy ?? 0.75);
+  const before = { x: acrossX ? t.x - 1 : t.x, y: acrossX ? t.y : t.y - 1, dir };
+  const after = { x: t.x, y: t.y, dir };
+  const [first, second] = frac < 0.5 ? [before, after] : [after, before];
+  const fits = (p: { x: number; y: number }) => {
+    const err = world.checkPlace('splitter', p.x, p.y, dir, true);
+    return !err || err === 'cost' || err === 'locked';
+  };
+  return fits(first) || !fits(second) ? first : second;
 }
 
 /** Where a building's top-left goes when placed at tile `t` facing `dir`: bigger buildings centre on it. */
@@ -120,20 +138,23 @@ function alignToBelts(world: World, type: BuildingType, t: { x: number; y: numbe
   return best;
 }
 
+/** A tile, and optionally where in it (0–1 across and down) the pointer is. */
+export interface Spot {
+  x: number;
+  y: number;
+  fx?: number;
+  fy?: number;
+}
+
 /**
  * Where a building goes when the player taps tile `t` with it: its top-left
  * and facing. Tapped onto a belt (when allowed), it faces the way the belt runs.
  * A single placement beside belts lines up with them (output onto a belt, a
  * belt running in); `replaceBelt` marks a single placement, not a drag.
  */
-export function placementAt(
-  world: World,
-  type: BuildingType,
-  t: { x: number; y: number },
-  dir: Dir,
-  replaceBelt: boolean,
-): { x: number; y: number; dir: Dir } {
+export function placementAt(world: World, type: BuildingType, t: Spot, dir: Dir, replaceBelt: boolean): { x: number; y: number; dir: Dir } {
   const belt = replaceBelt ? world.beltToReplace(type, t.x, t.y) : undefined;
+  if (belt && type === 'splitter') return splitterOnBelt(world, t, belt.dir);
   if (belt && type !== 'port') dir = belt.dir;
   else if (replaceBelt && ALIGNS.includes(type)) {
     const aligned = alignToBelts(world, type, t, dir);

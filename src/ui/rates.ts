@@ -29,7 +29,7 @@ export function fmt(perMinute: number): string {
 
 /** Most items a belt can carry in a minute: its speed over the gap between items. */
 export function beltPerMinute(type: BuildingType): number {
-  return (beltSpeed(type) / BELT_SPACING) * 60;
+  return (beltSpeed(type) / BELT_SPACING) * 60 * 2; // two lanes (#61)
 }
 
 /** A recipe's output, and each input, per minute when the machine never waits. */
