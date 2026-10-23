@@ -15,6 +15,8 @@ yet, **Final** = your art is in.
 
 ![All placeholder art](art-placeholders.png)
 
+**Art review 1 (2026-10-23):** the owner marked 7 sprites to polish and 6 to redraw, all done in 0.27.0. Still to come: bugs of different ages and sizes, and a Hardcore look (more horrifying bugs, nests as mounded holes), after the nest discussion (#53).
+
 Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
 They show the intended size, facing and silhouette.
 
@@ -59,14 +61,14 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Iron ore | 32×32 (+64×64 for UI) | P1 | Placeholder |
 | Copper ore | 32×32 (+64×64) | P1 | Placeholder |
 | Stone | 32×32 (+64×64) | P1 | Placeholder |
-| Iron plate | 32×32 (+64×64) | P1 | Placeholder |
+| Iron plate (a dark grey, flat square plate) | 32×32 (+64×64) | P1 | Placeholder (redrawn after the art review) |
 | Copper ingot | 32×32 (+64×64) | P1 | Placeholder |
 | Brick | 32×32 (+64×64) | P1 | Placeholder |
 | Gear | 32×32 (+64×64) | P1 | Placeholder |
 | Copper wire | 32×32 (+64×64) | P1 | Placeholder |
 | Motor | 32×32 (+64×64) | P1 | Placeholder |
 | Log | 32×32 (+64×64) | P2 | Placeholder |
-| Plank | 32×32 (+64×64) | P2 | Placeholder |
+| Plank (a long, flat board) | 32×32 (+64×64) | P2 | Placeholder (redrawn after the art review) |
 | Stake (a bundle of two sharpened stakes) | 32×32 (+64×64) | P2 | Placeholder |
 | Charcoal | 32×32 (+64×64) | P2 | Placeholder |
 | Steel (an ingot, cooler and brighter than iron plate) | 32×32 (+64×64) | P2 | Placeholder |
@@ -91,18 +93,18 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot | 1 | P1 | Placeholder |
 | Cannon base | 1×1 | | 1 | P2 | Placeholder |
 | Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Placeholder |
-| Repair station | 1×1 | | 1 + 4 working | P2 | Placeholder |
+| Repair station | 1×1 | A workshop pad: a cog with a spanner across it, a welding arm with sparks, a toolbox | 1 + 4 working | P2 | Placeholder (redrawn after the art review) |
 | Shipyard | 3×3 (192×192) | A landing pad under camouflage netting, with gantries | 1 | P2 | Placeholder |
-| Ship stages | 3×3 overlays | The ship, pointing north, drawn over the pad stage by stage: `ship_hull`, `ship_engine`, `ship_life`, `ship_nav`. Each overlay holds only its own parts. The game draws engine flames at launch | 1 each | P2 | Placeholder |
+| Ship stages | 3×3 overlays | The ship standing upright on its pad, in a three-quarter view (seen from the front and a little above), drawn stage by stage: `ship_hull`, `ship_engine`, `ship_life`, `ship_nav`. Each overlay holds only its own parts. The game draws engine flames at launch | 1 each | P2 | Placeholder |
 | Lumber Camp | 2×2 (128×128) | A log pile and a saw, facing east. The game draws an output port at the middle of the east edge | 1 + 4 working | P2 | Placeholder |
 | Sawmill | 2×2 (128×128) | A saw bench, logs in and planks out, facing east | 1 + 4 working | P2 | Placeholder |
-| Palisade | 1×1 | Sharpened wooden stakes. Later a set that joins up, like the wall | 1 | P2 | Placeholder |
+| Palisade | 1×1 | Upright logs held by two cross supports, no background. Later a set that joins up, like the wall | 1 | P2 | Placeholder |
 | Leaf burst when a tree is cut | 64×64 | 4 | P3 | Code |
 | Express belt (straight) | 1×1 | Like the belt, with hazard-yellow rails so it reads as faster. Corners are drawn in code with yellow rails | 8 | P2 | Placeholder (`buildings/express_belt`) |
 | Ballista base | 1×1 | A wooden platform | 1 | P2 | Placeholder (`buildings/ballista_base`) |
-| Ballista bow | 1×1 | Separate layer that turns to aim, bolt pointing east; centred pivot | 1 | P2 | Placeholder (`buildings/ballista_barrel`) |
+| Ballista bow | 1×1 | Separate layer that turns to aim: the bow at the front of the stock, string drawn back, no arrow; centred pivot | 1 | P2 | Placeholder (`buildings/ballista_barrel`) |
 | Tesla base | 1×1 | Static | 1 | P2 | Placeholder (`buildings/tesla_base`) |
-| Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel; centred pivot | 1 | P2 | Placeholder (`buildings/tesla_barrel`) |
+| Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel, no arrow; centred pivot | 1 | P2 | Placeholder (`buildings/tesla_barrel`) |
 | Tesla lightning | — | A jagged bolt with a glow, redrawn every frame | — | P3 | Code |
 | Wall | 1×1 | Single block for now. Later a 16-piece set that joins up with neighbours | 1 | P2 | Placeholder |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
@@ -114,9 +116,9 @@ tripod poses); the game swaps them as the bug moves, so a bug standing still to 
 
 | Asset | Size on screen | Frames | Priority | Status |
 |---|---|---|---|---|
-| Crawler: red jewel beetle | ~28 px (fits a 32×32 frame) | 2 walk (+4 attack later) | P1 | Placeholder (`crawler`, `crawler_b`) |
-| Runner: slender orange ant-wasp, long legs | ~22 px (32×32) | 2 walk (+4 attack later) | P2 | Placeholder (`runner`, `runner_b`) |
-| Brute: armoured rhino beetle with a horn | ~46 px (64×64) | 2 walk (+4 attack later) | P2 | Placeholder (`brute`, `brute_b`) |
+| Crawler: long, flat and segmented, six legs, dark orange | ~28 px (fits a 32×32 frame) | 2 walk (+4 attack later) | P1 | Placeholder (`crawler`, `crawler_b`; redrawn after the art review) |
+| Runner: glossy black, centipede-like, many legs | ~22 px (32×32) | 2 walk (+4 attack later) | P2 | Placeholder (`runner`, `runner_b`; redrawn after the art review) |
+| Brute: four-legged and centaur-like (no human top): a heavy rear body, a raised front body with two hooked claws; very dark red | ~46 px (64×64) | 2 walk (+4 attack later) | P2 | Placeholder (`brute`, `brute_b`; redrawn after the art review) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Code |
 
 ## Effects
