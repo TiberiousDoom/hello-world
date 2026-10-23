@@ -25,6 +25,7 @@ export class SoundWatcher {
   private angry = new Set<number>();
   private breaches = 0;
   private hubHp = 0;
+  private playerHp = new Map<number, number>();
   private researched = 0;
   private stage = 0;
   private runs = 0;
@@ -114,6 +115,12 @@ export class SoundWatcher {
     this.breaches = s.breaches;
     this.gameOver = s.gameOver;
     this.hubHp = hub?.hp ?? 0;
+    // The engineer bitten (D-074): a hit sound for every few points of health lost, as bites come in small bits.
+    for (const p of s.players) {
+      const last = this.playerHp.get(p.id) ?? p.hp;
+      if (p.hp < last - 4) this.play('hub_hit', p.x, p.y);
+      if (p.hp < last - 4 || p.hp > last) this.playerHp.set(p.id, p.hp);
+    }
 
     // Nests provoked, or sending a night raid: a warning, heard from anywhere.
     const raiding = new Set(s.enemies.filter((e) => e.raid).map((e) => e.nest));
@@ -161,6 +168,7 @@ export class SoundWatcher {
     this.angry = new Set([...s.nests.filter((n) => isAngry(world, n)).map((n) => n.id), ...s.enemies.filter((e) => e.raid).map((e) => e.nest)]);
     this.breaches = s.breaches;
     this.hubHp = world.hub?.hp ?? 0;
+    this.playerHp = new Map(s.players.map((p) => [p.id, p.hp]));
     this.researched = s.researched.length;
     this.stage = s.ship.stage;
     this.runs = s.ship.runs;

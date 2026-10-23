@@ -13,6 +13,7 @@ import {
   EnemyType,
   EXTRACTOR_PERIOD,
   HAND_MINING,
+  PLAYER,
   HUB_SIZE,
   NESTS,
   footprint,
@@ -1293,6 +1294,7 @@ export class Renderer {
   private drawPlayers(world: World, now: number, z: number): void {
     const ctx = this.ctx;
     for (const p of world.state.players) {
+      if (p.downUntil != null) continue; // knocked out (D-074): it reappears at the hub
       let d = this.players.get(p.id);
       if (!d) {
         d = { x: p.x, y: p.y, angle: Math.PI / 2, walked: 0, trail: [[p.x, p.y]], at: now };
@@ -1344,10 +1346,15 @@ export class Renderer {
       for (; k < p.carry.length; k++) this.drawItem(p.carry[p.carry.length - 1 - k], d.x - 0.3 - 0.1 * k, d.y + 0.3, 0.3); // no room on the trail yet
       const moving = p.path.length > 0 || !!p.walk;
       const frame = moving && Math.floor(d.walked / 0.35) % 2 ? '_b' : '';
+      // A red flash just after a bite (D-074).
+      const bitten = p.hurtAt != null && world.state.time - p.hurtAt < 0.25;
+      if (bitten) ctx.filter = 'sepia(1) saturate(6) hue-rotate(-40deg)';
       if (!this.drawSprite(`units/engineer${frame}`, d.x - 0.5, d.y - 0.5, 1, d.angle)) {
         ctx.fillStyle = '#ffcc33';
         dot(ctx, d.x, d.y, 0.3);
       }
+      if (bitten) ctx.filter = 'none';
+      if (p.hp < PLAYER.hp) bar(ctx, d.x - 0.35, d.y - 0.75, 0.7, p.hp / PLAYER.hp, '#7bd88f');
     }
   }
 

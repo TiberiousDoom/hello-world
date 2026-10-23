@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.39.0 · 2026-10-23 · Bugs notice your engineer
+### New
+- **Bugs notice your engineer:** walking close to calm bugs stirs up their nest, and angry bugs nearby go for the engineer. A health bar shows when they're hurt, and health comes back after a short rest.
+- **Knocked out:** at no health, your engineer drops what they carry and is back on their feet at the hub 10 seconds later. You can still build meanwhile.
+
 ## 0.38.0 · 2026-10-23 · Night raids
 ### New
 - **Night raids:** from the second night, some nights a nest near your buildings sends a small party of bugs after them. They don't stop at the usual chasing distance, and they go home at morning. A message says which way they come from. In Hardcore, it's every night.

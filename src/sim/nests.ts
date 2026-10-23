@@ -13,12 +13,14 @@
 // with; new bugs hatch young and grow up over a few minutes. A threat level
 // rising with play time makes newly bred bugs tougher and territories spread
 // sooner. Shooting a nest's bugs wakes the nests next to it too. Some nights a
-// nest near your buildings sends a raiding party.
+// nest near your buildings sends a raiding party. Bugs notice the engineer:
+// walking close to calm bugs provokes them, and angry ones close by go for it.
 
-import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, RAIDS, chitinFor, moundHp, nestComposition } from './data';
+import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, PLAYER, RAIDS, chitinFor, moundHp, nestComposition } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
+import { Player, hurtPlayer, playerNear } from './player';
 
 export interface Nest {
   id: number; // also its index in GameState.nests
@@ -385,7 +387,7 @@ export function tickBugs(w: World, dt: number): void {
       chase(w, e, n, dt, w.flow, leash);
       continue;
     }
-    if (look && buildingNear(w, e.x, e.y, closeRadius)) {
+    if (look && (buildingNear(w, e.x, e.y, closeRadius) || playerNear(w, e.x, e.y, closeRadius))) {
       provoke(w, n);
       continue;
     }
@@ -427,6 +429,8 @@ export function tickBugs(w: World, dt: number): void {
  */
 function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leash = Infinity, angers = true): void {
   const def = ENEMIES[e.type];
+  const p = playerNear(w, e.x, e.y, PLAYER.notice);
+  if (p && hunt(w, e, n, p, dt, leash, angers)) return;
   const tx = Math.floor(e.x);
   const ty = Math.floor(e.y);
   const here = w.buildingAt(tx, ty);
@@ -467,6 +471,30 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
     e.x = mx;
     e.y = my;
   }
+}
+
+/**
+ * Go straight for an engineer close by (D-074), and bite it once in reach. Returns false when the way is
+ * blocked by a building, or the leash won't allow it, so the bug follows its path field instead.
+ */
+function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, leash: number, angers: boolean): boolean {
+  const def = ENEMIES[e.type];
+  const dist = hypot(p.x - e.x, p.y - e.y);
+  if (dist <= def.radius + 0.4) {
+    hurtPlayer(w, p, def.dps * strength(w, e) * dt);
+    if (angers) n.angryUntil = Math.max(n.angryUntil, w.state.time + NESTS.calmAfter);
+    return true;
+  }
+  const step = Math.min(dist - def.radius - 0.3, def.speed * dt);
+  const mx = e.x + ((p.x - e.x) / dist) * step;
+  const my = e.y + ((p.y - e.y) / dist) * step;
+  const blocker = w.buildingAt(Math.floor(mx), Math.floor(my));
+  if (blocker && BUILDINGS[blocker.type].blocking) return false;
+  const [hx, hy] = nestCentre(n);
+  if (hypot(mx - hx, my - hy) > leash) return false;
+  e.x = mx;
+  e.y = my;
+  return true;
 }
 
 /** Damage a building; a nest stays angry while it's busy biting (raiders leave it be). */

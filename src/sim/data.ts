@@ -213,6 +213,11 @@ export const PLAYER = {
   reach: 1.5, // tiles from the character to the edge of what it mines or hands things to
   carry: 20, // items it can carry
   searchLimit: 20000, // tiles searched for a path before heading for the nearest spot found
+  hp: 100, // health; bugs bite the engineer as hard as they bite buildings
+  notice: 4, // an angry bug this close goes for the engineer instead of buildings
+  regenAfter: 5, // seconds without a bite before health comes back
+  regen: 5, // health per second, coming back
+  downFor: 10, // seconds a knocked-out engineer takes to get back on their feet at the hub
 };
 
 /** Mining by hand (#38): taps on one ore tile loosen one of its ore, which the character carries. */
