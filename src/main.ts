@@ -12,6 +12,7 @@ import { runScenario } from './sim/scenario';
 import { Session } from './sim/session';
 import { OldSaveError, TICK, World } from './sim/world';
 import { VERSION, changelogHtml } from './ui/changelog';
+import { clockAt } from './sim/clock';
 import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from './ui/feedback';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
@@ -391,6 +392,7 @@ loadArt(); // sprites appear as they finish loading; shapes are drawn until then
 
 
 let last = performance.now();
+let lastSeason: string | null = null;
 let acc = 0;
 let lastFrame = 0;
 /**
@@ -428,6 +430,12 @@ function frame(now: number): void {
     camera.x = hub.x + HUB_SIZE / 2 + Math.sin(t * 0.07) * 6 + (window.innerWidth >= 600 ? -4 : 0);
     camera.y = hub.y + HUB_SIZE / 2 + Math.cos(t * 0.05) * 4 + (window.innerWidth < 600 ? 5 : 0);
   }
+  // A new season brings its interlude (#42); not at the very start of a game.
+  if (!inMenu) {
+    const season = clockAt(world.state.time).season.id;
+    if (lastSeason && season !== lastSeason) music.playNow(`season-${season}`);
+    lastSeason = season;
+  } else lastSeason = null;
   // Walking with the keys, the camera keeps the character in view (#40).
   const player = world.state.players[0];
   if (!inMenu && player && input.walkingByKeys) {

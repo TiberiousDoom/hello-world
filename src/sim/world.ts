@@ -45,6 +45,7 @@ import {
   moundHp,
   isMachine,
 } from './data';
+import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
@@ -1107,6 +1108,15 @@ export class World {
     walk(playerOf(this, player), dx, dy);
   }
 
+  /** A message when night falls, at dawn and when a season begins (#42). */
+  private announceClock(before: number, now: number): void {
+    const a = clockAt(before);
+    const b = clockAt(now);
+    if (a.season !== b.season) this.events.push(`${b.season.name} has come.${b.season.regrow > 1 ? ' Trees grow back faster.' : ' Trees grow back slower.'}`);
+    else if (!a.night && b.night) this.events.push('Night falls. Bugs range further in the dark.');
+    else if (a.night && !b.night) this.events.push(`Morning: day ${b.day}.`);
+  }
+
   /** What a character does on arriving where it was sent. */
   private act(p: Player, a: PlayerAction): void {
     if (a.kind === 'mine') this.mineByHand(a.x, a.y, p.id);
@@ -1198,6 +1208,7 @@ export class World {
     tickBugs(this, dt);
     tickSpread(this);
     tickPlayers(this, dt, (p, a) => this.act(p, a));
+    this.announceClock(s.time - dt, s.time);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {
@@ -1257,7 +1268,8 @@ export class World {
           }
           s.trees[pick] = STUMP;
           this.layout++;
-          s.regrow[pick] = s.time + LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread;
+          // Seasons change how fast stumps grow back (#42): the season when it's cut sets its time.
+          s.regrow[pick] = s.time + (LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread) / clockAt(s.time).season.regrow;
           this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
           for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');
           this.noteMade(b, LUMBER.logsPerTree);

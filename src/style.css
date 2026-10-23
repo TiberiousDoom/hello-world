@@ -1364,3 +1364,29 @@ button.quiet {
   background: var(--navy-ink);
   border-radius: 8px;
 }
+
+/* ------------------------------------------------------------ clock */
+
+#clock {
+  font-size: 13px;
+  padding: 5px 10px;
+  transition: background 2s, color 2s;
+}
+#clock .clock-icon {
+  color: #ffcc33;
+}
+#clock.night {
+  background: rgba(10, 18, 44, 0.94);
+}
+#clock.night .clock-icon {
+  color: #cfe0ff;
+}
+#clock[data-season='summer'] {
+  border-color: #c9a23a;
+}
+#clock[data-season='fall'] {
+  border-color: #c0662a;
+}
+#clock[data-season='winter'] {
+  border-color: #a9c4e8;
+}

@@ -186,6 +186,27 @@ export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, 
 
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
 
+/** Day, night and the seasons (#42, D-068). Times in seconds of game time. */
+export interface Season {
+  id: 'spring' | 'summer' | 'fall' | 'winter';
+  name: string;
+  days: number;
+  regrow: number; // how fast stumps grow back, against LUMBER.regrow
+}
+export const CLOCK = {
+  day: 360,
+  night: 180,
+  twilight: 30, // dusk and dawn fade over this long, at the ends of the night
+  seasons: [
+    { id: 'spring', name: 'Spring', days: 4, regrow: 1.5 },
+    { id: 'summer', name: 'Summer', days: 2, regrow: 2 },
+    { id: 'fall', name: 'Fall', days: 4, regrow: 0.75 },
+    { id: 'winter', name: 'Winter', days: 2, regrow: 0.5 },
+  ] as Season[],
+  nightLeash: 30, // provoked bugs chase this far from home at night (NESTS.leash by day)
+  nightCloseRadius: 5, // a building this close to a calm bug provokes its nest at night (NESTS.closeRadius by day)
+};
+
 /** The player character (#40, D-067). */
 export const PLAYER = {
   speed: 4, // tiles per second

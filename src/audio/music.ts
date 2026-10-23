@@ -4,7 +4,8 @@
 // Main menu: the menu theme, looping. In game: seven tracks in a shuffled
 // order, some upbeat and some slow. Moving between the menu and the game
 // never cuts the music: the track playing carries on, and the next one comes
-// from the new mood. A first supply run delivered: the fanfare, at once.
+// from the new mood. A first supply run delivered: the fanfare, at once. A new
+// season: its short interlude, at once, then the playlist carries on (#42).
 // Volume goes through Web Audio gain nodes, because iOS ignores an <audio>
 // element's volume.
 // Browsers only allow sound after the player has clicked or tapped, so nothing
@@ -81,6 +82,12 @@ export class Music {
     this.mood = mood;
     this.queue = [];
     if (this.started && (mood === 'win' || !this.current)) this.playNext(MOOD_FADE);
+  }
+
+  /** Plays one piece now (a season's interlude), then carries on with the current mood's tracks. */
+  playNow(name: string): void {
+    this.queue.unshift(name);
+    if (this.started) this.playNext(MOOD_FADE);
   }
 
   private ensureContext(): void {

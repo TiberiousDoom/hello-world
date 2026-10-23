@@ -1,9 +1,10 @@
 import { calm, expect, isTouch, newGame, selectHub, test } from './helpers';
 
-test('the top bar has only speed and the menu; hub stock shows above the selected hub and scrolls away with it', async ({ page }, info) => {
+test('the top bar has only speed, the clock and the menu; hub stock shows above the selected hub and scrolls away with it', async ({ page }, info) => {
   await newGame(page);
   await calm(page);
-  await expect(page.locator('#topbar > *')).toHaveCount(2);
+  await expect(page.locator('#topbar > *')).toHaveCount(3);
+  await expect(page.locator('#clock')).toContainText('Spring · Day 1');
   for (const gone of ['#hub-hp', '#wave', '#contract-btn', '#mail-btn', '#research-btn']) await expect(page.locator(gone)).toHaveCount(0);
 
   // Hidden until the hub is selected (or, with a mouse, pointed at).

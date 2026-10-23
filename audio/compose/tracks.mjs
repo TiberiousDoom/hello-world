@@ -1,4 +1,4 @@
-// The in-game tracks and the first-delivery fanfare (D-052): original tunes in
+// The in-game tracks, the first-delivery fanfare (D-052) and the season interludes (#42): original tunes in
 // the same late-90s adventure style as the menu theme, some upbeat and some
 // slow. Each is a song description: chord voicings, sections of bars with a
 // lead line (and sometimes a second voice), and an accompaniment style.
@@ -468,6 +468,113 @@ function suppliesDelivered() {
   });
 }
 
+// ----------------------------------- 9–12. Season interludes (#42, about 20 s)
+
+/** Spring: a bright, rising flute over a harp, in G. */
+function springThaw() {
+  const A = `
+    D5:2 G5:2 B5:3 A5:1 | G5:2 B5:2 D6:4 |
+    E6:3 D6:1 B5:2 G5:2 | A5:6 -:2 |
+    B5:2 D6:2 G6:3 F#6:1 | E6:2 D6:2 B5:4 |
+    C6:2 A5:2 F#5:2 A5:2 | G5:8`;
+  song({
+    name: 'season-spring',
+    step: 60 / 100 / 2,
+    bar: 8,
+    beat: 2,
+    chords: {
+      G: ['G3', 'B3', 'D4', 'G4'],
+      C: ['C3', 'G3', 'C4', 'E4'],
+      D: ['D3', 'A3', 'D4', 'F#4'],
+      Em: ['E3', 'B3', 'E4', 'G4'],
+    },
+    sections: [
+      { chords: ['G', 'C', 'Em', 'D', 'G', 'C', 'D', 'G'], parts: ['harpArp', 'bassRootFifth', 'pad'], drums: 'shaker', lines: [{ ins: flute, text: A, vol: 0.34 }] },
+      { chords: ['G'], parts: ['pad'], lines: [{ ins: harp, text: 'G5:1 B5:1 D6:1 G6:5', vol: 0.16 }] },
+    ],
+  });
+}
+
+/** Summer: a sunny marimba and accordion with a walking bass, in D. */
+function highSummer() {
+  const A = `
+    F#5:1 A5:1 D6:2 C#6:1 B5:1 A5:2 | B5:3 A5:1 F#5:4 |
+    G5:1 B5:1 E6:2 D6:1 C#6:1 B5:2 | A5:6 -:2 |
+    F#5:1 A5:1 D6:2 F#6:2 E6:2 | D6:2 B5:2 G5:4 |
+    E5:2 G5:2 C#6:2 E6:2 | D6:8`;
+  song({
+    name: 'season-summer',
+    step: 60 / 118 / 2,
+    bar: 8,
+    beat: 2,
+    swing: 0.15,
+    chords: {
+      D: ['D3', 'A3', 'D4', 'F#4'],
+      G: ['G3', 'B3', 'D4', 'G4'],
+      A7: ['A2', 'E3', 'G3', 'C#4'],
+      Em: ['E3', 'B3', 'E4', 'G4'],
+    },
+    sections: [
+      { chords: ['D', 'D', 'Em', 'A7', 'D', 'G', 'A7', 'D'], parts: ['bassWalk', 'backbeat', 'marimbaBounce'], drums: 'backbeat', lines: [{ ins: accordion, text: A, vol: 0.13 }, { ins: marimba, text: A, vol: 0.1, shift: -12 }] },
+      { chords: ['D'], parts: ['pad'], lines: [{ ins: marimba, text: 'A5:1 F#5:1 D5:1 A5:1 D6:4', vol: 0.3 }] },
+    ],
+  });
+}
+
+/** Fall: a wistful clarinet over a slow harp, in A minor. */
+function harvestWind() {
+  const A = `
+    E5:3 A5:1 C6:4 | B5:2 A5:2 E5:4 |
+    F5:2 A5:2 D6:2 C6:2 | B5:6 -:2 |
+    C6:3 B5:1 A5:2 F5:2 | G5:3 F5:1 E5:4 |
+    D5:2 F5:2 B5:2 G#5:2 | A5:8`;
+  song({
+    name: 'season-fall',
+    step: 60 / 92 / 2,
+    bar: 8,
+    beat: 2,
+    chords: {
+      Am: ['A2', 'E3', 'A3', 'C4'],
+      Dm: ['D3', 'A3', 'D4', 'F4'],
+      F: ['F3', 'C4', 'F4', 'A4'],
+      C: ['C3', 'G3', 'C4', 'E4'],
+      E: ['E3', 'B3', 'E4', 'G#4'],
+      G: ['G3', 'B3', 'D4', 'G4'],
+    },
+    sections: [
+      { chords: ['Am', 'Am', 'Dm', 'E', 'F', 'C', 'Dm|E', 'Am'], parts: ['harpSparse', 'padLow', 'bassRootFifth'], drums: 'heartbeat', lines: [{ ins: clarinet, text: A, vol: 0.3 }] },
+      { chords: ['Am'], parts: ['padLow'], lines: [{ ins: harp, text: 'A4:1 C5:1 E5:1 A5:5', vol: 0.15 }] },
+    ],
+    room: { feedback: 0.88, damp: 0.4 },
+  });
+}
+
+/** Winter: slow bells over still strings, in E minor. */
+function firstFrost() {
+  const A = `
+    B5:3 G5:1 E5:4 | F#5:2 G5:2 A5:4 |
+    G5:3 E5:1 C6:4 | B5:6 -:2 |
+    E6:3 D6:1 B5:4 | C6:3 A5:1 F#5:4`;
+  song({
+    name: 'season-winter',
+    step: 60 / 74 / 2,
+    bar: 8,
+    beat: 2,
+    chords: {
+      Em: ['E3', 'B3', 'E4', 'G4'],
+      Cmaj7: ['C3', 'G3', 'B3', 'E4'],
+      D: ['D3', 'A3', 'D4', 'F#4'],
+      B7: ['B2', 'F#3', 'A3', 'D#4'],
+      Am: ['A3', 'E4', 'A4', 'C5'],
+    },
+    sections: [
+      { chords: ['Em', 'Cmaj7', 'Am', 'B7', 'Em', 'Am|B7'], parts: ['harpSparse', 'padLow'], lines: [{ ins: bell, text: A, vol: 0.3 }] },
+      { chords: ['Em'], parts: ['padLow'], lines: [{ ins: bell, text: 'E5:2 B5:2 E6:4', vol: 0.22 }] },
+    ],
+    room: { feedback: 0.92, damp: 0.3 },
+  });
+}
+
 export const TRACKS = {
   'morning-clearing': morningClearing,
   'workshop-polka': workshopPolka,
@@ -477,4 +584,8 @@ export const TRACKS = {
   'market-day': marketDay,
   'starlit-night': starlitNight,
   'supplies-delivered': suppliesDelivered,
+  'season-spring': springThaw,
+  'season-summer': highSummer,
+  'season-fall': harvestWind,
+  'season-winter': firstFrost,
 };
