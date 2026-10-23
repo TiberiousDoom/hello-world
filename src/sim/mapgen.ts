@@ -5,7 +5,7 @@
 
 import { FOREST, NESTS } from './data';
 import { hypot } from './math';
-import { Nest, nearHub, populate } from './nests';
+import { Nest, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
 
 /** Smooth value noise in [0, 1), from a lattice of random values. */
@@ -118,7 +118,7 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
     for (let cx = 0; cx + c <= width; cx += c) {
       if (nearHub(cx, cy, hubCx, hubCy)) continue;
       if (w.random() >= NESTS.chance) continue;
-      nests.push({ id: nests.length, x: cx, y: cy, angryUntil: 0 });
+      nests.push(newNest(nests.length, cx, cy, hypot(cx + c / 2 - hubCx, cy + c / 2 - hubCy)));
     }
   }
   for (const nest of nests) populate(w, nest, hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy));

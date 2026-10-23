@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, ItemId, NESTS, RESEARCH, SHIP, cargoFor } from './data';
-import { Nest, cellKey, isAngry } from './nests';
+import { Nest, cellKey, isAngry, newNest } from './nests';
 import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
@@ -54,7 +54,7 @@ function deliverRun(w: World): void {
 }
 
 function addNest(w: World, x: number, y: number): Nest {
-  const n: Nest = { id: w.state.nests.length, x, y, angryUntil: 0 };
+  const n: Nest = newNest(w.state.nests.length, x, y, 0);
   w.state.nests.push(n);
   w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
   w.spawnBug('crawler', n, 1);

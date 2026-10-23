@@ -46,6 +46,7 @@ How the game works on `master` today. Balance numbers live in
 | Stake ×3 | Sawmill | 1 plank | 1.5 s |
 | Charcoal | Furnace | 2 logs | 2.5 s |
 | Steel | Furnace | 2 iron plates + 1 charcoal | 3 s |
+| Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
 picks one in its info panel. Changing the recipe discards inputs it has already received.
@@ -161,6 +162,7 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 | Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
 | Palisades | 12 planks | 30 s | Forestry | Palisade |
 | Ballistae | 20 planks, 10 iron plates | 45 s | Palisades, Basic Defense | Ballista |
+| Chitin Plating | 10 chitin, 20 iron plates | 45 s | Basic Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
 | Masonry | 12 bricks | 30 s | — | Wall |
 | Workshops | 30 iron plates, 10 copper | 60 s | Forestry | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
@@ -208,10 +210,19 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   walk home.
 - Territories show a red dashed outline while you're placing a building, and a pulsing one while
   they're angry.
-- Killed bugs don't come back: a nest with no bugs left is cleared, and its mound goes flat.
+- **Mounds (D-065).** Each nest has a **mound** (2×2 tiles in the middle of its cell) with health:
+  300 next to the safe radius, +1% per 1.5 tiles further out (like its bugs). Nothing can be built on
+  a standing mound. A turret, cannon, ballista or tesla with **no bugs in reach** shoots a mound within
+  range of its edge, which provokes the nest. The hub's gun never does. A damaged mound shows a health
+  bar, and cracks below half.
+- **Destroying a mound** clears the territory for good: its mound goes flat, and the cell can be built
+  on, or taken by a spreading territory. It drops **chitin** into hub stock: 3, plus 1 per 25 tiles from
+  the hub, up to 10. Its **surviving bugs stay angry**, with no home and no leash, until they're killed.
+- Killed bugs don't come back (yet: breeding is the next nest phase). A mound with no bugs left still
+  stands, and still counts as a live nest.
 - **Territories spread (D-059).** Every **4 minutes**, one live territory, picked at random, spreads
-  into a neighbouring cell (left, right, above or below) that has no live nest: a cleared territory
-  or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
+  into a neighbouring cell (left, right, above or below) that has no live nest: one whose mound was
+  destroyed, or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
   with any of your buildings in them, stay clear, so building on cleared land holds it. A new
   territory starts with **half** the bugs a nest that far out would have. A message says when it
   happens.

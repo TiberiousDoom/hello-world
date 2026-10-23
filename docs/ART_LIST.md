@@ -134,7 +134,7 @@ tripod poses); the game swaps them as the bug moves, so a bug standing still to 
 | Building destroyed (debris) | 64×64 | 5 | P3 | Needed |
 | Nest mound and territory outline | 64×64 mound; outline in code | 1 (+ cleared) | P2 | Code |
 | Nest mounds by kind (D-065, planned): crawler warren, runner hive, brute den, queen nest (bigger), each with a damaged look; Hardcore versions as mounded holes | 2×2 tiles (queen 3×3) | 1 + damaged | P2 | Needed |
-| Chitin (item, D-065, planned) | Item size | 1 | P2 | Needed |
+| Chitin (item, D-065): an olive bug-shell plate | Item size | 1 | P2 | Placeholder (`items/chitin`) |
 | Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 
 ## UI

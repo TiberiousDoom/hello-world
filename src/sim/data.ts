@@ -20,6 +20,7 @@ export const ITEMS = {
   stake: { name: 'Stake', color: '#b98a50' },
   charcoal: { name: 'Charcoal', color: '#3b3a3f' },
   steel: { name: 'Steel', color: '#8fa3b8' },
+  chitin: { name: 'Chitin', color: '#7a8a3c' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
@@ -242,6 +243,8 @@ export interface Research {
   time: number; // seconds to research, if the stock keeps up
   requires: string[]; // research ids
   unlocks: BuildingType[];
+  /** A research that improves something instead of unlocking a building. */
+  effect?: 'plating';
   description: string;
 }
 
@@ -251,6 +254,7 @@ export const RESEARCH: Research[] = [
   { id: 'forestry', name: 'Forestry', cost: { iron_plate: 15 }, time: 30, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
   { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
   { id: 'ballistae', name: 'Ballistae', cost: { plank: 20, iron_plate: 10 }, time: 45, requires: ['palisades', 'defense'], unlocks: ['ballista'], description: 'Long-range towers that fire wooden stakes.' },
+  { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
   { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
   { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['forestry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
@@ -358,7 +362,17 @@ export const NESTS = {
   pause: [1, 4] as [number, number], // seconds a roaming bug rests between strolls
   spreadEvery: 240, // seconds between territories spreading into a neighbouring cell (#51)
   spreadShare: 0.5, // a new territory starts with this share of the bugs a nest there would have
+  moundHp: 300, // a mound's health next to the safe radius; it grows with distance like its bugs (D-065)
+  moundRadius: 1.1, // tiles: a turret in range of the mound's edge can shoot it
 };
+
+/** A nest's mound health `distance` tiles from the hub. */
+export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * (1 + distance / 150));
+/** Chitin a destroyed mound drops, more further out (D-065). */
+export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
+
+/** Chitin Plating: these buildings get this much more health (D-065). */
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'ballista', 'tesla', 'wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

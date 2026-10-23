@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from '../render/camera';
 import { LUMBER, NESTS, RESEARCH } from '../sim/data';
-import { Nest, cellKey } from '../sim/nests';
+import { Nest, cellKey, newNest } from '../sim/nests';
 import { Building, TICK, TREE, World } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
 import { SoundWatcher } from './sounds';
@@ -50,7 +50,7 @@ function placed(r: Building | string): Building {
 }
 
 function addNest(w: World, x: number, y: number): Nest {
-  const n: Nest = { id: w.state.nests.length, x, y, angryUntil: 0 };
+  const n: Nest = newNest(w.state.nests.length, x, y, 0);
   w.state.nests.push(n);
   w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
   return n;

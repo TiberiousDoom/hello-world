@@ -6,8 +6,12 @@
 // while and they wander home. A ship launch draws the nests it wakes to the
 // shipyard instead, with no leash (D-047). Territories spread over time into
 // neighbouring cells that have no live nest (#51, D-059).
+//
+// Each nest has a mound with health (D-065). Destroying it clears the territory
+// for good and drops chitin; its surviving bugs stay angry, with no home and no
+// leash, until they're killed.
 
-import { BUILDINGS, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, nestComposition } from './data';
+import { BUILDINGS, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, chitinFor, moundHp, nestComposition } from './data';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
 
@@ -16,6 +20,15 @@ export interface Nest {
   x: number; // top-left tile of its cell
   y: number;
   angryUntil: number; // game time; provoked while time is below this
+  hp: number; // the mound's health
+  maxHp: number;
+  destroyed?: boolean; // the mound is gone: the territory is clear for good
+}
+
+/** A new nest whose cell has its top-left at (x, y), `distance` tiles from the hub. */
+export function newNest(id: number, x: number, y: number, distance: number): Nest {
+  const hp = moundHp(distance);
+  return { id, x, y, angryUntil: 0, hp, maxHp: hp };
 }
 
 const C = NESTS.cell;
@@ -24,8 +37,9 @@ export function nestCentre(n: Nest): [number, number] {
   return [n.x + C / 2, n.y + C / 2];
 }
 
+/** Provoked, or homeless: a destroyed nest's survivors never calm down. */
 export function isAngry(w: World, n: Nest): boolean {
-  return w.state.time < n.angryUntil;
+  return !!n.destroyed || w.state.time < n.angryUntil;
 }
 
 /** The nest whose cell holds tile (x, y), if any. */
@@ -35,9 +49,66 @@ export function nestAt(w: World, x: number, y: number): Nest | undefined {
 
 export const cellKey = (cx: number, cy: number) => cx * 4096 + cy;
 
+/** Whether a nest's mound still stands (with or without bugs). */
+export function nestAlive(_w: World, n: Nest): boolean {
+  return !n.destroyed;
+}
+
 /** Whether a nest still has bugs. */
-export function nestAlive(w: World, n: Nest): boolean {
+export function hasBugs(w: World, n: Nest): boolean {
   return w.state.enemies.some((e) => e.nest === n.id);
+}
+
+/** The 2×2 tiles of a nest's mound, at the middle of its cell: its top-left. */
+export function moundTile(n: Nest): [number, number] {
+  return [n.x + C / 2 - 1, n.y + C / 2 - 1];
+}
+
+/** The standing mound covering tile (x, y), if any. */
+export function moundAt(w: World, x: number, y: number): Nest | undefined {
+  const n = nestAt(w, x, y);
+  if (!n || n.destroyed) return undefined;
+  const [mx, my] = moundTile(n);
+  return x >= mx && x < mx + 2 && y >= my && y < my + 2 ? n : undefined;
+}
+
+/** How far a nest's centre is from the hub's. */
+export function hubDistance(w: World, n: Nest): number {
+  const hub = w.hub;
+  if (!hub) return 0;
+  const [cx, cy] = nestCentre(n);
+  return hypot(cx - (hub.x + Math.floor(HUB_SIZE / 2)), cy - (hub.y + Math.floor(HUB_SIZE / 2)));
+}
+
+/** The nearest standing mound whose edge is within `range` of (x, y), if any. */
+export function moundInRange(w: World, x: number, y: number, range: number): Nest | undefined {
+  const reach = range + NESTS.moundRadius;
+  let best: Nest | undefined;
+  let bestD = reach;
+  for (let cy = Math.floor((y - reach) / C); cy <= Math.floor((y + reach) / C); cy++) {
+    for (let cx = Math.floor((x - reach) / C); cx <= Math.floor((x + reach) / C); cx++) {
+      const n = w.nestCells.get(cellKey(cx, cy));
+      if (!n || n.destroyed || n.x / C !== cx || n.y / C !== cy) continue;
+      const [nx, ny] = nestCentre(n);
+      const d = hypot(nx - x, ny - y);
+      if (d <= bestD) [best, bestD] = [n, d];
+    }
+  }
+  return best;
+}
+
+/** Damage to a nest's mound: it wakes the nest, and at zero the mound is destroyed. */
+export function damageMound(w: World, n: Nest, amount: number): void {
+  if (n.destroyed) return;
+  provoke(w, n);
+  n.hp -= amount;
+  if (n.hp > 0) return;
+  n.hp = 0;
+  n.destroyed = true;
+  const chitin = chitinFor(hubDistance(w, n));
+  w.state.inventory.chitin = (w.state.inventory.chitin ?? 0) + chitin;
+  w.markFlowDirty();
+  w.events.push(`Nest destroyed: its territory is clear. +${chitin} chitin`);
 }
 
 /** Whether a nest still owns its cell (a cleared one may have been taken over by a newer nest). */
@@ -89,7 +160,7 @@ export function tickSpread(w: World): void {
   }
   if (!options.length) return;
   const [x, y] = options[Math.floor(w.random() * options.length)];
-  const nest: Nest = { id: s.nests.length, x, y, angryUntil: 0 };
+  const nest = newNest(s.nests.length, x, y, hypot(x + C / 2 - hubCx, y + C / 2 - hubCy));
   s.nests.push(nest);
   w.nestCells.set(cellKey(x / C, y / C), nest);
   populate(w, nest, hypot(x + C / 2 - hubCx, y + C / 2 - hubCy), NESTS.spreadShare);
@@ -148,6 +219,10 @@ export function tickBugs(w: World, dt: number): void {
     const n = s.nests[e.nest];
     const [hx, hy] = nestCentre(n);
     const def = ENEMIES[e.type];
+    if (n.destroyed) {
+      chase(w, e, n, dt, w.flow); // homeless: no leash, no calming down
+      continue;
+    }
     if (drawn.has(n.id) && isAngry(w, n)) {
       chase(w, e, n, dt, w.shipFlow);
       continue;

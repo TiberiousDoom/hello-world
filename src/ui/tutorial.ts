@@ -281,7 +281,7 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: nestTarget(c.world), shape: 'circle' }),
         text: () =>
-          'Bugs live in territories like this one, around a nest mound. They ignore you unless provoked: building in or next to their territory, a building coming close to one, or shooting them. Then they go for your nearest buildings until things calm down.',
+          'Bugs live in territories like this one, around a nest mound. They ignore you unless provoked: building in or next to their territory, a building coming close to one, or shooting them. Then they go for your nearest buildings until things calm down. Destroy the mound to clear the territory for good: turrets in range shoot it when no bugs are near, and it drops chitin.',
       },
       {
         // Once the hub is selected, point at its Research button instead (and keep the card off it).
