@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.35.1 · 2026-10-23 · Steadier belts zoomed out
+### Fixed
+- **Belts zoomed out** no longer stutter or seem to run too fast (#66). Far out, each belt shows one still arrow and the items show the movement; close up, the arrows still slide along.
+
 ## 0.35.0 · 2026-10-23 · Easier underground belts
 ### New
 - **Pick an underground belt's exit:** after you place an entrance, its exit appears as a blueprint just past whatever is in the way. Tap ✓ or click it to build it, or drag it along first.

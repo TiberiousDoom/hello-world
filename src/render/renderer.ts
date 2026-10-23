@@ -52,6 +52,8 @@ const FOREST_FLOOR = '#1d3324';
 /** Belt lanes (#61): how far each lane is from the middle, and the size of items on them. */
 const LANE_OFFSET = 0.21;
 const ITEM_ON_BELT = 0.34;
+/** Pixels per tile below which belt arrows stop sliding (#66). */
+const STILL_BELTS_BELOW = 20;
 /** A wash over the ground for each season (#42); spring is the ground as drawn. */
 const SEASON_TINT: Record<Season['id'], string | null> = {
   spring: null,
@@ -705,12 +707,12 @@ export class Renderer {
     // Along the belt (u) and across it (v), from the tile's centre.
     const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
     // Moving chevrons show the direction of travel.
-    const phase = this.beltPhaseOf(b);
+    const arrows = this.beltArrows(b, z);
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    for (let t = phase; t < 1; t += 0.25) {
+    for (const t of arrows) {
       const u = t - 0.5;
       ctx.moveTo(...at(u - 0.1, -0.24));
       ctx.lineTo(...at(u + 0.04, 0));
@@ -737,6 +739,18 @@ export class Renderer {
     }
     // Two lanes (#61): left and right of the middle, looking the way the belt runs.
     for (const it of b.belt) this.drawItem(it.item, ...this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET)), ITEM_ON_BELT);
+  }
+
+  /**
+   * Where along a belt tile (0–1) its arrows are drawn this frame. Close up, four arrows a tile slide
+   * along with the items. Zoomed out they'd be a few pixels apart, moving under a pixel a frame, which
+   * strobes (#66): then one still arrow sits in the middle of the tile and the items show the movement.
+   */
+  private beltArrows(b: Building, z: number): number[] {
+    if (z < STILL_BELTS_BELOW) return [0.55];
+    const out: number[] = [];
+    for (let t = this.beltPhaseOf(b); t < 1; t += 0.25) out.push(t);
+    return out;
   }
 
   /** A belt's arrow offset for this frame: moved on by game time unless the belt is backed up. */
@@ -817,11 +831,11 @@ export class Renderer {
     ctx.fillStyle = '#8a96a8';
     for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
     // Slats fan out around the bend.
-    const phase = this.beltPhaseOf(b);
+    const arrows = this.beltArrows(b, z);
     ctx.strokeStyle = BELT_SLAT;
     ctx.lineWidth = 2.5 / z;
     ctx.beginPath();
-    for (let t = phase; t < 1; t += 0.25) {
+    for (const t of arrows) {
       const a = a0 + sweep * t;
       ctx.moveTo(px + Math.cos(a) * 0.22, py + Math.sin(a) * 0.22);
       ctx.lineTo(px + Math.cos(a) * 0.8, py + Math.sin(a) * 0.8);
