@@ -34,7 +34,7 @@ import { Building, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching } from '../sim/ship';
 import { clockAt, darkness } from '../sim/clock';
-import { Nest, isAngry, nestCentre, ownsCell } from '../sim/nests';
+import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
@@ -251,12 +251,17 @@ export class Renderer {
       const stride = def.radius * 0.7;
       const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
-      const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob;
+      // Young bugs (D-065) are smaller and paler until they grow up; their health bar is out of what they can have now.
+      const grown = strength(world, e);
+      const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob * (0.4 + 0.6 * grown);
+      if (grown < 1) ctx.filter = `saturate(${Math.round(40 + 60 * grown)}%) brightness(${Math.round(140 - 40 * grown)}%)`;
       if (!this.drawSprite(`enemies/${e.type}${frame}`, ex - size / 2, ey - size / 2, size, angle)) {
         ctx.fillStyle = def.color;
-        dot(ctx, ex, ey, def.radius);
+        dot(ctx, ex, ey, def.radius * (0.4 + 0.6 * grown));
       }
-      if (e.hp < e.maxHp) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / e.maxHp, '#e0445a');
+      if (grown < 1) ctx.filter = 'none';
+      const full = e.maxHp * grown;
+      if (e.hp < full - 0.5) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / full, '#e0445a');
     }
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);

@@ -393,6 +393,9 @@ export const NESTS = {
   spreadShare: 0.5, // a new territory starts with this share of the bugs a nest there would have
   moundHp: 300, // a mound's health next to the safe radius; it grows with distance like its bugs (D-065)
   moundRadius: 1.1, // tiles: a turret in range of the mound's edge can shoot it
+  breedEvery: [60, 90] as [number, number], // seconds between bugs a calm nest breeds, while it has fewer than it started with
+  growUp: 180, // seconds a newly hatched bug takes to grow into an adult
+  young: 0.5, // a newly hatched bug's share of an adult's health, bite and size
 };
 
 /** A nest's mound health `distance` tiles from the hub. */

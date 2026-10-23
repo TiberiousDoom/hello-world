@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.36.0 · 2026-10-23 · Nests breed
+### New
+- **Nests breed:** a calm nest that has lost bugs breeds a new one every minute or so, until it's back to full. An angry nest doesn't, and a destroyed one never will.
+- **Young bugs** hatch small, pale and weak, at half an adult's health and bite, and grow up over 3 minutes.
+- Saved games: nests breed back up to what a nest that far out starts with.
+
 ## 0.35.1 · 2026-10-23 · Steadier belts zoomed out
 ### Fixed
 - **Belts zoomed out** no longer stutter or seem to run too fast (#66). Far out, each belt shows one still arrow and the items show the movement; close up, the arrows still slide along.

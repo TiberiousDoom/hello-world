@@ -125,7 +125,7 @@ tripod poses); the game swaps them as the bug moves, so a bug standing still to 
 | Crawler: long, flat and segmented, six legs, dark orange | ~28 px (fits a 32×32 frame) | 2 walk (+4 attack later) | P1 | Placeholder (`crawler`, `crawler_b`; redrawn after the art review) |
 | Runner: glossy black, centipede-like, many legs | ~22 px (32×32) | 2 walk (+4 attack later) | P2 | Placeholder (`runner`, `runner_b`; redrawn after the art review) |
 | Brute: four-legged and centaur-like (no human top): a heavy rear body, a raised front body with two hooked claws; very dark red | ~46 px (64×64) | 2 walk (+4 attack later) | P2 | Placeholder (`brute`, `brute_b`; redrawn after the art review) |
-| Young crawler, runner and brute (D-065, planned): smaller, paler versions that grow into the adults | about 60% of the adult | 2 walk each | P2 | Needed |
+| Young crawler, runner and brute (D-065, D-071): smaller, paler versions that grow into the adults | about 60% of the adult | 2 walk each | P2 | Needed (for now the game draws the adult sprites smaller and paler) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Code |
 
 ## Effects

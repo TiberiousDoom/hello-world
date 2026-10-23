@@ -275,8 +275,12 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - **Destroying a mound** clears the territory for good: its mound goes flat, and the cell can be built
   on, or taken by a spreading territory. It drops **chitin** into hub stock: 3, plus 1 per 25 tiles from
   the hub, up to 10. Its **surviving bugs stay angry**, with no home and no leash, until they're killed.
-- Killed bugs don't come back (yet: breeding is the next nest phase). A mound with no bugs left still
-  stands, and still counts as a live nest.
+- **Breeding (D-065, D-071).** A calm nest with fewer bugs than it started with breeds one every
+  **60–90 s**, of a kind it's short of, until it's back to full. An angry nest doesn't breed, and its
+  timer starts again once it calms down. A destroyed nest never breeds. A mound with no bugs left
+  still stands, counts as a live nest, and breeds back.
+- **Young bugs** hatch at **half** an adult's health and bite, smaller and paler, and grow into adults
+  over **3 minutes**: their health and bite rise steadily, keeping any damage they've taken.
 - **Territories spread (D-059).** Every **4 minutes**, one live territory, picked at random, spreads
   into a neighbouring cell (left, right, above or below) that has no live nest: one whose mound was
   destroyed, or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells

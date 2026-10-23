@@ -1192,3 +1192,65 @@ describe('Two-lane belts and splitter filters (#61, #62)', () => {
     expect(loaded.byId.get(b.id)!.belt[0].lane).toBe(RIGHT);
   });
 });
+
+describe('Nests breed (D-065)', () => {
+  it('a calm nest short of bugs breeds young ones, one at a time, up to what it started with', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1); // a nest this close starts with 3 crawlers
+    const bugs = () => w.state.enemies.filter((e) => e.nest === n.id); // territories may spread meanwhile
+    expect(n.brood).toEqual({ crawler: 3, runner: 0, brute: 0 });
+    run(w, NESTS.breedEvery[0] - 2);
+    expect(bugs().length).toBe(1);
+    run(w, NESTS.breedEvery[1] - NESTS.breedEvery[0] + 4);
+    expect(bugs().length).toBe(2);
+    const young = bugs()[1];
+    expect(young.born).toBeDefined();
+    expect(young.hp).toBeLessThan(young.maxHp * 0.6);
+    run(w, 2 * NESTS.breedEvery[1] + 4);
+    expect(bugs().length).toBe(3);
+    run(w, 2 * NESTS.breedEvery[1]);
+    expect(bugs().length).toBe(3); // full: no more
+  });
+
+  it('an angry nest, or a destroyed one, does not breed', () => {
+    const w = emptyWorld();
+    const angry = addNest(w, 50, 50, 1);
+    const gone = addNest(w, 80, 50, 1);
+    gone.destroyed = true;
+    gone.hp = 0;
+    for (let t = 0; t < NESTS.breedEvery[1] * 2; t += 1) {
+      angry.angryUntil = w.state.time + 30;
+      run(w, 1);
+    }
+    expect(w.state.enemies.filter((e) => e.nest === angry.id).length).toBe(1);
+    expect(w.state.enemies.filter((e) => e.nest === gone.id).length).toBe(1);
+  });
+
+  it('young bugs grow into adults: health rises, damage taken stays', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 0);
+    const e = w.spawnBug('crawler', n, 1, true);
+    expect(e.hp).toBe(e.maxHp * NESTS.young);
+    e.hp -= 2; // hurt a little
+    run(w, NESTS.growUp / 2);
+    expect(e.hp).toBeCloseTo(e.maxHp * 0.75 - 2, 0);
+    run(w, NESTS.growUp / 2 + 1);
+    expect(e.born).toBeUndefined();
+    expect(e.hp).toBeCloseTo(e.maxHp - 2, 0);
+  });
+
+  it('v18 saves give nests the brood a nest that far out starts with', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 18;
+    for (const n of old.nests) {
+      delete n.brood;
+      delete n.nextBreed;
+    }
+    const loaded = World.fromJSON(JSON.stringify(old));
+    for (const n of loaded.state.nests) {
+      expect(n.brood.crawler).toBeGreaterThanOrEqual(3);
+      expect(n.nextBreed).toBe(0);
+    }
+  });
+});

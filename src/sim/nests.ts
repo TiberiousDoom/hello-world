@@ -9,7 +9,8 @@
 //
 // Each nest has a mound with health (D-065). Destroying it clears the territory
 // for good and drops chitin; its surviving bugs stay angry, with no home and no
-// leash, until they're killed.
+// leash, until they're killed. A calm nest breeds back up to the bugs it started
+// with; new bugs hatch young and grow up over a few minutes.
 
 import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, chitinFor, moundHp, nestComposition } from './data';
 import { clockAt } from './clock';
@@ -24,12 +25,24 @@ export interface Nest {
   hp: number; // the mound's health
   maxHp: number;
   destroyed?: boolean; // the mound is gone: the territory is clear for good
+  brood: Brood; // the bugs it started with, which it breeds back up to while calm
+  nextBreed: number; // game time its next bug hatches; 0 while it isn't breeding
 }
 
-/** A new nest whose cell has its top-left at (x, y), `distance` tiles from the hub. */
-export function newNest(id: number, x: number, y: number, distance: number): Nest {
+/** How many bugs of each kind a nest holds. */
+export type Brood = Record<EnemyType, number>;
+
+/** A new nest whose cell has its top-left at (x, y), `distance` tiles from the hub; `share` of the usual bugs. */
+export function newNest(id: number, x: number, y: number, distance: number, share = 1): Nest {
   const hp = moundHp(distance);
-  return { id, x, y, angryUntil: 0, hp, maxHp: hp };
+  return { id, x, y, angryUntil: 0, hp, maxHp: hp, brood: broodFor(distance, share), nextBreed: 0 };
+}
+
+/** The bugs a nest `distance` tiles from the hub starts with; `share` of them for a newly spread one (at least 2 crawlers). */
+export function broodFor(distance: number, share = 1): Brood {
+  const comp = nestComposition(distance);
+  const count = (k: number) => Math.round(k * share);
+  return { crawler: Math.max(share < 1 ? 2 : 0, count(comp.crawlers)), runner: count(comp.runners), brute: count(comp.brutes) };
 }
 
 const C = NESTS.cell;
@@ -124,16 +137,61 @@ export function nearHub(x: number, y: number, hubCx: number, hubCy: number): boo
   return hypot(nx - hubCx, ny - hubCy) < NESTS.safeRadius;
 }
 
-/** Bugs for a nest `distance` tiles from the hub; `share` of the full number for a newly spread one. */
-export function populate(w: World, n: Nest, distance: number, share = 1): void {
-  const comp = nestComposition(distance);
-  const count = (k: number) => Math.round(k * share);
-  const types: EnemyType[] = [
-    ...Array<EnemyType>(Math.max(share < 1 ? 2 : 0, count(comp.crawlers))).fill('crawler'),
-    ...Array<EnemyType>(count(comp.runners)).fill('runner'),
-    ...Array<EnemyType>(count(comp.brutes)).fill('brute'),
-  ];
-  for (const type of types) w.spawnBug(type, n, comp.hpMult);
+/** Fills a new nest, `distance` tiles from the hub, with its brood, all grown up. */
+export function populate(w: World, n: Nest, distance: number): void {
+  const hpMult = nestComposition(distance).hpMult;
+  for (const type of BUG_TYPES) for (let i = 0; i < n.brood[type]; i++) w.spawnBug(type, n, hpMult);
+}
+
+const BUG_TYPES: EnemyType[] = ['crawler', 'runner', 'brute'];
+
+/**
+ * Breeding (D-065). A calm nest with fewer bugs than its brood hatches one every 60–90 s, of a kind it's
+ * short of. An angry nest doesn't breed, and its timer starts again once it calms down. Checked once a
+ * second.
+ */
+export function tickBreeding(w: World, dt: number): void {
+  const s = w.state;
+  if (Math.floor(s.time) === Math.floor(s.time - dt)) return;
+  const have = new Map<number, Brood>();
+  for (const e of s.enemies) {
+    if (e.hp <= 0) continue;
+    let b = have.get(e.nest);
+    if (!b) have.set(e.nest, (b = { crawler: 0, runner: 0, brute: 0 }));
+    b[e.type]++;
+  }
+  for (const n of s.nests) {
+    if (n.destroyed || !ownsCell(w, n) || isAngry(w, n)) {
+      n.nextBreed = 0;
+      continue;
+    }
+    const got = have.get(n.id);
+    const short = BUG_TYPES.filter((t) => (got?.[t] ?? 0) < n.brood[t]);
+    if (!short.length) n.nextBreed = 0;
+    else if (!n.nextBreed) n.nextBreed = s.time + NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0]);
+    else if (s.time >= n.nextBreed) {
+      const type = short[Math.floor(w.random() * short.length)];
+      w.spawnBug(type, n, nestComposition(hubDistance(w, n)).hpMult, true);
+      n.nextBreed = 0;
+    }
+  }
+}
+
+/** How grown up a bug is, from 0 (just hatched) to 1 (an adult). */
+export function growth(w: World, e: Enemy): number {
+  return e.born == null ? 1 : Math.min(1, (w.state.time - e.born) / NESTS.growUp);
+}
+
+/** A bug's share of an adult's health, bite and size: from NESTS.young when it hatches, to 1 grown up. */
+export function strength(w: World, e: Enemy): number {
+  return NESTS.young + (1 - NESTS.young) * growth(w, e);
+}
+
+/** Young bugs grow: their health rises with their strength, keeping any damage taken. */
+function grow(w: World, e: Enemy, dt: number): void {
+  if (e.born == null) return;
+  e.hp = Math.min(e.maxHp, e.hp + (e.maxHp * (1 - NESTS.young) * dt) / NESTS.growUp);
+  if (w.state.time - e.born >= NESTS.growUp) delete e.born;
 }
 
 /**
@@ -161,10 +219,11 @@ export function tickSpread(w: World): void {
   }
   if (!options.length) return;
   const [x, y] = options[Math.floor(w.random() * options.length)];
-  const nest = newNest(s.nests.length, x, y, hypot(x + C / 2 - hubCx, y + C / 2 - hubCy));
+  const distance = hypot(x + C / 2 - hubCx, y + C / 2 - hubCy);
+  const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare);
   s.nests.push(nest);
   w.nestCells.set(cellKey(x / C, y / C), nest);
-  populate(w, nest, hypot(x + C / 2 - hubCx, y + C / 2 - hubCy), NESTS.spreadShare);
+  populate(w, nest, distance);
   w.events.push('Bugs have spread into a new territory.');
 }
 
@@ -221,6 +280,7 @@ export function tickBugs(w: World, dt: number): void {
   const closeRadius = night ? CLOCK.nightCloseRadius : NESTS.closeRadius;
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
+    grow(w, e, dt);
     const n = s.nests[e.nest];
     const [hx, hy] = nestCentre(n);
     const def = ENEMIES[e.type];
@@ -281,8 +341,9 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
   const tx = Math.floor(e.x);
   const ty = Math.floor(e.y);
   const here = w.buildingAt(tx, ty);
+  const dps = def.dps * strength(w, e);
   if (here) {
-    bite(w, here, n, def.dps * dt);
+    bite(w, here, n, dps * dt);
     return;
   }
   let best = -1;
@@ -305,7 +366,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
   const dist = hypot(gx - e.x, gy - e.y);
   const blocker = w.buildingAt(nx, ny);
   if (blocker && BUILDINGS[blocker.type].blocking && dist <= 0.55 + def.radius) {
-    bite(w, blocker, n, def.dps * dt);
+    bite(w, blocker, n, dps * dt);
     return;
   }
   const step = Math.min(dist, def.speed * dt);

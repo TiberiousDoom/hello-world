@@ -49,7 +49,7 @@ import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
-import { Nest, anyAngry, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBugs, tickSpread } from './nests';
+import { Nest, anyAngry, broodFor, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
 import { Player, PlayerAction, goAndDo, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -68,8 +68,9 @@ export type { ResearchState };
  * v16 (D-065) gives nests mounds with health; nests already cleared of bugs count as destroyed.
  * v17 (#40, D-067) gives players a character: a position, a path and what it carries.
  * v18 (#61, D-069) gives belts two lanes; items already on belts go onto the right lane.
+ * v19 (D-065) lets nests breed: each records the bugs it breeds back up to.
  */
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -122,6 +123,7 @@ export interface Enemy {
   tx: number; // where it's strolling to while calm
   ty: number;
   wait: number; // seconds left resting while calm
+  born?: number; // game time it hatched, while it's still growing up (D-065); adults have none
 }
 
 export interface GameState {
@@ -294,10 +296,23 @@ export class World {
     if (state.version === 15) World.migrateV15(state);
     if (state.version === 16) World.migrateV16(state);
     if (state.version === 17) World.migrateV17(state);
+    if (state.version === 18) World.migrateV18(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v18 to v19 (D-065): nests breed back up to the bugs a nest that far out starts with. */
+  private static migrateV18(state: GameState): void {
+    const hub = state.buildings.find((b) => b.id === state.hubId);
+    const hx = hub ? hub.x + Math.floor(HUB_SIZE / 2) : state.width / 2;
+    const hy = hub ? hub.y + Math.floor(HUB_SIZE / 2) : state.height / 2;
+    for (const n of state.nests) {
+      n.brood = broodFor(hypot(n.x + NESTS.cell / 2 - hx, n.y + NESTS.cell / 2 - hy));
+      n.nextBreed = 0;
+    }
+    state.version = 19;
   }
 
   /** v17 to v18 (#61): belts get two lanes. Everything already on a belt or in a tunnel is on the right one. */
@@ -556,13 +571,17 @@ export class World {
     p.at = p.shipAt = this.state.time;
   }
 
-  /** Adds a calm bug at a random spot in its nest's territory. */
-  spawnBug(type: EnemyType, nest: Nest, hpMult: number): Enemy {
+  /** Adds a calm bug at a random spot in its nest's territory: an adult, or `young`, just hatched (D-065). */
+  spawnBug(type: EnemyType, nest: Nest, hpMult: number, young = false): Enemy {
     const c = NESTS.cell;
     const x = nest.x + 0.5 + this.random() * (c - 1);
     const y = nest.y + 0.5 + this.random() * (c - 1);
     const hp = Math.round(ENEMIES[type].hp * hpMult);
     const e: Enemy = { id: this.state.nextId++, type, x, y, hp, maxHp: hp, nest: nest.id, tx: x, ty: y, wait: this.random() * NESTS.pause[1] };
+    if (young) {
+      e.hp = hp * NESTS.young;
+      e.born = this.state.time;
+    }
     this.state.enemies.push(e);
     return e;
   }
@@ -1240,6 +1259,7 @@ export class World {
     if (s.ship.launchAt != null && p.shipDirty && (p.shipAt == null || s.time - p.shipAt >= FLOW_REFRESH)) this.computeShipFlow();
     tickBugs(this, dt);
     tickSpread(this);
+    tickBreeding(this, dt);
     tickPlayers(this, dt, (p, a) => this.act(p, a));
     this.announceClock(s.time - dt, s.time);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
