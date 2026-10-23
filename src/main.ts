@@ -12,6 +12,7 @@ import { runScenario } from './sim/scenario';
 import { Session } from './sim/session';
 import { OldSaveError, TICK, World } from './sim/world';
 import { VERSION, changelogHtml } from './ui/changelog';
+import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from './ui/feedback';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
@@ -22,6 +23,12 @@ const SAVE_KEY = 'foundry-front-save';
 const PROFILE_KEY = 'foundry-front-profile';
 const AUTOSAVE_MS = 20_000;
 const MAX_TICKS_PER_FRAME = 20;
+
+// For the feedback form's diagnostics: the last few errors, and the recent frame rate.
+const errorLog = new ErrorLog();
+window.addEventListener('error', (e) => errorLog.push(`${e.message} (${e.filename?.split('/').pop() ?? '?'}:${e.lineno})`));
+window.addEventListener('unhandledrejection', (e) => errorLog.push(`Unhandled: ${String(e.reason)}`));
+const frameRate = new FrameRate();
 
 /** The saved game, or null. A save from before the new map (v8) can't be loaded, so it's cleared. */
 function loadWorld(): World | null {
@@ -307,6 +314,64 @@ function openWhatsNew(): void {
   saveProfile();
   showVersion();
 }
+/** Send feedback (D-064): the report is built here and handed to GitHub, the clipboard or a file; the game sends nothing itself. */
+const fbText = document.getElementById('fb-text') as HTMLTextAreaElement;
+const fbDiag = document.getElementById('fb-diag') as HTMLInputElement;
+const fbStatus = document.getElementById('fb-status')!;
+const fbKind = (): FeedbackKind => (document.querySelector<HTMLInputElement>('input[name="fb-kind"]:checked')?.value ?? 'other') as FeedbackKind;
+function currentDiagnostics(): string {
+  return diagnostics({
+    version: VERSION,
+    userAgent: navigator.userAgent,
+    screen: { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
+    touch: matchMedia('(pointer: coarse)').matches,
+    batterySaver: profile.batterySaver,
+    fps: frameRate.fps,
+    errors: errorLog.entries,
+    world: game,
+    speed: ui.speed,
+  });
+}
+function currentReport(): { title: string; body: string } {
+  return report(fbKind(), fbText.value, fbDiag.checked ? currentDiagnostics() : null);
+}
+function openFeedback(): void {
+  document.getElementById('fb-diag-text')!.textContent = currentDiagnostics();
+  fbStatus.textContent = '';
+  hud.openModal('feedback');
+  fbText.focus();
+}
+document.getElementById('btn-feedback')!.addEventListener('click', openFeedback);
+document.getElementById('fb-github')!.addEventListener('click', () => {
+  const { title, body } = currentReport();
+  window.open(issueUrl(title, body, fbKind()), '_blank', 'noopener');
+  fbStatus.textContent = 'Opened GitHub in a new tab. Check the report there and press Submit new issue.';
+});
+document.getElementById('fb-copy')!.addEventListener('click', async () => {
+  const { title, body } = currentReport();
+  try {
+    await navigator.clipboard.writeText(`${title}
+
+${body}`);
+    fbStatus.textContent = 'Copied. Paste it into a message to the developer.';
+  } catch {
+    fbStatus.textContent = "This browser didn't allow copying. Select the text in the box and copy it by hand.";
+  }
+});
+document.getElementById('fb-save')!.addEventListener('click', () => {
+  if (!game) {
+    fbStatus.textContent = 'There is no game to save yet.';
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([game.toJSON()], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `foundry-front-${VERSION}-save.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  fbStatus.textContent = 'Saved a copy of this game. Attach the file to your report.';
+});
+
 document.getElementById('mm-whatsnew')!.addEventListener('click', openWhatsNew);
 document.getElementById('btn-whatsnew')!.addEventListener('click', openWhatsNew);
 showVersion();
@@ -341,6 +406,7 @@ function frame(now: number): void {
     return;
   }
   lastFrame = now;
+  frameRate.frame(now);
   const world = active();
   const elapsed = Math.min(0.25, (now - last) / 1000);
   last = now;

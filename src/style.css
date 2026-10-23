@@ -1318,3 +1318,49 @@ button.quiet {
 .mm-note[hidden] {
   display: none;
 }
+
+/* ---------------------------------------------------------- feedback */
+
+.fb-kinds {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0 8px;
+}
+.fb-kinds label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+#fb-text {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  padding: 8px 10px;
+  font: 14px/1.4 system-ui, sans-serif;
+  color: var(--text);
+  background: var(--navy-ink);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+#fb-text:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 1px;
+}
+#fb-details summary {
+  cursor: pointer;
+  color: var(--sky);
+  font-size: 13px;
+}
+#fb-diag-text {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  max-height: 160px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--navy-ink);
+  border-radius: 8px;
+}

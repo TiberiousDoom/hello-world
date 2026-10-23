@@ -146,7 +146,7 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 | App icon master | 1024×1024 (no transparency, for the stores) | P3 | Needed (after naming). Can start from `ui/logo.svg` |
 | Favicon / PWA icons | 512×512 and 192×192 | P3 | Placeholder |
 | Logo / wordmark | Vector (SVG) | P3 | Placeholder mark `ui/logo.svg`; the wordmark is text for now |
-| UI icons (`src/art/ui/`): health, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory, collect | 24×24 grid, SVG preferred | P3 | Placeholder |
+| UI icons (`src/art/ui/`): health, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory, collect, feedback | 24×24 grid, SVG preferred | P3 | Placeholder |
 | Research icons (one per research, 10 today) | 64×64 | P3 | Optional |
 | Toolbar building icons | Uses the building sprites; no extra art needed | — | — |
 

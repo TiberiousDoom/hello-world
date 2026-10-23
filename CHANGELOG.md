@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.30.0 · 2026-10-23 · Send feedback from the game
+### New
+- **Send feedback** in the pause menu: pick Bug, Idea or Other and describe it. Diagnostics (the game's version, your browser and screen, the frame rate, this game's progress and any recent errors) are included unless you untick them, and you can see exactly what's in them first.
+- **Open on GitHub** opens a new issue with your report filled in, ready to submit. Without a GitHub account, **Copy** puts the report on your clipboard to paste into a message. **Download save** saves this game as a file you can attach.
+- Nothing is sent until you choose one of these.
+
+### Fixed
+- Typing a space or a number in a text box no longer pauses the game or picks a tool.
+
 ## 0.29.0 · 2026-10-23 · New building shapes
 ### New
 - **The workshop is 2×2** (was 3×2) and **the assembler 3×3** (was 4×2).

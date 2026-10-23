@@ -30,7 +30,8 @@ Locally, Playwright reuses a server already listening on :4173 (`reuseExistingSe
 leftover `vite preview` serves a stale build. Stop it before running e2e after code changes.
 
 Before every push, run `npm run typecheck`, `npm test`, `npm run build` and `npm run test:e2e`.
-CI (`.github/workflows/deploy.yml`) runs all of them on every PR. Browser tests can be flaky under
+CI (`.github/workflows/deploy.yml`) runs all of them on every PR, inside Playwright's container image; when
+upgrading `@playwright/test`, change the image tag to the same version (a CI step checks). Browser tests can be flaky under
 load, so run the full suite twice after touching input, the HUD or the tutorial.
 
 ## Code layout and rules

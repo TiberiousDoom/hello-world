@@ -322,7 +322,8 @@ export class Hud {
     });
 
     window.addEventListener('keydown', (e) => {
-      if (document.body.classList.contains('in-menu')) return;
+      // Typing in a text box (the feedback form) isn't a shortcut.
+      if (document.body.classList.contains('in-menu') || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === ' ') {
         e.preventDefault();
         this.setSpeed(this.ui.speed === 0 ? 1 : 0);
