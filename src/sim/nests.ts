@@ -4,9 +4,10 @@
 // bugs, or by its bugs being shot; then its bugs go for the nearest
 // buildings, as far as their leash allows, until things have been quiet for a
 // while and they wander home. A ship launch draws the nests it wakes to the
-// shipyard instead, with no leash (D-047).
+// shipyard instead, with no leash (D-047). Territories spread over time into
+// neighbouring cells that have no live nest (#51, D-059).
 
-import { BUILDINGS, DX, DY, ENEMIES, NESTS } from './data';
+import { BUILDINGS, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, nestComposition } from './data';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
 
@@ -37,6 +38,71 @@ export const cellKey = (cx: number, cy: number) => cx * 4096 + cy;
 /** Whether a nest still has bugs. */
 export function nestAlive(w: World, n: Nest): boolean {
   return w.state.enemies.some((e) => e.nest === n.id);
+}
+
+/** Whether a nest still owns its cell (a cleared one may have been taken over by a newer nest). */
+export function ownsCell(w: World, n: Nest): boolean {
+  return w.nestCells.get(cellKey(n.x / C, n.y / C)) === n;
+}
+
+/** Whether the cell with its top-left at (x, y) has a tile within the hub's safe radius. */
+export function nearHub(x: number, y: number, hubCx: number, hubCy: number): boolean {
+  const nx = Math.max(x, Math.min(hubCx, x + C - 1));
+  const ny = Math.max(y, Math.min(hubCy, y + C - 1));
+  return hypot(nx - hubCx, ny - hubCy) < NESTS.safeRadius;
+}
+
+/** Bugs for a nest `distance` tiles from the hub; `share` of the full number for a newly spread one. */
+export function populate(w: World, n: Nest, distance: number, share = 1): void {
+  const comp = nestComposition(distance);
+  const count = (k: number) => Math.round(k * share);
+  const types: EnemyType[] = [
+    ...Array<EnemyType>(Math.max(share < 1 ? 2 : 0, count(comp.crawlers))).fill('crawler'),
+    ...Array<EnemyType>(count(comp.runners)).fill('runner'),
+    ...Array<EnemyType>(count(comp.brutes)).fill('brute'),
+  ];
+  for (const type of types) w.spawnBug(type, n, comp.hpMult);
+}
+
+/**
+ * Territories spread (#51, D-059). Every NESTS.spreadEvery seconds, one live nest, picked at random,
+ * sends bugs into a neighbouring cell that has no live nest: a cleared territory, or open land. A live
+ * territory's cell is never taken. Cells near the hub, and cells with buildings in them, stay clear,
+ * so building on cleared land holds it.
+ */
+export function tickSpread(w: World): void {
+  const s = w.state;
+  if (s.time < s.nextSpread) return;
+  s.nextSpread = s.time + NESTS.spreadEvery;
+  const hub = w.hub;
+  if (!hub) return;
+  const hubCx = hub.x + Math.floor(HUB_SIZE / 2);
+  const hubCy = hub.y + Math.floor(HUB_SIZE / 2);
+  const options: [number, number][] = [];
+  for (const n of s.nests) {
+    if (!ownsCell(w, n) || !nestAlive(w, n)) continue;
+    for (let k = 0; k < 4; k++) {
+      const x = n.x + DX[k] * C;
+      const y = n.y + DY[k] * C;
+      if (canSettle(w, x, y, hubCx, hubCy)) options.push([x, y]);
+    }
+  }
+  if (!options.length) return;
+  const [x, y] = options[Math.floor(w.random() * options.length)];
+  const nest: Nest = { id: s.nests.length, x, y, angryUntil: 0 };
+  s.nests.push(nest);
+  w.nestCells.set(cellKey(x / C, y / C), nest);
+  populate(w, nest, hypot(x + C / 2 - hubCx, y + C / 2 - hubCy), NESTS.spreadShare);
+  w.events.push('Bugs have spread into a new territory.');
+}
+
+function canSettle(w: World, x: number, y: number, hubCx: number, hubCy: number): boolean {
+  if (x < 0 || y < 0 || x + C > w.state.width || y + C > w.state.height) return false;
+  const there = w.nestCells.get(cellKey(x / C, y / C));
+  if (there && nestAlive(w, there)) return false;
+  if (nearHub(x, y, hubCx, hubCy)) return false;
+  for (let ty = y; ty < y + C; ty++) for (let tx = x; tx < x + C; tx++) if (w.tiles[w.idx(tx, ty)]) return false;
+  return true;
 }
 
 export function provoke(w: World, n: Nest): void {

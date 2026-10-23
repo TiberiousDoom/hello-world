@@ -352,6 +352,41 @@ describe('Bugs', () => {
     expect(isAngry(w, n)).toBe(false);
   });
 
+  it('spread into neighbouring cells without a live nest, never into a live one or onto buildings', () => {
+    const w = emptyWorld();
+    addNest(w, 50, 50, 2);
+    const b = addNest(w, 60, 50, 2); // a live neighbour: its cell is never taken
+    addNest(w, 50, 60, 0); // a cleared neighbour: can be taken over
+    placed(w.place('wall', 45, 55, 0)); // the cell to the left holds a building: stays clear
+    const spreads = () => w.state.nests.length - 3;
+    for (let i = 0; i < 6; i++) {
+      w.state.nextSpread = w.state.time; // spread now
+      w.tick();
+    }
+    expect(spreads()).toBe(6);
+    const owners = new Map<string, number>();
+    for (const n of w.state.nests.slice(3)) {
+      const key = `${n.x},${n.y}`;
+      expect(owners.has(key), `two new nests in ${key}`).toBe(false);
+      owners.set(key, n.id);
+      expect(n.x === b.x && n.y === b.y, 'took the live neighbour').toBe(false);
+      expect(n.x === 40 && n.y === 50, 'settled on a building').toBe(false);
+      expect(w.state.enemies.some((e) => e.nest === n.id)).toBe(true);
+    }
+    // The first spreads can only come from a or b; each new nest borders an older live one.
+    expect(w.state.nests.slice(3).every((n) => w.state.nests.some((o) => o.id < n.id && Math.abs(o.x - n.x) + Math.abs(o.y - n.y) === NESTS.cell))).toBe(true);
+  });
+
+  it('spread on a timer, a few minutes apart', () => {
+    const w = emptyWorld();
+    addNest(w, 50, 50, 2);
+    run(w, NESTS.spreadEvery - 1);
+    expect(w.state.nests.length).toBe(1);
+    run(w, 2);
+    expect(w.state.nests.length).toBe(2);
+    expect(w.events).toContain('Bugs have spread into a new territory.');
+  });
+
   it('hold still at the end of their leash instead of twitching back and forth', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 3);
@@ -484,6 +519,17 @@ describe('Saves', () => {
     const near = loaded.flow[loaded.idx(loaded.hub!.x - 2, loaded.hub!.y)];
     expect(near).toBeGreaterThan(0);
     expect(Number.isFinite(near)).toBe(true);
+  });
+
+  it('v12 saves get a timer for territories spreading', () => {
+    const w = World.create(5);
+    run(w, 10);
+    const old = JSON.parse(w.toJSON());
+    old.version = 12;
+    delete old.nextSpread;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.state.nextSpread).toBeCloseTo(w.state.time + NESTS.spreadEvery);
   });
 
   it('refuse older versions (a different kind of map)', () => {

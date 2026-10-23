@@ -31,7 +31,7 @@ import {
 import { Building, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { Plan, UIState, placementAt, planDirs } from '../ui/state';
 import { launching } from '../sim/ship';
-import { Nest, isAngry, nestCentre } from '../sim/nests';
+import { Nest, isAngry, nestCentre, ownsCell } from '../sim/nests';
 import { planStatus } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
@@ -204,7 +204,8 @@ export class Renderer {
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
-    for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
+    // (A cleared territory taken over by a newer nest is drawn as that nest.)
+    for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
 
     this.drawLayer(this.canopy, stamp, view, (lx0, ly0, lx1, ly1) => {
       // One tile more each way: canopies spill over their neighbours.

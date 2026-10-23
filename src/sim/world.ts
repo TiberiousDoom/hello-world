@@ -44,7 +44,7 @@ import {
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
-import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs } from './nests';
+import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs, tickSpread } from './nests';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -57,7 +57,7 @@ export type { ResearchState };
  * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
  * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
  */
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -128,6 +128,8 @@ export interface GameState {
   paths: PathTimers;
   /** Who is playing. One in single player; co-op adds more (D-056). */
   players: Player[];
+  /** Game time when a bug territory next spreads (#51). */
+  nextSpread: number;
 }
 
 export interface PathTimers {
@@ -232,6 +234,7 @@ export class World {
       ship: createShipState(),
       paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
       players: [{ id: 0 }],
+      nextSpread: NESTS.spreadEvery,
     };
     const world = new World(state);
     const hx = Math.floor((size - HUB_SIZE) / 2);
@@ -252,10 +255,17 @@ export class World {
     if (state.version === 9) World.migrateV9(state);
     if (state.version === 10) World.migrateV10(state);
     if (state.version === 11) World.migrateV11(state);
+    if (state.version === 12) World.migrateV12(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v12 to v13: territories spread (#51); the first spread comes a full interval after loading. */
+  private static migrateV12(state: GameState): void {
+    state.nextSpread = state.time + NESTS.spreadEvery;
+    state.version = 13;
   }
 
   /** v11 to v12: path timers and players move into the save (co-op phase 0). Paths rebuild at once. */
@@ -948,6 +958,7 @@ export class World {
     if (p.dirty && (p.at == null || s.time - p.at >= FLOW_REFRESH) && anyAngry(this)) this.computeFlow();
     if (s.ship.launchAt != null && p.shipDirty && (p.shipAt == null || s.time - p.shipAt >= FLOW_REFRESH)) this.computeShipFlow();
     tickBugs(this, dt);
+    tickSpread(this);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {

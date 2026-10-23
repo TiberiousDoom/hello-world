@@ -349,6 +349,8 @@ export const NESTS = {
   calmAfter: 30, // seconds without fresh provocation before a nest settles down
   leash: 22, // provoked bugs chase no further than this from their territory's centre
   pause: [1, 4] as [number, number], // seconds a roaming bug rests between strolls
+  spreadEvery: 240, // seconds between territories spreading into a neighbouring cell (#51)
+  spreadShare: 0.5, // a new territory starts with this share of the bugs a nest there would have
 };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
