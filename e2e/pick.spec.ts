@@ -7,7 +7,7 @@ test('picking a placed building makes it the tool in hand, facing the same way',
   const tile = await page.evaluate(() => {
     const w = window.game.world;
     const s = w.state;
-    s.inventory = { iron_plate: 999, brick: 999 };
+    s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999 };
     const x = w.hub.x - 8;
     const y = w.hub.y - 8;
     for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;

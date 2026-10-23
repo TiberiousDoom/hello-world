@@ -8,7 +8,7 @@
 
 import { BuildingType, Dir, ItemId } from './data';
 import { LaunchError, launch, pickBlueprint } from './ship';
-import type { Building, PlaceError, ResearchError, World } from './world';
+import type { Building, HandTap, MineError, PlaceError, ResearchError, World } from './world';
 
 export type Command =
   | { kind: 'place'; type: BuildingType; x: number; y: number; dir: Dir; replaceBelt: boolean }
@@ -21,6 +21,8 @@ export type Command =
   | { kind: 'upgrade-belts'; x: number; y: number }
   | { kind: 'launch' }
   | { kind: 'pick-blueprint'; id: string }
+  | { kind: 'mine'; x: number; y: number }
+  | { kind: 'collect'; id: number }
   // Every game rebuilds its path fields on the same tick, before a snapshot is taken.
   | { kind: 'checkpoint' };
 
@@ -36,6 +38,8 @@ export interface CommandResults {
   'upgrade-belts': { upgraded: number; left: number } | PlaceError;
   launch: LaunchError | null;
   'pick-blueprint': boolean;
+  mine: HandTap | MineError;
+  collect: number;
   checkpoint: void;
 }
 
@@ -67,6 +71,10 @@ function apply(w: World, c: Command): CommandResults[keyof CommandResults] {
       return launch(w);
     case 'pick-blueprint':
       return pickBlueprint(w, c.id);
+    case 'mine':
+      return w.mineByHand(c.x, c.y);
+    case 'collect':
+      return w.collect(c.id);
     case 'checkpoint':
       return w.checkpoint();
   }

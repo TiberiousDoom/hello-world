@@ -19,14 +19,17 @@
 // desktop a click without a drag still builds at once; after a drag the
 // blueprint waits for a click on it (or Enter, or ✓). Pressing a waiting
 // blueprint moves it, and tapping or clicking it builds it.
+//
+// With nothing in hand, tapping or clicking bare ore mines it by hand (#38); holding the finger or
+// button down keeps mining. Dragging from there pans, as usual.
 
-import { BuildingType, Dir, footprint } from '../sim/data';
+import { BuildingType, Dir, HAND_MINING, footprint } from '../sim/data';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs } from '../ui/state';
 
-type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch';
+type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine';
 
 interface Tile {
   x: number;
@@ -58,6 +61,8 @@ export class Input {
   private wheelTurn = 0;
   private prevPlan: Plan | null = null; // the blueprint before this gesture started a new one
   private pressTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Mining by hand while the press is held: the tile, and the timer for further taps. */
+  private mining: { tile: Tile; timer: ReturnType<typeof setInterval> } | null = null;
   /** Dragging a single building's blueprint: where the press began, where the blueprint was, and whether it moved. */
   private moving = { from: { x: 0, y: 0 }, start: { x: 0, y: 0 }, existing: false, dragged: false };
 
@@ -138,6 +143,7 @@ export class Input {
     if (this.pointers.size === 2) {
       if (this.mode === 'plan') this.ui.plan = this.prevPlan; // that finger was the start of a pinch
       if (this.mode === 'move') this.abandonMove();
+      this.stopMining();
       this.mode = 'pinch';
       this.startPinch();
       return;
@@ -183,9 +189,31 @@ export class Input {
       this.reportedError = false;
       this.lastTile = this.ui.hover;
       this.paintTile(this.ui.hover, this.ui.dir, true);
+    } else if (this.canMine(this.ui.hover)) {
+      this.mode = 'mine';
+      this.startMining(this.ui.hover);
     } else {
       this.mode = 'pending';
     }
+  }
+
+  private canMine(t: Tile): boolean {
+    const world = this.cb.getWorld();
+    return !!world.resourceAt(t.x, t.y) && !world.buildingAt(t.x, t.y);
+  }
+
+  /** One tap now, then more at HAND_MINING.holdRate while the press is held. */
+  private startMining(t: Tile): void {
+    this.stopMining();
+    const tap = () => this.cb.issue({ kind: 'mine', x: t.x, y: t.y });
+    tap();
+    this.mining = { tile: t, timer: setInterval(tap, 1000 / HAND_MINING.holdRate) };
+    this.cb.onChange();
+  }
+
+  private stopMining(): void {
+    if (this.mining) clearInterval(this.mining.timer);
+    this.mining = null;
   }
 
   private move(e: PointerEvent): void {
@@ -204,7 +232,8 @@ export class Input {
     this.ui.hover = this.tileAt(x, y);
     const moved = Math.hypot(x - this.downAt.x, y - this.downAt.y) > TAP_SLOP;
     if (moved) this.cancelLongPress();
-    if ((this.mode === 'pending' || this.mode === 'right' || this.mode === 'middle') && moved) this.mode = 'pan';
+    if (this.mode === 'mine' && moved) this.stopMining();
+    if ((this.mode === 'pending' || this.mode === 'right' || this.mode === 'middle' || this.mode === 'mine') && moved) this.mode = 'pan';
     if (this.mode === 'pan') this.camera.pan(x - prev.x, y - prev.y);
     if (this.mode === 'paint') this.paintTo(this.ui.hover);
     if (this.mode === 'plan') this.extendPlan(this.ui.hover);
@@ -216,7 +245,8 @@ export class Input {
     const [x, y] = this.local(e);
     this.pointers.delete(e.pointerId);
     this.cancelLongPress();
-    if (completed && this.mode === 'pending') this.select(this.tileAt(x, y));
+    if (this.mode === 'mine') this.stopMining();
+    if (completed && (this.mode === 'pending' || this.mode === 'mine')) this.select(this.tileAt(x, y));
     if (completed && this.mode === 'right') this.clearSelection();
     if (completed && this.mode === 'middle') this.pick(this.tileAt(x, y));
     if (this.mode === 'plan') this.endPlanGesture(e.pointerType, completed);

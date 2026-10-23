@@ -38,6 +38,7 @@ import {
   START_INVENTORY,
   TUNNEL_RANGE,
   TURRETS,
+  HAND_MINING,
   footprint,
   isMachine,
 } from './data';
@@ -56,8 +57,9 @@ export type { ResearchState };
  * v9 (D-044) adds trees; v8 saves get forest grown around what's already built.
  * v10 (D-046) turns the escape ship into a supply ship; an escaped game counts one run delivered.
  * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
+ * v14 (#38) moves belts into the Logistics research; older games get it for free.
  */
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -141,6 +143,17 @@ export interface PathTimers {
 
 export interface Player {
   id: number;
+  /** The ore tile this player is mining by hand, taps so far, and the game time of the last tap (#38). */
+  mining?: { tile: number; taps: number; at: number } | null;
+}
+
+/** One tap of hand mining (#38): `item` is set when the tap finished one. */
+export interface HandTap {
+  x: number;
+  y: number;
+  ore: ItemId;
+  item: ItemId | null;
+  age: number;
 }
 
 export interface Shot {
@@ -154,6 +167,7 @@ export interface Shot {
   jump?: boolean; // an arc jumping on from one bug to the next, not fired from a turret
 }
 
+export type MineError = 'no-ore' | 'occupied';
 export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
@@ -189,6 +203,8 @@ export class World {
   events: string[] = [];
   /** Trees cut in the last moment (not saved), for effects and sound. */
   felled: { x: number; y: number; age: number }[] = [];
+  /** Hand-mining taps in the last moment (not saved), for sparks and sound. */
+  taps: HandTap[] = [];
   /** Counts changes to what stands on the ground: buildings and trees (not saved). Lets the renderer keep a cached picture of the ground until it changes. */
   layout = 0;
   /** Items handed to the next belt this tick: they've had their move, even if that belt is updated later in the tick. */
@@ -256,10 +272,30 @@ export class World {
     if (state.version === 10) World.migrateV10(state);
     if (state.version === 11) World.migrateV11(state);
     if (state.version === 12) World.migrateV12(state);
+    if (state.version === 13) World.migrateV13(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v13 to v14 (#38): belts, splitters and underground belts all come from Logistics, now the first
+   * research, and the Underground Belt research is gone. Older games had belts from the start, so they
+   * get Logistics as done; anything put into the old research is dropped.
+   */
+  private static migrateV13(state: GameState): void {
+    const rs = state.research;
+    state.researched = state.researched.filter((id) => id !== 'underground' && id !== 'logistics');
+    state.researched.unshift('logistics');
+    delete rs.paid.underground;
+    delete rs.paid.logistics;
+    if (rs.active === 'underground' || rs.active === 'logistics') {
+      rs.active = null;
+      rs.budget = 0;
+      rs.stalled = false;
+    }
+    state.version = 14;
   }
 
   /** v12 to v13: territories spread (#51); the first spread comes a full interval after loading. */
@@ -876,6 +912,52 @@ export class World {
     }
   }
 
+  /**
+   * One tap of mining by hand (#38). HAND_MINING.taps taps in a row on the same ore tile put one of
+   * its ore into the hub; tapping another tile, or pausing too long, starts the count over.
+   */
+  mineByHand(x: number, y: number, player = 0): HandTap | MineError {
+    const ore = this.resourceAt(x, y);
+    if (!ore) return 'no-ore';
+    if (this.buildingAt(x, y)) return 'occupied';
+    const p = this.state.players.find((q) => q.id === player) ?? this.state.players[0];
+    const tile = this.idx(x, y);
+    const t = this.state.time;
+    const m = p.mining && p.mining.tile === tile && t - p.mining.at <= HAND_MINING.resetAfter ? p.mining : { tile, taps: 0, at: t };
+    m.taps++;
+    m.at = t;
+    let item: ItemId | null = null;
+    if (m.taps >= HAND_MINING.taps) {
+      m.taps = 0;
+      item = ore;
+      this.deliver(ore);
+    }
+    p.mining = m;
+    const tap: HandTap = { x, y, ore, item, age: 0 };
+    this.taps.push(tap);
+    return tap;
+  }
+
+  /** Taps so far on the tile a player is mining by hand, or 0 once the count has run out. */
+  handMiningAt(x: number, y: number, player = 0): number {
+    const m = this.state.players.find((q) => q.id === player)?.mining;
+    if (!m || m.tile !== this.idx(x, y) || this.state.time - m.at > HAND_MINING.resetAfter) return 0;
+    return m.taps;
+  }
+
+  /**
+   * Carries a building's finished items to the hub by hand (#38): before belts, this is how the
+   * first plates get from a furnace to the hub. Returns how many were moved.
+   */
+  collect(id: number): number {
+    const b = this.byId.get(id);
+    if (!b || !canCollect(b.type)) return 0;
+    const n = b.outputs.length;
+    for (const item of b.outputs) this.deliver(item);
+    b.outputs = [];
+    return n;
+  }
+
   private deliver(item: ItemId): void {
     const inv = this.state.inventory;
     inv[item] = (inv[item] ?? 0) + 1;
@@ -981,6 +1063,8 @@ export class World {
     this.lost = this.lost.filter((l) => l.age < 2);
     for (const f of this.felled) f.age += dt;
     this.felled = this.felled.filter((f) => f.age < 2);
+    for (const tap of this.taps) tap.age += dt;
+    this.taps = this.taps.filter((tap) => tap.age < 1);
   }
 
   /** Stumps whose time has come grow back into trees. */
@@ -1391,4 +1475,9 @@ class MinHeap {
     }
     return top;
   }
+}
+
+/** Buildings whose finished items can be carried to the hub by hand (#38). */
+export function canCollect(t: BuildingType): boolean {
+  return t === 'extractor' || t === 'lumber_camp' || isMachine(t);
 }

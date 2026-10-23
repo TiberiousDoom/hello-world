@@ -11,6 +11,8 @@ export type Sound =
   | 'place_big'
   | 'demolish'
   | 'chop'
+  | 'pick'
+  | 'pick_done'
   | 'error'
   | 'shot'
   | 'hub_shot'
@@ -32,6 +34,7 @@ const MIN_GAP: Partial<Record<Sound, number>> = {
   belt: 0.05,
   place: 0.05,
   chop: 0.15,
+  pick: 0.05,
   shot: 0.07,
   hub_shot: 0.1,
   cannon: 0.12,
@@ -103,6 +106,12 @@ function recipe(sound: Sound): Layer[] {
     case 'chop':
       // A thunk into wood, then the creak of the tree going over.
       return [tone('triangle', 240, 140, 0.07, 0.35), noise('bandpass', 1100, 700, 0.05, 0.3, 2), noise('lowpass', 700, 180, 0.35, 0.2, 0.8, 0.12)];
+    case 'pick':
+      // A pickaxe on rock: a hard, bright clink.
+      return [tone('triangle', 2100, 1700, 0.06, 0.22), noise('highpass', 3500, 2500, 0.04, 0.25, 1), tone('sine', 260, 160, 0.05, 0.2)];
+    case 'pick_done':
+      // The ore comes loose: a crumble and a little rising chime.
+      return [noise('lowpass', 1200, 300, 0.18, 0.35), tone('triangle', 660, 660, 0.08, 0.14, 0.05), tone('triangle', 990, 990, 0.12, 0.14, 0.11)];
     case 'error':
       return [tone('square', 180, 180, 0.09, 0.16), tone('square', 140, 140, 0.13, 0.16, 0.11)];
     case 'shot':

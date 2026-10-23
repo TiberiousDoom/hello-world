@@ -21,6 +21,7 @@ export class SoundWatcher {
   private enemies = new Map<number, { x: number; y: number }>();
   private seenShots = new WeakSet<Shot>();
   private seenFelled = new WeakSet<object>();
+  private seenTaps = new WeakSet<object>();
   private angry = new Set<number>();
   private breaches = 0;
   private hubHp = 0;
@@ -83,6 +84,13 @@ export class SoundWatcher {
       if (this.seenFelled.has(f)) continue;
       this.seenFelled.add(f);
       this.play('chop', f.x + 0.5, f.y + 0.5);
+    }
+
+    // Mining by hand (#38).
+    for (const tap of world.taps) {
+      if (this.seenTaps.has(tap)) continue;
+      this.seenTaps.add(tap);
+      this.play(tap.item ? 'pick_done' : 'pick', tap.x + 0.5, tap.y + 0.5);
     }
 
     // Bugs killed (but not the ones sent home by a breach).
@@ -148,6 +156,7 @@ export class SoundWatcher {
     this.enemies = new Map(s.enemies.map((e) => [e.id, { x: e.x, y: e.y }]));
     for (const sh of world.shots) this.seenShots.add(sh);
     for (const f of world.felled) this.seenFelled.add(f);
+    for (const tap of world.taps) this.seenTaps.add(tap);
     this.angry = new Set(s.nests.filter((n) => isAngry(world, n)).map((n) => n.id));
     this.breaches = s.breaches;
     this.hubHp = world.hub?.hp ?? 0;

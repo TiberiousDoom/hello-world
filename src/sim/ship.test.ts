@@ -23,7 +23,7 @@ function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
   return w;
 }
 

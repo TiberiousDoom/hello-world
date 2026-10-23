@@ -33,15 +33,26 @@ export async function setProfile(page: Page, profile: Record<string, unknown>): 
 
 /**
  * Opens the game and starts a new Standard game. By default every lesson is
- * marked seen, so no lesson gets in the way.
+ * marked seen, so no lesson gets in the way, and the hub gets some stock and
+ * belts (games start from nothing, #38); `fresh` leaves the start as it is.
  */
-export async function newGame(page: Page, opts: { lessonsSeen?: string[]; tipsOff?: boolean; tutorial?: boolean } = {}): Promise<void> {
+export async function newGame(page: Page, opts: { lessonsSeen?: string[]; tipsOff?: boolean; tutorial?: boolean; fresh?: boolean } = {}): Promise<void> {
   await setProfile(page, { lessonsSeen: opts.lessonsSeen ?? ALL_LESSONS, tipsOff: opts.tipsOff ?? false });
   await page.goto('/');
   await page.click('#mm-new');
   if (opts.tutorial !== undefined) await page.locator('#newgame-tutorial').setChecked(opts.tutorial);
   await page.click('[data-mode="standard"]');
   await expect(page.locator('#mainmenu')).toBeHidden();
+  if (!opts.fresh) await stock(page);
+}
+
+/** Some hub stock and Logistics (belts, splitters, underground belts), as games used to start. */
+export async function stock(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const s = window.game.world.state;
+    Object.assign(s.inventory, { iron_plate: 100, brick: 24, copper_ingot: 16, stone: 40, iron_ore: 20 });
+    if (!s.researched.includes('logistics')) s.researched.push('logistics');
+  });
 }
 
 /** Removes every bug territory, so nothing a test builds provokes an attack. */

@@ -30,7 +30,7 @@ function setup() {
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
   const hub = w.hub!;
   const camera = new Camera();
   camera.width = 800;

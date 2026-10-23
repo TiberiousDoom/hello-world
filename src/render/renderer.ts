@@ -12,6 +12,7 @@ import {
   ENEMIES,
   EnemyType,
   EXTRACTOR_PERIOD,
+  HAND_MINING,
   HUB_SIZE,
   NESTS,
   footprint,
@@ -86,7 +87,7 @@ interface Layer {
 const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
 
 interface Effect {
-  kind: 'puff' | 'blast' | 'shockwave';
+  kind: 'puff' | 'blast' | 'shockwave' | 'sparks';
   x: number;
   y: number;
   r: number;
@@ -110,6 +111,7 @@ export class Renderer {
   private effects: Effect[] = [];
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
+  private seenTaps = new WeakSet<object>();
   private world: World | null = null;
   /** How far the game is between its last tick and the next (0–1); things are drawn that far along (#49). */
   private alpha = 1;
@@ -235,6 +237,7 @@ export class Renderer {
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);
     this.drawEffects(now, z);
+    this.drawHandMining(world, z);
     this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
 
     if (!ui) return;
@@ -1067,6 +1070,14 @@ export class Renderer {
       this.effects.push({ kind: 'puff', x: f.x + 0.5, y: f.y + 0.5, r: 0.8, born: now, life: 500, color: '127,174,79' });
     }
 
+    // Mining by hand (#38): sparks on every tap, and a puff of the ore when one comes loose.
+    for (const tap of world.taps) {
+      if (this.seenTaps.has(tap)) continue;
+      this.seenTaps.add(tap);
+      this.effects.push({ kind: 'sparks', x: tap.x + 0.5, y: tap.y + 0.5, r: 0.55, born: now, life: 260, color: '255,214,120' });
+      if (tap.item) this.effects.push({ kind: 'puff', x: tap.x + 0.5, y: tap.y + 0.5, r: 0.9, born: now, life: 450, color: hexRgb(ITEMS[tap.item].color) });
+    }
+
     const breached = s.breaches !== this.breaches;
     for (const [id, e] of this.enemies) {
       if (alive.has(id)) continue;
@@ -1137,6 +1148,26 @@ export class Renderer {
     }
   }
 
+  /** A ring around the ore tile being mined by hand, filling with each tap (#38). */
+  private drawHandMining(world: World, z: number): void {
+    const m = world.state.players[0]?.mining;
+    if (!m) return;
+    const x = m.tile % world.state.width;
+    const y = Math.floor(m.tile / world.state.width);
+    const taps = world.handMiningAt(x, y);
+    if (!taps) return;
+    const ctx = this.ctx;
+    ctx.lineWidth = 3 / z;
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.arc(x + 0.5, y + 0.5, 0.42, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,214,120,0.95)';
+    ctx.beginPath();
+    ctx.arc(x + 0.5, y + 0.5, 0.42, -Math.PI / 2, -Math.PI / 2 + (taps / HAND_MINING.taps) * Math.PI * 2);
+    ctx.stroke();
+  }
+
   private drawEffects(now: number, z: number): void {
     const ctx = this.ctx;
     for (const fx of this.effects) {
@@ -1149,6 +1180,19 @@ export class Renderer {
         ctx.lineWidth = 2 / z;
         ctx.beginPath();
         ctx.arc(fx.x, fx.y, fx.r * (0.3 + 0.9 * t), 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (fx.kind === 'sparks') {
+        // Short streaks flying out; each tap's set points a different way.
+        ctx.strokeStyle = `rgba(${fx.color},${a})`;
+        ctx.lineWidth = 1.5 / z;
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const ang = fx.born * 0.37 + i * 1.3;
+          const d0 = fx.r * t;
+          const d1 = d0 + 0.18 * (1 - t);
+          ctx.moveTo(fx.x + Math.cos(ang) * d0, fx.y + Math.sin(ang) * d0);
+          ctx.lineTo(fx.x + Math.cos(ang) * d1, fx.y + Math.sin(ang) * d1);
+        }
         ctx.stroke();
       } else if (fx.kind === 'puff') {
         ctx.fillStyle = `rgba(${fx.color},${0.6 * a})`;
@@ -1165,6 +1209,12 @@ export class Renderer {
       }
     }
   }
+}
+
+/** '#rrggbb' to 'r,g,b', for the effects' rgba() colours. */
+function hexRgb(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `${n >> 16},${(n >> 8) & 255},${n & 255}`;
 }
 
 function dot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {

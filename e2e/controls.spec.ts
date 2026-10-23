@@ -1,4 +1,4 @@
-import { expect, newGame, test } from './helpers';
+import { calm, expect, newGame, test, uncoveredTile } from './helpers';
 
 test.skip(({ isMobile }) => isMobile, 'mouse and keyboard controls');
 
@@ -61,4 +61,26 @@ test('wheel, right-click and menu backdrops', async ({ page }) => {
   await page.click('#menu-btn');
   await page.mouse.click(15, 740);
   await expect(page.locator('#menu')).toBeHidden();
+});
+
+test('holding the mouse button on bare ore keeps mining it by hand', async ({ page }) => {
+  await newGame(page, { fresh: true });
+  await calm(page);
+  const tile = await page.evaluate(() => {
+    const w = window.game.world;
+    const x = w.hub.x - 6;
+    const y = w.hub.y + 2;
+    w.state.resources[w.idx(x, y)] = 3; // stone
+    w.state.trees[w.idx(x, y)] = 0;
+    return [x, y] as [number, number];
+  });
+  const [px, py] = await uncoveredTile(page, ...tile);
+  await page.mouse.move(px, py);
+  await page.mouse.down();
+  await page.waitForTimeout(2600);
+  await page.mouse.up();
+  // Four taps a second: eight taps (one stone) in about two seconds.
+  await expect.poll(() => page.evaluate(() => window.game.world.state.inventory.stone ?? 0)).toBeGreaterThanOrEqual(1);
+  const taps = await page.evaluate(() => window.game.world.handMiningAt(window.game.world.hub.x - 6, window.game.world.hub.y + 2));
+  expect(taps).toBeLessThan(8);
 });
