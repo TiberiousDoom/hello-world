@@ -15,7 +15,7 @@ yet, **Final** = your art is in.
 
 ![All placeholder art](art-placeholders.png)
 
-**Art review 1 (2026-10-23):** the owner marked 7 sprites to polish and 6 to redraw, all done in 0.27.0. Still to come: bugs of different ages and sizes, and a Hardcore look (more horrifying bugs, nests as mounded holes), after the nest discussion (#53).
+**Art review 1 (2026-10-23):** the owner marked 7 sprites to polish and 6 to redraw, all done in 0.27.0. Still to come: bugs of different ages and sizes, and a Hardcore look (more horrifying bugs, nests as mounded holes); the nest plan is D-065.
 
 Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
 They show the intended size, facing and silhouette.
@@ -119,6 +119,7 @@ tripod poses); the game swaps them as the bug moves, so a bug standing still to 
 | Crawler: long, flat and segmented, six legs, dark orange | ~28 px (fits a 32×32 frame) | 2 walk (+4 attack later) | P1 | Placeholder (`crawler`, `crawler_b`; redrawn after the art review) |
 | Runner: glossy black, centipede-like, many legs | ~22 px (32×32) | 2 walk (+4 attack later) | P2 | Placeholder (`runner`, `runner_b`; redrawn after the art review) |
 | Brute: four-legged and centaur-like (no human top): a heavy rear body, a raised front body with two hooked claws; very dark red | ~46 px (64×64) | 2 walk (+4 attack later) | P2 | Placeholder (`brute`, `brute_b`; redrawn after the art review) |
+| Young crawler, runner and brute (D-065, planned): smaller, paler versions that grow into the adults | about 60% of the adult | 2 walk each | P2 | Needed |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Code |
 
 ## Effects
@@ -132,6 +133,8 @@ tripod poses); the game swaps them as the bug moves, so a bug standing still to 
 | Repair sparkle | 32×32 | 4 | P3 | Needed |
 | Building destroyed (debris) | 64×64 | 5 | P3 | Needed |
 | Nest mound and territory outline | 64×64 mound; outline in code | 1 (+ cleared) | P2 | Code |
+| Nest mounds by kind (D-065, planned): crawler warren, runner hive, brute den, queen nest (bigger), each with a damaged look; Hardcore versions as mounded holes | 2×2 tiles (queen 3×3) | 1 + damaged | P2 | Needed |
+| Chitin (item, D-065, planned) | Item size | 1 | P2 | Needed |
 | Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 
 ## UI
