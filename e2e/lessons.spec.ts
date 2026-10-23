@@ -1,4 +1,4 @@
-import { ALL_LESSONS, build, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, tap, test, uncoveredTile } from './helpers';
+import { ALL_LESSONS, buildTile, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, tap, test, uncoveredTile } from './helpers';
 
 test('the Essentials and Bugs lessons run, then can be replayed and switched off', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: [], fresh: true });
@@ -76,7 +76,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
       }
     return best;
   });
-  await build(page, info, ...(await uncoveredTile(page, ...node)));
+  await buildTile(page, info, ...node);
   await expect(step).toContainText('7 of');
 
   // The furnace goes right in front of the extractor's arrow.
@@ -88,7 +88,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     const o = w.outputTile(w.state.buildings.find((b: { type: string }) => b.type === 'extractor'));
     return [o.x, o.y] as [number, number];
   });
-  await build(page, info, ...(await uncoveredTile(page, ...out)));
+  await buildTile(page, info, ...out);
   await expect(step).toContainText('8 of');
 
   // Collect its plates by hand.
@@ -136,7 +136,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     const o = w.outputTile(f);
     return [0, 1, 2].map((i) => [o.x + i, o.y] as [number, number]);
   });
-  for (const [x, y] of belts) await build(page, info, ...(await uncoveredTile(page, x, y)));
+  for (const [x, y] of belts) await buildTile(page, info, x, y);
   await expect(step).toContainText('12 of');
   await page.click('.tip-next');
 

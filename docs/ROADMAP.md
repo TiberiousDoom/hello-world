@@ -49,7 +49,7 @@ quality and business work don't get left until the end.
 18. ✅ **Start from nothing** (0.28.0, #38, D-062): the hub starts empty; mine stone and ore by hand, build a furnace and an extractor, collect plates by hand, then research Logistics (now the first research) for belts, splitters and underground belts. The Essentials lesson follows the new start.
 19. ✅ **Building shapes** (0.29.0, #33, #34, #35, D-063): a 2×2 workshop, a 3×3 assembler, a 1×2 splitter spanning two lanes, and underground belts that look like belts going underground.
 20. ✅ **Feedback form** (0.30.0, D-064): Send feedback in the pause menu, with diagnostics, a GitHub issue link, Copy and Download save. CI runs in Playwright's container, so browsers aren't installed on every run.
-21. **Nests (D-065, #53):** phase 1 (mounds and chitin) is done in 0.31.0; the rest follows the phases under Gameplay → Nests.
+21. **Nests (D-065, #53):** phase 1 (mounds and chitin) is done in 0.31.0, phase 2 (breeding and young bugs) in 0.36.0; the rest follows the phases under Gameplay → Nests.
 22. ✅ **Player character** (0.32.0, #40, D-067): an engineer who walks (tap or WASD), mines by hand, carries items that trail behind, drops them at the hub, and fetches or hands over items. Next: bugs that notice the engineer, then co-op phase 1.
 23. ✅ **Day, night and seasons** (0.33.0, #42, D-068): a 9-minute day, bugs ranging further at night, four seasons changing tree regrowth and the look of the map, a clock, and a short piece of music for each season. Night raids (D-065) can come next. Belt feedback batch filed as #61–#65.
 24. ✅ **Belt batch** (playtest #61–#65): two-lane belts, splitter filters and side snapping (0.34.0, D-069); an exit blueprint for underground belts, and belt lines that go under belts they cross (0.35.0, D-070).
@@ -110,7 +110,7 @@ In this order. Phase 0 can start before the player character (playtest issue #40
 ### Nests (D-065, #53)
 In this order:
 - ✅ **Phase 1, mounds and chitin** (0.31.0): nests are mounds with health; destroying one clears the territory, survivors stay angry until killed; chitin drops into stock; its first use is Chitin Plating (research: 1.5× health for turrets and walls)
-- ⬜ **Phase 2, breeding and young bugs:** calm nests breed back to their starting number; young bugs hatch small and weak and grow up over about 3 minutes; art for young bugs
+- ✅ **Phase 2, breeding and young bugs** (0.36.0, D-071): calm nests breed back to their starting number; young bugs hatch small and weak and grow up over 3 minutes. They reuse the adult sprites, smaller and paler, until young-bug art exists
 - ⬜ **Phase 3, threat:** a threat level rising with play time makes new bugs tougher and spreading faster; shooting a nest's bugs wakes its neighbours
 - ⬜ **Phase 4, themed kinds and queens:** crawler warrens, runner hives and brute dens by distance, each with its own mound art; rare queen nests near the map edge
 - ⬜ **Phase 5, Hardcore nests:** harder numbers, destroy only by building over the mound and a ring, faster breeding while being built over; the Hardcore look

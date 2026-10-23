@@ -140,6 +140,35 @@ export async function build(page: Page, info: TestInfo, x: number, y: number): P
   if (planned) await page.click('[data-plan="confirm"]');
 }
 
+/**
+ * Builds the tool in hand at a tile, and checks it went up. A tap that lands while the camera is still
+ * gliding can put the blueprint on the wrong tile, so a blueprint anywhere else is cancelled, and the
+ * tap tried again, before anything is paid for.
+ */
+export async function buildTile(page: Page, info: TestInfo, tx: number, ty: number): Promise<void> {
+  const tool = await page.evaluate(() => window.game.ui.tool);
+  const built = () => page.evaluate(([x, y, t]) => window.game.world.buildingAt(x, y)?.type === t, [tx, ty, tool] as const);
+  for (let i = 0; i < 4 && !(await built()); i++) {
+    await cameraSettled(page);
+    const pt = await uncoveredTile(page, tx, ty);
+    await tap(page, info, ...pt);
+    if (isTouch(info)) {
+      const plan = await page
+        .waitForFunction(() => window.game.ui.plan?.tiles[0] ?? null, null, { timeout: 3000 })
+        .then((h) => h.jsonValue() as Promise<{ x: number; y: number }>)
+        .catch(() => null);
+      if (!plan) continue;
+      if (plan.x !== tx || plan.y !== ty) {
+        await page.click('[data-plan="cancel"]');
+        continue;
+      }
+      await page.click('[data-plan="confirm"]');
+    }
+    await expect.poll(built, { timeout: 2000 }).toBe(true).catch(() => undefined);
+  }
+  expect(await built(), `a ${tool} at ${tx},${ty}`).toBe(true);
+}
+
 /** Screen point at the centre of a tile. */
 export function tilePoint(page: Page, x: number, y: number): Promise<[number, number]> {
   return page.evaluate(([x, y]) => window.game.camera.toScreen(x + 0.5, y + 0.5), [x, y] as const);
