@@ -229,7 +229,14 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 - **Carrying:** up to **20 items**, which trail behind it. Walking up to the **hub** drops everything
   off at once. **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands
   that building whatever it takes of what's carried.
-- Bugs ignore the engineer for now.
+- **Bugs notice the engineer (D-074).** The engineer has **100 health**. Walking within 3 tiles of a
+  calm bug (5 at night) provokes its nest, as a building would. An angry bug (or a raider) within
+  **4 tiles** of the engineer goes straight for them, within its leash, and bites as hard as it bites
+  buildings. Health comes back at 5 a second once nothing has bitten for 5 s. A health bar shows when
+  hurt, with a red flash and a hit sound on each bite.
+- **Knocked out:** at 0 health the engineer drops everything they carry (it's lost) and gets back on
+  their feet below the hub **10 s** later, at full health. Until then they can't walk, mine, collect or
+  drop off. Building still works.
 - In co-op each player will have their own engineer; the rules already keep a list of players.
 
 ## Starting from nothing

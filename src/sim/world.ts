@@ -50,7 +50,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
-import { Player, PlayerAction, goAndDo, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
+import { Player, PlayerAction, goAndDo, isDown, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -69,8 +69,9 @@ export type { ResearchState };
  * v17 (#40, D-067) gives players a character: a position, a path and what it carries.
  * v18 (#61, D-069) gives belts two lanes; items already on belts go onto the right lane.
  * v19 (D-065) lets nests breed: each records the bugs it breeds back up to.
+ * v20 (D-074) gives the engineer health.
  */
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -186,7 +187,7 @@ export interface Shot {
 }
 
 /** 'far': the character walks over and mines on arriving. 'full': its hands are full. */
-export type MineError = 'no-ore' | 'occupied' | 'far' | 'full';
+export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
 export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
@@ -298,10 +299,17 @@ export class World {
     if (state.version === 16) World.migrateV16(state);
     if (state.version === 17) World.migrateV17(state);
     if (state.version === 18) World.migrateV18(state);
+    if (state.version === 19) World.migrateV19(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v19 to v20 (D-074): engineers get health, at full. */
+  private static migrateV19(state: GameState): void {
+    for (const p of state.players) p.hp = PLAYER.hp;
+    state.version = 20;
   }
 
   /** v18 to v19 (D-065): nests breed back up to the bugs a nest that far out starts with. */
@@ -1082,6 +1090,7 @@ export class World {
     if (!ore) return 'no-ore';
     if (this.buildingAt(x, y)) return 'occupied';
     const p = playerOf(this, player);
+    if (isDown(p)) return 'down';
     if (!inReach(p.x, p.y, x, y)) {
       goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
       return 'far';
@@ -1120,6 +1129,7 @@ export class World {
     const b = this.byId.get(id);
     if (!b || !canCollect(b.type)) return 0;
     const p = playerOf(this, player);
+    if (isDown(p)) return 0;
     if (!reaches(this, p, b)) {
       const [fw, fh] = this.footprintOf(b);
       goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'collect', id });
@@ -1138,6 +1148,7 @@ export class World {
     const b = this.byId.get(id);
     if (!b) return 0;
     const p = playerOf(this, player);
+    if (isDown(p)) return 0;
     if (!reaches(this, p, b)) {
       const [fw, fh] = this.footprintOf(b);
       goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'drop', id });

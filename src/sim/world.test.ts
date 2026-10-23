@@ -4,6 +4,7 @@ import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } fr
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { createDemoWorld } from './demo';
+import { isDown } from './player';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
 function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
@@ -1347,5 +1348,63 @@ describe('Night raids (D-065)', () => {
     w.tick();
     expect(w.state.enemies.some((e) => e.raid)).toBe(false);
     expect(far.id).not.toBe(young.id);
+  });
+});
+
+describe('Bugs notice the engineer (D-074)', () => {
+  it('walking close to a calm bug provokes its nest', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    const bug = w.state.enemies[0];
+    Object.assign(bug, { x: 55.5, y: 55.5, tx: 55.5, ty: 55.5, wait: 99 });
+    stand(w, 60, 55);
+    run(w, 1);
+    expect(isAngry(w, n)).toBe(false);
+    stand(w, 57, 55);
+    run(w, 1);
+    expect(isAngry(w, n)).toBe(true);
+  });
+
+  it('angry bugs bite the engineer; knocked out, it drops what it carries and gets back up at the hub', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    n.angryUntil = 1e9;
+    const bug = w.state.enemies[0];
+    Object.assign(bug, { x: 55.5, y: 55.5 });
+    stand(w, 57, 55);
+    const p = w.state.players[0];
+    p.carry = ['stone', 'stone'];
+    run(w, 3);
+    expect(p.hp).toBeLessThan(PLAYER.hp);
+    run(w, PLAYER.hp / 8); // a crawler bites 8 a second
+    expect(isDown(p)).toBe(true);
+    expect(p.carry).toEqual([]);
+    expect(w.moveTo(60, 60)).toBe(false);
+    ore(w, 60, 60);
+    expect(w.mineByHand(60, 60)).toBe('down');
+    expect(w.events.some((e) => e.startsWith('Your engineer was knocked out'))).toBe(true);
+    run(w, PLAYER.downFor);
+    expect(isDown(p)).toBe(false);
+    expect(p.hp).toBe(PLAYER.hp);
+    expect(Math.abs(p.x - (w.hub!.x + 2.5))).toBeLessThan(1);
+  });
+
+  it('health comes back a while after the last bite', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    p.hp = 50;
+    p.hurtAt = w.state.time;
+    run(w, PLAYER.regenAfter - 1);
+    expect(p.hp).toBe(50);
+    run(w, 3);
+    expect(p.hp).toBeGreaterThan(50);
+  });
+
+  it('v19 saves give engineers full health', () => {
+    const w = emptyWorld();
+    const old = JSON.parse(w.toJSON());
+    old.version = 19;
+    for (const p of old.players) delete p.hp;
+    expect(World.fromJSON(JSON.stringify(old)).state.players[0].hp).toBe(PLAYER.hp);
   });
 });

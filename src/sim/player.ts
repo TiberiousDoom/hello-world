@@ -5,6 +5,9 @@
 // The rules hold a list of players from the start, for co-op (D-056). Moves are
 // commands like everything else; paths are found once per command and saved, so
 // every game walks the same way.
+//
+// Bugs notice the engineer (D-074): it has health, and a knocked-out engineer
+// drops what it carries and gets back up at the hub a little later.
 
 import { BUILDINGS, DX, DY, HUB_SIZE, ItemId, PLAYER } from './data';
 import { hypot } from './math';
@@ -28,6 +31,11 @@ export interface Player {
   pending: PlayerAction | null;
   /** The ore tile this player is mining by hand, taps so far, and the game time of the last tap (#38). */
   mining?: { tile: number; taps: number; at: number } | null;
+  hp: number;
+  /** Game time of the last bite, for health coming back. */
+  hurtAt?: number;
+  /** Knocked out (D-074): game time it gets back up at the hub. */
+  downUntil?: number;
 }
 
 /** A new player standing just below the middle of the hub. */
@@ -35,7 +43,40 @@ export function newPlayer(w: World, id: number): Player {
   const hub = w.hub;
   const x = hub ? hub.x + Math.floor(HUB_SIZE / 2) + 0.5 : w.state.width / 2;
   const y = hub ? hub.y + HUB_SIZE + 0.5 : w.state.height / 2;
-  return { id, x, y, carry: [], path: [], walk: null, pending: null, mining: null };
+  return { id, x, y, carry: [], path: [], walk: null, pending: null, mining: null, hp: PLAYER.hp };
+}
+
+/** Whether a player is knocked out (D-074): it can't walk or work until it's back up. */
+export function isDown(p: Player): boolean {
+  return p.downUntil != null;
+}
+
+/** A bug bites the engineer; at no health it's knocked out and drops everything it carries. */
+export function hurtPlayer(w: World, p: Player, amount: number): void {
+  if (isDown(p)) return;
+  p.hp -= amount;
+  p.hurtAt = w.state.time;
+  if (p.hp > 0) return;
+  p.hp = 0;
+  p.carry = [];
+  p.path = [];
+  p.pending = null;
+  p.walk = null;
+  p.mining = null;
+  p.downUntil = w.state.time + PLAYER.downFor;
+  w.events.push(`Your engineer was knocked out and dropped what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`);
+}
+
+/** The standing player nearest (x, y) within `range`, if any. */
+export function playerNear(w: World, x: number, y: number, range: number): Player | undefined {
+  let best: Player | undefined;
+  let bestD = range;
+  for (const p of w.state.players) {
+    if (isDown(p)) continue;
+    const d = hypot(p.x - x, p.y - y);
+    if (d <= bestD) [best, bestD] = [p, d];
+  }
+  return best;
 }
 
 export function playerOf(w: World, id = 0): Player {
@@ -63,6 +104,7 @@ export function reaches(w: World, p: Player, b: Building): boolean {
 
 /** Walk to tile (x, y), or as close as the way allows. Drops any plan to act on arrival. */
 export function moveTo(w: World, p: Player, x: number, y: number): boolean {
+  if (isDown(p)) return false;
   p.pending = null;
   p.walk = null;
   const path = findPath(w, p, (tx, ty) => tx === x && ty === y, x, y);
@@ -72,6 +114,7 @@ export function moveTo(w: World, p: Player, x: number, y: number): boolean {
 
 /** Walk until a w×h area at (x, y) is in reach, then do `action`. Does it at once if already there. */
 export function goAndDo(w: World, p: Player, x: number, y: number, fw: number, fh: number, action: PlayerAction): boolean {
+  if (isDown(p)) return false;
   p.walk = null;
   const path = findPath(w, p, (tx, ty) => inReach(tx + 0.5, ty + 0.5, x, y, fw, fh), x + fw / 2, y + fh / 2);
   if (!path) return false;
@@ -82,6 +125,7 @@ export function goAndDo(w: World, p: Player, x: number, y: number, fw: number, f
 
 /** Keyboard walking: hold a direction (each part -1, 0 or 1), or stop with [0, 0]. */
 export function walk(p: Player, dx: number, dy: number): void {
+  if (isDown(p)) return;
   p.path = [];
   p.pending = null;
   p.walk = dx || dy ? [Math.sign(dx), Math.sign(dy)] : null;
@@ -90,6 +134,19 @@ export function walk(p: Player, dx: number, dy: number): void {
 /** Moves every player along its path or held direction, acts on arrival, and drops off at the hub. */
 export function tickPlayers(w: World, dt: number, act: (p: Player, a: PlayerAction) => void): void {
   for (const p of w.state.players) {
+    if (p.downUntil != null) {
+      if (w.state.time < p.downUntil) continue;
+      // Back on their feet, just below the hub.
+      const fresh = newPlayer(w, p.id);
+      p.x = fresh.x;
+      p.y = fresh.y;
+      p.hp = PLAYER.hp;
+      delete p.downUntil;
+      delete p.hurtAt;
+    }
+    if (p.hp < PLAYER.hp && (p.hurtAt == null || w.state.time - p.hurtAt >= PLAYER.regenAfter)) {
+      p.hp = Math.min(PLAYER.hp, p.hp + PLAYER.regen * dt);
+    }
     let step = PLAYER.speed * dt;
     if (p.walk) {
       const [dx, dy] = p.walk;
