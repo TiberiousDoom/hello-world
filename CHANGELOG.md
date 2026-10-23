@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.31.0 · 2026-10-23 · Nest mounds and chitin
+### New
+- **Destroy a nest's mound** to clear its territory for good. Turrets in range shoot a mound when no bugs are near (which wakes the nest). A damaged mound shows a health bar and cracks.
+- **Chitin:** a destroyed mound drops chitin into the hub, more for nests further out. Its survivors stay angry and roam until killed.
+- **Chitin Plating** (research, after Basic Defense): turrets, walls and palisades get half as much health again, including ones already built.
+- You can't build on a standing mound.
+- Saved games: nests you'd already cleared of bugs count as destroyed.
+
 ## 0.30.1 · 2026-10-23 · Plans for nests
 - Nothing changes in play. The plans for nests are written down: mounds you can destroy for chitin, nests that breed young bugs, a threat that rises over time, night raids, nest kinds and queen nests, and tougher Hardcore nests you have to build over.
 

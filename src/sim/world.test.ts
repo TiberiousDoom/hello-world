@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
-import { Nest, cellKey, isAngry, nestCentre } from './nests';
+import { Nest, cellKey, isAngry, nestCentre, newNest } from './nests';
 import { Building, NO_TREE, OldSaveError, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
 
@@ -33,7 +33,7 @@ function ore(w: World, x: number, y: number, kind = 1, size = 2) {
 
 /** Adds a nest (with `bugs` crawlers) whose cell has its top-left at (x, y). */
 function addNest(w: World, x: number, y: number, bugs = 3): Nest {
-  const n: Nest = { id: w.state.nests.length, x, y, angryUntil: 0 };
+  const n: Nest = newNest(w.state.nests.length, x, y, 0);
   w.state.nests.push(n);
   w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
   for (let i = 0; i < bugs; i++) w.spawnBug('crawler', n, 1);
@@ -355,7 +355,7 @@ describe('Bugs', () => {
     n.angryUntil = w.state.time + 5;
     w.markFlowDirty();
     run(w, 30);
-    expect(far.hp).toBe(BUILDINGS.wall.hp);
+    expect(far.hp).toBe(w.maxHp(far));
     for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeLessThanOrEqual(NESTS.leash + 1);
     expect(isAngry(w, n)).toBe(false);
   });
@@ -364,7 +364,7 @@ describe('Bugs', () => {
     const w = emptyWorld();
     addNest(w, 50, 50, 2);
     const b = addNest(w, 60, 50, 2); // a live neighbour: its cell is never taken
-    addNest(w, 50, 60, 0); // a cleared neighbour: can be taken over
+    addNest(w, 50, 60, 0).destroyed = true; // a destroyed neighbour: can be taken over
     placed(w.place('wall', 45, 55, 0)); // the cell to the left holds a building: stays clear
     const spreads = () => w.state.nests.length - 3;
     for (let i = 0; i < 6; i++) {
@@ -935,5 +935,74 @@ describe('Starting from nothing (#38)', () => {
     expect(loaded.state.research.paid).toEqual({});
     expect(loaded.isUnlocked('belt')).toBe(true);
     expect(loaded.isUnlocked('tunnel')).toBe(true);
+  });
+});
+
+describe('Nest mounds and chitin (D-065)', () => {
+  it('turrets with no bugs in reach shoot a mound; destroying it clears the territory and drops chitin', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 0);
+    const t = placed(w.place('turret', 57, 54, 0)); // next to the mound in the middle of the cell
+    t.ammo = 50;
+    expect(w.place('wall', 54, 54, 0)).toBe('nest'); // the mound's own tiles
+    const hp = n.hp;
+    for (let i = 0; i < 20; i++) w.tick();
+    expect(n.hp).toBeLessThan(hp);
+    expect(isAngry(w, n)).toBe(true); // shooting the mound wakes the nest
+    n.hp = 1;
+    const chitin = w.state.inventory.chitin ?? 0;
+    run(w, 2);
+    expect(n.destroyed).toBe(true);
+    expect(w.state.inventory.chitin).toBeGreaterThan(chitin);
+    expect(w.events.some((e) => e.startsWith('Nest destroyed'))).toBe(true);
+    expect(placed(w.place('wall', 54, 54, 0))).toBeDefined(); // the ground is free now
+    const ammo = t.ammo;
+    run(w, 2);
+    expect(t.ammo).toBe(ammo); // nothing left to shoot
+  });
+
+  it("a destroyed nest's survivors stay angry and chase past the leash", () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 2);
+    const [cx, cy] = nestCentre(n);
+    const far = placed(w.place('wall', Math.round(cx) + NESTS.leash + 6, Math.round(cy), 0));
+    n.hp = 0;
+    n.destroyed = true;
+    w.markFlowDirty();
+    run(w, 60);
+    expect(isAngry(w, n)).toBe(true);
+    expect(far.hp).toBeLessThan(w.maxHp(far));
+  });
+
+  it('Chitin Plating gives turrets and walls more health, including ones already built', () => {
+    const w = emptyWorld();
+    w.state.researched = w.state.researched.filter((r) => r !== 'plating');
+    const wall = placed(w.place('wall', 20, 20, 0));
+    const furnace = placed(w.place('furnace', 30, 20, 0));
+    expect(wall.hp).toBe(BUILDINGS.wall.hp);
+    w.state.inventory.chitin = 10;
+    expect(w.researchNow('plating')).toBe(null);
+    expect(wall.hp).toBe(BUILDINGS.wall.hp * 1.5);
+    expect(w.maxHp(furnace)).toBe(BUILDINGS.furnace.hp);
+    expect(placed(w.place('wall', 21, 20, 0)).hp).toBe(BUILDINGS.wall.hp * 1.5);
+  });
+
+  it('v15 saves give nests mounds; nests with no bugs left count as destroyed', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 15;
+    for (const n of old.nests) {
+      delete n.hp;
+      delete n.maxHp;
+    }
+    const bare = old.nests.find((n: Nest) => n.id === 0);
+    old.enemies = old.enemies.filter((e: { nest: number }) => e.nest !== bare.id);
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.version).toBe(SAVE_VERSION);
+    expect(loaded.state.nests[0].destroyed).toBe(true);
+    const live = loaded.state.nests[1];
+    expect(live.destroyed).toBeUndefined();
+    expect(live.hp).toBe(live.maxHp);
+    expect(live.hp).toBeGreaterThanOrEqual(300);
   });
 });

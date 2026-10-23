@@ -1,7 +1,7 @@
 // A small pre-built factory that runs behind the main menu.
 
 import { Dir, NESTS, RESEARCH, TURRETS } from './data';
-import { cellKey } from './nests';
+import { cellKey, newNest } from './nests';
 import { TREE, World } from './world';
 
 const IRON = 1;
@@ -84,7 +84,7 @@ export function createDemoWorld(seed = 20261019): World {
 
   // A calm bug territory in view, so the menu shows some life.
   const c = NESTS.cell;
-  const nest = { id: s.nests.length, x: Math.floor((hx - 14) / c) * c, y: Math.floor((hy - 18) / c) * c, angryUntil: 0 };
+  const nest = newNest(s.nests.length, Math.floor((hx - 14) / c) * c, Math.floor((hy - 18) / c) * c, 20);
   s.nests.push(nest);
   w.nestCells.set(cellKey(nest.x / c, nest.y / c), nest);
   for (let i = 0; i < 4; i++) w.spawnBug(i % 3 ? 'crawler' : 'runner', nest, 1);

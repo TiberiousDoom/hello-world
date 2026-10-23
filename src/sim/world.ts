@@ -39,13 +39,15 @@ import {
   TUNNEL_RANGE,
   TURRETS,
   HAND_MINING,
+  PLATING,
   footprint,
+  moundHp,
   isMachine,
 } from './data';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
-import { Nest, anyAngry, cellKey, onBugHurt, onBuilt, tickBugs, tickSpread } from './nests';
+import { Nest, anyAngry, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBugs, tickSpread } from './nests';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -59,8 +61,9 @@ export type { ResearchState };
  * v11 (D-049) adds colony blueprints; a game with runs delivered gets an offer to pick from.
  * v14 (#38) moves belts into the Logistics research; older games get it for free.
  * v15 (#33, #34) resizes the workshop, assembler and splitter; ones that no longer fit are refunded.
+ * v16 (D-065) gives nests mounds with health; nests already cleared of bugs count as destroyed.
  */
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -169,7 +172,7 @@ export interface Shot {
 }
 
 export type MineError = 'no-ore' | 'occupied';
-export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
+export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
@@ -275,10 +278,26 @@ export class World {
     if (state.version === 12) World.migrateV12(state);
     if (state.version === 13) World.migrateV13(state);
     if (state.version === 14) World.migrateV14(state);
+    if (state.version === 15) World.migrateV15(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v15 to v16 (D-065): every nest gets a mound. One with no bugs left was cleared, so its mound counts as destroyed. */
+  private static migrateV15(state: GameState): void {
+    const hub = state.buildings.find((b) => b.id === state.hubId);
+    const hx = hub ? hub.x + Math.floor(HUB_SIZE / 2) : state.width / 2;
+    const hy = hub ? hub.y + Math.floor(HUB_SIZE / 2) : state.height / 2;
+    const withBugs = new Set(state.enemies.map((e) => e.nest));
+    for (const n of state.nests) {
+      const hp = moundHp(hypot(n.x + NESTS.cell / 2 - hx, n.y + NESTS.cell / 2 - hy));
+      n.maxHp = hp;
+      n.hp = withBugs.has(n.id) ? hp : 0;
+      if (!withBugs.has(n.id)) n.destroyed = true;
+    }
+    state.version = 16;
   }
 
   /**
@@ -517,6 +536,16 @@ export class World {
     return e;
   }
 
+  /** A building's full health: its base health, more with Chitin Plating for turrets and walls (D-065). */
+  maxHpFor(type: BuildingType): number {
+    const hp = BUILDINGS[type].hp;
+    return PLATING.types.includes(type) && this.state.researched.includes('plating') ? Math.round(hp * PLATING.bonus) : hp;
+  }
+
+  maxHp(b: Building): number {
+    return this.maxHpFor(b.type);
+  }
+
   get hub(): Building | undefined {
     return this.byId.get(this.state.hubId);
   }
@@ -580,8 +609,11 @@ export class World {
     const rs = this.state.research;
     delete rs.paid[id];
     if (rs.active === id) this.pauseResearch();
+    const before = r.effect === 'plating' ? new Map(this.state.buildings.map((b) => [b.id, this.maxHp(b)])) : null;
     this.state.researched.push(id);
-    this.events.push(`Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked`);
+    // Plating adds its extra health to what's already built, too.
+    if (before) for (const b of this.state.buildings) b.hp += this.maxHp(b) - before.get(b.id)!;
+    this.events.push(r.unlocks.length ? `Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked` : `Researched ${r.name}`);
   }
 
   /** Draws the active research's items from hub stock at a steady pace. */
@@ -639,7 +671,7 @@ export class World {
       x,
       y,
       dir,
-      hp: BUILDINGS[type].hp,
+      hp: this.maxHpFor(type),
       belt: [],
       recipe: null,
       inputs: {},
@@ -752,6 +784,7 @@ export class World {
         const b = this.buildingAt(x + dx, y + dy);
         if (b && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
         if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
+        if (moundAt(this, x + dx, y + dy)) return 'nest';
       }
     }
     if (type === 'shipyard' && shipyard(this)) return 'unique';
@@ -846,7 +879,7 @@ export class World {
     const b = this.byId.get(id);
     if (!b || b.type === 'hub') return false;
     const def = BUILDINGS[b.type];
-    const frac = b.hp / def.hp;
+    const frac = b.hp / this.maxHp(b);
     for (const [item, n] of Object.entries(def.cost)) {
       const inv = this.state.inventory;
       inv[item as ItemId] = (inv[item as ItemId] ?? 0) + Math.floor(n! * frac);
@@ -1274,7 +1307,7 @@ export class World {
     let worst: Building | undefined;
     let worstFrac = 1;
     for (const o of this.state.buildings) {
-      const frac = o.hp / BUILDINGS[o.type].hp;
+      const frac = o.hp / this.maxHp(o);
       if (frac >= worstFrac) continue;
       const [cx, cy] = this.centreOf(o);
       const [ow, oh] = this.footprintOf(o);
@@ -1285,7 +1318,7 @@ export class World {
       }
     }
     if (!worst) return;
-    const heal = Math.min(REPAIR.hpPerSecond * dt, BUILDINGS[worst.type].hp - worst.hp, b.ammo);
+    const heal = Math.min(REPAIR.hpPerSecond * dt, this.maxHp(worst) - worst.hp, b.ammo);
     worst.hp += heal;
     b.ammo -= heal;
   }
@@ -1356,7 +1389,17 @@ export class World {
         target = e;
       }
     }
-    if (!target) return;
+    if (!target) {
+      // With no bugs in reach, a turret shoots a nest's mound (D-065). The hub's gun only defends.
+      const mound = hub ? undefined : moundInRange(this, cx, cy, def.range);
+      if (!mound) return;
+      b.ammo--;
+      b.cooldown = 1 / def.rate;
+      damageMound(this, mound, def.damage);
+      const [mx, my] = nestCentre(mound);
+      this.shots.push({ x1: cx, y1: cy, x2: mx, y2: my, splash: def.splash, age: 0, arc: !!def.chain });
+      return;
+    }
     if (!hub) b.ammo--;
     b.cooldown = 1 / def.rate;
     if (def.splash > 0) {

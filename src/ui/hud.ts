@@ -64,6 +64,7 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
   'needs-resource': 'Extractors must go over ore.',
   'needs-trees': 'Lumber Camps must go near trees.',
   'needs-hub': 'Hub ports must go right next to the hub.',
+  nest: "You can't build on a nest's mound. Destroy it first: turrets in range shoot it.",
   unique: 'You can only have one shipyard.',
 };
 
@@ -544,8 +545,7 @@ export class Hud {
 
     let stats = '';
     {
-      const def = BUILDINGS[b.type];
-      stats = `HP ${Math.ceil(b.hp)} / ${def.hp}`;
+      stats = `HP ${Math.ceil(b.hp)} / ${world.maxHp(b)}`;
       const rates = buildingRates(world, b);
       if (rates) {
         stats += `<br><b>Rate</b> ${esc(rates.max)}`;

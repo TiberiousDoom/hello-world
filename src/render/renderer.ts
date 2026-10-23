@@ -346,23 +346,39 @@ export class Renderer {
       ctx.strokeRect(n.x - m, n.y - m, c + 2 * m, c + 2 * m);
       ctx.setLineDash([]);
     }
-    // The mound: a dirt heap with burrows (flattened once the nest is cleared).
+    // The mound: a dirt heap with burrows, cracked when badly hurt, flattened once destroyed (D-065).
+    const standing = !n.destroyed;
     const [cx, cy] = nestCentre(n);
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
     ctx.ellipse(cx + 0.15, cy + 0.2, 1.5, 1.1, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = alive ? '#6b4a2e' : '#4e4232';
+    ctx.fillStyle = standing ? '#6b4a2e' : '#4e4232';
     ctx.beginPath();
     ctx.ellipse(cx, cy, 1.4, 1.0, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = alive ? '#83603c' : '#5c5040';
+    ctx.fillStyle = standing ? '#83603c' : '#5c5040';
     ctx.beginPath();
     ctx.ellipse(cx - 0.2, cy - 0.2, 0.9, 0.6, 0, 0, Math.PI * 2);
     ctx.fill();
-    if (!alive) return;
+    if (!standing) return;
     ctx.fillStyle = '#1e140c';
     for (const [dx, dy, r] of [[-0.4, -0.1, 0.18], [0.35, 0.15, 0.15], [0.05, -0.45, 0.12]]) dot(ctx, cx + dx, cy + dy, r);
+    if (n.hp < n.maxHp) {
+      if (n.hp < n.maxHp / 2) {
+        ctx.strokeStyle = '#1e140c';
+        ctx.lineWidth = 2 / z;
+        ctx.beginPath();
+        ctx.moveTo(cx - 0.9, cy + 0.1);
+        ctx.lineTo(cx - 0.5, cy + 0.35);
+        ctx.lineTo(cx - 0.1, cy + 0.15);
+        ctx.moveTo(cx + 0.6, cy - 0.5);
+        ctx.lineTo(cx + 0.8, cy - 0.1);
+        ctx.lineTo(cx + 1.1, cy);
+        ctx.stroke();
+      }
+      bar(ctx, cx - 0.7, cy - 1.25, 1.4, n.hp / n.maxHp, '#e0445a');
+    }
   }
 
   private drawItem(item: ItemId, cx: number, cy: number, size: number): void {
@@ -859,7 +875,8 @@ export class Renderer {
 
     if (b.type === 'shipyard') this.drawShip(world, b, now);
     if (shake) ctx.translate(-shake, 0);
-    if (b.hp < def.hp) bar(ctx, b.x + 0.1, b.y + 0.02, fw - 0.2, b.hp / def.hp, b.hp / def.hp > 0.35 ? '#7bd389' : '#e0445a');
+    const maxHp = world.maxHp(b);
+    if (b.hp < maxHp) bar(ctx, b.x + 0.1, b.y + 0.02, fw - 0.2, b.hp / maxHp, b.hp / maxHp > 0.35 ? '#7bd389' : '#e0445a');
   }
 
   /** Where a big machine sends its output: a port with an arrow on the middle of its front edge. */
