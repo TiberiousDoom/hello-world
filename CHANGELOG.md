@@ -3,6 +3,16 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.29.0 · 2026-10-23 · New building shapes
+### New
+- **The workshop is 2×2** (was 3×2) and **the assembler 3×3** (was 4×2).
+- **The splitter spans two belt lanes** (1×2), like Factorio's. It takes items from behind either lane and sends them out of both lanes in turn. It used to send items front, left and right.
+- **Underground belts look like belts** that dive into the ground at the entrance and come back up at the exit.
+- Saved games move each resized building to the nearest spot where it fits. One that fits nowhere is removed and its cost (and what it held) goes back into hub stock.
+
+### Fixed
+- **Sounds no longer go missing** just after the game starts: while the sound system was still waking up, a button click or a building sound could be skipped as if it had just played.
+
 ## 0.28.0 · 2026-10-23 · Start from nothing
 ### New
 - **Start from nothing:** the hub starts empty, and you begin with only the extractor and furnace. Tap bare stone or ore (or click it) to mine it by hand: every 8 taps put one into the hub, with sparks and a pickaxe sound. Hold your finger or the mouse button down to keep mining.

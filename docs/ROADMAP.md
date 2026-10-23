@@ -47,6 +47,7 @@ quality and business work don't get left until the end.
 16. ✅ **Co-op phase 0** (D-058): every change to the world is a command run through a session with a log; exact replays; path timers and players saved (v12); determinism checked in Chromium, Firefox and WebKit. Next for co-op: phase 1, the two-player prototype.
 17. ✅ **Playtest round 5** (0.26.0): version numbers and What's new; cooler drawing and a battery saver (#46, D-061); readable rates (#48); smooth belts (#49); staggered regrowth (#50); spreading territories (#51, D-059).
 18. ✅ **Start from nothing** (0.28.0, #38, D-062): the hub starts empty; mine stone and ore by hand, build a furnace and an extractor, collect plates by hand, then research Logistics (now the first research) for belts, splitters and underground belts. The Essentials lesson follows the new start.
+19. ✅ **Building shapes** (0.29.0, #33, #34, #35, D-063): a 2×2 workshop, a 3×3 assembler, a 1×2 splitter spanning two lanes, and underground belts that look like belts going underground.
 
 ---
 

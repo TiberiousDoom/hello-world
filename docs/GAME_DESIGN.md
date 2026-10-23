@@ -60,11 +60,11 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Basic Defense |
 | Ballista | 1×1 | 8 planks, 4 iron plates | 140 | Ballistae |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
-| Workshop | 3×2 | 6 iron plates, 4 copper ingots, 4 planks | 120 | Workshops |
+| Workshop | 2×2 | 6 iron plates, 4 copper ingots, 4 planks | 120 | Workshops |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
-| Splitter | 1×1 | 3 iron plates, 1 copper ingot | 40 | Logistics |
+| Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Logistics |
-| Assembler | 4×2 | 10 gears, 10 wire | 150 | Assembly |
+| Assembler | 3×3 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
 | Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
@@ -99,8 +99,8 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   width, the tile left of centre as seen facing out). A small port with an arrow shows the spot.
   Machines accept input on any tile of any side, and buffer up to 3 crafts' worth of each input.
 - **Extractors** need ore under at least one tile of their base, and mine whichever ore covers most of it.
-- **Splitters** accept only from directly behind. They send items out the front, left and
-  right in turn, skipping any blocked side.
+- **Splitters** (1×2, #34) span two belt lanes. They accept items from directly behind either lane,
+  and send them out of the front of both lanes in turn, skipping a blocked lane.
 - **Underground belts** pair an entrance with the next tunnel placed up to 5
   tiles ahead in the same direction. Exits accept no input. Items in transit
   are lost if either end is removed.

@@ -35,7 +35,7 @@ export function createDemoWorld(seed = 20261019): World {
     }
   };
 
-  // Iron from the west: extractor → furnace → splitter (branch to a turret) → hub.
+  // Iron from the west: extractor → furnace → splitter (its second lane feeds a turret) → hub.
   ore(hx - 16, iy, IRON);
   put('extractor', hx - 16, iy, 0);
   put('belt', hx - 14, iy, 0);
@@ -43,8 +43,8 @@ export function createDemoWorld(seed = 20261019): World {
   line(hx - 11, iy, hx - 9, iy, 0);
   put('splitter', hx - 8, iy, 0);
   line(hx - 7, iy, hx - 1, iy, 0);
-  put('belt', hx - 8, iy - 1, 3);
-  put('turret', hx - 8, iy - 2, 0);
+  put('belt', hx - 7, iy + 1, 0);
+  put('turret', hx - 6, iy + 1, 0);
 
   // Copper from the east into a workshop making wire, then the hub.
   ore(hx + 16, iy, COPPER);
@@ -52,8 +52,8 @@ export function createDemoWorld(seed = 20261019): World {
   put('belt', hx + 15, iy, 2);
   put('furnace', hx + 13, iy, 2);
   put('belt', hx + 12, iy, 2);
-  put('workshop', hx + 9, iy, 2);
-  line(hx + 8, iy, hx + 5, iy, 2);
+  put('workshop', hx + 10, iy, 2);
+  line(hx + 9, iy, hx + 5, iy, 2);
 
   // Stone from the south, under a wall, into the hub.
   const sx = hx + 2;
