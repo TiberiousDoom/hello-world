@@ -31,11 +31,11 @@ import {
   type Season,
 } from '../sim/data';
 import { Building, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
-import { Plan, Spot, UIState, placementAt, planDirs } from '../ui/state';
+import { Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching } from '../sim/ship';
 import { clockAt, darkness } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell } from '../sim/nests';
-import { planStatus } from '../ui/plan';
+import { planSteps } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
 import { Camera } from './camera';
 
@@ -309,13 +309,16 @@ export class Renderer {
 
   /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
   private drawPlan(world: World, plan: Plan, dir: Dir, z: number): void {
-    const status = planStatus(world, plan, dir);
-    const dirs = planDirs(plan, dir);
     const single = plan.tiles.length === 1;
-    plan.tiles.forEach((t, i) => {
-      if (status[i] === 'occupied') return;
-      this.drawGhost(world, plan.tool, t, dirs[i], z, { ok: status[i] === null, range: single, dashed: true, replaceBelt: single });
-    });
+    const steps = planSteps(world, plan, dir);
+    let entrance: Spot | null = null;
+    for (const s of steps) {
+      if (s.status === 'occupied' && !s.over) continue;
+      if (s.over) continue; // passed under (#65)
+      this.drawGhost(world, s.tool, s.tile, s.dir, z, { ok: s.status === null, range: single, dashed: true, replaceBelt: single, exit: s.exit });
+      if (s.tool === 'tunnel' && !s.exit) entrance = s.tile;
+      else if (s.exit && entrance) linkLine(this.ctx, entrance, s.tile, z);
+    }
   }
 
   // ------------------------------------------------------------- sprites
@@ -1088,7 +1091,7 @@ export class Renderer {
     spot: Spot,
     dir: Dir,
     z: number,
-    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean } = {},
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean } = {},
   ): void {
     const ctx = this.ctx;
     let { x, y } = spot;
@@ -1110,7 +1113,7 @@ export class Renderer {
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
     const turret = !!TURRETS[tool];
     const directional = tool !== 'wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && !turret;
-    const key = tool === 'tunnel' ? (world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
+    const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
     if (drawn && turret) this.drawSprite(`buildings/${tool}_barrel`, x, y, 1, -Math.PI / 2);

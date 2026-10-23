@@ -52,7 +52,7 @@ quality and business work don't get left until the end.
 21. **Nests (D-065, #53):** phase 1 (mounds and chitin) is done in 0.31.0; the rest follows the phases under Gameplay → Nests.
 22. ✅ **Player character** (0.32.0, #40, D-067): an engineer who walks (tap or WASD), mines by hand, carries items that trail behind, drops them at the hub, and fetches or hands over items. Next: bugs that notice the engineer, then co-op phase 1.
 23. ✅ **Day, night and seasons** (0.33.0, #42, D-068): a 9-minute day, bugs ranging further at night, four seasons changing tree regrowth and the look of the map, a clock, and a short piece of music for each season. Night raids (D-065) can come next. Belt feedback batch filed as #61–#65.
-24. 🚧 **Belt batch** (playtest #61–#65): ✅ two-lane belts, splitter filters and side snapping (0.34.0, D-069); ⬜ choosing an underground belt's exit with a blueprint (#64); ⬜ belts dragged across a belt go under it automatically (#65).
+24. ✅ **Belt batch** (playtest #61–#65): two-lane belts, splitter filters and side snapping (0.34.0, D-069); an exit blueprint for underground belts, and belt lines that go under belts they cross (0.35.0, D-070).
 
 ---
 
@@ -73,6 +73,7 @@ quality and business work don't get left until the end.
 - ✅ Nest mounds with health and chitin (D-065, D-066), and the engineer (D-067)
 - ✅ Day, night and seasons (D-068)
 - ✅ Two-lane belts, splitter filters, and splitters that snap to either side of a belt (#61, #62, #63, D-069)
+- ✅ Underground belt helpers: an exit blueprint, and belt lines that go under belts they cross (#64, #65, D-070)
 
 ### Story layer (M4s, [STORY.md](STORY.md))
 - ✖ Phases 1 and 2 (Company contracts, inbox, store, black market, suspicion) were built, then dropped (D-040)

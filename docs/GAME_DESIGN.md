@@ -114,6 +114,14 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 - **Underground belts** pair an entrance with the next tunnel placed up to 5
   tiles ahead in the same direction. Exits accept no input. Items in transit
   are lost if either end is removed.
+- **Choosing the exit (#64):** after you place an entrance, its exit appears as a blueprint at the first
+  free tile past whatever is in the way (or two tiles on, if nothing is). Tap ✓ (or click it) to build
+  it, or drag it along the line, up to 5 tiles ahead, first.
+- **Going under belts automatically (#65):** a belt line dragged straight across one or more belts
+  running the other way goes under them: the tiles just before and after become an underground belt's
+  entrance and exit, and you pay for both. The blueprint shows them. If you can't afford both, the line
+  is built up to the crossing and stops there (the blueprint shows the rest in red). Only belts are
+  tunnelled under; walls and machines still stop a line.
 - **Hub ports** must touch the hub, and always face away from it. Each port
   takes a chosen item out of hub stock, one every 0.5 s, and puts it on a belt.
   A docking collar joins it to the hub, with items visibly streaming out while it sends.

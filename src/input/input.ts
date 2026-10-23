@@ -26,7 +26,8 @@
 // The character (#40): with nothing in hand, tapping or clicking empty ground walks there, and the
 // character walks over by itself to mine or fetch things. WASD or the arrow keys walk it directly.
 
-import { BuildingType, Dir, HAND_MINING, footprint } from '../sim/data';
+import { BuildingType, DX, DY, Dir, HAND_MINING, TUNNEL_RANGE, footprint } from '../sim/data';
+import { planSteps, tunnelExitSpot } from '../ui/plan';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
@@ -381,6 +382,13 @@ export class Input {
     if (moved) this.moving.dragged = true;
     if (!this.moving.dragged) return;
     plan.tiles[0] = { x: this.moving.start.x + t.x - this.moving.from.x, y: this.moving.start.y + t.y - this.moving.from.y };
+    // An underground exit stays on the line ahead of its entrance, within reach (#64).
+    const a = plan.along;
+    if (a) {
+      const p = plan.tiles[0];
+      const k = Math.max(1, Math.min(TUNNEL_RANGE, (p.x - a.x) * DX[a.dir] + (p.y - a.y) * DY[a.dir]));
+      plan.tiles[0] = { x: a.x + DX[a.dir] * k, y: a.y + DY[a.dir] * k };
+    }
   }
 
   /** A cancelled press or a pinch: put the blueprint back as it was. */
@@ -440,11 +448,20 @@ export class Input {
     const plan = this.ui.plan;
     if (!plan) return;
     const dirs = planDirs(plan, this.ui.dir);
+    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir);
     this.reportedError = false;
-    const single = plan.tiles.length === 1;
-    plan.tiles.forEach((t, i) => this.paintTile(t, dirs[i], single));
+    this.ui.plan = null; // building an underground entrance may put up its exit's blueprint (#64)
     this.ui.dir = dirs[dirs.length - 1];
-    this.ui.plan = null;
+    const single = plan.tiles.length === 1;
+    for (const s of steps) {
+      if (s.over) continue;
+      // A crossing that can't be paid for stops the line before it (#65).
+      if (s.status === 'cost' && !single) {
+        if (!this.reportedError) this.cb.onPlaceError('cost');
+        break;
+      }
+      this.paintTile(s.tile, s.dir, single, s.tool);
+    }
     this.cb.onChange();
   }
 
@@ -513,9 +530,8 @@ export class Input {
   }
 
   /** `replaceBelt`: a single placement may go over a belt (not every tile of a drag). */
-  private paintTile(t: Tile, dir: Dir, replaceBelt = false): void {
+  private paintTile(t: Tile, dir: Dir, replaceBelt = false, tool = this.ui.tool): void {
     const world = this.cb.getWorld();
-    const tool = this.ui.tool;
     this.lastPlacedId = null;
     if (!tool) return;
     if (tool === 'demolish') {
@@ -536,6 +552,14 @@ export class Input {
       }
     } else {
       this.lastPlacedId = result.id;
+      // A new underground entrance: its exit appears as a blueprint to confirm or slide along (#64).
+      if (tool === 'tunnel' && this.ui.tool === 'tunnel' && result.link == null) {
+        const spot = tunnelExitSpot(world, result.x, result.y, result.dir);
+        if (spot) {
+          this.ui.plan = { tool: 'tunnel', tiles: [spot], along: { x: result.x, y: result.y, dir: result.dir } };
+          this.ui.dir = result.dir;
+        }
+      }
     }
   }
 
