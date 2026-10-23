@@ -1,5 +1,3 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Command } from './commands';
 import { fightingWorld, play, runScenario, script } from './scenario';
@@ -59,12 +57,11 @@ describe('The interface', () => {
   it('changes the world only through commands', () => {
     // World methods that change it (not the interface's own methods of the same name, called on `this`).
     const changes = /(?<!\bthis)\.(place|demolish|rotate|setRecipe|setFilter|startResearch|pauseResearch|researchNow|upgradeBeltLine|checkpoint|tick)\(|\b(launch|pickBlueprint|insertShip|applyCommand)\(/;
-    const allowed = new Set(['src/main.ts']); // owns the session and the main menu's demo world
-    const files = ['src/ui', 'src/input'].flatMap((dir) => readdirSync(dir).map((f) => join(dir, f).replace(/\\/g, '/')));
-    for (const file of files.filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !allowed.has(f))) {
-      readFileSync(file, 'utf-8')
-        .split('\n')
-        .forEach((line, i) => expect(changes.test(line) ? `${file}:${i + 1}: ${line.trim()}` : null).toBeNull());
+    // The interface's sources as text (main.ts may: it owns the session and the main menu's demo world).
+    const sources = import.meta.glob<string>(['../ui/*.ts', '../input/*.ts', '!**/*.test.ts'], { query: '?raw', import: 'default', eager: true });
+    expect(Object.keys(sources).length).toBeGreaterThan(4);
+    for (const [file, text] of Object.entries(sources)) {
+      text.split('\n').forEach((line, i) => expect(changes.test(line) ? `${file}:${i + 1}: ${line.trim()}` : null).toBeNull());
     }
   });
 });
