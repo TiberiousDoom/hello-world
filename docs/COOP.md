@@ -16,7 +16,8 @@ and phones. We're going ahead with it (D-056); nothing is built yet. Progress is
   applies on. GitHub Pages only serves static files, so the relay is the one new piece of
   hosting.
 - **Build it in four phases.** Phase 0 changes no gameplay and is useful on its own (replays,
-  undo, testing), so it can be done first and safely.
+  undo, testing), so it can be done first and safely, even before the player character. The
+  character is then built on commands from the start instead of being retrofitted.
 
 ## How the game stays in sync
 
@@ -31,6 +32,19 @@ Today, input and the HUD call `World` methods directly (`world.place`, `world.de
    `world.tick()`.
 4. Every second or so, each game sends a **hash of its state**. If hashes differ (a
    *desync*), the host's state wins: it sends a snapshot and the others reload from it.
+5. **A clock that waits for commands.** Today `main.ts` runs as many ticks as the frame's time
+   allows, at most 20 a frame, so a slow frame quietly loses game time. In co-op the next tick
+   runs only once its commands are in, and a game that falls behind catches up faster than
+   real time instead of dropping ticks.
+
+**Every game checks every command.** `World` methods already refuse an action that isn't
+allowed (no stock, blocked tile, research not unlocked) and return an error instead. Since every
+game runs the same rules on the same state, a command that can't happen fails the same way
+everywhere. The relay never needs to understand the game.
+
+**Everyone on the same version.** A deploy to GitHub Pages during a session would put a new
+joiner on newer rules than the host, and they would desync at once. Each game sends its build
+version when it joins, and a mismatch is refused with "Reload to update".
 
 The few ticks of delay are hidden the usual way: the placement preview, sounds and the
 character's first step react at once on your own screen; the building appears when its
@@ -41,7 +55,16 @@ every belt, hundreds of bugs). Sending it 20 times a second would be far too muc
 Commands are a few bytes each.
 
 **Joining mid-game:** the host sends a snapshot (`world.toJSON()`, the same as a save) and the
-commands since it. Saves are already one JSON object, so this is mostly done.
+commands since it. Saves are already one JSON object, so this is mostly done. Measured on the
+main menu's demo factory: 385 KB of JSON, 46 KB gzipped (browsers have gzip built in, as
+`CompressionStream`), and about 2 ms to write.
+
+**Hidden state has to travel too.** A few values that steer the rules aren't in the save:
+when each path field was last refreshed and whether it's due (`flowAt`, `flowDirty`,
+`shipFlowAt`, `shipFlowDirty` in `World`). A game loaded from a snapshot would refresh its paths
+on a different tick from the host's, bugs would step differently, and the games would drift
+apart. Phase 0 moves these into the saved state. (The rest of `World` outside the save, such as
+the tile index and recent effects, is rebuilt from it or only drives sound and pictures.)
 
 ## Making the rules safe for lockstep
 
@@ -53,10 +76,18 @@ holds. To do:
 - **`Math.sin` / `Math.cos`** (only in `mapgen.ts`): same risk. The map is made once by the
   host and joiners load the snapshot, so this only matters if two players generate the same
   seed separately. Keep it that way.
-- **Game speed and pausing** become shared: only the host changes them. The blueprint pick
-  screen and the first-delivery screen can't pause the game for everyone (see below).
+- **Game speed and pausing** become shared: only the host changes them.
+- **Nothing else may stop the shared clock.** Today the game pauses for tutorial explanations
+  (they set the speed to 0), the blueprint pick, the first-delivery screen and the menus. In
+  co-op, tutorials explain without pausing, and the pick and the celebration become cards that
+  don't block play.
+- **A cheap check each second.** Hashing the whole save every second costs a few milliseconds
+  on a phone. Hash a small summary instead: time, the RNG state, the next id, hub stock,
+  building HP and bug positions. The RNG state alone changes with nearly every random event, so
+  it catches most desyncs. On a mismatch, comparing the two full saves shows the cause.
 - **A determinism test in CI:** run the same commands through the simulation in Chromium,
-  Firefox and WebKit (Playwright already runs Chromium) and compare state hashes.
+  Firefox and WebKit and compare the saves. Playwright only installs Chromium today; the other
+  two add about a minute, so run them on pull requests that touch `src/sim/`.
 
 ## Gameplay rules to decide
 
@@ -66,7 +97,10 @@ holds. To do:
 | Who picks a colony blueprint? | The first player to choose, with the offer shown to everyone; no pause |
 | Pausing | Only the host can pause. Pause menus for other players don't stop the game |
 | Game speed | Host only |
-| Tutorials | Per player, on their own screen. They never change the world |
+| Tutorials | Per player, on their own screen. They never change the world or pause it |
+| Undo | Only your own last action, sent as a command like any other |
+| Dropping out and back in | A rejoin code kept on the device gives you your character back |
+| Messages like "You disturbed a nest" | Everyone sees them: they come from the shared rules |
 | Carried items when a player leaves | Dropped into the hub |
 | More players, more bugs? | Not at first. Tune after playtesting |
 | How many players? | 2 to start, then up to 4 |
@@ -98,11 +132,14 @@ service is fine to test with.
 
 0. **Prepare, in single player** (no network, no visible change):
    - every world-changing call goes through a command list (`src/sim/commands.ts`); the UI
-     issues commands instead of calling `World` directly
-   - `players` in the saved state (with the player character, as a list from the start); a save
-     version bump and migration
+     issues commands instead of calling `World` directly. This is small: about a dozen places in
+     `input.ts` and `hud.ts` change the world today (place, demolish, rotate, recipe, filter,
+     starting and pausing research, the Express Belt upgrade, launch, the blueprint pick)
+   - `players` in the saved state (a list from the start, ready for the player character), and
+     the path-refresh timers above; a save version bump and migration
+   - a clock that runs ticks from the command list (still driven by the frame in single player)
    - remove `Math.hypot` from the rules
-   - a state hash, and the cross-browser determinism test
+   - the summary hash, and the cross-browser determinism test
 1. **Two-player prototype:** room codes, a test relay, lockstep with input delay, both
    characters visible. Both players start together; no joining later.
 2. **Make it solid:** the real relay, joining mid-game by snapshot, desync detection and
@@ -119,13 +156,17 @@ report), undo (already on the roadmap), and tests that replay real games.
 - **Desyncs** are the main cost of lockstep: a single difference grows until the games
   disagree. The state hash catches them early, and the host snapshot recovers. The CI test
   keeps new rules from adding them.
-- **The slowest device sets the pace.** If one phone can't keep up with 20 ticks a second at
-  high game speed, everyone waits. Large factories and many bugs make this worse.
+- **A stalled player holds everyone up, briefly.** The rules themselves are cheap: 0.13 ms a
+  tick on the demo factory on a desktop, so even a slow phone at 4× speed spends a few percent
+  of its time on them. The real limits are drawing and the network. A player whose game stalls
+  delays the others by at most a few ticks; past that they're dropped and resync like a
+  sleeping phone.
 - **Everything that changes the world must be a command.** A new UI feature that calls
   `World` directly would break co-op. A lint rule or test can check that only the command
   layer does.
 - **Hosting and accounts:** the relay is the project's first server. Room codes keep it
-  anonymous: no accounts, no stored personal data.
+  anonymous: no accounts, no stored personal data. It limits message size and rate per player,
+  and drops rooms once they're empty, so it can't be used to store or flood anything.
 
 ## Open questions
 

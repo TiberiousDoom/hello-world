@@ -86,9 +86,9 @@ Not the escape ship's hull. In this order:
 - ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a tree nursery that plants new forest
 
 ### Co-op (M4c, D-056, [COOP.md](COOP.md))
-In this order, after the player character (playtest issue #40):
-- ⬜ **Phase 0, prepare in single player:** every world-changing action goes through a command list; players in the saved state (a save version bump); `Math.hypot` out of the rules; a state hash and a cross-browser determinism test. No visible change
-- ⬜ **Phase 1, two-player prototype:** room codes, a test relay, lockstep with input delay, both characters visible
+In this order. Phase 0 can start before the player character (playtest issue #40), which then builds on it:
+- ⬜ **Phase 0, prepare in single player:** every world-changing action goes through a command list; players and the path-refresh timers in the saved state (a save version bump); a clock driven by commands; `Math.hypot` out of the rules; a summary hash and a cross-browser determinism test. No visible change
+- ⬜ **Phase 1, two-player prototype:** room codes, a test relay, a version check on joining, lockstep with input delay, both characters visible, no pausing for tutorials or the blueprint pick
 - ⬜ **Phase 2, make it solid:** the real relay, joining mid-game, desync detection and resync, reconnecting after a phone sleeps
 - ⬜ **Phase 3, co-op design:** pings, player colours, blueprint picks without pausing, balance, up to 4 players
 
