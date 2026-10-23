@@ -70,15 +70,20 @@ export async function selectHub(page: Page, info: TestInfo): Promise<void> {
   // An open info panel can cover the middle of a phone screen, where the hub is about to be.
   const close = page.locator('#info:not([hidden]) [data-action="close"]');
   if (await close.isVisible()) await close.click();
-  const [x, y] = await page.evaluate(() => {
-    const h = window.game.world.hub;
-    const c = window.game.camera;
-    c.x = h.x + 2.5;
-    c.y = h.y + 2.5;
-    return c.toScreen(h.x + 2.5, h.y + 2.5) as [number, number];
-  });
-  await tap(page, info, x, y);
-  await expect(page.locator('#info')).toContainText('Hub');
+  // A lesson can still be gliding the camera, moving the hub from under the tap: check the panel shows, and tap again if not.
+  await expect(async () => {
+    await cameraSettled(page);
+    const [x, y] = await page.evaluate(() => {
+      const h = window.game.world.hub;
+      const c = window.game.camera;
+      c.x = h.x + 2.5;
+      c.y = h.y + 2.5;
+      return c.toScreen(h.x + 2.5, h.y + 2.5) as [number, number];
+    });
+    await tap(page, info, x, y);
+    await expect(page.locator('#info .info-head')).toContainText('Hub', { timeout: 1000 });
+    await expect(page.locator('#info')).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
 }
 
 /** In the page: what's on top at (x, y): 'game' for the map, otherwise a short description. */
