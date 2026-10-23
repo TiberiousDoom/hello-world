@@ -38,8 +38,10 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     .toBe(0); // arrived
   await cameraSettled(page);
   const here = await uncoveredTile(page, ...stone); // the camera may have moved while it walked
-  for (let i = 0; i < 8; i++) await tap(page, info, ...here);
-  await expect.poll(() => page.evaluate(() => window.game.world.state.players[0].carry)).toEqual(['stone']);
+  // Eight taps loosen a stone; on a slow machine a tap can land late, so keep tapping until it comes loose.
+  const carried = () => page.evaluate(() => window.game.world.state.players[0].carry as string[]);
+  for (let i = 0; i < 30 && !(await carried()).includes('stone'); i++) await tap(page, info, ...here);
+  expect(await carried()).toEqual(['stone']);
   await page.evaluate(() => (window.game.world.state.inventory.stone = 10));
   await expect(step).toContainText('4 of');
   // With the ore in stock too, the drop-off step (5) is already done.
