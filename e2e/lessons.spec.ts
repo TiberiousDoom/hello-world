@@ -9,10 +9,14 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   await expect(step).toHaveText(/^Essentials · 1/);
   expect(await speed()).toBe(0); // explanations pause the game
   await page.click('.tip-next');
+
+  // The engineer.
+  await expect(step).toHaveText(/^Essentials · 2/);
+  await page.click('.tip-next');
   await expect.poll(speed).toBe(1); // action steps let it run
 
-  // Mine stone by hand: eight taps on the highlighted stone put one into the hub.
-  await expect(step).toContainText('2 of');
+  // Mine stone by hand: a tap sends the engineer over, then eight taps loosen one stone, which they carry.
+  await expect(step).toContainText('3 of');
   await settled(page.locator('#tutorial .spot'));
   await cameraSettled(page);
   const stone = await page.evaluate(() => {
@@ -28,12 +32,26 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return best;
   });
   const at = await uncoveredTile(page, ...stone);
-  for (let i = 0; i < 8; i++) await tap(page, info, ...at);
-  await expect.poll(() => stockOf('stone')).toBe(1);
+  await tap(page, info, ...at);
+  await expect
+    .poll(() => page.evaluate(() => window.game.world.state.players[0].path.length), { timeout: 30000 })
+    .toBe(0); // arrived
+  await cameraSettled(page);
+  const here = await uncoveredTile(page, ...stone); // the camera may have moved while it walked
+  // Eight taps loosen a stone, which the engineer carries (or drops straight into the hub when the stone
+  // is next to it). On a slow machine a tap can land late, so keep tapping until one comes loose.
+  const minedStone = () =>
+    page.evaluate(() => {
+      const w = window.game.world;
+      return w.state.players[0].carry.filter((i: string) => i === 'stone').length + (w.state.inventory.stone ?? 0);
+    });
+  for (let i = 0; i < 30 && (await minedStone()) === 0; i++) await tap(page, info, ...here);
+  expect(await minedStone()).toBe(1);
   await page.evaluate(() => (window.game.world.state.inventory.stone = 10));
-  await expect(step).toContainText('3 of');
-  await page.evaluate(() => (window.game.world.state.inventory.iron_ore = 4));
   await expect(step).toContainText('4 of');
+  // With the ore in stock too, the drop-off step (5) is already done.
+  await page.evaluate(() => (window.game.world.state.inventory.iron_ore = 4));
+  await expect(step).toContainText('6 of');
 
   // Pick the extractor, then build it over the highlighted ore.
   await page.click('[data-tool="extractor"]');
@@ -59,7 +77,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return best;
   });
   await build(page, info, ...(await uncoveredTile(page, ...node)));
-  await expect(step).toContainText('5 of');
+  await expect(step).toContainText('7 of');
 
   // The furnace goes right in front of the extractor's arrow.
   await page.click('[data-tool="furnace"]');
@@ -71,7 +89,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return [o.x, o.y] as [number, number];
   });
   await build(page, info, ...(await uncoveredTile(page, ...out)));
-  await expect(step).toContainText('6 of');
+  await expect(step).toContainText('8 of');
 
   // Collect its plates by hand.
   await page.click('[data-tool="furnace"]'); // put the tool down
@@ -83,17 +101,22 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   await tap(page, info, ...(await uncoveredTile(page, ...furnace)));
   await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect 2/);
   await page.click('#info [data-action="collect"]');
-  await expect.poll(() => stockOf('iron_plate')).toBeGreaterThanOrEqual(2);
-  await expect(step).toContainText('7 of');
+  // The engineer fetches them, then carries them back to the hub.
+  await expect
+    .poll(() => page.evaluate(() => window.game.world.state.players[0].carry.filter((i: string) => i === 'iron_plate').length), { timeout: 30000 })
+    .toBeGreaterThanOrEqual(2);
+  await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
+  await expect.poll(() => stockOf('iron_plate'), { timeout: 30000 }).toBeGreaterThanOrEqual(2);
+  await expect(step).toContainText('9 of');
   await page.click('.tip-next');
 
   // Logistics, from the hub.
-  await expect(step).toContainText('8 of');
+  await expect(step).toContainText('10 of');
   await selectHub(page, info);
   await page.click('#info [data-action="research"]');
   await page.click('[data-research="logistics"]');
   await page.click('#research [data-close]');
-  await expect(step).toContainText('9 of');
+  await expect(step).toContainText('11 of');
   await page.evaluate(() => {
     window.game.world.state.research.paid.logistics = { iron_plate: 999 }; // finish it now
   });
@@ -111,7 +134,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return [0, 1, 2].map((i) => [o.x + i, o.y] as [number, number]);
   });
   for (const [x, y] of belts) await build(page, info, ...(await uncoveredTile(page, x, y)));
-  await expect(step).toContainText('10 of');
+  await expect(step).toContainText('12 of');
   await page.click('.tip-next');
 
   // Logistics also unlocked splitters, which have a lesson of their own.

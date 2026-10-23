@@ -242,6 +242,7 @@ const input = new Input(canvas, camera, ui, {
     hud.placeError(err);
     sfx.play('error');
   },
+  onNotice: (text) => hud.toast(text),
   onChange: () => hud.refresh(),
 });
 const planBar = new PlanBar(camera, ui, {
@@ -426,6 +427,13 @@ function frame(now: number): void {
     const t = now / 1000;
     camera.x = hub.x + HUB_SIZE / 2 + Math.sin(t * 0.07) * 6 + (window.innerWidth >= 600 ? -4 : 0);
     camera.y = hub.y + HUB_SIZE / 2 + Math.cos(t * 0.05) * 4 + (window.innerWidth < 600 ? 5 : 0);
+  }
+  // Walking with the keys, the camera keeps the character in view (#40).
+  const player = world.state.players[0];
+  if (!inMenu && player && input.walkingByKeys) {
+    const ease = Math.min(1, elapsed * 4);
+    camera.x += (player.x - camera.x) * ease;
+    camera.y += (player.y - camera.y) * ease;
   }
   camera.clampTo(world.state.width, world.state.height);
   renderer.draw(world, inMenu ? null : ui, now, Math.min(1, acc / TICK));

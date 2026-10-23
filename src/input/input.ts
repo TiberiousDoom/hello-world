@@ -22,6 +22,9 @@
 //
 // With nothing in hand, tapping or clicking bare ore mines it by hand (#38); holding the finger or
 // button down keeps mining. Dragging from there pans, as usual.
+//
+// The character (#40): with nothing in hand, tapping or clicking empty ground walks there, and the
+// character walks over by itself to mine or fetch things. WASD or the arrow keys walk it directly.
 
 import { BuildingType, Dir, HAND_MINING, footprint } from '../sim/data';
 import type { Command, ResultOf } from '../sim/commands';
@@ -41,9 +44,21 @@ export interface InputCallbacks {
   /** Changes the world (D-058); the world itself is only read here. */
   issue<C extends Command>(command: C): ResultOf<C>;
   onPlaceError(err: PlaceError): void;
+  /** A short message for the player, such as full hands. */
+  onNotice(text: string): void;
   onChange(): void; // UI state (selection, tool, direction) changed
 }
 
+const WALK_KEYS: Record<string, [number, number]> = {
+  w: [0, -1],
+  arrowup: [0, -1],
+  s: [0, 1],
+  arrowdown: [0, 1],
+  a: [-1, 0],
+  arrowleft: [-1, 0],
+  d: [1, 0],
+  arrowright: [1, 0],
+};
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 const LONG_PRESS = 450; // ms a finger rests on a building to pick it
@@ -61,6 +76,9 @@ export class Input {
   private wheelTurn = 0;
   private prevPlan: Plan | null = null; // the blueprint before this gesture started a new one
   private pressTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Walking keys held down, in the order pressed. */
+  private held = new Set<string>();
+  private walking: [number, number] = [0, 0];
   /** Mining by hand while the press is held: the tile, and the timer for further taps. */
   private mining: { tile: Tile; timer: ReturnType<typeof setInterval> } | null = null;
   /** Dragging a single building's blueprint: where the press began, where the blueprint was, and whether it moved. */
@@ -86,6 +104,11 @@ export class Input {
       { passive: false },
     );
     window.addEventListener('keydown', (e) => this.key(e));
+    window.addEventListener('keyup', (e) => this.keyUp(e));
+    window.addEventListener('blur', () => {
+      this.held.clear();
+      this.updateWalk();
+    });
   }
 
   private wheel(e: WheelEvent): void {
@@ -205,7 +228,12 @@ export class Input {
   /** One tap now, then more at HAND_MINING.holdRate while the press is held. */
   private startMining(t: Tile): void {
     this.stopMining();
-    const tap = () => this.cb.issue({ kind: 'mine', x: t.x, y: t.y });
+    const tap = () => {
+      if (this.cb.issue({ kind: 'mine', x: t.x, y: t.y }) === 'full') {
+        this.stopMining();
+        this.cb.onNotice('Your hands are full. Walk back to the hub to drop off what you carry.');
+      }
+    };
     tap();
     this.mining = { tile: t, timer: setInterval(tap, 1000 / HAND_MINING.holdRate) };
     this.cb.onChange();
@@ -246,7 +274,12 @@ export class Input {
     this.pointers.delete(e.pointerId);
     this.cancelLongPress();
     if (this.mode === 'mine') this.stopMining();
-    if (completed && (this.mode === 'pending' || this.mode === 'mine')) this.select(this.tileAt(x, y));
+    if (completed && (this.mode === 'pending' || this.mode === 'mine')) {
+      const t = this.tileAt(x, y);
+      // Empty ground: the character walks there (and any selection is cleared).
+      if (this.mode === 'pending' && !this.ui.tool && !this.cb.getWorld().buildingAt(t.x, t.y)) this.cb.issue({ kind: 'move', x: t.x, y: t.y });
+      this.select(t);
+    }
     if (completed && this.mode === 'right') this.clearSelection();
     if (completed && this.mode === 'middle') this.pick(this.tileAt(x, y));
     if (this.mode === 'plan') this.endPlanGesture(e.pointerType, completed);
@@ -504,7 +537,12 @@ export class Input {
   private key(e: KeyboardEvent): void {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || document.body.classList.contains('in-menu')) return;
     const k = e.key.toLowerCase();
-    const pan = 40;
+    if (WALK_KEYS[k]) {
+      this.held.add(k);
+      this.updateWalk();
+      e.preventDefault();
+      return;
+    }
     if (this.ui.plan && (k === 'enter' || k === 'r' || k === 'escape')) {
       if (k === 'enter') this.confirmPlan();
       else if (k === 'r') this.rotatePlan();
@@ -520,12 +558,32 @@ export class Input {
       this.ui.selected = null;
     } else if (k === 'x' || k === 'delete') {
       this.ui.tool = this.ui.tool === 'demolish' ? null : 'demolish';
-    } else if (k === 'w' || k === 'arrowup') this.camera.pan(0, pan);
-    else if (k === 's' || k === 'arrowdown') this.camera.pan(0, -pan);
-    else if (k === 'a' || k === 'arrowleft') this.camera.pan(pan, 0);
-    else if (k === 'd' || k === 'arrowright') this.camera.pan(-pan, 0);
-    else return;
+    } else return;
     e.preventDefault();
     this.cb.onChange();
+  }
+
+  private keyUp(e: KeyboardEvent): void {
+    if (this.held.delete(e.key.toLowerCase())) this.updateWalk();
+  }
+
+  /** Tells the character which way the held keys point, when that changes. */
+  private updateWalk(): void {
+    let dx = 0;
+    let dy = 0;
+    for (const k of this.held) {
+      dx += WALK_KEYS[k][0];
+      dy += WALK_KEYS[k][1];
+    }
+    dx = Math.sign(dx);
+    dy = Math.sign(dy);
+    if (dx === this.walking[0] && dy === this.walking[1]) return;
+    this.walking = [dx, dy];
+    this.cb.issue({ kind: 'walk', dx, dy });
+  }
+
+  /** Whether the character is being walked with the keys (the camera follows it then). */
+  get walkingByKeys(): boolean {
+    return this.walking[0] !== 0 || this.walking[1] !== 0;
   }
 }

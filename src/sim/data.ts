@@ -186,7 +186,15 @@ export const HUB_WEAPON: TurretDef = { ammoItem: 'iron_plate', shotsPerItem: 0, 
 
 export const EXTRACTOR_PERIOD = 1.5; // seconds per item
 
-/** Mining by hand (#38): taps on one ore tile put one of its ore into the hub. */
+/** The player character (#40, D-067). */
+export const PLAYER = {
+  speed: 4, // tiles per second
+  reach: 1.5, // tiles from the character to the edge of what it mines or hands things to
+  carry: 20, // items it can carry
+  searchLimit: 20000, // tiles searched for a path before heading for the nearest spot found
+};
+
+/** Mining by hand (#38): taps on one ore tile loosen one of its ore, which the character carries. */
 export const HAND_MINING = {
   taps: 8, // taps for one item
   resetAfter: 3, // seconds without a tap before the count starts over

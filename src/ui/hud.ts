@@ -52,6 +52,8 @@ const TOOLBAR: BuildingType[] = [
 ];
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'port', 'shipyard'];
+/** Buildings that take items a character hands them (#40). */
+const TAKES_ITEMS: BuildingType[] = ['hub', 'furnace', 'workshop', 'assembler', 'sawmill', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -311,6 +313,9 @@ export class Hud {
         case 'collect':
           if (id != null) this.actions.issue({ kind: 'collect', id });
           break;
+        case 'drop':
+          if (id != null) this.actions.issue({ kind: 'drop', id });
+          break;
         case 'research':
           this.openResearch();
           break;
@@ -526,8 +531,13 @@ export class Hud {
           ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         // Before belts, finished items are carried to the hub by hand (#38).
-        if (canCollect(b!.type)) {
-          actions += `<div class="row"><button data-action="collect" title="Carry what it has made to the hub">${ico('collect')}<span class="collect-label">Collect</span></button></div>`;
+        // Your character fetches what it has made, or hands it what you carry (#38, #40).
+        const takes = TAKES_ITEMS.includes(b!.type);
+        if (canCollect(b!.type) || takes) {
+          actions += '<div class="row">';
+          if (canCollect(b!.type)) actions += `<button data-action="collect" title="Your engineer fetches what it has made">${ico('collect')}<span class="collect-label">Collect</span></button>`;
+          if (takes) actions += `<button data-action="drop" title="Your engineer hands it what they carry"><span class="drop-label">Drop off</span></button>`;
+          actions += '</div>';
         }
         if (b!.type === 'shipyard' && checkLaunch(world) === null) {
           actions += `<div class="row"><button data-action="launch" class="primary launch">🚀 Launch</button></div>`;
@@ -574,6 +584,14 @@ export class Hud {
         }
       }
       if (b.outputs.length) stats += `<br>Output buffer ${b.outputs.map(swatch).join('')}`;
+      const carried = world.state.players[0]?.carry.length ?? 0;
+      const drop = panel.querySelector<HTMLButtonElement>('[data-action="drop"]');
+      if (drop) {
+        drop.disabled = !carried;
+        const label = carried ? `Drop off ${carried}` : 'Drop off';
+        const span = drop.querySelector('.drop-label')!;
+        if (span.textContent !== label) span.textContent = label;
+      }
       const collect = panel.querySelector<HTMLButtonElement>('[data-action="collect"]');
       if (collect) {
         collect.disabled = !b.outputs.length;

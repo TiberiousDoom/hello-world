@@ -40,6 +40,7 @@ import {
   TURRETS,
   HAND_MINING,
   PLATING,
+  PLAYER,
   footprint,
   moundHp,
   isMachine,
@@ -48,9 +49,11 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
 import { Nest, anyAngry, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBugs, tickSpread } from './nests';
+import { Player, PlayerAction, goAndDo, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
+export type { Player };
 export type { ResearchState };
 
 /**
@@ -62,8 +65,9 @@ export type { ResearchState };
  * v14 (#38) moves belts into the Logistics research; older games get it for free.
  * v15 (#33, #34) resizes the workshop, assembler and splitter; ones that no longer fit are refunded.
  * v16 (D-065) gives nests mounds with health; nests already cleared of bugs count as destroyed.
+ * v17 (#40, D-067) gives players a character: a position, a path and what it carries.
  */
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -145,11 +149,6 @@ export interface PathTimers {
   shipAt: number | null;
 }
 
-export interface Player {
-  id: number;
-  /** The ore tile this player is mining by hand, taps so far, and the game time of the last tap (#38). */
-  mining?: { tile: number; taps: number; at: number } | null;
-}
 
 /** One tap of hand mining (#38): `item` is set when the tap finished one. */
 export interface HandTap {
@@ -171,7 +170,8 @@ export interface Shot {
   jump?: boolean; // an arc jumping on from one bug to the next, not fired from a turret
 }
 
-export type MineError = 'no-ore' | 'occupied';
+/** 'far': the character walks over and mines on arriving. 'full': its hands are full. */
+export type MineError = 'no-ore' | 'occupied' | 'far' | 'full';
 export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
@@ -253,7 +253,7 @@ export class World {
       gameOver: false,
       ship: createShipState(),
       paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
-      players: [{ id: 0 }],
+      players: [],
       nextSpread: NESTS.spreadEvery,
     };
     const world = new World(state);
@@ -263,6 +263,7 @@ export class World {
     generateResources(world, centre, centre, HUB_SIZE / 2);
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
+    state.players = [newPlayer(world, 0)];
     generateTrees(world, centre, centre);
     state.nests = generateNests(world, centre, centre);
     for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
@@ -279,10 +280,18 @@ export class World {
     if (state.version === 13) World.migrateV13(state);
     if (state.version === 14) World.migrateV14(state);
     if (state.version === 15) World.migrateV15(state);
+    if (state.version === 16) World.migrateV16(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v16 to v17 (#40): each player gets a character, standing just below the hub. */
+  private static migrateV16(state: GameState): void {
+    const world = new World(state);
+    state.players = state.players.map((p) => ({ ...newPlayer(world, p.id), mining: p.mining ?? null }));
+    state.version = 17;
   }
 
   /** v15 to v16 (D-065): every nest gets a mound. One with no bugs left was cleared, so its mound counts as destroyed. */
@@ -390,7 +399,7 @@ export class World {
   /** v11 to v12: path timers and players move into the save (co-op phase 0). Paths rebuild at once. */
   private static migrateV11(state: GameState): void {
     state.paths = { dirty: true, at: null, shipDirty: true, shipAt: null };
-    state.players = [{ id: 0 }];
+    state.players = [{ id: 0 } as Player]; // its character arrives in v17
     state.version = 12;
   }
 
@@ -1010,14 +1019,20 @@ export class World {
   }
 
   /**
-   * One tap of mining by hand (#38). HAND_MINING.taps taps in a row on the same ore tile put one of
-   * its ore into the hub; tapping another tile, or pausing too long, starts the count over.
+   * One tap of mining by hand (#38). HAND_MINING.taps taps in a row on the same ore tile loosen one
+   * of its ore, which the character carries (#40); tapping another tile, or pausing too long, starts
+   * the count over. Out of reach, the character walks over first and mines on arriving.
    */
   mineByHand(x: number, y: number, player = 0): HandTap | MineError {
     const ore = this.resourceAt(x, y);
     if (!ore) return 'no-ore';
     if (this.buildingAt(x, y)) return 'occupied';
-    const p = this.state.players.find((q) => q.id === player) ?? this.state.players[0];
+    const p = playerOf(this, player);
+    if (!inReach(p.x, p.y, x, y)) {
+      goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
+      return 'far';
+    }
+    if (p.carry.length >= PLAYER.carry) return 'full';
     const tile = this.idx(x, y);
     const t = this.state.time;
     const m = p.mining && p.mining.tile === tile && t - p.mining.at <= HAND_MINING.resetAfter ? p.mining : { tile, taps: 0, at: t };
@@ -1027,7 +1042,7 @@ export class World {
     if (m.taps >= HAND_MINING.taps) {
       m.taps = 0;
       item = ore;
-      this.deliver(ore);
+      p.carry.push(ore);
     }
     p.mining = m;
     const tap: HandTap = { x, y, ore, item, age: 0 };
@@ -1043,16 +1058,60 @@ export class World {
   }
 
   /**
-   * Carries a building's finished items to the hub by hand (#38): before belts, this is how the
-   * first plates get from a furnace to the hub. Returns how many were moved.
+   * The character picks up a building's finished items (#38, #40): before belts, this is how the
+   * first plates get from a furnace to the hub. Out of reach, it walks over first. Returns how many
+   * were picked up now.
    */
-  collect(id: number): number {
+  collect(id: number, player = 0): number {
     const b = this.byId.get(id);
     if (!b || !canCollect(b.type)) return 0;
-    const n = b.outputs.length;
-    for (const item of b.outputs) this.deliver(item);
-    b.outputs = [];
+    const p = playerOf(this, player);
+    if (!reaches(this, p, b)) {
+      const [fw, fh] = this.footprintOf(b);
+      goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'collect', id });
+      return 0;
+    }
+    const n = Math.min(b.outputs.length, PLAYER.carry - p.carry.length);
+    p.carry.push(...b.outputs.splice(0, n));
     return n;
+  }
+
+  /**
+   * The character hands a building whatever it will take of what it carries (#40). Out of reach, it
+   * walks over first. Returns how many items went in now.
+   */
+  dropOff(id: number, player = 0): number {
+    const b = this.byId.get(id);
+    if (!b) return 0;
+    const p = playerOf(this, player);
+    if (!reaches(this, p, b)) {
+      const [fw, fh] = this.footprintOf(b);
+      goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'drop', id });
+      return 0;
+    }
+    const fx = Math.floor(p.x);
+    const fy = Math.floor(p.y);
+    const kept = p.carry.filter((item) => !this.insert(b, item, fx, fy));
+    const n = p.carry.length - kept.length;
+    p.carry = kept;
+    return n;
+  }
+
+  /** The character walks to tile (x, y) (#40). */
+  moveTo(x: number, y: number, player = 0): boolean {
+    return moveTo(this, playerOf(this, player), x, y);
+  }
+
+  /** Keyboard walking: hold a direction, or [0, 0] to stop (#40). */
+  walk(dx: number, dy: number, player = 0): void {
+    walk(playerOf(this, player), dx, dy);
+  }
+
+  /** What a character does on arriving where it was sent. */
+  private act(p: Player, a: PlayerAction): void {
+    if (a.kind === 'mine') this.mineByHand(a.x, a.y, p.id);
+    else if (a.kind === 'collect') this.collect(a.id, p.id);
+    else this.dropOff(a.id, p.id);
   }
 
   private deliver(item: ItemId): void {
@@ -1138,6 +1197,7 @@ export class World {
     if (s.ship.launchAt != null && p.shipDirty && (p.shipAt == null || s.time - p.shipAt >= FLOW_REFRESH)) this.computeShipFlow();
     tickBugs(this, dt);
     tickSpread(this);
+    tickPlayers(this, dt, (p, a) => this.act(p, a));
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {
