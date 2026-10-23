@@ -21,6 +21,7 @@
 // blueprint moves it, and tapping or clicking it builds it.
 
 import { BuildingType, Dir, footprint } from '../sim/data';
+import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs } from '../ui/state';
@@ -34,6 +35,8 @@ interface Tile {
 
 export interface InputCallbacks {
   getWorld(): World;
+  /** Changes the world (D-058); the world itself is only read here. */
+  issue<C extends Command>(command: C): ResultOf<C>;
   onPlaceError(err: PlaceError): void;
   onChange(): void; // UI state (selection, tool, direction) changed
 }
@@ -152,7 +155,7 @@ export class Input {
       this.mode = 'pan';
     } else if (this.ui.tool === 'express_belt' && this.cb.getWorld().buildingAt(this.ui.hover.x, this.ui.hover.y)?.type === 'belt') {
       // A tap or click on a belt upgrades its whole line at once: no blueprint, no drag.
-      const result = this.cb.getWorld().upgradeBeltLine(this.ui.hover.x, this.ui.hover.y);
+      const result = this.cb.issue({ kind: 'upgrade-belts', x: this.ui.hover.x, y: this.ui.hover.y });
       if (typeof result === 'string') this.cb.onPlaceError(result);
       this.mode = 'none';
       this.cb.onChange();
@@ -416,7 +419,6 @@ export class Input {
     const tool = this.ui.tool;
     // Tunnel ends and big buildings are placed one tap at a time.
     if (!tool || tool === 'tunnel' || (tool !== 'demolish' && isBig(tool))) return;
-    const world = this.cb.getWorld();
     let { x, y } = from;
     while (x !== t.x || y !== t.y) {
       const dx = t.x - x;
@@ -431,7 +433,7 @@ export class Input {
       }
       if (this.ui.tool === 'belt' || this.ui.tool === 'express_belt') {
         // Dragging belts points each one at the next.
-        if (this.lastPlacedId != null) world.rotate(this.lastPlacedId, dir);
+        if (this.lastPlacedId != null) this.cb.issue({ kind: 'rotate', id: this.lastPlacedId, dir });
         if (this.ui.dir !== dir) {
           this.ui.dir = dir;
           this.cb.onChange();
@@ -450,14 +452,14 @@ export class Input {
     if (!tool) return;
     if (tool === 'demolish') {
       const b = world.buildingAt(t.x, t.y);
-      if (b && world.demolish(b.id) && this.ui.selected === b.id) {
+      if (b && this.cb.issue({ kind: 'demolish', id: b.id }) && this.ui.selected === b.id) {
         this.ui.selected = null;
         this.cb.onChange();
       }
       return;
     }
     const at = placementAt(world, tool, t, dir, replaceBelt);
-    const result = world.place(tool, at.x, at.y, at.dir, replaceBelt);
+    const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt });
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {
@@ -482,7 +484,7 @@ export class Input {
     }
     if (k === 'r') {
       if (this.ui.tool) this.ui.dir = ((this.ui.dir + (e.shiftKey ? 3 : 1)) % 4) as Dir;
-      else if (this.ui.selected != null) this.cb.getWorld().rotate(this.ui.selected);
+      else if (this.ui.selected != null) this.cb.issue({ kind: 'rotate', id: this.ui.selected });
     } else if (k === 'escape' || k === 'q') {
       this.ui.tool = null;
       this.ui.selected = null;

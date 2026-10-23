@@ -6,7 +6,10 @@ import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { loadArt } from './art';
 import { HUB_SIZE } from './sim/data';
+import { Command, ResultOf, applyCommand } from './sim/commands';
 import { createDemoWorld, sustainDemo } from './sim/demo';
+import { runScenario } from './sim/scenario';
+import { Session } from './sim/session';
 import { OldSaveError, TICK, World } from './sim/world';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
@@ -87,10 +90,17 @@ function hasSave(): boolean {
 
 /** The player's game, once one is started or continued. */
 let game: World | null = null;
+/** That game's commands and clock (D-058). */
+let session: Session | null = null;
 /** The factory running behind the main menu. */
 let demo = createDemoWorld();
 let inMenu = true;
 const active = () => (inMenu || !game ? demo : game);
+
+/** Every change the player makes to the world goes through here, as a command (D-058). */
+function issue<C extends Command>(command: C): ResultOf<C> {
+  return !inMenu && session ? session.do(command) : applyCommand(active(), command);
+}
 
 const profile = loadProfile();
 const ui = createUIState();
@@ -108,6 +118,7 @@ function centreOnHub(world: World): void {
 
 function play(world: World): void {
   game = world;
+  session = new Session(world);
   inMenu = false;
   document.body.classList.remove('in-menu');
   ui.selected = null;
@@ -150,6 +161,7 @@ function refreshMainMenu(): void {
 const escapesCounted = new Set<number>();
 const hud = new Hud(ui, {
   getWorld: active,
+  issue,
   save,
   hardcoreUnlocked: () => profile.hardcoreUnlocked,
   lessons: () => LESSONS.map((l) => ({ id: l.id, title: l.title, seen: profile.lessonsSeen.includes(l.id) })),
@@ -214,6 +226,7 @@ const tutorial = new Tutorial(camera, active, ui, {
 
 const input = new Input(canvas, camera, ui, {
   getWorld: active,
+  issue,
   onPlaceError: (err) => {
     hud.placeError(err);
     sfx.play('error');
@@ -289,7 +302,8 @@ function frame(now: number): void {
   acc += elapsed * (inMenu ? 1 : ui.speed);
   let ticks = 0;
   while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) {
-    world.tick(TICK);
+    if (!inMenu && session) session.tick();
+    else world.tick(TICK);
     if (inMenu) sustainDemo(world);
     acc -= TICK;
     ticks++;
@@ -330,4 +344,6 @@ requestAnimationFrame(frame);
   ui,
   music,
   sfx,
+  /** The scripted game the cross-browser determinism test runs (D-058). */
+  runScenario,
 };

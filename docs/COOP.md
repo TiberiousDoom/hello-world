@@ -66,6 +66,12 @@ on a different tick from the host's, bugs would step differently, and the games 
 apart. Phase 0 moves these into the saved state. (The rest of `World` outside the save, such as
 the tile index and recent effects, is rebuilt from it or only drives sound and pictures.)
 
+Building phase 0 showed the timers aren't enough on their own: the path fields themselves aren't
+saved, and what's in them depends on when they were last rebuilt. So a loaded game rebuilds them,
+and a **checkpoint** command makes every game rebuild them on the same tick, just before the host
+takes a snapshot. A test shows the difference: without the checkpoint, a game joining from a
+snapshot drifts from the host; with it, the two stay identical (D-058).
+
 ## Making the rules safe for lockstep
 
 The rules must give exactly the same result on every device and browser. Most of this already
@@ -150,6 +156,12 @@ service is fine to test with.
 
 Phase 0 is worth doing even without co-op: a command list gives replays (attach one to a bug
 report), undo (already on the roadmap), and tests that replay real games.
+
+**Phase 0 is done (D-058):** `src/sim/commands.ts` (the commands), `src/sim/session.ts` (the
+session, its log and clock, replays and the summary hash), `src/sim/scenario.ts` (the scripted fight
+the determinism tests run), save version 12, and the tests: exact replays, a game joining from a
+checkpointed snapshot, the interface changing the world only through commands, and every browser
+computing the same game as Node.
 
 ## Risks
 

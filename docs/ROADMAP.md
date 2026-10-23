@@ -44,6 +44,7 @@ quality and business work don't get left until the end.
 13. ✅ **Sound effects** (D-043).
 14. **Next:** playtest the open map, wood phases 1 and 2, supply runs and the colony blueprints (nest density, territory sizes, how far bugs chase, forest density and regrowth, launch difficulty, cargo sizes, ballista and tesla balance); then the next colony blueprints (D-055, see Gameplay → Colony supply runs).
 15. ✅ **Playtest batch 4, quick fixes** (issues #32, #35, #36, #37): bugs no longer twitch at the end of their leash, the research menu's ✕ is at the top right, Underground Transport research is renamed Underground Belt, and single buildings can be dragged into place (D-057). The rest of batch 4 is in the `playtest` issues.
+16. ✅ **Co-op phase 0** (D-058): every change to the world is a command run through a session with a log; exact replays; path timers and players saved (v12); determinism checked in Chromium, Firefox and WebKit. Next for co-op: phase 1, the two-player prototype.
 
 ---
 
@@ -87,7 +88,7 @@ Not the escape ship's hull. In this order:
 
 ### Co-op (M4c, D-056, [COOP.md](COOP.md))
 In this order. Phase 0 can start before the player character (playtest issue #40), which then builds on it:
-- ⬜ **Phase 0, prepare in single player:** every world-changing action goes through a command list; players and the path-refresh timers in the saved state (a save version bump); a clock driven by commands; `Math.hypot` out of the rules; a summary hash and a cross-browser determinism test. No visible change
+- ✅ **Phase 0, prepare in single player (D-058):** every world-changing action goes through a command list; players and the path-refresh timers in the saved state (a save version bump); a clock driven by commands; `Math.hypot` out of the rules; a summary hash and a cross-browser determinism test. No visible change. Building it added a checkpoint command, so a game joining from a snapshot has the same path fields as the host
 - ⬜ **Phase 1, two-player prototype:** room codes, a test relay, a version check on joining, lockstep with input delay, both characters visible, no pausing for tutorials or the blueprint pick
 - ⬜ **Phase 2, make it solid:** the real relay, joining mid-game, desync detection and resync, reconnecting after a phone sleeps
 - ⬜ **Phase 3, co-op design:** pings, player colours, blueprint picks without pausing, balance, up to 4 players

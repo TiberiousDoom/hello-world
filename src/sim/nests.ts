@@ -7,6 +7,7 @@
 // shipyard instead, with no leash (D-047).
 
 import { BUILDINGS, DX, DY, ENEMIES, NESTS } from './data';
+import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
 
 export interface Nest {
@@ -85,7 +86,7 @@ export function tickBugs(w: World, dt: number): void {
       chase(w, e, n, dt, w.shipFlow);
       continue;
     }
-    if (isAngry(w, n) && Math.hypot(e.x - hx, e.y - hy) <= NESTS.leash) {
+    if (isAngry(w, n) && hypot(e.x - hx, e.y - hy) <= NESTS.leash) {
       chase(w, e, n, dt, w.flow, NESTS.leash);
       continue;
     }
@@ -103,7 +104,7 @@ export function tickBugs(w: World, dt: number): void {
       e.wait -= dt;
       continue;
     }
-    const d = Math.hypot(e.tx - e.x, e.ty - e.y);
+    const d = hypot(e.tx - e.x, e.ty - e.y);
     if (d < 0.05) {
       e.tx = n.x + 0.5 + w.random() * (C - 1);
       e.ty = n.y + 0.5 + w.random() * (C - 1);
@@ -155,7 +156,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
   const ny = (best - nx) / w.state.width;
   const gx = nx + 0.5;
   const gy = ny + 0.5;
-  const dist = Math.hypot(gx - e.x, gy - e.y);
+  const dist = hypot(gx - e.x, gy - e.y);
   const blocker = w.buildingAt(nx, ny);
   if (blocker && BUILDINGS[blocker.type].blocking && dist <= 0.55 + def.radius) {
     bite(w, blocker, n, def.dps * dt);
@@ -166,7 +167,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
     const mx = e.x + ((gx - e.x) / dist) * step;
     const my = e.y + ((gy - e.y) / dist) * step;
     const [hx, hy] = nestCentre(n);
-    if (Math.hypot(mx - hx, my - hy) > leash) return;
+    if (hypot(mx - hx, my - hy) > leash) return;
     e.x = mx;
     e.y = my;
   }

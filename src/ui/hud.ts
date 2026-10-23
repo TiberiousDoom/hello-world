@@ -23,7 +23,8 @@ import {
   isMachine,
 } from '../sim/data';
 import { artUrl, icon } from '../art';
-import { cargoLoaded, checkLaunch, currentCargo, currentStage, launch, nestsToWake, pickBlueprint, runStats, wakeRadius } from '../sim/ship';
+import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, wakeRadius } from '../sim/ship';
+import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Tool, UIState } from './state';
@@ -68,6 +69,8 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
 
 export interface HudActions {
   getWorld(): World;
+  /** Changes the world (D-058); the world itself is only read here. */
+  issue<C extends Command>(command: C): ResultOf<C>;
   newGame(mode: GameMode, tutorial: boolean): void;
   /** Whether the Essentials lesson has been shown on this device. */
   essentialsSeen(): boolean;
@@ -186,8 +189,8 @@ export class Hud {
     $('research-body').addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       const start = target.closest<HTMLElement>('[data-research]');
-      if (start) actions.getWorld().startResearch(start.dataset.research!);
-      if (target.closest('[data-pause-research]')) actions.getWorld().pauseResearch();
+      if (start) actions.issue({ kind: 'research', id: start.dataset.research! });
+      if (target.closest('[data-pause-research]')) actions.issue({ kind: 'pause-research' });
       if (start || target.closest('[data-pause-research]')) {
         this.researchKey = '';
         this.renderResearch(actions.getWorld());
@@ -224,7 +227,7 @@ export class Hud {
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
     $('blueprint-choices').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-blueprint]');
-      if (!btn || !pickBlueprint(actions.getWorld(), btn.dataset.blueprint!)) return;
+      if (!btn || !actions.issue({ kind: 'pick-blueprint', id: btn.dataset.blueprint! })) return;
       this.closeModals();
       this.setSpeed(this.speedBefore || 1);
       actions.save();
@@ -287,23 +290,22 @@ export class Hud {
     $('info').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
       if (!btn) return;
-      const world = actions.getWorld();
       const id = this.ui.selected;
       switch (btn.dataset.action) {
         case 'recipe':
-          if (id != null) world.setRecipe(id, btn.dataset.recipe!);
+          if (id != null) this.actions.issue({ kind: 'recipe', id, recipe: btn.dataset.recipe! });
           break;
         case 'filter':
-          if (id != null) world.setFilter(id, (btn.dataset.item || null) as ItemId | null);
+          if (id != null) this.actions.issue({ kind: 'filter', id, item: (btn.dataset.item || null) as ItemId | null });
           break;
         case 'rotate':
           this.rotate();
           break;
         case 'demolish':
-          if (id != null && world.demolish(id)) this.ui.selected = null;
+          if (id != null && this.actions.issue({ kind: 'demolish', id })) this.ui.selected = null;
           break;
         case 'launch':
-          launch(world);
+          this.actions.issue({ kind: 'launch' });
           break;
         case 'research':
           this.openResearch();
@@ -351,7 +353,7 @@ export class Hud {
   private rotate(): void {
     if (this.ui.plan) this.actions.rotatePlan();
     else if (this.ui.tool) this.ui.dir = ((this.ui.dir + 1) % 4) as UIState['dir'];
-    else if (this.ui.selected != null) this.actions.getWorld().rotate(this.ui.selected);
+    else if (this.ui.selected != null) this.actions.issue({ kind: 'rotate', id: this.ui.selected });
     this.refresh();
   }
 

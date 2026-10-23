@@ -4,6 +4,7 @@
 // generator, so the same seed always makes the same map.
 
 import { FOREST, NESTS, nestComposition } from './data';
+import { hypot } from './math';
 import type { Nest } from './nests';
 import type { World } from './world';
 
@@ -76,7 +77,7 @@ function blob(w: World, cx: number, cy: number, kind: number, r: number): void {
   for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++) {
     for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++) {
       if (!w.inBounds(x, y)) continue;
-      if (Math.hypot(x - cx, y - cy) <= r + (w.random() - 0.5) * 0.8) w.state.resources[w.idx(x, y)] = kind;
+      if (hypot(x - cx, y - cy) <= r + (w.random() - 0.5) * 0.8) w.state.resources[w.idx(x, y)] = kind;
     }
   }
 }
@@ -90,7 +91,7 @@ export function generateTrees(w: World, hubCx: number, hubCy: number): void {
   const { width, height } = w.state;
   const trees = w.state.trees;
   const free = (x: number, y: number) =>
-    w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && Math.hypot(x - hubCx, y - hubCy) >= FOREST.clear;
+    w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && hypot(x - hubCx, y - hubCy) >= FOREST.clear;
   const noise = new ValueNoise(64, () => w.random());
   const values = new Float32Array(width * height);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) values[y * width + x] = noise.fbm(x / FOREST.scale, y / FOREST.scale);
@@ -103,7 +104,7 @@ export function generateTrees(w: World, hubCx: number, hubCy: number): void {
   const r = FOREST.grove;
   for (let y = gy - r - 1; y <= gy + r + 1; y++) {
     for (let x = gx - r - 1; x <= gx + r + 1; x++) {
-      if (free(x, y) && Math.hypot(x - gx, y - gy) <= r + (w.random() - 0.5) * 0.8) trees[w.idx(x, y)] = 1;
+      if (free(x, y) && hypot(x - gx, y - gy) <= r + (w.random() - 0.5) * 0.8) trees[w.idx(x, y)] = 1;
     }
   }
 }
@@ -118,13 +119,13 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
       // Distance from the hub to the nearest tile of the cell.
       const nx = Math.max(cx, Math.min(hubCx, cx + c - 1));
       const ny = Math.max(cy, Math.min(hubCy, cy + c - 1));
-      if (Math.hypot(nx - hubCx, ny - hubCy) < NESTS.safeRadius) continue;
+      if (hypot(nx - hubCx, ny - hubCy) < NESTS.safeRadius) continue;
       if (w.random() >= NESTS.chance) continue;
       nests.push({ id: nests.length, x: cx, y: cy, angryUntil: 0 });
     }
   }
   for (const nest of nests) {
-    const dist = Math.hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy);
+    const dist = hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy);
     const comp = nestComposition(dist);
     const types = [
       ...Array<'crawler'>(comp.crawlers).fill('crawler'),
