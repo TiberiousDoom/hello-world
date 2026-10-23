@@ -115,9 +115,10 @@ export class SoundWatcher {
     this.gameOver = s.gameOver;
     this.hubHp = hub?.hp ?? 0;
 
-    // Nests provoked: a warning, heard from anywhere.
+    // Nests provoked, or sending a night raid: a warning, heard from anywhere.
+    const raiding = new Set(s.enemies.filter((e) => e.raid).map((e) => e.nest));
     for (const n of s.nests) {
-      const angry = isAngry(world, n);
+      const angry = isAngry(world, n) || raiding.has(n.id);
       if (angry && !this.angry.has(n.id)) {
         const [x, y] = nestCentre(n);
         const o = this.spot(x, y);
@@ -157,7 +158,7 @@ export class SoundWatcher {
     for (const sh of world.shots) this.seenShots.add(sh);
     for (const f of world.felled) this.seenFelled.add(f);
     for (const tap of world.taps) this.seenTaps.add(tap);
-    this.angry = new Set(s.nests.filter((n) => isAngry(world, n)).map((n) => n.id));
+    this.angry = new Set([...s.nests.filter((n) => isAngry(world, n)).map((n) => n.id), ...s.enemies.filter((e) => e.raid).map((e) => e.nest)]);
     this.breaches = s.breaches;
     this.hubHp = world.hub?.hp ?? 0;
     this.researched = s.researched.length;

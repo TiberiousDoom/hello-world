@@ -12,9 +12,10 @@
 // leash, until they're killed. A calm nest breeds back up to the bugs it started
 // with; new bugs hatch young and grow up over a few minutes. A threat level
 // rising with play time makes newly bred bugs tougher and territories spread
-// sooner. Shooting a nest's bugs wakes the nests next to it too.
+// sooner. Shooting a nest's bugs wakes the nests next to it too. Some nights a
+// nest near your buildings sends a raiding party.
 
-import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, chitinFor, moundHp, nestComposition } from './data';
+import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, RAIDS, chitinFor, moundHp, nestComposition } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
@@ -288,6 +289,53 @@ export function onBuilt(w: World, b: Building): void {
   }
 }
 
+/**
+ * Night raids (D-065). At nightfall, from the second night on, a raid comes with RAIDS.chance (more with
+ * threat; every night in Hardcore): one calm nest near your buildings, picked at random, sends a party of
+ * its grown bugs. The rest of the nest stays calm. Raiders go for the nearest buildings with no leash, and
+ * biting doesn't anger their nest; at morning they go home.
+ */
+export function startRaids(w: World, before: number, now: number): void {
+  const was = clockAt(before);
+  const c = clockAt(now);
+  if (was.night || !c.night || c.day < RAIDS.firstNight) return;
+  const s = w.state;
+  const threat = threatAt(now);
+  const chance = s.mode === 'hardcore' ? 1 : RAIDS.chance + RAIDS.chancePerThreat * threat;
+  if (w.random() >= chance) return;
+  const grown = (n: Nest) => s.enemies.filter((e) => e.nest === n.id && e.hp > 0 && e.born == null && !e.raid);
+  const near = (n: Nest) => {
+    const [cx, cy] = nestCentre(n);
+    return s.buildings.some((b) => {
+      const [bw, bh] = w.footprintOf(b);
+      return hypot(Math.max(b.x, Math.min(cx, b.x + bw)) - cx, Math.max(b.y, Math.min(cy, b.y + bh)) - cy) <= RAIDS.range;
+    });
+  };
+  const options = s.nests.filter((n) => !n.destroyed && ownsCell(w, n) && !isAngry(w, n) && grown(n).length >= 2 && near(n));
+  if (!options.length) return;
+  const n = options[Math.floor(w.random() * options.length)];
+  const size = Math.min(RAIDS.partyMax, RAIDS.party + Math.floor(threat / RAIDS.partyThreat));
+  for (const e of grown(n).slice(0, size)) e.raid = true;
+  w.markFlowDirty();
+  w.events.push(`Bugs are raiding from the ${compass(w, n)}!`);
+}
+
+/** Which way a nest lies from the hub, as a compass point. */
+function compass(w: World, n: Nest): string {
+  const hub = w.hub;
+  const [cx, cy] = nestCentre(n);
+  const dx = cx - (hub ? hub.x + HUB_SIZE / 2 : w.state.width / 2);
+  const dy = cy - (hub ? hub.y + HUB_SIZE / 2 : w.state.height / 2);
+  const points = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
+  // Octants by comparing the offsets (tan 22.5° ≈ 0.414), not Math.atan2, which isn't exact across browsers.
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  if (ay <= ax * 0.414) return dx >= 0 ? points[0] : points[4];
+  if (ax <= ay * 0.414) return dy >= 0 ? points[2] : points[6];
+  if (dx >= 0) return dy >= 0 ? points[1] : points[7];
+  return dy >= 0 ? points[3] : points[5];
+}
+
 /** A bug was hurt (a turret or the hub gun): its whole nest wakes, and so do the nests next to it (D-065). */
 export function onBugHurt(w: World, e: Enemy): void {
   const n = w.state.nests[e.nest];
@@ -318,6 +366,13 @@ export function tickBugs(w: World, dt: number): void {
     const n = s.nests[e.nest];
     const [hx, hy] = nestCentre(n);
     const def = ENEMIES[e.type];
+    if (e.raid) {
+      if (night) {
+        chase(w, e, n, dt, w.flow, Infinity, false); // a raid: no leash, and the nest stays calm
+        continue;
+      }
+      delete e.raid; // morning: home they go
+    }
     if (n.destroyed) {
       chase(w, e, n, dt, w.flow); // homeless: no leash, no calming down
       continue;
@@ -370,14 +425,14 @@ export function tickBugs(w: World, dt: number): void {
  * With a leash, a step that would leave it isn't taken: the bug holds at the edge. Otherwise it would
  * step out, turn for home, step back in and chase again, twitching on the spot every tick.
  */
-function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leash = Infinity): void {
+function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leash = Infinity, angers = true): void {
   const def = ENEMIES[e.type];
   const tx = Math.floor(e.x);
   const ty = Math.floor(e.y);
   const here = w.buildingAt(tx, ty);
   const dps = def.dps * strength(w, e);
   if (here) {
-    bite(w, here, n, dps * dt);
+    bite(w, here, n, dps * dt, angers);
     return;
   }
   let best = -1;
@@ -400,7 +455,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
   const dist = hypot(gx - e.x, gy - e.y);
   const blocker = w.buildingAt(nx, ny);
   if (blocker && BUILDINGS[blocker.type].blocking && dist <= 0.55 + def.radius) {
-    bite(w, blocker, n, dps * dt);
+    bite(w, blocker, n, dps * dt, angers);
     return;
   }
   const step = Math.min(dist, def.speed * dt);
@@ -414,10 +469,10 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
   }
 }
 
-/** Damage a building; a nest stays angry while it's busy biting. */
-function bite(w: World, b: Building, n: Nest, amount: number): void {
+/** Damage a building; a nest stays angry while it's busy biting (raiders leave it be). */
+function bite(w: World, b: Building, n: Nest, amount: number, angers = true): void {
   b.hp -= amount;
-  n.angryUntil = Math.max(n.angryUntil, w.state.time + NESTS.calmAfter);
+  if (angers) n.angryUntil = Math.max(n.angryUntil, w.state.time + NESTS.calmAfter);
 }
 
 function buildingNear(w: World, x: number, y: number, r: number): boolean {
@@ -432,7 +487,7 @@ function buildingNear(w: World, x: number, y: number, r: number): boolean {
   return false;
 }
 
-/** Any nest angry right now (the flow field is only needed then). */
+/** Any nest angry, or any raid out, right now (the flow field is only needed then). */
 export function anyAngry(w: World): boolean {
-  return w.state.nests.some((n) => isAngry(w, n));
+  return w.state.nests.some((n) => isAngry(w, n)) || w.state.enemies.some((e) => e.raid);
 }

@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.38.0 · 2026-10-23 · Night raids
+### New
+- **Night raids:** from the second night, some nights a nest near your buildings sends a small party of bugs after them. They don't stop at the usual chasing distance, and they go home at morning. A message says which way they come from. In Hardcore, it's every night.
+
 ## 0.37.0 · 2026-10-23 · Threat
 ### New
 - **Threat:** every 18 minutes the threat level rises (up to 10). New bugs are tougher, more of them hatch as runners or brutes, and territories spread sooner. The clock shows the level.

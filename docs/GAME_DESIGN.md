@@ -287,6 +287,12 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   - a bred crawler has an **8% chance** (up to 50%) to hatch as a runner instead, or, for a nest that
     already has brutes, as a runner or a brute; the nest's size stays the same,
   - territories spread **8% sooner** (down to half the usual 4 minutes).
+- **Night raids (D-065, D-073).** At nightfall, from the **second night** on, a raid comes with a
+  **50% chance** (+10% per threat level; **every night in Hardcore**). One calm nest within **40 tiles**
+  of any of your buildings, picked at random, sends a party of **2 grown bugs** (+1 per 2 threat levels,
+  up to 6). The rest of the nest stays calm. Raiders go for the nearest buildings with **no leash**, and
+  their biting doesn't wake their nest; shooting them does, as usual. At morning they go home. A
+  message says which way the raid comes from, with the nest warning sound. Young bugs don't raid.
 - **Neighbours wake (D-065).** Shooting a nest's bugs provokes that nest and every live nest in the 8
   cells around it. Building near a nest still provokes only the nests it's in or next to.
 - **Territories spread (D-059).** Every **4 minutes**, one live territory, picked at random, spreads
@@ -389,7 +395,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 
 | | Standard (default) | Hardcore |
 |---|---|---|
-| Hub reaches 0 HP | **Breach:** every nest calms down and its bugs go home, 25% of every item in stock is lost, and the hub is restored to 50% HP | Run over |
+| Hub reaches 0 HP | **Breach:** every nest calms down and its bugs go home (raiders too), 25% of every item in stock is lost, and the hub is restored to 50% HP | Run over |
 | Availability | Always | Unlocked by delivering a supply run in Standard |
 
 The hardcore unlock is stored in the browser's profile, separate from the save file.
