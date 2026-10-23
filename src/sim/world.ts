@@ -187,6 +187,8 @@ export class World {
   events: string[] = [];
   /** Trees cut in the last moment (not saved), for effects and sound. */
   felled: { x: number; y: number; age: number }[] = [];
+  /** Counts changes to what stands on the ground: buildings and trees (not saved). Lets the renderer keep a cached picture of the ground until it changes. */
+  layout = 0;
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
 
@@ -501,6 +503,7 @@ export class World {
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
     if (changed) this.state.paths.dirty = this.state.paths.shipDirty = true;
+    this.layout++;
   }
 
   private unindex(b: Building): void {
@@ -508,6 +511,7 @@ export class World {
     const [w, h] = this.footprintOf(b);
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
     this.state.paths.dirty = this.state.paths.shipDirty = true;
+    this.layout++;
   }
 
   private addBuilding(type: BuildingType, x: number, y: number, dir: Dir): Building {
@@ -967,6 +971,7 @@ export class World {
       if (s.regrow[i] > s.time) continue;
       delete s.regrow[i];
       if (s.trees[i] === STUMP) s.trees[i] = TREE;
+      this.layout++;
     }
   }
 
@@ -990,6 +995,7 @@ export class World {
             if (d < best) [pick, best] = [i, d];
           }
           s.trees[pick] = STUMP;
+          this.layout++;
           s.regrow[pick] = s.time + LUMBER.regrow;
           this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
           for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');

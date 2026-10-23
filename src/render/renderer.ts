@@ -2,7 +2,7 @@
 // shapes if one is missing) and only reads the simulation, so a 3D renderer
 // can replace it later behind the same draw() call.
 
-import { sprite } from '../art';
+import { sprite, spritesLoaded } from '../art';
 import {
   BUILDINGS,
   BuildingType,
@@ -65,6 +65,26 @@ const BELT_RAIL = '#5a6478';
 const EXPRESS_RAIL = '#d9a93a';
 const BELT_SLAT = 'rgba(138,150,168,0.5)';
 
+/** Tiles of spare picture around the view in a cached layer, so panning doesn't redraw it every frame. */
+const LAYER_MARGIN = 6;
+
+/**
+ * A cached picture of tiles that rarely change (ground, decoration, ore, trees), so
+ * they're drawn once instead of every frame (#46). Redrawn when the view leaves it,
+ * the zoom changes, sprites finish loading, or something is built or cut down.
+ */
+interface Layer {
+  canvas: HTMLCanvasElement;
+  key: string;
+  x0: number;
+  y0: number;
+  x1: number; // exclusive
+  y1: number;
+  scale: number; // canvas pixels per tile
+}
+
+const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
+
 interface Effect {
   kind: 'puff' | 'blast' | 'shockwave';
   x: number;
@@ -78,7 +98,10 @@ interface Effect {
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
-  private groundPattern: CanvasPattern | null = null;
+  /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
+  maxDpr = 2;
+  private ground = newLayer();
+  private canopy = newLayer();
   /** Turret aim angles, from their most recent shot. */
   private aims = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
@@ -97,7 +120,7 @@ export class Renderer {
   }
 
   resize(): void {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
     this.canvas.width = Math.round(w * this.dpr);
@@ -109,7 +132,7 @@ export class Renderer {
   draw(world: World, ui: UIState | null, now: number): void {
     // iOS Safari can change the visible area (toolbars, opening from another app)
     // without a resize event, which left the picture stretched. Check every frame.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
     if (this.canvas.clientWidth !== this.camera.width || this.canvas.clientHeight !== this.camera.height || dpr !== this.dpr) {
       this.resize();
     }
@@ -142,21 +165,10 @@ export class Renderer {
 
     this.trackEffects(world, now);
 
-    // Ground, decorations and resources. Beyond the map's edge is forest.
-    ctx.fillStyle = FOREST_FLOOR;
-    ctx.fillRect(Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f - x0f) + 3, Math.ceil(y1f - y0f) + 3);
-    this.drawGround(s.width, s.height);
-    const decorate = z >= 14;
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        const i = world.idx(x, y);
-        const r = s.resources[i];
-        if (r) this.drawNode(r, x, y);
-        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
-        else if (decorate && !world.tiles[i] && !s.trees[i]) this.drawDecoration(x, y);
-      }
-    }
-    this.drawMapEdge(s.width, s.height);
+    // Ground, decorations and resources (cached). Beyond the map's edge is forest.
+    const stamp = `${world.layout}|${spritesLoaded()}`;
+    const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
+    this.drawLayer(this.ground, stamp, view, (lx0, ly0, lx1, ly1) => this.paintGround(world, lx0, ly0, lx1, ly1));
 
     // Paired tunnels: a faint dotted line where the belt runs underground.
     for (const b of s.buildings) {
@@ -178,7 +190,12 @@ export class Renderer {
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
     for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
 
-    this.drawTrees(world, x0, y0, x1, y1, z);
+    this.drawLayer(this.canopy, stamp, view, (lx0, ly0, lx1, ly1) => {
+      // One tile more each way: canopies spill over their neighbours.
+      const cx0 = Math.max(0, lx0 - 1);
+      const cy0 = Math.max(0, ly0 - 1);
+      this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
+    });
 
     for (const e of s.enemies) {
       if (!visible(e.x - 1, e.y - 1, 2)) continue;
@@ -334,14 +351,67 @@ export class Renderer {
     }
   }
 
+  /**
+   * Draws a cached layer covering `view` (tiles x0, y0 to x1, y1, exclusive), first
+   * repainting it with `paint` if it's out of date or the view has moved off it.
+   */
+  private drawLayer(l: Layer, stamp: string, view: [number, number, number, number], paint: (x0: number, y0: number, x1: number, y1: number) => void): void {
+    const [vx0, vy0, vx1, vy1] = view;
+    const scale = this.camera.zoom * this.dpr;
+    const key = `${scale}|${stamp}`;
+    if (l.key !== key || vx0 < l.x0 || vy0 < l.y0 || vx1 > l.x1 || vy1 > l.y1) {
+      l.x0 = vx0 - LAYER_MARGIN;
+      l.y0 = vy0 - LAYER_MARGIN;
+      l.x1 = vx1 + LAYER_MARGIN;
+      l.y1 = vy1 + LAYER_MARGIN;
+      l.scale = scale;
+      l.key = key;
+      l.canvas.width = Math.ceil((l.x1 - l.x0) * scale);
+      l.canvas.height = Math.ceil((l.y1 - l.y0) * scale); // resizing also clears it
+      const lctx = l.canvas.getContext('2d')!;
+      lctx.setTransform(scale, 0, 0, scale, -l.x0 * scale, -l.y0 * scale);
+      const main = this.ctx;
+      this.ctx = lctx;
+      paint(l.x0, l.y0, l.x1, l.y1);
+      this.ctx = main;
+    }
+    // Copy it pixel for pixel, at a whole device pixel: scaling or a fractional offset would make the
+    // browser resample the whole picture every frame, which is slow without a GPU (and blurs it).
+    const ctx = this.ctx;
+    const [sx, sy] = this.camera.toScreen(l.x0, l.y0);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(l.canvas, Math.round(sx * this.dpr), Math.round(sy * this.dpr));
+    ctx.restore();
+  }
+
+  /** Forest floor beyond the map, the grass, ore, stumps and decoration, and the shadow at the map's edge. */
+  private paintGround(world: World, x0: number, y0: number, x1: number, y1: number): void {
+    const s = world.state;
+    const ctx = this.ctx;
+    ctx.fillStyle = FOREST_FLOOR;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    this.drawGround(s.width, s.height);
+    const decorate = this.camera.zoom >= 14;
+    for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
+      for (let x = Math.max(0, x0); x < Math.min(s.width, x1); x++) {
+        const i = world.idx(x, y);
+        const r = s.resources[i];
+        if (r) this.drawNode(r, x, y);
+        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
+        else if (decorate && !world.tiles[i] && !s.trees[i]) this.drawDecoration(x, y);
+      }
+    }
+    this.drawMapEdge(s.width, s.height);
+  }
+
   private drawGround(w: number, h: number): void {
     const ctx = this.ctx;
     const img = sprite('terrain/ground');
-    if (img && !this.groundPattern) {
-      this.groundPattern = ctx.createPattern(img, 'repeat');
-      this.groundPattern?.setTransform(new DOMMatrix().scale(1 / img.width));
-    }
-    ctx.fillStyle = this.groundPattern ?? '#2e4d33';
+    // A pattern belongs to the context it was made in, and the ground is painted rarely, so make it each time.
+    const pattern = img ? ctx.createPattern(img, 'repeat') : null;
+    pattern?.setTransform(new DOMMatrix().scale(1 / img!.width));
+    ctx.fillStyle = pattern ?? '#2e4d33';
     ctx.fillRect(0, 0, w, h);
   }
 
