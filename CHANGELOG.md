@@ -3,6 +3,9 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.33.1 · 2026-10-23 · Day and night, now live
+- Nothing changes in play. A browser test that blocked 0.33.0 from going live is fixed, so day, night and the seasons reach the game.
+
 ## 0.33.0 · 2026-10-23 · Day, night and seasons
 ### New
 - **Day and night:** 6 minutes of day, then 3 of night. The map darkens, with light around your hub, engineer, turrets and working machines.

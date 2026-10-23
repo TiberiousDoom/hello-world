@@ -101,10 +101,13 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   await tap(page, info, ...(await uncoveredTile(page, ...furnace)));
   await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect [2-4]/); // it may finish more plates meanwhile
   await page.click('#info [data-action="collect"]');
-  // The engineer fetches them, then carries them back to the hub.
-  await expect
-    .poll(() => page.evaluate(() => window.game.world.state.players[0].carry.filter((i: string) => i === 'iron_plate').length), { timeout: 30000 })
-    .toBeGreaterThanOrEqual(2);
+  // The engineer fetches them, then carries them back to the hub. (Next to the hub, they go straight in.)
+  const plates = () =>
+    page.evaluate(() => {
+      const w = window.game.world;
+      return w.state.players[0].carry.filter((i: string) => i === 'iron_plate').length + (w.state.inventory.iron_plate ?? 0);
+    });
+  await expect.poll(plates, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
   await expect.poll(() => stockOf('iron_plate'), { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   await expect(step).toContainText('9 of');
