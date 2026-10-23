@@ -51,7 +51,7 @@
           <button id="mm-help"><i data-icon="help"></i><span>How to play</span></button>
         </div>
         <p class="mm-note" id="mm-note" hidden></p>
-        <p class="mm-foot">Prototype · placeholder art</p>
+        <p class="mm-foot"><button id="mm-whatsnew" class="link-btn">v<span class="app-version"></span> · What's new<span class="new-dot" hidden></span></button> · Prototype, placeholder art</p>
       </div>
     </section>
 
@@ -83,13 +83,21 @@
           <button id="btn-save"><i data-icon="save"></i>Save now</button>
           <button id="btn-tutorial"><i data-icon="help"></i>Tutorials</button>
           <button id="btn-help"><i data-icon="research"></i>How to play</button>
+          <button id="btn-whatsnew"><i data-icon="new"></i>What's new<span class="new-dot" hidden></span></button>
           <button id="btn-mainmenu"><i data-icon="home"></i>Main menu</button>
           <button id="btn-new" class="danger"><i data-icon="new"></i>New game</button>
         </div>
         <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
         <label class="toggle volume">Music <input type="range" id="music-volume" min="0" max="100" step="5" /></label>
         <label class="toggle volume">Sound effects <input type="range" id="sfx-volume" min="0" max="100" step="5" /></label>
-        <p class="muted small">Progress saves automatically in this browser.</p>
+        <p class="muted small">Progress saves automatically in this browser. Foundry Front v<span class="app-version"></span>.</p>
+      </div>
+    </div>
+
+    <div id="changelog" class="modal" hidden>
+      <div class="card">
+        <div class="card-head"><h2>What's new</h2><button data-close aria-label="Close what's new" title="Close"><i data-icon="close"></i></button></div>
+        <div id="changelog-body"></div>
       </div>
     </div>
 

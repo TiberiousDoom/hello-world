@@ -11,6 +11,7 @@ import { createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
 import { Session } from './sim/session';
 import { OldSaveError, TICK, World } from './sim/world';
+import { VERSION, changelogHtml } from './ui/changelog';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
@@ -48,10 +49,11 @@ interface Profile {
   confirmTouch: boolean;
   musicVolume: number; // 0–1
   sfxVolume: number; // 0–1
+  lastSeenVersion: string; // the newest version whose What's new this player has opened
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0 };
+  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0, lastSeenVersion: '' };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -280,6 +282,24 @@ document.getElementById('mm-continue')!.addEventListener('click', () => {
 document.getElementById('mm-new')!.addEventListener('click', () => hud.openNewGame());
 document.getElementById('mm-help')!.addEventListener('click', () => hud.openModal('help'));
 
+/** The version, and a dot on "What's new" until this player has looked at this version's changes. */
+function showVersion(): void {
+  for (const el of document.querySelectorAll('.app-version')) el.textContent = VERSION;
+  for (const dot of document.querySelectorAll<HTMLElement>('.new-dot')) dot.hidden = profile.lastSeenVersion === VERSION;
+}
+
+function openWhatsNew(): void {
+  const body = document.getElementById('changelog-body')!;
+  if (!body.firstChild) body.innerHTML = changelogHtml();
+  hud.openModal('changelog');
+  profile.lastSeenVersion = VERSION;
+  saveProfile();
+  showVersion();
+}
+document.getElementById('mm-whatsnew')!.addEventListener('click', openWhatsNew);
+document.getElementById('btn-whatsnew')!.addEventListener('click', openWhatsNew);
+showVersion();
+
 window.addEventListener('resize', () => renderer.resize());
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') save();
@@ -344,6 +364,7 @@ requestAnimationFrame(frame);
   ui,
   music,
   sfx,
+  version: VERSION,
   /** The scripted game the cross-browser determinism test runs (D-058). */
   runScenario,
 };
