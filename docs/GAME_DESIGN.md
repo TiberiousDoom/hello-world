@@ -62,7 +62,7 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Workshop | 3×2 | 6 iron plates, 4 copper ingots, 4 planks | 120 | Workshops |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×1 | 3 iron plates, 1 copper ingot | 40 | Logistics |
-| Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Underground Transport |
+| Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Underground Belt |
 | Assembler | 4×2 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
@@ -160,7 +160,7 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 | Workshops | 30 iron plates, 10 copper | 60 s | Forestry | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
 | Logistics | 20 iron plates, 10 gears | 75 s | Workshops | Splitter |
-| Underground Transport | 20 gears, 10 bricks | 90 s | Logistics | Underground Belt |
+| Underground Belt | 20 gears, 10 bricks | 90 s | Logistics | Underground Belt |
 | Assembly | 30 gears, 30 wire | 120 s | Workshops | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
 | Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
@@ -181,7 +181,7 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   - one of its bugs is shot (by a turret, a cannon or the hub gun).
 - A provoked nest's bugs go for the **nearest buildings**, following a path field from every building
   outwards. Belts, splitters and tunnels can be walked over; other buildings block, and bugs chew
-  through whatever they reach. They chase no further than **22 tiles** from their territory's centre.
+  through whatever they reach. They chase no further than **22 tiles** from their territory's centre; a bug that reaches that edge stops there until its territory calms down.
 - A nest **calms down** 30 s after the last provocation (biting a building counts as one), and its bugs
   walk home.
 - Territories show a red dashed outline while you're placing a building, and a pulsing one while
@@ -330,6 +330,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
 | Select | Click a building | Tap a building |
 | Lay belts, walls or palisades | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
+| Drag a building into place | Press and drag, then click it (or ✓ or Enter) | Press and drag, then ✓ |
 | Pan | Right or middle drag, WASD | Drag with no tool, or two fingers |
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
@@ -349,7 +350,14 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   beside its end. Dragging back along a blueprint shortens it, and tiles that already hold a building
   are skipped. On touch screens every placement is a blueprint; Menu → "Confirm before building on
   touch screens" switches it off. On desktop, single clicks build at once, and only a dragged-out belt
-  or wall line becomes a blueprint. Bigger buildings are placed one at a time, never dragged.
+  or wall line becomes a blueprint.
+- **Dragging a building into place (D-057).** Every building that isn't laid as a line (belts, express
+  belts, walls and palisades are) is placed one at a time, never in rows. Pressing with it in hand and
+  dragging moves its blueprint, which keeps its offset from your finger so it isn't hidden under it.
+  After a drag the blueprint waits: on desktop, click it (or ✓ or Enter) to build; on touch, ✓.
+  Pressing a waiting blueprint and dragging moves it again; clicking or tapping it builds it. With
+  touch confirmation switched off, letting go builds.
+- **The research menu's ✕** sits at its top right and stays there while the list scrolls.
 
 ## Music
 

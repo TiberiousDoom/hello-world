@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased: playtest fixes
+- **Drag a building into place:** press with a building in hand and drag; its blueprint follows. Click it (desktop) or tap ✓ (phone) to build, or drag it again. A plain click still builds at once on desktop. Belts, walls and palisades still drag out as lines.
+- **No more twitching bugs:** an angry bug that reached the end of its leash used to flick back and forth on the spot (most often just after a launch). It now stops at the edge until its territory calms down.
+- **Research menu:** the close button (✕) is at the top right and stays put while the list scrolls.
+- **"Underground Transport" research is now "Underground Belt",** like the building it unlocks.
+
 ## Unreleased: wood in the economy
 - **Ballista:** a long-range wooden tower that fires stakes. Research Ballistae (after Palisades and Basic Defense), and have a Sawmill saw planks into stakes for it.
 - **Charcoal and steel:** a furnace burns logs into charcoal, and makes steel from iron plates and charcoal. The fourth supply run asks for steel.

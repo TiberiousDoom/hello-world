@@ -34,6 +34,19 @@ test('picking a tool shows no panel; placed buildings do, and the hub holds Rese
   await page.click('#info [data-action="research"]');
   await expect(page.locator('#research')).toBeVisible();
   await expect(page.locator('#research-body')).toContainText('Basic Defense');
+
+  // Close sits at the top right, and stays there when the list scrolls.
+  const close = page.locator('#research [data-close]');
+  const card = (await page.locator('#research .card').boundingBox())!;
+  const atTopRight = async () => {
+    const b = (await close.boundingBox())!;
+    return b.y - card.y < 40 && card.x + card.width - (b.x + b.width) < 40;
+  };
+  expect(await atTopRight()).toBe(true);
+  await page.locator('#research .card').evaluate((c) => (c.scrollTop = c.scrollHeight));
+  expect(await atTopRight()).toBe(true);
+  await close.click();
+  await expect(page.locator('#research')).toBeHidden();
 });
 
 test('the stock panel fades while the pointer is over it, and hides when the hub is deselected', async ({ page }, info) => {
