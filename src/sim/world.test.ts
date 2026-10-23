@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS } from './data';
-import { Nest, cellKey, isAngry, nestCentre, newNest } from './nests';
+import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS, nestComposition } from './data';
+import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { createDemoWorld } from './demo';
 
@@ -1252,5 +1252,62 @@ describe('Nests breed (D-065)', () => {
       expect(n.brood.crawler).toBeGreaterThanOrEqual(3);
       expect(n.nextBreed).toBe(0);
     }
+  });
+});
+
+describe('Threat (D-065)', () => {
+  it('rises every NESTS.threatEvery seconds, up to the maximum, with a message', () => {
+    expect(threatAt(0)).toBe(0);
+    expect(threatAt(NESTS.threatEvery - 1)).toBe(0);
+    expect(threatAt(NESTS.threatEvery)).toBe(1);
+    expect(threatAt(NESTS.threatEvery * 99)).toBe(NESTS.threatMax);
+    const w = emptyWorld();
+    w.state.time = NESTS.threatEvery - 0.01;
+    w.tick();
+    expect(w.events.some((e) => e.startsWith('Threat level 1'))).toBe(true);
+  });
+
+  it('makes newly bred bugs tougher, and more often runners, without growing the nest', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 0);
+    n.brood = { crawler: 40, runner: 0, brute: 0 };
+    w.state.time = NESTS.threatEvery * 6; // level 6: 48% of crawlers hatch as runners
+    w.state.nextSpread = Infinity;
+    for (let i = 0; i < 40; i++) {
+      n.nextBreed = w.state.time;
+      run(w, 1);
+    }
+    const bugs = w.state.enemies.filter((e) => e.nest === n.id);
+    expect(bugs.length).toBe(40);
+    const runners = bugs.filter((e) => e.type === 'runner').length;
+    expect(runners).toBeGreaterThan(8);
+    expect(runners).toBeLessThan(32);
+    const crawler = bugs.find((e) => e.type === 'crawler')!;
+    expect(crawler.maxHp).toBe(Math.round(18 * nestComposition(hubDistance(w, n)).hpMult * 1.9)); // +15% a level
+    run(w, NESTS.breedEvery[1] * 2);
+    expect(w.state.enemies.filter((e) => e.nest === n.id).length).toBe(40); // runners fill crawler places
+  });
+
+  it('makes territories spread sooner', () => {
+    const w = emptyWorld();
+    w.state.time = NESTS.threatEvery * 5;
+    w.state.nextSpread = w.state.time;
+    addNest(w, 100, 100, 1);
+    w.tick();
+    expect(w.state.nextSpread - w.state.time).toBeCloseTo(NESTS.spreadEvery * (1 - NESTS.threatSpread * 5), 0);
+  });
+
+  it("shooting a nest's bugs wakes the nests around it, but not ones further off", () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    const next = addNest(w, 60, 60, 1);
+    const far = addNest(w, 80, 50, 1);
+    const bug = w.state.enemies.find((e) => e.nest === n.id)!;
+    const t = placed(w.place('turret', Math.floor(bug.x) + 3, Math.floor(bug.y), 0));
+    t.ammo = 20;
+    run(w, 1);
+    expect(isAngry(w, n)).toBe(true);
+    expect(isAngry(w, next)).toBe(true);
+    expect(isAngry(w, far)).toBe(false);
   });
 });

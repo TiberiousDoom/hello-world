@@ -1390,3 +1390,8 @@ button.quiet {
 #clock[data-season='winter'] {
   border-color: #a9c4e8;
 }
+#clock .clock-threat {
+  margin-left: 6px;
+  color: #ff9a3c;
+  font-weight: 600;
+}

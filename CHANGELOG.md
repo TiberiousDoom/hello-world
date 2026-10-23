@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.37.0 · 2026-10-23 · Threat
+### New
+- **Threat:** every 18 minutes the threat level rises (up to 10). New bugs are tougher, more of them hatch as runners or brutes, and territories spread sooner. The clock shows the level.
+- **Neighbours wake:** shooting a nest's bugs now wakes the nests around it too.
+
 ## 0.36.0 · 2026-10-23 · Nests breed
 ### New
 - **Nests breed:** a calm nest that has lost bugs breeds a new one every minute or so, until it's back to full. An angry nest doesn't, and a destroyed one never will.
