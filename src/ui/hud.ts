@@ -10,7 +10,6 @@ import {
   HUB_SIZE,
   HUB_WEAPON,
   ITEMS,
-  LUMBER,
   ITEM_IDS,
   ItemCounts,
   ItemId,
@@ -27,6 +26,7 @@ import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runS
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
+import { buildingRates, toolTitle } from './rates';
 import { Tool, UIState } from './state';
 
 const TOOLBAR: BuildingType[] = [
@@ -469,7 +469,7 @@ export class Hud {
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
       const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
-      return `<button class="${cls}" data-tool="${t}" title="${esc(def.name)} (${i + 1})">
+      return `<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, i + 1))}">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
         <span class="costs">${costHtml(def.cost, inv)}</span></button>`;
@@ -538,6 +538,11 @@ export class Hud {
     {
       const def = BUILDINGS[b.type];
       stats = `HP ${Math.ceil(b.hp)} / ${def.hp}`;
+      const rates = buildingRates(world, b);
+      if (rates) {
+        stats += `<br><b>Rate</b> ${esc(rates.max)}`;
+        if (rates.now) stats += `<br><b>Now</b> ${esc(rates.now)}`;
+      }
       const t = TURRETS[b.type];
       if (t) stats += `<br>Ammo ${b.ammo} / ${t.maxShots} ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name}`;
       if (b.type === 'extractor') {
@@ -548,7 +553,6 @@ export class Hud {
         const [fw, fh] = world.footprintOf(b);
         const reach = world.treesInReach(b.x, b.y, fw, fh);
         stats += `<br>${reach.trees.length} tree${reach.trees.length === 1 ? '' : 's'} in reach, ${reach.stumps} stump${reach.stumps === 1 ? '' : 's'} growing back`;
-        stats += `<br>${LUMBER.logsPerTree} ${swatch('log')}logs per tree, one tree every ${LUMBER.period}s`;
       }
       if (isMachine(b.type)) {
         const r = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;

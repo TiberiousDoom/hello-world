@@ -189,6 +189,9 @@ export class World {
   felled: { x: number; y: number; age: number }[] = [];
   /** Counts changes to what stands on the ground: buildings and trees (not saved). Lets the renderer keep a cached picture of the ground until it changes. */
   layout = 0;
+  /** When each building made something in the last minute, and since when it's been watched (not saved), for the rates in its panel. */
+  private made = new Map<number, number[]>();
+  private watchedSince = new Map<number, number>();
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
 
@@ -504,6 +507,7 @@ export class World {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
     if (changed) this.state.paths.dirty = this.state.paths.shipDirty = true;
     this.layout++;
+    this.watchedSince.set(b.id, this.state.time);
   }
 
   private unindex(b: Building): void {
@@ -512,6 +516,8 @@ export class World {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
     this.state.paths.dirty = this.state.paths.shipDirty = true;
     this.layout++;
+    this.made.delete(b.id);
+    this.watchedSince.delete(b.id);
   }
 
   private addBuilding(type: BuildingType, x: number, y: number, dir: Dir): Building {
@@ -999,6 +1005,7 @@ export class World {
           s.regrow[pick] = s.time + LUMBER.regrow;
           this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
           for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');
+          this.noteMade(b, LUMBER.logsPerTree);
         }
       }
     }
@@ -1092,9 +1099,25 @@ export class World {
       if (b.progress >= EXTRACTOR_PERIOD) {
         b.progress = 0;
         b.outputs.push(item);
+        this.noteMade(b, 1);
       }
     }
     this.pushOutput(b);
+  }
+
+  private noteMade(b: Building, n: number): void {
+    const now = this.state.time;
+    const times = this.made.get(b.id) ?? [];
+    for (let i = 0; i < n; i++) times.push(now);
+    while (times.length && times[0] <= now - 60) times.shift();
+    this.made.set(b.id, times);
+  }
+
+  /** How many items a building made in the last minute, over how many seconds it's been watched (up to 60). */
+  madeRecently(id: number): { count: number; seconds: number } {
+    const now = this.state.time;
+    const count = (this.made.get(id) ?? []).filter((t) => t > now - 60).length;
+    return { count, seconds: Math.min(60, now - (this.watchedSince.get(id) ?? now)) };
   }
 
   private tickMachine(b: Building, dt: number): void {
@@ -1111,6 +1134,7 @@ export class World {
         b.progress += dt;
         if (b.progress >= recipe.time) {
           for (let i = 0; i < recipe.count; i++) b.outputs.push(recipe.output);
+          this.noteMade(b, recipe.count);
           b.progress = -1;
         }
       }
