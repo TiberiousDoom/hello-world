@@ -17,6 +17,7 @@ yet, **Final** = your art is in.
 
 **Art review 1 (2026-10-23):** the owner marked 7 sprites to polish and 6 to redraw, all done in 0.27.0. Still to come: bugs of different ages and sizes, and a Hardcore look (more horrifying bugs, nests as mounded holes); the nest plan is D-065.
 
+**Art review 2 (2026-10-23, for 0.39.0):** every sprite as it is now, with 5 new and 23 changed since round 1 tagged, and new screenshots (including the engineer by a nest, and night). Round 1's marks were cleared.
 **Art upgrade (0.40.0, D-075):** every sprite was redrawn with one light source (top-left), soft contact shadows, one ink outline and glossy bugs; terrain got a lighter touch so the clearing keeps its look. Walls and palisades became sets that join into runs, nests became burrow entrances, and the animation strips, effects and seasonal trees are reference art in `docs/art-upgrade/` (see its README).
 
 Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
