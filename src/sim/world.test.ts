@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
+import { CLOCK, RAIDS } from './data';
 import { createDemoWorld } from './demo';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
@@ -1309,5 +1310,42 @@ describe('Threat (D-065)', () => {
     expect(isAngry(w, n)).toBe(true);
     expect(isAngry(w, next)).toBe(true);
     expect(isAngry(w, far)).toBe(false);
+  });
+});
+
+describe('Night raids (D-065)', () => {
+  const nightfall = (day: number) => (day - 1) * (CLOCK.day + CLOCK.night) + CLOCK.day;
+
+  it('from the second night, a nest near buildings sends grown bugs past its leash, without waking', () => {
+    const w = emptyWorld('hardcore'); // a raid every night
+    const n = addNest(w, 50, 50, 3);
+    const wall = placed(w.place('wall', 55 + CLOCK.nightLeash + 5, 55, 0)); // past the leash, in raid range
+    w.state.nextSpread = Infinity;
+    w.state.time = nightfall(1) - 0.01;
+    w.tick();
+    expect(w.state.enemies.some((e) => e.raid)).toBe(false); // not on the first night
+    w.state.time = nightfall(2) - 0.01;
+    w.tick();
+    expect(w.state.enemies.filter((e) => e.raid).length).toBe(RAIDS.party);
+    expect(w.events.some((e) => e.startsWith('Bugs are raiding from the'))).toBe(true);
+    run(w, 60);
+    expect(wall.hp).toBeLessThan(w.maxHp(wall));
+    expect(isAngry(w, n)).toBe(false); // the rest of the nest stayed calm
+    w.state.time = nightfall(2) + CLOCK.night - 0.01;
+    w.tick();
+    expect(w.state.enemies.some((e) => e.raid)).toBe(false); // morning: they go home
+  });
+
+  it('nests far from buildings, or with only young bugs, do not raid', () => {
+    const w = emptyWorld('hardcore');
+    const far = addNest(w, 10, 10, 3);
+    const young = addNest(w, 140, 30, 0);
+    placed(w.place('wall', 145, 60, 0)); // near the young nest only
+    w.state.nextSpread = Infinity;
+    w.state.time = nightfall(2) - 0.01;
+    for (let i = 0; i < 3; i++) w.spawnBug('crawler', young, 1, true); // just hatched
+    w.tick();
+    expect(w.state.enemies.some((e) => e.raid)).toBe(false);
+    expect(far.id).not.toBe(young.id);
   });
 });

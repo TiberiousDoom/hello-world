@@ -405,6 +405,20 @@ export const NESTS = {
   threatSpreadMin: 0.5,
 };
 
+/**
+ * Night raids (D-065). At nightfall a nest near your buildings may send a small party of grown bugs
+ * after them, without the rest of the nest waking. Raiders keep going, with no leash, until morning.
+ */
+export const RAIDS = {
+  firstNight: 2, // the first night with raids (day 2's)
+  chance: 0.5, // chance of a raid each night in Standard (Hardcore: every night)
+  chancePerThreat: 0.1, // more likely with each threat level
+  range: 40, // only nests whose centre is this close to one of your buildings raid
+  party: 2, // grown bugs in a party, plus one per partyThreat threat levels
+  partyThreat: 2,
+  partyMax: 6,
+};
+
 /** A nest's mound health `distance` tiles from the hub. */
 export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * (1 + distance / 150));
 /** Chitin a destroyed mound drops, more further out (D-065). */

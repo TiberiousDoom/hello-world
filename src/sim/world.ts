@@ -49,7 +49,7 @@ import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
-import { Nest, announceThreat, anyAngry, broodFor, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
+import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
 import { Player, PlayerAction, goAndDo, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -124,6 +124,7 @@ export interface Enemy {
   ty: number;
   wait: number; // seconds left resting while calm
   born?: number; // game time it hatched, while it's still growing up (D-065); adults have none
+  raid?: boolean; // out on a night raid (D-065), until morning
 }
 
 export interface GameState {
@@ -1263,6 +1264,7 @@ export class World {
     tickPlayers(this, dt, (p, a) => this.act(p, a));
     this.announceClock(s.time - dt, s.time);
     announceThreat(this, s.time - dt, s.time);
+    startRaids(this, s.time - dt, s.time);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {
@@ -1655,6 +1657,7 @@ export class World {
     const s = this.state;
     s.breaches++;
     for (const n of s.nests) n.angryUntil = 0;
+    for (const e of s.enemies) delete e.raid;
     for (const item of Object.keys(s.inventory) as ItemId[]) {
       s.inventory[item] = Math.floor(s.inventory[item]! * (1 - BREACH.stockLost));
     }
