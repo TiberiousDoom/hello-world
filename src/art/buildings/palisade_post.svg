@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="plTip" cx="40%" cy="38%"><stop offset="0" stop-color="#f4dcb0" /><stop offset="1" stop-color="#b98450" /></radialGradient>
+      <radialGradient id="plTopG" cx="38%" cy="35%"><stop offset="0" stop-color="#c48a52" /><stop offset="0.7" stop-color="#8a5a2c" /><stop offset="1" stop-color="#5e3a1a" /></radialGradient>
+      </defs><g>
+        <ellipse cx="34.5" cy="35" rx="13" ry="12.5" fill="#0a1a0c" opacity="0.35" />
+        <circle cx="32" cy="32" r="12" fill="url(#plTopG)" stroke="#0f1a2e" stroke-width="1.8" />
+        <circle cx="32" cy="32" r="9.8" fill="none" stroke="#3a3f4b" stroke-width="2" />
+        <g fill="#8a96a8"><circle cx="32" cy="22.2" r="0.9" /><circle cx="41.8" cy="32" r="0.9" /><circle cx="32" cy="41.8" r="0.9" /><circle cx="22.2" cy="32" r="0.9" /></g>
+        <circle cx="32" cy="32" r="6.5" fill="url(#plTip)" stroke="#7a4a22" stroke-width="0.8" />
+        <path d="M32 25.8 V38.2 M25.8 32 H38.2 M27.6 27.6 L36.4 36.4 M36.4 27.6 L27.6 36.4" stroke="#a8784a" stroke-width="0.6" />
+        <circle cx="32" cy="32" r="1.5" fill="#fff1d2" />
+        <path d="M22.5 27 A10.5 10.5 0 0 1 28 21.8" fill="none" stroke="#e0b07a" stroke-width="1.3" stroke-linecap="round" />
+      </g>
+      </svg>

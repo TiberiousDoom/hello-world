@@ -1,6 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<rect x="4" y="4" width="56" height="56" rx="6" fill="#6b4426" stroke="#0f1a2e" stroke-width="3"/>
-<g stroke="#4a2e18" stroke-width="2"><path d="M4 18 H60 M4 32 H60 M4 46 H60"/></g>
-<circle cx="32" cy="32" r="16" fill="#3a4252" stroke="#0f1a2e" stroke-width="2.5"/>
-<g fill="#8a96a8"><circle cx="10" cy="10" r="2"/><circle cx="54" cy="10" r="2"/><circle cx="10" cy="54" r="2"/><circle cx="54" cy="54" r="2"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs>
+            <filter id="lbSh" x="-15%" y="-15%" width="140%" height="140%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="1.4" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+          </defs>
+          <g filter="url(#lbSh)"><rect x="4" y="4" width="56" height="56" rx="4" fill="#8f6235" stroke="#0f1a2e" stroke-width="3" /></g>
+          <g stroke="#5e3d1d" stroke-width="1.4"><path d="M5 17.5 H59 M5 31.5 H59 M5 45.5 H59" /></g>
+          <g stroke="#b88550" stroke-width="1.2" opacity="0.8"><path d="M6 6.5 H58 M6 19.5 H40 M6 33.5 H30 M22 47.5 H58" /></g>
+          <g stroke="#6e4a26" stroke-width="0.9" fill="none"><path d="M14 11 q6 2 12 0 M38 25 q5 2 10 0 M18 39 q6 -2 12 0 M40 53 q5 2 10 0" /></g>
+          <g fill="#3a3f4b" stroke="#0f1a2e" stroke-width="1.2"><path d="M5 5 h10 v4 h-6 v6 h-4 z" /><path d="M59 5 h-10 v4 h6 v6 h4 z" /><path d="M5 59 h10 v-4 h-6 v-6 h-4 z" /><path d="M59 59 h-10 v-4 h6 v-6 h4 z" /></g>
+          <circle cx="32" cy="32" r="9" fill="#3a3f4b" stroke="#0f1a2e" stroke-width="2" />
+          <circle cx="32" cy="32" r="3" fill="#8a96a8" />
+        </svg>

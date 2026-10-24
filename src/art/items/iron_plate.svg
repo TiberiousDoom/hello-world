@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<rect x="10" y="10" width="44" height="44" rx="3" fill="#545c68" stroke="#0f1a2e" stroke-width="3"/>
-<path d="M13 13 H51" stroke="#7d8794" stroke-width="2.5" stroke-linecap="round"/>
-<path d="M13 13 V51" stroke="#6a737f" stroke-width="2" stroke-linecap="round"/>
-<path d="M51 16 V51 H16" fill="none" stroke="#3c434d" stroke-width="2.5" stroke-linecap="round"/>
-<g fill="#3c434d"><circle cx="18" cy="18" r="1.8"/><circle cx="46" cy="18" r="1.8"/><circle cx="18" cy="46" r="1.8"/><circle cx="46" cy="46" r="1.8"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><g>
+        <rect x="9" y="9" width="46" height="46" rx="5" fill="#4b5462" stroke="#0f1a2e" stroke-width="3.5" />
+        <path d="M13.5 50 V15 Q13.5 13.5 15 13.5 H50" stroke="#a4afbe" stroke-width="3" fill="none" />
+        <path d="M50.5 15 V50.5 H15" stroke="#323947" stroke-width="3" fill="none" />
+        <g fill="#2c3340"><circle cx="18" cy="18" r="2.5" /><circle cx="46" cy="18" r="2.5" /><circle cx="18" cy="46" r="2.5" /><circle cx="46" cy="46" r="2.5" /></g>
+        <path d="M22 30 L34 22" stroke="#6b7484" stroke-width="2" stroke-linecap="round" />
+      </g>
+      </svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="eRail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d2de" /><stop offset="1" stop-color="#5a6478" /></linearGradient>
+      </defs><g>
+        <path d="M0 2 A62 62 0 0 1 62 64 L6 64 A6 6 0 0 0 0 58 Z" fill="#262b35" />
+        <g fill="none" stroke="#353c4b" stroke-width="5" stroke-linejoin="round"><path d="M14 9 L22 25 L6 33" transform="rotate(0 0 64)" /><path d="M30 14 L32 32 L14 38" /><path d="M44 24 L40 40 L22 44" /><path d="M54 38 L44 50 L26 52" /></g>
+        <path d="M0 2 A62 62 0 0 1 62 64 L53 64 A53 53 0 0 0 0 11 Z" fill="url(#eRail)" stroke="#0f1a2e" stroke-width="1.5" />
+        <path d="M0 53 A11 11 0 0 1 11 64 L2 64 A2 2 0 0 0 0 62 Z" fill="url(#eRail)" stroke="#0f1a2e" stroke-width="1.5" />
+        <path d="M0 4 A60 60 0 0 1 60 64" fill="none" stroke="#eef3f9" stroke-width="1.2" opacity="0.8" />
+      </g>
+      </svg>

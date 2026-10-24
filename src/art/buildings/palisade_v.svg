@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><g id="pvRail">
+        <rect x="17" y="0" width="7" height="64" fill="url(#plBarV)" />
+        <path d="M17 0 V64 M24 0 V64" stroke="#0f1a2e" stroke-width="1.4" />
+        <path d="M18.6 0 V64" stroke="#d9a46a" stroke-width="0.9" opacity="0.7" />
+      </g>
+      <linearGradient id="plBarV" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b98450" /><stop offset="1" stop-color="#6e4520" /></linearGradient>
+      <g id="pvLog">
+        <path d="M24 8 L32 0 L40 8 V30 H24 Z" fill="url(#plBark)" stroke="#0f1a2e" stroke-width="1.6" stroke-linejoin="round" />
+        <path d="M28.5 6.5 L32 2.5 L35.5 6.5 Z" fill="#e2c49a" />
+        <path d="M27.5 11 V17 M36 13 V18" stroke="#4a2c12" stroke-width="0.9" stroke-linecap="round" />
+      </g>
+      <linearGradient id="plBark" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c48a52" /><stop offset="0.55" stop-color="#94602f" /><stop offset="1" stop-color="#5e3a1a" /></linearGradient>
+      </defs><g>
+        <rect x="27" y="0" width="20" height="64" fill="#0a1a0c" opacity="0.28" />
+        <use href="#pvLog" y="-6" /><use href="#pvLog" y="10" /><use href="#pvLog" y="26" /><use href="#pvLog" y="42" /><use href="#pvLog" y="58" />
+        <use href="#pvRail" />
+        <g fill="#3a3f4b"><circle cx="20.5" cy="12" r="1.2" /><circle cx="20.5" cy="28" r="1.2" /><circle cx="20.5" cy="44" r="1.2" /><circle cx="20.5" cy="60" r="1.2" /></g>
+      </g>
+
+      
+      </svg>

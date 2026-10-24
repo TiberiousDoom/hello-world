@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64"><defs><g id="enJ4"><use href="#enBootN" /><use href="#enTorso" /><use href="#enHandLow" /><use href="#enWrench" transform="rotate(5 38 20)" /><use href="#enHat" /></g>
+
+      <rect id="enHandLow" x="36" y="44" width="10" height="7" rx="3" fill="#e9c39b" stroke="#0f1a2e" stroke-width="2.5" />
+
+      <g id="enBootN" stroke="#0f1a2e" stroke-width="2.5"><rect x="15" y="15" width="12" height="9" rx="4" fill="#3b4252" /><rect x="15" y="40" width="12" height="9" rx="4" fill="#3b4252" /></g>
+      <g id="enTorso">
+        <rect x="9" y="24" width="10" height="16" rx="3" fill="#3a4656" stroke="#0f1a2e" stroke-width="2.5" />
+        <path d="M12 28 H16 M12 32 H16 M12 36 H16" stroke="#f2c14e" stroke-width="1.4" />
+        <rect x="17" y="20" width="24" height="24" rx="9" fill="url(#enSuit)" stroke="#0f1a2e" stroke-width="2.5" />
+        <path d="M21.5 22 V42" stroke="#eef3f9" stroke-width="2" opacity="0.9" />
+      </g>
+      <linearGradient id="enSuit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffa24a" /><stop offset="1" stop-color="#c8600e" /></linearGradient>
+      <radialGradient id="enHat" cx="40%" cy="35%"><stop offset="0" stop-color="#fff2a8" /><stop offset="0.5" stop-color="#ffcc33" /><stop offset="1" stop-color="#d99a0c" /></radialGradient>
+      <g id="enWrench">
+        <rect x="45" y="14.5" width="12" height="4" rx="1.5" fill="url(#enSteel)" stroke="#0f1a2e" stroke-width="1.4" />
+        <path d="M56 11 h5 v3 h-2.5 v5 h2.5 v3 h-5 z" fill="url(#enSteel)" stroke="#0f1a2e" stroke-width="1.4" stroke-linejoin="round" />
+        <rect x="36" y="13" width="10" height="7" rx="3" fill="#e9c39b" stroke="#0f1a2e" stroke-width="2.5" />
+      </g>
+      <linearGradient id="enSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef3f9" /><stop offset="1" stop-color="#7d8a9d" /></linearGradient>
+      <g id="enJ3"><use href="#enBootN" /><use href="#enTorso" /><use href="#enHandLow" /><use href="#enWrench" transform="rotate(25 38 20)" /><use href="#enHat" /><use href="#spark" transform="translate(60 27)" /><use href="#spark" transform="translate(56 31) scale(0.5)" /></g>
+      <path id="spark" d="M0 -5 L1.2 -1.2 L5 0 L1.2 1.2 L0 5 L-1.2 1.2 L-5 0 L-1.2 -1.2 Z" fill="#fff3c4" stroke="#ffb03a" stroke-width="0.6" />
+      <g id="enJ2"><use href="#enBootN" /><use href="#enTorso" /><use href="#enHandLow" /><use href="#enWrench" /><use href="#enHat" /></g>
+      <g id="enJ1"><use href="#enBootN" /><use href="#enTorso" /><use href="#enHandLow" /><use href="#enWrench" transform="rotate(-35 38 20)" /><use href="#enHat" /></g>
+      </defs><g transform="translate(0 0)"><use href="#enJ1" /></g><g transform="translate(64 0)"><use href="#enJ2" /></g><g transform="translate(128 0)"><use href="#enJ3" /></g><g transform="translate(192 0)"><use href="#enJ4" /></g></svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 32"><defs><g id="rs4" opacity="0.5"><use href="#rp-plus" transform="translate(17 5) scale(0.9)" /><use href="#rp-plus" transform="translate(7 11) scale(0.6)" /><use href="#rp-plus" transform="translate(25 13) scale(0.5)" /></g>
+      
+      <g id="rp-plus"><path d="M0 -4 V4 M-4 0 H4" stroke="#6ee07a" stroke-width="2.6" stroke-linecap="round" /><path d="M0 -4 V4 M-4 0 H4" stroke="#d8ffd8" stroke-width="1" stroke-linecap="round" /></g>
+      <g id="rs3"><use href="#rp-plus" transform="translate(17 11) scale(1.1)" /><use href="#rp-plus" transform="translate(8 17) scale(0.8)" /><use href="#rp-plus" transform="translate(24 20) scale(0.6)" /><use href="#pStar4" transform="translate(12 8) scale(0.03)" fill="#ffffff" /></g>
+      <path id="pStar4" d="M0 -100 L21 -21 L100 0 L21 21 L0 100 L-21 21 L-100 0 L-21 -21 Z" />
+      <g id="rs2"><use href="#rp-plus" transform="translate(16 18)" /><use href="#rp-plus" transform="translate(9 24) scale(0.6)" /><use href="#pStar4" transform="translate(23 22) scale(0.035)" fill="#ffffff" /></g>
+      <g id="rs1"><use href="#rp-plus" transform="translate(16 24) scale(0.7)" /><circle cx="16" cy="24" r="6" fill="#6ee07a" opacity="0.2" /></g>
+      </defs><g transform="translate(0 0)"><use href="#rs1" /></g><g transform="translate(32 0)"><use href="#rs2" /></g><g transform="translate(64 0)"><use href="#rs3" /></g><g transform="translate(96 0)"><use href="#rs4" /></g></svg>

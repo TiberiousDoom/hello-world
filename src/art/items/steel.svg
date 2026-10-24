@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<path d="M8 30 L24 20 L56 20 L56 34 L40 44 L8 44 Z" fill="#7d8fa3" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round"/>
-<path d="M8 30 L24 20 L56 20 L40 30 Z" fill="#c4d2e0"/>
-<path d="M40 30 L56 20 L56 34 L40 44 Z" fill="#5d6f83"/>
-<path d="M8 30 H40 V44" fill="none" stroke="#0f1a2e" stroke-width="2"/>
-<path d="M16 25 L36 24" stroke="#eef4fa" stroke-width="2" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="iSteelTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2f7fc" /><stop offset="1" stop-color="#b4c6d8" /></linearGradient>
+      </defs><g>
+        <path d="M8 30 L24 20 L56 20 L56 34 L40 44 L8 44 Z" fill="#7d8fa3" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round" />
+        <path d="M9.5 30 L24.5 21.5 L54 21.5 L40 30 Z" fill="url(#iSteelTop)" />
+        <path d="M40 30 L56 20 L56 34 L40 44 Z" fill="#4f6175" />
+        <path d="M8 30 H40 V44" fill="none" stroke="#0f1a2e" stroke-width="2" />
+        <path d="M16 25 L36 24.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />
+        <rect x="18" y="34" width="12" height="5" rx="1" fill="none" stroke="#5d6f83" stroke-width="1.2" />
+        <path d="M43 31 L53 25" stroke="#8aa0b8" stroke-width="1" opacity="0.8" />
+      </g>
+      </svg>

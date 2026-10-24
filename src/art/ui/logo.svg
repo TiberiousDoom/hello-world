@@ -1,8 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-<rect width="128" height="128" rx="26" fill="#1d3b6e"/>
-<path d="M84 26 q-2 -10 8 -12 q4 -8 14 -3 q10 0 8 10 q-4 7 -12 5 q-8 6 -18 0 Z" fill="#3fa9f5"/>
-<path d="M16 104 V60 l20 12 V60 l20 12 V60 l20 12 V30 h14 V104 Z" fill="#ffffff"/>
-<g fill="#1d3b6e"><rect x="23" y="82" width="9" height="9" rx="1"/><rect x="40" y="82" width="9" height="9" rx="1"/><rect x="57" y="82" width="9" height="9" rx="1"/></g>
-<path d="M92 62 L114 70 V86 C114 99 104 107 92 112 C80 107 70 99 70 86 V70 Z" fill="#3fa9f5" stroke="#1d3b6e" stroke-width="5" stroke-linejoin="round"/>
-<circle cx="92" cy="87" r="8" fill="#ffffff"/><rect x="92" y="84" width="14" height="6" rx="2" fill="#ffffff"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><clipPath id="lgClip"><rect width="128" height="128" rx="26" /></clipPath>
+      <pattern id="lgHaz" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#f2c14e" /><rect width="6" height="12" fill="#1b2230" /></pattern>
+      </defs><g>
+        <defs><linearGradient id="lgBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a5193" /><stop offset="1" stop-color="#16305a" /></linearGradient></defs>
+        <rect width="128" height="128" rx="26" fill="url(#lgBg)" />
+        <rect x="0" y="106" width="128" height="22" rx="0" fill="#1b2230" />
+        <path d="M0 106 H128 V102 A26 26 0 0 1 128 102" fill="none" />
+        <g clip-path="url(#lgClip)"><rect x="-10" y="106" width="150" height="22" fill="url(#lgHaz)" /></g>
+        <path d="M84 26 q-2 -10 8 -12 q4 -8 14 -3 q10 0 8 10 q-4 7 -12 5 q-8 6 -18 0 Z" fill="#3fa9f5" />
+        <path d="M88 20 q4 -4 9 -2" stroke="#bfe4ff" stroke-width="2.4" fill="none" stroke-linecap="round" />
+        <path d="M16 104 V60 L36 72 V60 L56 72 V60 L76 72 V30 H90 V104 Z" fill="#ffffff" />
+        <path d="M78 34 V100" stroke="#d6e4f5" stroke-width="3" />
+        <g fill="#1d3b6e"><rect x="23" y="82" width="9" height="9" rx="1.5" /><rect x="40" y="82" width="9" height="9" rx="1.5" /><rect x="57" y="82" width="9" height="9" rx="1.5" /></g>
+        <path d="M94 60 L116 68 V84 C116 97 106 105 94 110 C82 105 72 97 72 84 V68 Z" fill="#3fa9f5" stroke="#16305a" stroke-width="5" stroke-linejoin="round" />
+        <path d="M78 71 L94 65 V105 C85 100 78 94 78 84 Z" fill="#7cc4ff" opacity="0.5" />
+        <circle cx="94" cy="86" r="8" fill="#ffffff" /><rect x="94" y="83" width="15" height="6" rx="2" fill="#ffffff" />
+      </g>
+      </svg>
