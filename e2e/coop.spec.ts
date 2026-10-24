@@ -64,6 +64,33 @@ test('two players host and join with a code, and play one game', async ({ page: 
   expect(await guest.evaluate(() => window.game.coop.guest.desyncedAt)).toBeNull();
   expect(await guest.evaluate(() => window.game.ui.speed)).toBe(0); // the host's pause is everyone's
 
+  // The guest points at a spot (P under the mouse): it shows on the host's map in the guest's colour.
+  const spot = await guest.evaluate(() => {
+    const h = window.game.world.hub;
+    window.game.ui.hover = { x: h.x + 2, y: h.y - 3 };
+    return window.game.ui.hover;
+  });
+  await guest.keyboard.press('p');
+  await expect.poll(() => host.evaluate(() => window.game.ui.pings.map((p: { player: number; x: number; y: number }) => [p.player, p.x, p.y]))).toEqual([[1, spot.x, spot.y]]);
+  expect(await guest.evaluate(() => window.game.ui.pings.length)).toBe(1); // shown at once on the guest's own screen
+
+  // The colony's offer is a card that leaves the map playable, and the first pick is everyone's.
+  for (const p of [host, guest]) await p.evaluate(() => (window.game.world.state.ship.offer = ['express_belt', 'tesla']));
+  await host.locator('#speed [data-speed="1"]').click(); // the host plays on: the card doesn't pause
+  for (const p of [host, guest]) {
+    await expect(p.locator('#blueprints')).toBeVisible();
+    await expect(p.locator('#blueprints')).toHaveClass(/offer-card/);
+    // Just below the card, the map still takes taps.
+    expect(await p.evaluate(() => document.elementFromPoint(innerWidth / 2, document.querySelector('#blueprints .card')!.getBoundingClientRect().bottom + 12)?.id)).toBe('game');
+  }
+  expect(await host.evaluate(() => window.game.ui.speed)).toBe(1);
+  await guest.locator('[data-blueprint="tesla"]').click();
+  for (const p of [host, guest]) {
+    await expect.poll(() => p.evaluate(() => window.game.world.state.ship.blueprints.join())).toBe('tesla');
+    await expect(p.locator('#blueprints')).toBeHidden();
+  }
+  await host.locator('#speed [data-speed="0"]').click();
+
   // The host leaves: the guest is told, back at the main menu.
   await host.evaluate(() => {
     document.getElementById('menu-btn')!.click();
@@ -118,4 +145,29 @@ test('a player joins a game under way, and gets back in step after falling behin
   await stranger.fill('#coop-code', 'ZZZZZZ');
   await stranger.click('#coop-join button[type="submit"]');
   await expect(stranger.locator('#coop-status')).toContainText('No game has that code');
+});
+
+test("the host's connection drops: the others wait, and catch up when it's back", async ({ page: host }) => {
+  const guest = await host.context().newPage();
+  await open(host, ALL_LESSONS);
+  await host.click('#coop-host-new');
+  await expect(host.locator('#coop-room-code')).toHaveText(/^[A-Z2-9]{6}$/);
+  const code = (await host.locator('#coop-room-code').textContent())!;
+  await open(guest, ALL_LESSONS);
+  await guest.fill('#coop-code', code);
+  await guest.click('#coop-join button[type="submit"]');
+  await expect(host.locator('#coop-players li')).toHaveCount(2);
+  await host.click('#coop-start');
+  await expect(guest.locator('#mainmenu')).toBeHidden();
+
+  await host.evaluate(() => window.game.coop.link.drop());
+  await expect(guest.locator('#toasts')).toContainText("The host's connection dropped");
+  await expect(host.locator('#toasts')).toContainText('Back in the room');
+  await expect(guest.locator('#toasts')).toContainText('The host is back');
+  await expect(guest.locator('#toasts')).toContainText("Caught up with the host's game");
+  // Both play on together.
+  await host.locator('#speed [data-speed="0"]').click();
+  await expect.poll(async () => (await ticks(guest)) === (await ticks(host)), { timeout: 5000 }).toBe(true);
+  const look = (p: Page) => p.evaluate(() => JSON.stringify([window.game.world.state.players, window.game.world.state.rng]));
+  expect(await look(guest)).toBe(await look(host));
 });

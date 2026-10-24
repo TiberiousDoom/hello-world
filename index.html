@@ -182,6 +182,7 @@
         <ul>
           <li><b>Desktop:</b> click to build or select. Drag out a line of belts or walls, then press ✓ or Enter to build it (⟳ or R reverses or rotates it, ✕ or Esc cancels). Right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9 picks buildings, Space pauses and Esc cancels.</li>
           <li><b>Touch:</b> tap to place a blueprint, then ✓ to build it (or tap the same spot again). Drag with a tool to lay a line, drag with no tool to pan, pinch to zoom. Menu → "Confirm before building" switches blueprints off.</li>
+          <li><b>Playing together:</b> press P (or hold a finger still on empty ground) to point at a spot for the others. Only the host pauses or changes the speed.</li>
         </ul>
         <h3>Credits</h3>
         <p class="muted small">Music by <a href="https://pixabay.com/users/velariomusic-54515099/" target="_blank" rel="noopener">velariomusic</a> on Pixabay.</p>
@@ -192,8 +193,10 @@
     <div id="blueprints" class="modal" hidden>
       <div class="card">
         <h2>Blueprints from the colony</h2>
-        <p class="muted">For your last supply run, the colony offers one of these. The other stays on offer for a later run.</p>
+        <p class="muted" id="offer-intro">For your last supply run, the colony offers one of these. The other stays on offer for a later run.</p>
+        <p class="muted small" id="offer-team" hidden>The first player to pick chooses for the whole team.</p>
         <div id="blueprint-choices" class="modes"></div>
+        <button id="btn-offer-later" class="quiet" hidden>Later</button>
       </div>
     </div>
 

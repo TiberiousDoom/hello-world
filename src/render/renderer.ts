@@ -32,7 +32,7 @@ import {
   type Season,
 } from '../sim/data';
 import { Building, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
-import { PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
+import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching } from '../sim/ship';
 import { clockAt, darkness } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
@@ -296,6 +296,68 @@ export class Renderer {
     if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
     else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
     else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover, ui.dir, z);
+    if (ui.pings.length) this.drawPings(ui, now, z);
+  }
+
+  /**
+   * Co-op pings (D-080): rings spreading from the spot in the player's colour, and an arrow at the edge
+   * of the screen pointing at a ping that's off it.
+   */
+  private drawPings(ui: UIState, now: number, z: number): void {
+    const { ctx, camera } = this;
+    for (const p of ui.pings) {
+      const age = (now - p.at) / PING_MS;
+      if (age < 0 || age >= 1) continue;
+      const color = PLAYER_COLORS[p.player % PLAYER_COLORS.length];
+      const fade = Math.min(1, (1 - age) * 3);
+      const cx = p.x + 0.5;
+      const cy = p.y + 0.5;
+      ctx.globalAlpha = fade;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3 / z;
+      for (let k = 0; k < 2; k++) {
+        const r = (((now - p.at) / 900 + k / 2) % 1) * 1.6;
+        ctx.globalAlpha = fade * (1 - r / 1.6);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 0.2 + r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = fade;
+      // A pin standing on the spot.
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx - 0.22, cy - 0.55);
+      ctx.arc(cx, cy - 0.7, 0.26, Math.PI * 0.8, Math.PI * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1.5 / z;
+      ctx.stroke();
+      // Off screen: an arrow at the edge, pointing the way.
+      const [sx, sy] = camera.toScreen(cx, cy);
+      const m = 28;
+      if (sx >= m && sx <= camera.width - m && sy >= m && sy <= camera.height - m) continue;
+      ctx.save();
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      const ax = Math.max(m, Math.min(camera.width - m, sx));
+      const ay = Math.max(m, Math.min(camera.height - m, sy));
+      ctx.translate(ax, ay);
+      ctx.rotate(Math.atan2(sy - ay, sx - ax));
+      ctx.fillStyle = color;
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(16, 0);
+      ctx.lineTo(-8, -11);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-8, 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** The belts a tap with the Express Belt would upgrade; red where stock runs out. */

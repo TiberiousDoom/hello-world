@@ -409,8 +409,8 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 ## Playing together
 
-Co-op (phases 1 and 2 of [COOP.md](COOP.md), D-078, D-079). Two to four players build one factory: one
-hub, one stock, one research tree, one supply ship.
+Co-op ([COOP.md](COOP.md), D-078 to D-081). Two to four players build one factory: one hub, one stock,
+one research tree, one supply ship.
 
 - **Host or join:** main menu → **Play together**. The host opens a room with a new game (Standard),
   their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
@@ -419,15 +419,21 @@ hub, one stock, one research tree, one supply ship.
 - **Start:** the host presses Start once everyone is in. A player can also join a game under way with
   the code: the host sends them a copy of the game, and the others see "Player N joined".
 - **Engineers:** each player has their own engineer, in their slot's colour (host yellow, then blue,
-  pink and green), with a ring under it. They start below the hub. When a player leaves, their engineer
+  pink and green), with a ring under it. They start side by side below the hub. A message about an
+  engineer (knocked out) says "Your engineer…" to its player and "Player 2's engineer…" to the others. When a player leaves, their engineer
   is back below the hub at once (it doesn't walk home through bug country), and what it carried goes into
   the hub's stock. Someone joining later in that slot takes it over.
 - **The shared clock:** only the host pauses or changes the speed; the other players have no speed
   buttons. Nothing else stops the game: lessons explain while it runs, without blocking the screen, and
   neither the first delivery's screen nor the blueprint pick pauses it.
 - **Blueprint offers are the team's:** the colony offers one blueprint for the whole factory after a
-  supply run. The first player to pick takes it, and the offer closes for everyone. (Tutorials are not
-  shared: each player sees their own lessons.)
+  supply run. In co-op the offer is a card at the top of the screen, over a game that keeps running and
+  stays playable; **Later** puts it away, and Research → Colony blueprints → Choose brings it back. The
+  first player to pick takes it, and the offer closes for everyone. (Tutorials are not shared: each
+  player sees their own lessons.)
+- **Pings:** press **P** to point at the spot under the mouse, or hold a finger still on empty ground
+  with nothing in hand. Every player sees a pin with spreading rings in your colour for 5 s, and hears
+  a chime; when it's off their screen, an arrow at the edge points to it. One ping a second at most.
 - **Delay:** every action applies 3 ticks (150 ms) after the host receives it, in every game, plus the
   time it takes to reach the host. A building appears when its action lands; errors (like too little
   stock) show then.
@@ -435,13 +441,17 @@ hub, one stock, one research tree, one supply ship.
   doesn't, or that has fallen 20 s or more behind (a phone that slept, a tab in the background), gets a
   fresh copy from the host and says "Caught up with the host's game".
 - **Dropped connection:** a guest whose connection drops keeps its screen and tries to get back in, five
-  times over about 15 s. Back in, it gets a fresh copy of the game.
+  times over about 15 s. Back in, it gets a fresh copy of the game. A guest that hears nothing from the
+  host for 15 s takes its connection for dead (the host sends something at least every 5 s).
+- **The host's connection drops:** the others are told and wait (their games stand still). The host
+  plays on and gets the room back with the same code within a minute; then everyone gets a fresh copy
+  and plays on. After a minute without the host, the room closes as if the host had left.
 - **Saving:** every player saves the shared game in their own browser, in a co-op slot apart from their
   own factory, so whoever has it can host it later. A host who shares their own factory keeps saving it
   there. Continue on the main menu is always your own factory.
 - **Leaving:** a guest who leaves goes back to the main menu; the others are told. When the host leaves,
-  the game ends for everyone else, and each keeps it saved. A host whose connection drops carries on
-  alone.
+  the game ends for everyone else, and each keeps it saved. A host who can't get the room back carries
+  on alone.
 
 ## Onboarding
 
@@ -511,6 +521,7 @@ hub, one stock, one research tree, one supply ship.
 | Pick a building | 1–9 | Toolbar |
 | Build more like a placed building | Middle-click it | Hold a finger still on it (about half a second) |
 | Pause | Space | ❚❚ button |
+| Ping (co-op) | P, at the spot under the mouse | Hold a finger still on empty ground |
 | Put down the tool or clear the selection | Right-click or Esc | Tap the tool again |
 | Close a menu | Click outside it | Tap outside it |
 | Blueprint: rotate, reverse, cancel | ⟳, R or the wheel (reverses a belt line); ✕, Esc or right-click | ⟳ or Rotate; ✕ |

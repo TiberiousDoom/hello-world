@@ -38,10 +38,13 @@ export interface Player {
   downUntil?: number;
 }
 
-/** A new player standing just below the middle of the hub. */
+/** Where each co-op slot's engineer stands below the hub, across from the middle, so none hides another. */
+const HOME_OFFSET = [0, 1, -1, 2];
+
+/** A new player standing just below the hub: the first in the middle, the others beside it. */
 export function newPlayer(w: World, id: number): Player {
   const hub = w.hub;
-  const x = hub ? hub.x + Math.floor(HUB_SIZE / 2) + 0.5 : w.state.width / 2;
+  const x = hub ? hub.x + Math.floor(HUB_SIZE / 2) + (HOME_OFFSET[id] ?? 0) + 0.5 : w.state.width / 2;
   const y = hub ? hub.y + HUB_SIZE + 0.5 : w.state.height / 2;
   return { id, x, y, carry: [], path: [], walk: null, pending: null, mining: null, hp: PLAYER.hp };
 }
@@ -75,7 +78,11 @@ export function hurtPlayer(w: World, p: Player, amount: number): void {
   p.walk = null;
   p.mining = null;
   p.downUntil = w.state.time + PLAYER.downFor;
-  w.events.push(`Your engineer was knocked out and dropped what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`);
+  w.playerEvents.push({
+    player: p.id,
+    mine: `Your engineer was knocked out and dropped what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`,
+    others: `Player ${p.id + 1}'s engineer was knocked out.`,
+  });
 }
 
 /** The standing player nearest (x, y) within `range`, if any. */

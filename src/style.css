@@ -564,6 +564,22 @@ body.in-menu #toasts {
   height: 12px;
   border-radius: 50%;
 }
+/* Co-op: the blueprint offer is a card over a game that keeps running and stays playable (D-080). */
+#blueprints.offer-card {
+  background: none;
+  pointer-events: none;
+  align-items: flex-start;
+  padding-top: 64px;
+}
+#blueprints.offer-card .card {
+  pointer-events: auto;
+  max-width: 440px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+#blueprints.offer-card #offer-intro {
+  display: none;
+}
+
 /* Only the host sets the game's speed and pauses it. */
 body.coop-guest #speed {
   display: none;

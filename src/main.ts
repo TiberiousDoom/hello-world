@@ -16,7 +16,7 @@ import { clockAt } from './sim/clock';
 import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from './ui/feedback';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
-import { createUIState } from './ui/state';
+import { PING_MS, createUIState } from './ui/state';
 import { LESSONS, Tutorial } from './ui/tutorial';
 import { Lobby } from './ui/lobby';
 import { RELAY_URL } from './net/client';
@@ -237,8 +237,27 @@ function endCoop(): void {
     saveKey = SAVE_KEY;
   }
   ui.coop = null;
+  ui.pings = [];
   ui.player = 0;
   document.body.classList.remove('coop-guest');
+}
+
+/** This player points at tile (x, y) for the others (co-op, D-080): at most once a second. */
+let lastPing = -Infinity;
+function ping(x: number, y: number): boolean {
+  if (inMenu || !ui.coop) return false;
+  if (performance.now() - lastPing < 1000) return true;
+  lastPing = performance.now();
+  coop.ping(x, y);
+  showPing(ui.player, x, y);
+  return true;
+}
+
+/** A ping on the map, with its sound. */
+function showPing(player: number, x: number, y: number): void {
+  const now = performance.now();
+  ui.pings = [...ui.pings.filter((p) => now - p.at < PING_MS), { player, x, y, at: now }].slice(-12);
+  sfx.play('ping');
 }
 
 /** A building that can't go up. In co-op, said at most once a second: it may come again when the command lands. */
@@ -321,6 +340,7 @@ const input = new Input(canvas, camera, ui, {
   onPlaceError: placeError,
   onNotice: (text) => hud.toast(text),
   onChange: () => hud.refresh(),
+  ping,
 });
 const planBar = new PlanBar(camera, ui, {
   confirm: () => input.confirmPlan(),
@@ -408,6 +428,7 @@ coop.onStart = (shared, again) => {
   hud.toast(coop.role === 'host' ? 'Playing together. Only you can pause or change the speed.' : 'Playing together. The host sets the speed.');
 };
 coop.onNotice = (text) => hud.toast(text);
+coop.onPing = showPing;
 coop.onEnd = (why) => {
   if (ui.coop === 'host') {
     // The host's game is its own: it carries on alone.

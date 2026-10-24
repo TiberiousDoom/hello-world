@@ -19,7 +19,7 @@ quality and business work don't get left until the end.
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
 | M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phases 1 and 2 done; forest and bugs next |
-| M4c: Co-op | 2–4 players in one shared world (D-056, [COOP.md](COOP.md)) | 🚧 Phases 0–2 done: Play together with a room code, joining under way, resync, reconnecting (0.42.0, D-078, D-079). Next: phase 3 |
+| M4c: Co-op | 2–4 players in one shared world (D-056, [COOP.md](COOP.md)) | ✅ Phases 0–3 done (0.42.0, D-078 to D-081): Play together with a room code, joining under way, resync, reconnecting (the host too), pings. Balance for more players after playtesting |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -54,7 +54,7 @@ quality and business work don't get left until the end.
 23. ✅ **Day, night and seasons** (0.33.0, #42, D-068): a 9-minute day, bugs ranging further at night, four seasons changing tree regrowth and the look of the map, a clock, and a short piece of music for each season. Night raids (D-065) can come next. Belt feedback batch filed as #61–#65.
 24. ✅ **Belt batch** (playtest #61–#65): two-lane belts, splitter filters and side snapping (0.34.0, D-069); an exit blueprint for underground belts, and belt lines that go under belts they cross (0.35.0, D-070).
 25. ✅ **Art upgrade** (0.40.0, D-075): every sprite redrawn, walls and palisades that join up, burrow nests, damage that shows.
-26. ✅ **Co-op phases 1 and 2** (D-076 to D-079): the relay on Cloudflare (0.41.0); Play together (0.42.0): Host and Join with a room code, the host stamping command ticks and sending turns, every engineer on screen in its player's colour, no pausing for lessons, the first delivery or blueprint picks; joining a game under way, a fresh copy for a guest out of step or far behind, reconnecting, the shared game saved in every browser. **Next:** co-op phase 3, and the art review refresh.
+26. ✅ **Co-op phases 1 to 3** (D-076 to D-081): the relay on Cloudflare (0.41.0); Play together (0.42.0): Host and Join with a room code, the host stamping command ticks and sending turns, every engineer on screen in its player's colour, no pausing for lessons, the first delivery or blueprint picks; joining a game under way, a fresh copy for a guest out of step or far behind, reconnecting, the shared game saved in every browser; pings, per-player messages, the blueprint offer as a card, engineers side by side, 4-player tests, and the host taking its room back after a dropped connection. **Next:** playtest co-op (balance for more players), and the art review refresh.
 27. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
@@ -107,8 +107,9 @@ In this order. Phase 0 can start before the player character (playtest issue #40
 - ✅ **Phase 0, prepare in single player (D-058):** every world-changing action goes through a command list; players and the path-refresh timers in the saved state (a save version bump); a clock driven by commands; `Math.hypot` out of the rules; a summary hash and a cross-browser determinism test. No visible change. Building it added a checkpoint command, so a game joining from a snapshot has the same path fields as the host
 - ✅ **Before phase 1: the player character** (0.32.0, #40, D-067), built on commands; bugs notice it (0.39.0, D-074)
 - ✅ **Phase 1, two-player prototype:** the relay on Cloudflare (0.41.0, D-077); Play together (0.42.0, D-078): room codes, a version check on joining, lockstep with a 3-tick input delay stamped by the host, every engineer visible with a ring in its player's colour, no pausing for lessons, the first delivery or the blueprint pick, and a mismatch warning
-- ✅ **Phase 2, make it solid** (0.42.0, D-079): joining mid-game from a snapshot, a fresh copy for a guest out of step or 20 s behind, reconnecting after a dropped connection, the shared game saved in every player's browser (a co-op slot apart from your own factory), a departed player's engineer back at the hub at once. The host never waits for a guest, so a slow guest can't hold anyone up. Left for later: the host reconnecting (its leaving still ends the room)
-- ⬜ **Phase 3, co-op design:** pings, blueprint picks as cards that don't block play, per-player messages ("your engineer"), balance, 4-player testing
+- ✅ **Phase 2, make it solid** (0.42.0, D-079): joining mid-game from a snapshot, a fresh copy for a guest out of step or 20 s behind, reconnecting after a dropped connection, the shared game saved in every player's browser (a co-op slot apart from your own factory), a departed player's engineer back at the hub at once. The host never waits for a guest, so a slow guest can't hold anyone up. The host reconnecting came after (D-081)
+- ✅ **Phase 3, co-op design** (0.42.0, D-080): pings, the blueprint offer as a card that doesn't block play (with Later), per-player messages ("your engineer"), engineers side by side at the start, 4-player tests. Player colours came in phase 1. ⬜ Balance for more players, after playtesting
+- ✅ **The host reconnecting** (0.42.0, D-081): the relay keeps the room a minute for a host whose connection dropped; only the host's key takes it back; keep-alive turns let guests notice a dead connection
 
 ### Nests (D-065, #53)
 In this order:

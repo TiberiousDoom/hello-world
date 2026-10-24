@@ -14,6 +14,11 @@ import { MAX_GUEST_MESSAGE } from './protocol';
 export const INPUT_DELAY = 3;
 /** The host sends turns at most this often (ms): 20 a second at most, a few commands each. */
 export const FLUSH_MS = 45;
+/**
+ * The host sends a turn at least this often (ms), even paused with nothing new, so a guest that hears
+ * nothing for a while knows its connection is gone (D-081).
+ */
+export const KEEPALIVE_MS = 5000;
 /** The host fingerprints its game every this many ticks (once a second) so guests can check theirs. */
 export const HASH_EVERY = 20;
 /** A guest this many ticks behind the host catches up faster than real time. */
@@ -49,10 +54,14 @@ export type HostMessage =
    * `through`, the ticks the host has run. Also the host's game speed (it alone sets it) and its
    * fingerprints, as [tick, hash].
    */
-  | { t: 'turn'; seq: number; through: number; speed: number; cmds: LoggedCommand[]; hashes: [number, string][] };
+  | { t: 'turn'; seq: number; through: number; speed: number; cmds: LoggedCommand[]; hashes: [number, string][]; pings?: [number, number, number][] };
 
-/** From a guest to the host: its commands, or a request for a fresh copy of the game. */
-export type GuestMessage = { t: 'cmds'; cmds: Command[] } | { t: 'resync' };
+/**
+ * From a guest to the host: its commands, a request for a fresh copy of the game, or a ping. Pings
+ * (D-080) aren't commands: they change nothing in the world, so they travel beside the lockstep and
+ * show as soon as they arrive.
+ */
+export type GuestMessage = { t: 'cmds'; cmds: Command[] } | { t: 'resync' } | { t: 'ping'; x: number; y: number };
 
 /**
  * Command kinds a guest may send (not the host's own bookkeeping: checkpoints, adding engineers), and
@@ -106,6 +115,10 @@ export class HostLockstep {
   private lastFlush = -Infinity;
   /** Turns sent so far. */
   private seq = 0;
+  /** Pings to send with the next turn, as [player, x, y]. */
+  private pings: [number, number, number][] = [];
+  /** Shows a ping from any player, the host's own included. */
+  onPing: (player: number, x: number, y: number) => void = () => {};
 
   constructor(
     readonly session: Session,
@@ -141,6 +154,14 @@ export class HostLockstep {
     this.stamp({ tick: this.session.ticks + INPUT_DELAY, player: BOOKKEEPING, command });
   }
 
+  /** Player `player` points at tile (x, y): shown here, and to every guest with the next turn. */
+  ping(player: number, x: number, y: number): void {
+    const w = this.session.world;
+    if (!w.inBounds(x, y)) return;
+    this.pings.push([player, x, y]);
+    this.onPing(player, x, y);
+  }
+
   private stamp(entry: LoggedCommand): void {
     this.pending.push(entry);
     this.session.queue([entry]);
@@ -155,6 +176,10 @@ export class HostLockstep {
       return;
     }
     if (msg?.t === 'resync') return this.onResync(player);
+    if (msg?.t === 'ping') {
+      if (Number.isInteger(msg.x) && Number.isInteger(msg.y)) this.ping(player, msg.x, msg.y);
+      return;
+    }
     if (msg?.t !== 'cmds' || !Array.isArray(msg.cmds)) return;
     for (const c of msg.cmds) if (validCommand(c)) this.submit(player, c);
   }
@@ -172,9 +197,12 @@ export class HostLockstep {
    */
   flush(speed: number, now: number): void {
     const through = this.session.ticks;
-    if (!this.pending.length && through === this.sentThrough && speed === this.sentSpeed) return;
+    const quiet = !this.pending.length && !this.pings.length && through === this.sentThrough && speed === this.sentSpeed;
+    if (quiet && now - this.lastFlush < KEEPALIVE_MS) return;
     if (now - this.lastFlush < FLUSH_MS) return;
-    this.send({ t: 'turn', seq: ++this.seq, through, speed, cmds: this.pending, hashes: this.hashes });
+    const pings = this.pings.length ? this.pings : undefined;
+    this.send({ t: 'turn', seq: ++this.seq, through, speed, cmds: this.pending, hashes: this.hashes, pings });
+    this.pings = [];
     this.pending = [];
     this.hashes = [];
     this.sentThrough = through;
@@ -215,6 +243,11 @@ export class GuestLockstep {
   /** This player's command: it goes to the host, which says when it applies. */
   submit(command: Command): void {
     this.out.push(command);
+  }
+
+  /** This player points at tile (x, y): straight to the host, which passes it on to everyone (D-080). */
+  ping(x: number, y: number): void {
+    this.send(JSON.stringify({ t: 'ping', x, y } satisfies GuestMessage));
   }
 
   /** A message from the host. */

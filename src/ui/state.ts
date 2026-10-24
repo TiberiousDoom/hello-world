@@ -28,10 +28,23 @@ export interface UIState {
   player: number;
   /** In a co-op game (D-078): nothing pauses it but the host, and only the host sets its speed. */
   coop: 'host' | 'guest' | null;
+  /** Spots co-op players pointed at (D-080), newest last; `at` is the page clock (ms). */
+  pings: Ping[];
 }
 
+/** A co-op ping: player `player` points at tile (x, y). */
+export interface Ping {
+  player: number;
+  x: number;
+  y: number;
+  at: number;
+}
+
+/** How long a ping shows (ms). */
+export const PING_MS = 5000;
+
 export function createUIState(): UIState {
-  return { tool: null, dir: 0, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null };
+  return { tool: null, dir: 0, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [] };
 }
 
 /** Each co-op player's colour, by slot: their engineer's ring and their name in the lobby. */

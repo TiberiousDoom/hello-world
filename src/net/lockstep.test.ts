@@ -136,6 +136,46 @@ describe('Co-op lockstep', () => {
     expect(fresh.session.world.toJSON()).toBe(host.session.world.toJSON());
   });
 
+  it('plays in step with four players, three of them joining under way', () => {
+    const { host, guest, frame, settle, join, cx, cy } = pair();
+    const late = [join(2, 3), join(3, 0)];
+    const all = [guest, ...late];
+    for (let t = 0; t < 300; t++) {
+      all.forEach((g, i) => {
+        if ((t + i * 5) % 17 === 0) g.submit({ kind: 'move', x: cx + i - 1, y: cy + (t % 3) });
+        if (t === 40 + i) g.submit({ kind: 'place', type: 'wall', x: cx - 4 + i, y: cy - 4, dir: 0, replaceBelt: false });
+      });
+      if (t === 60) host.submit(0, { kind: 'walk', dx: -1, dy: 0 });
+      frame();
+    }
+    settle();
+    const json = host.session.world.toJSON();
+    expect(host.session.world.state.players.map((p) => p.id)).toEqual([0, 1, 2, 3]);
+    expect(host.session.world.state.buildings.filter((b) => b.type === 'wall').length).toBe(3);
+    for (const g of all) {
+      expect(g.desyncedAt).toBeNull();
+      expect(g.session.world.toJSON()).toBe(json);
+    }
+  });
+
+  it('passes pings to every guest beside the turns, without touching the world', () => {
+    const turns: HostMessage[] = [];
+    const { w } = fightingWorld(5);
+    const host = new HostLockstep(new Session(w), (m) => turns.push(m));
+    const seen: number[][] = [];
+    host.onPing = (p, x, y) => seen.push([p, x, y]);
+    const before = summaryHash(w);
+    host.ping(0, 10, 12);
+    host.receive(2, JSON.stringify({ t: 'ping', x: 30, y: 31 }));
+    host.receive(2, JSON.stringify({ t: 'ping', x: 1.5, y: 31 })); // not a tile
+    host.receive(2, JSON.stringify({ t: 'ping', x: -5, y: 31 })); // off the map
+    host.flush(1, 0);
+    expect(seen).toEqual([[0, 10, 12], [2, 30, 31]]);
+    expect(turns.length).toBe(1);
+    expect(turns[0].t === 'turn' && turns[0].pings).toEqual([[0, 10, 12], [2, 30, 31]]);
+    expect(summaryHash(w)).toBe(before);
+  });
+
   it('never lets a guest run a tick before it has every command for it', () => {
     const { host, guest, frame, cx, cy } = pair();
     for (let t = 0; t < 50; t++) {
@@ -247,6 +287,48 @@ describe('A co-op room', () => {
     host.leave();
   });
 
+  it('holds four players, and turns a fifth away', async () => {
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    const host = new Coop('local', '1.0.0');
+    host.hostRoom();
+    await until(() => host.phase === 'lobby');
+    const guests = [1, 2, 3].map(() => new Coop('local', '1.0.0'));
+    const games = new Map<Coop, Session>();
+    for (const g of guests) {
+      g.onStart = (s) => games.set(g, s);
+      g.joinRoom(host.code);
+      await until(() => g.phase === 'lobby');
+    }
+    expect(host.players).toEqual([0, 1, 2, 3]);
+    const fifth = new Coop('local', '1.0.0');
+    let why = '';
+    fifth.onEnd = (w) => (why = w);
+    fifth.joinRoom(host.code);
+    await until(() => why !== '');
+    expect(why).toMatch(/full/);
+
+    await host.start(World.create(4));
+    await until(() => games.size === 3);
+    const hash = summaryHash(host.host!.session.world);
+    expect(guests.map((g) => games.get(g)!.player)).toEqual([1, 2, 3]);
+    for (const s of games.values()) expect(summaryHash(s.world)).toBe(hash);
+
+    // A ping from one guest reaches the host and the other guests, not itself.
+    const pinged = new Map<Coop, number[][]>();
+    for (const c of [host, ...guests]) c.onPing = (p, x, y) => pinged.set(c, [...(pinged.get(c) ?? []), [p, x, y]]);
+    guests[1].ping(20, 21);
+    await until(() => pinged.has(host));
+    host.host!.flush(1, 1e9);
+    await until(() => pinged.has(guests[0]) && pinged.has(guests[2]));
+    expect(pinged.get(host)).toEqual([[2, 20, 21]]);
+    expect(pinged.get(guests[0])).toEqual([[2, 20, 21]]);
+    expect(pinged.has(guests[1])).toBe(false);
+    host.leave();
+  });
+
   it('gets a guest whose connection dropped back into the game', async () => {
     const host = new Coop('local', '1.0.0');
     const guest = new Coop('local', '1.0.0');
@@ -273,6 +355,41 @@ describe('A co-op room', () => {
     expect(guest.slot).toBe(1);
     expect(summaryHash(guest.guest!.session.world)).toBe(summaryHash(host.host!.session.world));
     host.leave();
+  });
+
+  it('lets a host whose connection dropped take its room back, and brings the guests up to date', async () => {
+    const host = new Coop('local', '1.0.0');
+    const guest = new Coop('local', '1.0.0');
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    host.hostRoom();
+    await until(() => host.phase === 'lobby');
+    guest.joinRoom(host.code);
+    await until(() => host.players.length === 2);
+    const starts: boolean[] = [];
+    const notices: string[] = [];
+    guest.onStart = (_, again) => starts.push(again);
+    guest.onNotice = (n) => notices.push(n);
+    const hostNotices: string[] = [];
+    host.onNotice = (n) => hostNotices.push(n);
+    await host.start(World.create(4));
+    await until(() => starts.length === 1);
+
+    // The host's network drops: the guest waits, and the host plays on alone meanwhile.
+    (host as unknown as { link: { drop(): void } }).link.drop();
+    expect(host.phase).toBe('playing');
+    await until(() => notices.some((n) => n.startsWith("The host's connection dropped")));
+    expect(guest.phase).toBe('playing');
+    for (let i = 0; i < 30; i++) host.host!.tick();
+    // Back with its key: the guest gets a fresh copy, matching the host's game.
+    await until(() => starts.length === 2);
+    expect(hostNotices).toEqual(['Connection lost. Getting the room back…', 'Back in the room.']);
+    expect(notices).toContain('The host is back.');
+    expect(summaryHash(guest.guest!.session.world)).toBe(summaryHash(host.host!.session.world));
+    host.leave();
+    await until(() => guest.phase === 'idle');
   });
 
   it('ends the game for the guests when the host leaves', async () => {

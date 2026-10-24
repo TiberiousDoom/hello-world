@@ -183,6 +183,8 @@ export class Hud {
   private researchKey = '';
   /** Supply runs seen delivered in the current game, to notice a new one. */
   private runsSeen: { world: World | null; runs: number } = { world: null, runs: 0 };
+  /** In co-op, the blueprint offer the player put off with Later (D-080): its card stays away. */
+  private offerLater: string | null = null;
   /** Game speed before the first-delivery screen paused the game. */
   private speedBefore = 1;
 
@@ -199,6 +201,12 @@ export class Hud {
       const start = target.closest<HTMLElement>('[data-research]');
       if (start) actions.issue({ kind: 'research', id: start.dataset.research! });
       if (target.closest('[data-pause-research]')) actions.issue({ kind: 'pause-research' });
+      if (target.closest('[data-choose-blueprint]')) {
+        // The offer put off for later (co-op): show it again.
+        this.offerLater = null;
+        this.closeModals();
+        return;
+      }
       if (start || target.closest('[data-pause-research]')) {
         this.researchKey = '';
         this.renderResearch(actions.getWorld());
@@ -240,6 +248,10 @@ export class Hud {
       if (!this.ui.coop) this.setSpeed(this.speedBefore || 1);
       actions.save();
       this.refresh();
+    });
+    $('btn-offer-later').addEventListener('click', () => {
+      this.offerLater = actions.getWorld().state.ship.offer?.join() ?? null;
+      $('blueprints').hidden = true;
     });
     $('btn-keep-playing').addEventListener('click', () => {
       this.closeModals();
@@ -423,6 +435,7 @@ export class Hud {
 
   update(world: World, now: number): void {
     for (const msg of world.events.splice(0)) this.toast(msg);
+    for (const e of world.playerEvents.splice(0)) this.toast(e.player === this.ui.player ? e.mine : e.others);
     if (now - this.lastUpdate < 150) return;
     this.lastUpdate = now;
     const s = world.state;
@@ -461,15 +474,21 @@ export class Hud {
       }
       this.actions.delivered(first);
     }
-    // The colony's blueprint offer waits for a pick (after the first delivery's own screen).
-    if (s.ship.offer && $('blueprints').hidden && $('victory').hidden && $('newgame').hidden && $('gameover').hidden) {
+    // The colony's blueprint offer waits for a pick (after the first delivery's own screen). In co-op it's
+    // a card that leaves the game playable (D-080): no dimming, nothing else closed, and it can wait.
+    const card = !!this.ui.coop;
+    $('blueprints').classList.toggle('offer-card', card);
+    $('btn-offer-later').hidden = !card;
+    $('offer-team').hidden = !card;
+    const later = card && s.ship.offer?.join() === this.offerLater;
+    if (s.ship.offer && !later && $('blueprints').hidden && $('victory').hidden && $('newgame').hidden && $('gameover').hidden) {
       $('blueprint-choices').innerHTML = s.ship.offer
         .map((id) => {
           const bp = BLUEPRINT_BY_ID[id];
           return `<button data-blueprint="${id}">${buildingIcon(bp.unlocks[0], 'bp-icon')}<span><b>${esc(bp.name)}</b><small>${esc(bp.description)}</small></span></button>`;
         })
         .join('');
-      this.closeModals();
+      if (!card) this.closeModals();
       $('blueprints').hidden = false;
       if (!this.ui.coop) {
         this.speedBefore = this.ui.speed;
@@ -719,7 +738,9 @@ export class Hud {
       const state = have
         ? '<span class="done">✓ Received</span>'
         : ship.offer?.includes(bp.id)
-          ? '<span class="muted">On offer now</span>'
+          ? this.ui.coop && ship.offer.join() === this.offerLater
+            ? '<button data-choose-blueprint>Choose</button>'
+            : '<span class="muted">On offer now</span>'
           : '<span class="muted">Deliver a supply run</span>';
       const unlocks = bp.unlocks.map((t) => BUILDINGS[t].name).join(', ');
       return `<div class="research ${have ? 'done' : 'requires'}">

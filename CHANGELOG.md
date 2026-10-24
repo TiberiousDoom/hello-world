@@ -12,6 +12,10 @@ what's **New** and what's **Fixed**.
 - **Stays in step:** if your game drifts from the host's, or falls far behind (a phone that slept), it catches up on its own. If your connection drops, the game tries to get you back in.
 - **Everyone keeps the game:** each player saves the shared game in their browser, apart from their own factory, and can host it later from Play together.
 - **Leaving:** when a player leaves, their engineer is back at the hub at once, and what it carried goes into stock.
+- **Pings:** press P (or hold a finger on empty ground) to point at a spot for everyone, in your colour. An arrow at the edge of the screen shows pings that are off it.
+- **Blueprint card:** when playing together, the colony's offer is a card that leaves the game playable. Pick later from Research if you like.
+- **Your messages:** "Your engineer was knocked out" goes to that engineer's player; the others read whose it was.
+- **Host comes back:** if the host's connection drops, everyone waits up to a minute for the host to come back, then plays on.
 
 ## 0.41.1 · 2026-10-24 · Plans brought up to date
 ### New

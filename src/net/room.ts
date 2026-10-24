@@ -2,7 +2,7 @@
 // Object in relay/src/index.ts keeps each connection's details on the socket itself, so a room that sleeps
 // between messages wakes up knowing who's in it.
 
-import { GUEST_RATE, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role } from './protocol';
+import { CLOSE_LEAVING, GUEST_RATE, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role, RoomHost } from './protocol';
 
 /** A connection in a room: who it is, and how to reach it. */
 export interface Peer {
@@ -18,15 +18,23 @@ export const CLOSE_NORMAL = 1000;
 export const CLOSE_POLICY = 1008;
 
 /**
- * Who may join: the host only into a room with no host, a guest only into a room with a host, on the
- * same version, while there's a free slot. Returns the new player's slot, or why not.
+ * Who may join: the host only into a room with no host, a guest only into an open room, on the host's
+ * version, while there's a free slot. A room whose host dropped out (`room`, D-081) stays open, and
+ * only a host with its key may take it back. Returns the new player's slot, or why not.
  */
-export function admit(peers: Peer[], role: Role, version: string): { slot: number } | { refuse: RefuseReason; hostVersion?: string } {
-  if (!version || version.length > 40) return { refuse: 'bad-request' };
+export function admit(
+  peers: Peer[],
+  role: Role,
+  version: string,
+  key = '',
+  room: RoomHost | null = null,
+): { slot: number } | { refuse: RefuseReason; hostVersion?: string } {
+  if (!version || version.length > 40 || key.length > 64) return { refuse: 'bad-request' };
   const host = peers.find((p) => p.role === 'host');
-  if (role === 'host') return host ? { refuse: 'taken' } : { slot: 0 };
-  if (!host) return { refuse: 'no-room' };
-  if (host.version !== version) return { refuse: 'version', hostVersion: host.version };
+  if (role === 'host') return host || (room && peers.length && room.key !== key) ? { refuse: 'taken' } : { slot: 0 };
+  const hostVersion = host?.version ?? (peers.length ? room?.version : undefined);
+  if (!hostVersion) return { refuse: 'no-room' };
+  if (hostVersion !== version) return { refuse: 'version', hostVersion };
   for (let slot = 1; slot < MAX_PLAYERS; slot++) if (!peers.some((p) => p.slot === slot)) return { slot };
   return { refuse: 'full' };
 }
@@ -62,17 +70,30 @@ export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer): voi
   }
 }
 
-/** Someone left. Without its host the room closes, and every guest is told. */
-export function leave(peers: Peer[], gone: Peer): void {
+/**
+ * Someone left. A host leaving on purpose closes the room, and every guest is told. A host whose
+ * connection dropped (any close code but CLOSE_LEAVING) leaves the room waiting for it, and returns
+ * 'wait': the room closes with `expire` if the host isn't back within HOST_GRACE_MS (D-081).
+ */
+export function leave(peers: Peer[], gone: Peer, code = CLOSE_LEAVING): 'wait' | void {
   const rest = peers.filter((p) => p.slot !== gone.slot);
   if (gone.role === 'host') {
-    for (const p of rest) {
-      p.send({ t: 'closed', reason: 'host-left' });
-      p.close(CLOSE_NORMAL, 'host left');
+    if (code !== CLOSE_LEAVING && rest.length) {
+      for (const p of rest) p.send({ t: 'host-away' });
+      return 'wait';
     }
-    return;
+    return expire(rest);
   }
   for (const p of rest) p.send({ t: 'left', slot: gone.slot });
+}
+
+/** The room closes for good: every guest is told the host left. */
+export function expire(peers: Peer[]): void {
+  for (const p of peers) {
+    if (p.role === 'host') continue;
+    p.send({ t: 'closed', reason: 'host-left' });
+    p.close(CLOSE_NORMAL, 'host left');
+  }
 }
 
 /**

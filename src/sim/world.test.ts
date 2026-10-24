@@ -1382,7 +1382,7 @@ describe('Bugs notice the engineer (D-074)', () => {
     expect(w.moveTo(60, 60)).toBe(false);
     ore(w, 60, 60);
     expect(w.mineByHand(60, 60)).toBe('down');
-    expect(w.events.some((e) => e.startsWith('Your engineer was knocked out'))).toBe(true);
+    expect(w.playerEvents).toEqual([expect.objectContaining({ player: 0, mine: expect.stringMatching(/^Your engineer was knocked out/), others: "Player 1's engineer was knocked out." })]);
     run(w, PLAYER.downFor);
     expect(isDown(p)).toBe(false);
     expect(p.hp).toBe(PLAYER.hp);

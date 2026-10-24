@@ -221,6 +221,11 @@ export class World {
   /** Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing. */
   lost: { id: number; age: number }[] = [];
   events: string[] = [];
+  /**
+   * Messages about one engineer (not saved): its own player reads `mine`, the others `others` (co-op
+   * phase 3, D-080).
+   */
+  playerEvents: { player: number; mine: string; others: string }[] = [];
   /** Trees cut in the last moment (not saved), for effects and sound. */
   felled: { x: number; y: number; age: number }[] = [];
   /** Hand-mining taps in the last moment (not saved), for sparks and sound. */

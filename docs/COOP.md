@@ -1,8 +1,9 @@
 # Co-op plan
 
 A plan for 2–4 players building and defending one factory together, in the browser, on desktop
-and phones. We're going ahead with it (D-056). Phases 0 to 2 are built: players can host and join
-a game with a room code, also under way, and games get back in step on their own (0.42.0). Progress is tracked in [ROADMAP.md](ROADMAP.md) under Co-op (M4c);
+and phones. We're going ahead with it (D-056). Phases 0 to 3 are built: players can host and join
+a game with a room code, also under way, games get back in step on their own, and players can point
+at things (0.42.0). What's left is balance for more players, after playtesting. Progress is tracked in [ROADMAP.md](ROADMAP.md) under Co-op (M4c);
 how it plays is in [GAME_DESIGN.md](GAME_DESIGN.md) under Playing together.
 
 ## The short version
@@ -146,7 +147,10 @@ CI from master.
   needs no clock and no knowledge of the game, and everyone's commands wait the same delay.
 - **Rooms:** 6-character codes without easily confused characters; one host and up to 3 guests; a
   guest on another version is refused with the host's version; the room closes when the host
-  leaves. Nothing is stored. Rooms sleep between messages (hibernation), so idle rooms cost nothing.
+  leaves on purpose. If the host's connection drops, the room tells the guests and waits a minute for
+  the host to come back with the secret key it opened the room with (D-081); only that key and the
+  host's version are stored, and only while the room is open. Rooms sleep between messages
+  (hibernation), so idle rooms cost nothing.
 - **Limits:** only the game's own pages (GitHub Pages, and localhost for development) may connect;
   guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
 
@@ -212,7 +216,16 @@ the guest ignores older turns and replays newer ones from the turns it keeps. Th
 player joining under way, a guest out of step (it asks with `resync`), one 20 s or more behind, and one
 back after a dropped connection (five tries over about 15 s). Every player saves the shared game in a
 co-op slot of their own, so any of them can host it later (D-076). A departed player's engineer is sent
-home at once with a `send-home` command. Not done: the host reconnecting (its leaving ends the room).
+home at once with a `send-home` command.
+
+**Phase 3 is done (D-080), and the host can reconnect (D-081):** pings (P under the mouse, or a finger
+held on empty ground) travel beside the lockstep, since they change nothing in the world; messages
+about one engineer read "Your engineer…" for its player and "Player 2's engineer…" for the others; the
+blueprint offer is a card over a running game, with Later; engineers start side by side below the hub;
+and four players are tested together. Balance for more players waits for playtesting, as planned. A
+host whose connection drops plays on alone, takes its room back with its key within a minute, and sends
+everyone a fresh copy. The host sends a turn at least every 5 s, so a guest that hears nothing for 15 s
+knows its connection is dead and reconnects.
 
 ## Decided (D-076)
 

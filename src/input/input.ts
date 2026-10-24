@@ -50,6 +50,8 @@ export interface InputCallbacks {
   onPlaceError(err: PlaceError): void;
   /** A short message for the player, such as full hands. */
   onNotice(text: string): void;
+  /** Points at a tile for the other players (co-op, D-080). False when there's no one to point for. */
+  ping(x: number, y: number): boolean;
   onChange(): void; // UI state (selection, tool, direction) changed
 }
 
@@ -301,10 +303,22 @@ export class Input {
     this.mode = this.pointers.size === 1 ? 'pan' : 'none';
   }
 
-  /** Touch: a finger held still on a building picks it, unless this press already built something. */
+  /**
+   * Touch: a finger held still on a building picks it, unless this press already built something. On
+   * empty ground with nothing in hand, in co-op, it pings the spot instead (D-080).
+   */
   private startLongPress(t: Tile): void {
     this.cancelLongPress();
     const b = this.cb.getWorld().buildingAt(t.x, t.y);
+    if (!b && !this.ui.tool) {
+      this.pressTimer = setTimeout(() => {
+        this.pressTimer = null;
+        if (this.pointers.size !== 1 || this.mode !== 'pending' || !this.cb.ping(t.x, t.y)) return;
+        this.mode = 'none'; // lifting the finger doesn't walk there too
+        navigator.vibrate?.(15);
+      }, LONG_PRESS);
+      return;
+    }
     if (!b || b.type === 'hub') return;
     this.pressTimer = setTimeout(() => {
       this.pressTimer = null;
@@ -587,7 +601,10 @@ export class Input {
       e.preventDefault();
       return;
     }
-    if (k === 'r') {
+    if (k === 'p' && this.ui.hover) {
+      // Point at the spot under the mouse for the other players (co-op).
+      if (!this.cb.ping(this.ui.hover.x, this.ui.hover.y)) return;
+    } else if (k === 'r') {
       if (this.ui.tool) this.ui.dir = ((this.ui.dir + (e.shiftKey ? 3 : 1)) % 4) as Dir;
       else if (this.ui.selected != null) this.cb.issue({ kind: 'rotate', id: this.ui.selected });
     } else if (k === 'escape' || k === 'q') {

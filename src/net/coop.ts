@@ -1,7 +1,8 @@
-// A co-op room from one game's side (D-078, D-079): host or join by room code, wait in the lobby,
-// start together, then pass turns and commands between the relay and the lockstep. A player can join a
-// game under way, and a guest that falls out of step, falls far behind or loses its connection gets a
-// fresh copy of the game from the host.
+// A co-op room from one game's side (D-078, D-079, D-081): host or join by room code, wait in the
+// lobby, start together, then pass turns and commands between the relay and the lockstep. A player can
+// join a game under way, and a guest that falls out of step, falls far behind or loses its connection
+// gets a fresh copy of the game from the host. A host whose connection drops takes its room back with
+// its key, and sends everyone a fresh copy.
 
 import { applyCommand } from '../sim/commands';
 import { Session } from '../sim/session';
@@ -19,6 +20,12 @@ export const RECONNECT_WAITS = [500, 1000, 2000, 4000, 8000];
 const RECENT_TURNS = 400;
 /** A guest asking again gets at most one copy this often (ms): each one costs the host a save and gzip. */
 const RESYNC_MS = 5000;
+/**
+ * A guest that hears nothing from the host for this long (ms) takes its connection for dead and
+ * reconnects (D-081): the host sends something at least every KEEPALIVE_MS, and a dead connection can
+ * otherwise go unnoticed for minutes after a phone sleeps.
+ */
+export const SILENCE_MS = 15_000;
 
 /** Why a room couldn't be joined, for the player. */
 export function refusalText(reason: RefuseReason, hostVersion: string | undefined, version: string): string {
@@ -57,8 +64,17 @@ export class Coop {
   onNotice: (text: string) => void = () => {};
   /** The room is over for this game (refused, closed, connection lost), and why. */
   onEnd: (why: string) => void = () => {};
+  /** Another player points at tile (x, y) (D-080). */
+  onPing: (player: number, x: number, y: number) => void = () => {};
 
   private link: RelayLink | null = null;
+  /** The host's secret for its room: only it can take the room back after a dropped connection. */
+  private key = '';
+  /** When a guest last heard from its host, and the check that notices a silent connection. */
+  private heardAt = 0;
+  /** The host's connection dropped and the room waits for it: silence is expected meanwhile. */
+  private hostAway = false;
+  private watchdog: ReturnType<typeof setInterval> | null = null;
   /** A guest's recent turns from the host, for replaying after a fresh copy arrives. */
   private recent: HostMessage[] = [];
   private retry: ReturnType<typeof setTimeout> | null = null;
@@ -76,7 +92,8 @@ export class Coop {
 
   /** Opens a room with a new code. */
   hostRoom(): void {
-    this.open('host', makeCode(crypto.getRandomValues(new Uint8Array(6))));
+    const key = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    this.open('host', makeCode(crypto.getRandomValues(new Uint8Array(6))), key);
   }
 
   /** Joins the room with this code (letters in any case, spaces ignored), in the lobby or under way. */
@@ -107,16 +124,26 @@ export class Coop {
       return;
     }
     for (const slot of starters) if (slot !== 0) this.toGuest({ t: 'start', slot, world: packed, seq: 0, cmds: [], speed: 1 }, slot);
-    this.host = new HostLockstep(session, (m) => this.toGuest(m), (slot) => {
+    const host = new HostLockstep(session, (m) => this.toGuest(m), (slot) => {
       if (Date.now() - (this.copied.get(slot) ?? -Infinity) < RESYNC_MS) return;
       this.copied.set(slot, Date.now());
       void this.sendCopy(slot, false);
     });
+    host.onPing = (player, x, y) => {
+      if (player !== 0) this.onPing(player, x, y);
+    };
+    this.host = host;
     this.phase = 'playing';
     this.onChange();
     this.onStart(session, false);
     // Anyone who came in while the world was packing joins the game under way.
     for (const slot of this.players) if (!starters.includes(slot)) void this.sendCopy(slot, true);
+  }
+
+  /** This player points at tile (x, y), for everyone in the game (D-080). */
+  ping(x: number, y: number): void {
+    if (this.host) this.host.ping(0, x, y);
+    else this.guest?.ping(x, y);
   }
 
   /** Leaves the room (the host closing it ends it for everyone). */
@@ -126,10 +153,11 @@ export class Coop {
     link?.close();
   }
 
-  private open(role: Role, code: string): void {
+  private open(role: Role, code: string, key = ''): void {
     this.leave();
     this.role = role;
     this.code = code;
+    this.key = key;
     this.phase = 'connecting';
     this.attach();
     this.onChange();
@@ -137,22 +165,35 @@ export class Coop {
 
   /** Connects to the room (again, when reconnecting), keeping whatever game is under way. */
   private attach(): void {
-    const link = connect(this.relay, this.code, this.role!, this.version);
+    const link = connect(this.relay, this.code, this.role!, this.version, this.role === 'host' ? this.key : '');
     this.link = link;
+    this.heardAt = Date.now();
     link.onMessage = (m) => {
-      if (this.link === link) this.message(m);
+      if (this.link !== link) return;
+      this.heardAt = Date.now();
+      this.message(m);
     };
+    if (this.role === 'guest' && !this.watchdog) {
+      this.watchdog = setInterval(() => {
+        if (this.phase === 'playing' && this.link && !this.hostAway && Date.now() - this.heardAt > SILENCE_MS) {
+          const silent = this.link;
+          silent.onClose(); // as if it had closed: reconnect
+          silent.close();
+        }
+      }, 1000);
+    }
     link.onClose = () => {
       if (this.link !== link) return;
-      // A guest whose game is under way tries to get back in; it carries on from a fresh copy (D-079).
-      if (this.role === 'guest' && this.phase === 'playing' && this.reconnecting < RECONNECT_WAITS.length) return this.reconnect();
+      // A game under way tries to get back in (D-079, D-081). A guest carries on from a fresh copy; the
+      // host plays on meanwhile, and sends everyone a fresh copy once it's back.
+      if (this.phase === 'playing' && this.reconnecting < RECONNECT_WAITS.length) return this.reconnect();
       this.end(this.phase === 'connecting' ? "Couldn't reach the game server. Check your connection and try again." : 'Lost the connection to the game.');
     };
   }
 
   private reconnect(): void {
     this.link = null;
-    if (!this.reconnecting) this.onNotice('Connection lost. Getting back into the game…');
+    if (!this.reconnecting) this.onNotice(this.host ? 'Connection lost. Getting the room back…' : 'Connection lost. Getting back into the game…');
     this.retry = setTimeout(() => {
       this.retry = null;
       if (this.phase === 'playing') this.attach();
@@ -162,6 +203,7 @@ export class Coop {
   private message(m: RelayMessage): void {
     switch (m.t) {
       case 'welcome':
+        if (this.host && this.phase === 'playing') return this.hostBack(m.players);
         this.slot = m.slot;
         this.players = m.players;
         // Back in after a dropped connection: the host sends a fresh copy, as to anyone joining.
@@ -169,6 +211,10 @@ export class Coop {
         return this.onChange();
       case 'joined':
         this.players = [...new Set([...this.players, m.slot])].sort((a, b) => a - b);
+        if (m.slot === 0 && this.guest) {
+          this.hostAway = false;
+          this.onNotice('The host is back.');
+        }
         if (this.host && this.phase === 'playing') {
           this.onNotice(`Player ${m.slot + 1} joined.`);
           void this.sendCopy(m.slot, true);
@@ -194,7 +240,23 @@ export class Coop {
         return this.end(refusalText(m.reason, m.hostVersion, this.version));
       case 'closed':
         return this.end('The host left, so the game has ended.');
+      case 'host-away':
+        this.hostAway = true;
+        return this.onNotice("The host's connection dropped. Waiting a minute for them to come back…");
     }
+  }
+
+  /**
+   * The host has its room back after a dropped connection. The others' games stood still while it played
+   * on, so each gets a fresh copy; players who left meanwhile have their engineers sent home.
+   */
+  private hostBack(players: number[]): void {
+    for (const slot of this.players) if (slot !== 0 && !players.includes(slot)) this.host!.bookkeeping({ kind: 'send-home', id: slot });
+    this.players = players;
+    this.reconnecting = 0;
+    this.onNotice('Back in the room.');
+    for (const slot of players) if (slot !== 0) void this.sendCopy(slot, true);
+    this.onChange();
   }
 
   /** The host sends a guest a copy of the game: a player joining under way, or a guest that asked again. */
@@ -226,6 +288,8 @@ export class Coop {
     }
     this.recent.push(msg);
     if (this.recent.length > RECENT_TURNS) this.recent.shift();
+    // Pings go once, as they arrive; this player's own showed when it was made.
+    if (msg.t === 'turn') for (const [player, x, y] of msg.pings ?? []) if (player !== this.slot) this.onPing(player, x, y);
     this.guest?.receive(msg);
   }
 
@@ -266,6 +330,9 @@ export class Coop {
   private reset(): void {
     if (this.retry) clearTimeout(this.retry);
     this.retry = null;
+    if (this.watchdog) clearInterval(this.watchdog);
+    this.watchdog = null;
+    this.hostAway = false;
     this.link = null;
     this.phase = 'idle';
     this.role = null;
@@ -276,6 +343,7 @@ export class Coop {
     this.guest = null;
     this.recent = [];
     this.copied.clear();
+    this.key = '';
     this.reconnecting = 0;
   }
 }

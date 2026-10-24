@@ -26,7 +26,8 @@ export type Sound =
   | 'research'
   | 'stage'
   | 'provoked'
-  | 'launch';
+  | 'launch'
+  | 'ping';
 
 /** The shortest gap (seconds) between two plays of a sound, so a busy fight doesn't turn into noise. */
 const MIN_GAP: Partial<Record<Sound, number>> = {
@@ -150,6 +151,9 @@ function recipe(sound: Sound): Layer[] {
     }
     case 'launch':
       return [noise('lowpass', 150, 1800, 3.5, 1, 0.8, 0, 2), tone('sawtooth', 45, 180, 3.5, 0.3, 0, 2)];
+    case 'ping':
+      // Two bright blips, rising: someone points at something.
+      return [tone('sine', 1320, 1320, 0.12, 0.22), tone('sine', 1760, 1760, 0.18, 0.22, 0.1), tone('triangle', 880, 880, 0.25, 0.06, 0.1)];
   }
 }
 
