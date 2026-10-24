@@ -46,6 +46,17 @@ export function newPlayer(w: World, id: number): Player {
   return { id, x, y, carry: [], path: [], walk: null, pending: null, mining: null, hp: PLAYER.hp };
 }
 
+/**
+ * A co-op player left (D-079): their engineer is back below the hub at once, rather than walking home
+ * through bug country, and what it carried goes into the hub.
+ */
+export function sendHome(w: World, p: Player): void {
+  const hub = w.hub;
+  if (hub) for (const item of p.carry) w.insert(hub, item, hub.x - 1, hub.y);
+  const home = newPlayer(w, p.id);
+  Object.assign(p, { x: home.x, y: home.y, carry: [], path: [], walk: null, pending: null, mining: null });
+}
+
 /** Whether a player is knocked out (D-074): it can't walk or work until it's back up. */
 export function isDown(p: Player): boolean {
   return p.downUntil != null;

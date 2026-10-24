@@ -18,20 +18,41 @@ export const FLUSH_MS = 45;
 export const HASH_EVERY = 20;
 /** A guest this many ticks behind the host catches up faster than real time. */
 export const CATCH_UP = INPUT_DELAY * 3;
+/**
+ * A guest this far behind (20 s: a phone that slept, a tab in the background) asks for a fresh copy of
+ * the game instead of running every tick it missed (D-079).
+ */
+export const FAR_BEHIND = 400;
+/** Commands the host stamps for itself (adding engineers, checkpoints): first on their tick. */
+export const BOOKKEEPING = -1;
+
+/** A copy of the host's game for one guest: its first, or a fresh one (D-079). */
+export interface Snapshot {
+  /** The world just before tick `tick` (a save, as JSON; packed before it travels). */
+  world: string;
+  /** Turns sent so far: the guest ignores those, since `cmds` holds what it needs from them. */
+  seq: number;
+  /** Commands already sent that are due on or after the snapshot's tick. */
+  cmds: LoggedCommand[];
+  speed: number;
+}
 
 /** From the host to a guest. */
 export type HostMessage =
-  /** The game begins: your engineer's slot, and the world as the host's session began (packed, see pack.ts). */
-  | { t: 'start'; slot: number; world: string }
+  /**
+   * Your game begins, or begins again from a fresh copy: your engineer's slot, and a snapshot whose
+   * world is packed (see pack.ts).
+   */
+  | ({ t: 'start'; slot: number } & Snapshot)
   /**
    * Every command stamped since the last turn, and how far a guest may now run: every tick before
    * `through`, the ticks the host has run. Also the host's game speed (it alone sets it) and its
    * fingerprints, as [tick, hash].
    */
-  | { t: 'turn'; through: number; speed: number; cmds: LoggedCommand[]; hashes: [number, string][] };
+  | { t: 'turn'; seq: number; through: number; speed: number; cmds: LoggedCommand[]; hashes: [number, string][] };
 
-/** From a guest to the host. */
-export type GuestMessage = { t: 'cmds'; cmds: Command[] };
+/** From a guest to the host: its commands, or a request for a fresh copy of the game. */
+export type GuestMessage = { t: 'cmds'; cmds: Command[] } | { t: 'resync' };
 
 /**
  * Command kinds a guest may send (not the host's own bookkeeping: checkpoints, adding engineers), and
@@ -83,16 +104,44 @@ export class HostLockstep {
   private sentThrough = -1;
   private sentSpeed = -1;
   private lastFlush = -Infinity;
+  /** Turns sent so far. */
+  private seq = 0;
 
   constructor(
     readonly session: Session,
     /** Sends a message to every guest. */
     private send: (message: HostMessage) => void,
+    /** A guest asked for a fresh copy of the game. */
+    private onResync: (player: number) => void = () => {},
   ) {}
 
   /** A command from player `player` (the host is 0): it applies INPUT_DELAY ticks from now, in every game. */
   submit(player: number, command: Command): void {
-    const entry: LoggedCommand = { tick: this.session.ticks + INPUT_DELAY, player, command };
+    this.stamp({ tick: this.session.ticks + INPUT_DELAY, player, command });
+  }
+
+  /**
+   * A copy of the game for a player joining (who gets an engineer, unless their slot has one) or a
+   * guest that fell out of step or far behind (D-079). It's the world as it is now, before the host's
+   * next tick. Every game runs a checkpoint first thing on that tick, so their path fields match the
+   * copy's, which rebuilds them on loading (D-058). No game has run that tick yet (guests run only
+   * the ticks the host has), so it can be stamped for it rather than a few ticks ahead.
+   */
+  snapshot(slot: number, joining: boolean): Snapshot {
+    const tick = this.session.ticks;
+    // Commands already sent that the copy still needs; the rest go out in the next turn as usual.
+    const sent = this.session.queuedFrom(tick).filter((e) => !this.pending.includes(e));
+    if (joining) this.stamp({ tick, player: BOOKKEEPING, command: { kind: 'add-player', id: slot } });
+    this.stamp({ tick, player: BOOKKEEPING, command: { kind: 'checkpoint' } });
+    return { world: this.session.world.toJSON(), seq: this.seq, cmds: sent, speed: Math.max(0, this.sentSpeed) };
+  }
+
+  /** The host's own bookkeeping in every game, such as sending a departed player's engineer home. */
+  bookkeeping(command: Command): void {
+    this.stamp({ tick: this.session.ticks + INPUT_DELAY, player: BOOKKEEPING, command });
+  }
+
+  private stamp(entry: LoggedCommand): void {
     this.pending.push(entry);
     this.session.queue([entry]);
   }
@@ -105,6 +154,7 @@ export class HostLockstep {
     } catch {
       return;
     }
+    if (msg?.t === 'resync') return this.onResync(player);
     if (msg?.t !== 'cmds' || !Array.isArray(msg.cmds)) return;
     for (const c of msg.cmds) if (validCommand(c)) this.submit(player, c);
   }
@@ -124,7 +174,7 @@ export class HostLockstep {
     const through = this.session.ticks;
     if (!this.pending.length && through === this.sentThrough && speed === this.sentSpeed) return;
     if (now - this.lastFlush < FLUSH_MS) return;
-    this.send({ t: 'turn', through, speed, cmds: this.pending, hashes: this.hashes });
+    this.send({ t: 'turn', seq: ++this.seq, through, speed, cmds: this.pending, hashes: this.hashes });
     this.pending = [];
     this.hashes = [];
     this.sentThrough = through;
@@ -141,16 +191,25 @@ export class GuestLockstep {
   speed = 1;
   /** Set once this game's fingerprint differs from the host's: the games no longer agree. */
   desyncedAt: number | null = null;
+  /** A fresh copy of the game has been asked for (D-079). */
+  resyncing = false;
   private out: Command[] = [];
   private expected = new Map<number, string>();
   private lastSend = -Infinity;
+  /** The last turn taken in: a fresh copy already holds what earlier turns said. */
+  private seq: number;
 
   constructor(
     readonly session: Session,
     /** Sends text to the host. */
     private send: (data: string) => void,
+    /** Where this game began: a snapshot's turn count and the commands it came with. */
+    start: { seq: number; cmds: LoggedCommand[]; speed: number } = { seq: 0, cmds: [], speed: 1 },
   ) {
     this.through = session.ticks;
+    this.seq = start.seq;
+    this.speed = start.speed;
+    this.session.queue(start.cmds);
   }
 
   /** This player's command: it goes to the host, which says when it applies. */
@@ -160,11 +219,23 @@ export class GuestLockstep {
 
   /** A message from the host. */
   receive(msg: HostMessage): void {
-    if (msg.t !== 'turn') return;
-    this.session.queue(msg.cmds);
+    if (msg.t !== 'turn' || msg.seq <= this.seq) return;
+    this.seq = msg.seq;
+    const now = this.session.ticks;
+    this.session.queue(msg.cmds.filter((e) => e.tick >= now)); // earlier ones were in this game's snapshot
     this.through = Math.max(this.through, msg.through);
     this.speed = msg.speed;
-    for (const [tick, hash] of msg.hashes) this.expected.set(tick, hash);
+    for (const [tick, hash] of msg.hashes) if (tick > now) this.expected.set(tick, hash);
+  }
+
+  /**
+   * Asks the host for a fresh copy of the game, once: when it no longer matches the host's, or has
+   * fallen far behind (D-079). The game carries on until the copy arrives.
+   */
+  checkHealth(): void {
+    if (this.resyncing || (this.desyncedAt == null && this.ahead < FAR_BEHIND)) return;
+    this.resyncing = true;
+    this.send(JSON.stringify({ t: 'resync' } satisfies GuestMessage));
   }
 
   /** Whether the host has said what happens on the next tick. */

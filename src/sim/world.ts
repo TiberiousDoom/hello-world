@@ -50,7 +50,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
-import { Player, PlayerAction, goAndDo, isDown, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
+import { Player, PlayerAction, goAndDo, isDown, moveTo, newPlayer, playerOf, reaches, inReach, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -1167,6 +1167,14 @@ export class World {
     if (this.state.players.some((p) => p.id === id)) return false;
     this.state.players.push(newPlayer(this, id));
     this.state.players.sort((a, b) => a.id - b.id);
+    return true;
+  }
+
+  /** A co-op player left: their engineer goes back to the hub at once, handing in what it carried (D-079). */
+  sendHome(id: number): boolean {
+    const p = this.state.players.find((q) => q.id === id);
+    if (!p) return false;
+    sendHome(this, p);
     return true;
   }
 

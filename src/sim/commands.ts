@@ -30,8 +30,9 @@ export type Command =
   | { kind: 'drop'; id: number }
   | { kind: 'move'; x: number; y: number }
   | { kind: 'walk'; dx: number; dy: number }
-  // An engineer for a player joining a co-op game (D-076).
+  // An engineer for a player joining a co-op game (D-076), and sending it home when they leave (D-079).
   | { kind: 'add-player'; id: number }
+  | { kind: 'send-home'; id: number }
   // Every game rebuilds its path fields on the same tick, before a snapshot is taken.
   | { kind: 'checkpoint' };
 
@@ -55,6 +56,7 @@ export interface CommandResults {
   move: boolean;
   walk: void;
   'add-player': boolean;
+  'send-home': boolean;
   checkpoint: void;
 }
 
@@ -105,6 +107,8 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.walk(c.dx, c.dy, player);
     case 'add-player':
       return w.addPlayer(c.id);
+    case 'send-home':
+      return w.sendHome(c.id);
     case 'checkpoint':
       return w.checkpoint();
   }

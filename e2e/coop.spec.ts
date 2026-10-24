@@ -70,11 +70,15 @@ test('two players host and join with a code, and play one game', async ({ page: 
     document.getElementById('btn-mainmenu')!.click();
   });
   await expect(guest.locator('#coop-status')).toContainText('host left');
+  await expect(guest.locator('#coop-status')).toContainText('saved in this browser');
   await expect(guest.locator('#mainmenu')).toBeVisible();
+  // Every player keeps the shared game, to host it later (D-079).
+  await expect(guest.locator('#coop-host-coop')).toBeVisible();
+  expect(await guest.evaluate(() => localStorage.getItem('foundry-front-coop-save') != null)).toBe(true);
   expect(guestErrors).toEqual([]);
 });
 
-test('a game already under way turns a late guest away', async ({ page: host }) => {
+test('a player joins a game under way, and gets back in step after falling behind', async ({ page: host }) => {
   const guest = await host.context().newPage();
   await open(host, ALL_LESSONS);
   await host.click('#coop-host-new');
@@ -91,9 +95,27 @@ test('a game already under way turns a late guest away', async ({ page: host }) 
   await open(late, ALL_LESSONS);
   await late.fill('#coop-code', code);
   await late.click('#coop-join button[type="submit"]');
-  await expect(late.locator('#coop-status')).toContainText('already started');
+  await expect(late.locator('#mainmenu')).toBeHidden();
+  await expect(host.locator('#toasts')).toContainText('Player 3 joined');
+  expect(await late.evaluate(() => window.game.ui.player)).toBe(2);
+  for (const p of [host, guest, late]) {
+    await expect.poll(() => p.evaluate(() => window.game.world.state.players.map((q: { id: number }) => q.id).join())).toBe('0,1,2');
+  }
+
+  // A guest far behind the host (a phone that slept) takes a fresh copy instead of every missed tick.
+  await guest.evaluate(() => {
+    const g = window.game.coop.guest;
+    g.through += 1000; // as if the host had run on for a minute while this game stood still
+    window.game.oldWorld = window.game.world;
+  });
+  await expect(guest.locator('#toasts')).toContainText("Caught up with the host's game");
+  expect(await guest.evaluate(() => window.game.world !== window.game.oldWorld)).toBe(true);
+  await expect.poll(() => guest.evaluate(() => window.game.coop.guest.ahead)).toBeLessThan(40);
+
   // A code nobody hosts.
-  await late.fill('#coop-code', 'ZZZZZZ');
-  await late.click('#coop-join button[type="submit"]');
-  await expect(late.locator('#coop-status')).toContainText('No game has that code');
+  const stranger = await host.context().newPage();
+  await open(stranger, ALL_LESSONS);
+  await stranger.fill('#coop-code', 'ZZZZZZ');
+  await stranger.click('#coop-join button[type="submit"]');
+  await expect(stranger.locator('#coop-status')).toContainText('No game has that code');
 });

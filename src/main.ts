@@ -24,6 +24,8 @@ import { Coop } from './net/coop';
 import { CATCH_UP } from './net/lockstep';
 
 const SAVE_KEY = 'foundry-front-save';
+/** The last co-op game, kept by every player apart from their own factory (D-079). */
+const COOP_SAVE_KEY = 'foundry-front-coop-save';
 /** Progress that outlives a single game: lessons seen, tips on or off, hardcore unlocked. */
 const PROFILE_KEY = 'foundry-front-profile';
 const AUTOSAVE_MS = 20_000;
@@ -36,13 +38,13 @@ window.addEventListener('unhandledrejection', (e) => errorLog.push(`Unhandled: $
 const frameRate = new FrameRate();
 
 /** The saved game, or null. A save from before the new map (v8) can't be loaded, so it's cleared. */
-function loadWorld(): World | null {
+function loadWorld(key = SAVE_KEY): World | null {
   try {
-    const json = localStorage.getItem(SAVE_KEY);
+    const json = localStorage.getItem(key);
     if (json) return World.fromJSON(json);
   } catch (err) {
     if (err instanceof OldSaveError) {
-      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(key);
       const note = document.getElementById('mm-note');
       if (note) {
         note.textContent = 'Your saved factory was from an earlier version of the game, which used a different map. Start a new game to try the new one.';
@@ -88,17 +90,16 @@ function saveProfile(): void {
 
 function save(): void {
   if (!game) return; // the menu's demo world is never saved
-  if (ui.coop === 'guest') return; // a guest keeps its own saved game; the host saves the shared one
   try {
-    localStorage.setItem(SAVE_KEY, game.toJSON());
+    localStorage.setItem(saveKey, game.toJSON());
   } catch (err) {
     console.warn('Could not save game.', err);
   }
 }
 
-function hasSave(): boolean {
+function hasSave(key = SAVE_KEY): boolean {
   try {
-    return localStorage.getItem(SAVE_KEY) != null;
+    return localStorage.getItem(key) != null;
   } catch {
     return false;
   }
@@ -108,6 +109,10 @@ function hasSave(): boolean {
 let game: World | null = null;
 /** That game's commands and clock (D-058). */
 let session: Session | null = null;
+/** Where it saves: your own factory's slot, or the co-op game's (D-079). */
+let saveKey = SAVE_KEY;
+/** The slot a hosted co-op game will save to: your factory's if you host it, else the co-op slot. */
+let hostSaveKey = COOP_SAVE_KEY;
 /** The factory running behind the main menu. */
 let demo = createDemoWorld();
 let inMenu = true;
@@ -158,13 +163,7 @@ function centreOnHub(world: World): void {
 /** Plays a game: alone, or the shared game of a co-op room (its session made there). */
 function play(world: World, shared?: Session): void {
   if (!shared && coop.active) coop.leave();
-  game = world;
-  session = shared ?? new Session(world);
-  session.onApplied = lateResult;
-  desyncShown = false;
-  ui.coop = shared ? coop.role : null;
-  ui.player = session.player;
-  document.body.classList.toggle('coop-guest', ui.coop === 'guest');
+  useSession(world, shared);
   inMenu = false;
   document.body.classList.remove('in-menu');
   ui.selected = null;
@@ -176,12 +175,29 @@ function play(world: World, shared?: Session): void {
   music.setMood('game');
 }
 
+/** Makes this the game being played: the camera and the rest of the screen stay as they are. */
+function useSession(world: World, shared?: Session): void {
+  game = world;
+  session = shared ?? new Session(world);
+  session.onApplied = lateResult;
+  ui.coop = shared ? coop.role : null;
+  ui.player = session.player;
+  saveKey = ui.coop === 'host' ? hostSaveKey : ui.coop === 'guest' ? COOP_SAVE_KEY : SAVE_KEY;
+  document.body.classList.toggle('coop-guest', ui.coop === 'guest');
+}
+
 function showMainMenu(): void {
   save();
   if (ui.coop) {
     // Leaving a co-op game leaves its room (the host's leaving ends it for everyone).
     coop.leave();
     endCoop();
+  }
+  if (saveKey !== SAVE_KEY) {
+    // A co-op game is saved in its own slot; Continue is for your own factory.
+    game = null;
+    session = null;
+    saveKey = SAVE_KEY;
   }
   inMenu = true;
   document.body.classList.add('in-menu');
@@ -209,11 +225,16 @@ function refreshMainMenu(): void {
   }
 }
 
-/** Back to playing alone: a guest's copy of the shared game isn't kept (D-078). */
+/**
+ * Back to playing alone. A guest's copy of the shared game stays in its co-op slot (D-079), to host
+ * later; it isn't the game Continue resumes.
+ */
 function endCoop(): void {
   if (ui.coop === 'guest') {
+    save();
     game = null;
     session = null;
+    saveKey = SAVE_KEY;
   }
   ui.coop = null;
   ui.player = 0;
@@ -357,16 +378,21 @@ document.getElementById('mm-continue')!.addEventListener('click', () => {
 document.getElementById('mm-new')!.addEventListener('click', () => hud.openNewGame());
 document.getElementById('mm-help')!.addEventListener('click', () => hud.openModal('help'));
 
+/** A line about a saved game for the lobby, or null if there's none that can be hosted. */
+function describeSave(world: World | null): string | null {
+  if (!world || world.state.gameOver) return null;
+  const mins = Math.floor(world.state.time / 60);
+  return `${world.state.mode === 'hardcore' ? 'Hardcore' : 'Standard'} · ${mins} min played`;
+}
+
 const lobby = new Lobby(coop, {
-  savedGame: () => {
-    const saved = game ?? (hasSave() ? loadWorld() : null);
-    if (!saved || saved.state.gameOver) return null;
-    const mins = Math.floor(saved.state.time / 60);
-    return `${saved.state.mode === 'hardcore' ? 'Hardcore' : 'Standard'} · ${mins} min played`;
-  },
-  hasGame: () => !!game || hasSave(),
-  start: (saved) => {
-    const world = saved ? (game ?? loadWorld()) : null;
+  saves: () => ({
+    solo: describeSave(saveKey === SAVE_KEY && game ? game : hasSave() ? loadWorld() : null),
+    coop: describeSave(hasSave(COOP_SAVE_KEY) ? loadWorld(COOP_SAVE_KEY) : null),
+  }),
+  start: (choice) => {
+    hostSaveKey = choice === 'solo' ? SAVE_KEY : COOP_SAVE_KEY;
+    const world = choice === 'solo' ? (saveKey === SAVE_KEY && game ? game : loadWorld()) : choice === 'coop' ? loadWorld(COOP_SAVE_KEY) : null;
     void coop.start(world ?? World.create(undefined, 'standard'));
   },
   openModal: (id) => hud.openModal(id),
@@ -374,7 +400,9 @@ const lobby = new Lobby(coop, {
 });
 document.getElementById('mm-coop')!.addEventListener('click', () => lobby.open());
 coop.onChange = () => lobby.render();
-coop.onStart = (shared) => {
+coop.onStart = (shared, again) => {
+  // A fresh copy of the game a guest was already playing: swap it in where the player is looking.
+  if (again) return useSession(shared.world, shared);
   play(shared.world, shared);
   save();
   hud.toast(coop.role === 'host' ? 'Playing together. Only you can pause or change the speed.' : 'Playing together. The host sets the speed.');
@@ -388,10 +416,11 @@ coop.onEnd = (why) => {
     return;
   }
   if (ui.coop) {
-    // A guest's game was under way: back to the menu, saying why.
+    // A guest's game was under way: saved, then back to the menu, saying why.
     endCoop();
     showMainMenu();
     lobby.open();
+    why += ' It’s saved in this browser: host it from here to carry on.';
   }
   lobby.ended(why);
 };
@@ -489,7 +518,6 @@ let last = performance.now();
 let lastSeason: string | null = null;
 let acc = 0;
 let lastFrame = 0;
-let desyncShown = false;
 /**
  * Frame pacing (#46): at most 60 frames a second (a 120 Hz screen would otherwise
  * draw twice as often), and 30 while paused, on the main menu or in battery saver.
@@ -522,11 +550,9 @@ function frame(now: number): void {
     }
     if (!guest.canTick) acc = Math.min(acc, TICK); // waiting for the host: don't bank time to rush later
     guest.flush(now);
-    if (guest.desyncedAt != null && !desyncShown) {
-      desyncShown = true;
-      hud.toast("Your game no longer matches the host's. Leave and join again to fix it.");
-      console.warn(`Co-op: out of step with the host from tick ${guest.desyncedAt}.`);
-    }
+    // Out of step with the host, or far behind it: a fresh copy of the game is on its way (D-079).
+    if (!guest.resyncing && guest.desyncedAt != null) console.warn(`Co-op: out of step with the host from tick ${guest.desyncedAt}.`);
+    guest.checkHealth();
   } else {
     while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) {
       if (inMenu) world.tick(TICK);

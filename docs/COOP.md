@@ -1,8 +1,8 @@
 # Co-op plan
 
 A plan for 2–4 players building and defending one factory together, in the browser, on desktop
-and phones. We're going ahead with it (D-056). Phases 0 and 1 are built: players can host and join
-a game with a room code (0.42.0). Progress is tracked in [ROADMAP.md](ROADMAP.md) under Co-op (M4c);
+and phones. We're going ahead with it (D-056). Phases 0 to 2 are built: players can host and join
+a game with a room code, also under way, and games get back in step on their own (0.42.0). Progress is tracked in [ROADMAP.md](ROADMAP.md) under Co-op (M4c);
 how it plays is in [GAME_DESIGN.md](GAME_DESIGN.md) under Playing together.
 
 ## The short version
@@ -204,6 +204,15 @@ rules, which the browser test uses), `src/net/pack.ts` (the world gzipped for th
 `src/ui/lobby.ts` (the dialog). What phase 1 leaves for phase 2: joining a game under way, resync after a
 mismatch (it's only detected), reconnecting, the shared game saved in every browser, and waiting on or
 dropping a guest that falls behind (the host never waits today).
+
+**Phase 2 is done (D-079):** the host's `snapshot()` stamps a checkpoint (and a new engineer, for a
+player joining) for its own next tick, which no game has run yet, and copies the world as it is.
+The copy goes with the commands already sent that are still due and the number of turns sent so far;
+the guest ignores older turns and replays newer ones from the turns it keeps. The same copy serves a
+player joining under way, a guest out of step (it asks with `resync`), one 20 s or more behind, and one
+back after a dropped connection (five tries over about 15 s). Every player saves the shared game in a
+co-op slot of their own, so any of them can host it later (D-076). A departed player's engineer is sent
+home at once with a `send-home` command. Not done: the host reconnecting (its leaving ends the room).
 
 ## Decided (D-076)
 

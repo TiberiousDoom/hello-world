@@ -409,30 +409,39 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 ## Playing together
 
-A first version of co-op (phase 1 of [COOP.md](COOP.md), D-078). Two to four players build one factory:
-one hub, one stock, one research tree, one supply ship.
+Co-op (phases 1 and 2 of [COOP.md](COOP.md), D-078, D-079). Two to four players build one factory: one
+hub, one stock, one research tree, one supply ship.
 
-- **Host or join:** main menu → **Play together**. The host opens a room with a new game (Standard) or
-  their saved game and gets a 6-character room code to share. The others type the code and press
-  Join. Everyone must be on the same version; a mismatch is refused, naming both versions.
-- **Start:** the host presses Start once everyone is in. Everyone starts together; a player who arrives
-  after the start is turned away (joining a game under way comes in phase 2).
+- **Host or join:** main menu → **Play together**. The host opens a room with a new game (Standard),
+  their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
+  share. The others type the code and press Join. Everyone must be on the same version; a mismatch is
+  refused, naming both versions.
+- **Start:** the host presses Start once everyone is in. A player can also join a game under way with
+  the code: the host sends them a copy of the game, and the others see "Player N joined".
 - **Engineers:** each player has their own engineer, in their slot's colour (host yellow, then blue,
-  pink and green), with a ring under it. They start below the hub. The engineer of a player who
-  leaves walks back to the hub and waits there.
+  pink and green), with a ring under it. They start below the hub. When a player leaves, their engineer
+  is back below the hub at once (it doesn't walk home through bug country), and what it carried goes into
+  the hub's stock. Someone joining later in that slot takes it over.
 - **The shared clock:** only the host pauses or changes the speed; the other players have no speed
-  buttons. Nothing else stops the game: lessons explain while it runs, without blocking the screen, and neither the first delivery's
-  screen nor the blueprint pick pauses it. The first player to pick a blueprint takes it, and the offer
-  closes for everyone.
+  buttons. Nothing else stops the game: lessons explain while it runs, without blocking the screen, and
+  neither the first delivery's screen nor the blueprint pick pauses it.
+- **Blueprint offers are the team's:** the colony offers one blueprint for the whole factory after a
+  supply run. The first player to pick takes it, and the offer closes for everyone. (Tutorials are not
+  shared: each player sees their own lessons.)
 - **Delay:** every action applies 3 ticks (150 ms) after the host receives it, in every game, plus the
   time it takes to reach the host. A building appears when its action lands; errors (like too little
   stock) show then.
-- **Saving:** the host's game saves as usual, in the host's save slot. Other players' own saved games
-  are left alone (saving the shared game in every browser comes in phase 2).
+- **Staying in step:** once a second each game checks that it still matches the host's. A game that
+  doesn't, or that has fallen 20 s or more behind (a phone that slept, a tab in the background), gets a
+  fresh copy from the host and says "Caught up with the host's game".
+- **Dropped connection:** a guest whose connection drops keeps its screen and tries to get back in, five
+  times over about 15 s. Back in, it gets a fresh copy of the game.
+- **Saving:** every player saves the shared game in their own browser, in a co-op slot apart from their
+  own factory, so whoever has it can host it later. A host who shares their own factory keeps saving it
+  there. Continue on the main menu is always your own factory.
 - **Leaving:** a guest who leaves goes back to the main menu; the others are told. When the host leaves,
-  the game ends for everyone else. A host whose connection drops carries on alone.
-- **Out of step:** once a second each game checks that it still matches the host's. If not, the player
-  is told to leave and join again (fixing it automatically is phase 2).
+  the game ends for everyone else, and each keeps it saved. A host whose connection drops carries on
+  alone.
 
 ## Onboarding
 

@@ -12,28 +12,53 @@ function pair() {
   const { w, cx, cy } = fightingWorld(5);
   applyCommand(w, { kind: 'add-player', id: 1 });
   const hostSession = new Session(w, 0);
-  const toGuest: HostMessage[] = [];
-  const toHost: string[] = [];
-  const host = new HostLockstep(hostSession, (m) => toGuest.push(JSON.parse(JSON.stringify(m)) as HostMessage));
-  const guest = new GuestLockstep(new Session(World.fromJSON(hostSession.start), 1), (t) => toHost.push(t));
+  /** Every turn the host has sent, as each guest receives it (a copy). */
+  const turns: HostMessage[] = [];
+  const toHost: [number, string][] = [];
+  const host = new HostLockstep(hostSession, (m) => turns.push(JSON.parse(JSON.stringify(m)) as HostMessage));
+  const guests = new Map<number, GuestLockstep>();
+  const delivered = new Map<number, number>();
+  const addGuest = (slot: number, g: GuestLockstep, from = turns.length) => {
+    guests.set(slot, g);
+    delivered.set(slot, from);
+  };
+  const guest = new GuestLockstep(new Session(World.fromJSON(hostSession.start), 1), (t) => toHost.push([1, t]));
+  addGuest(1, guest);
   let now = 0;
+  const deliver = () => {
+    for (const [slot, t] of toHost.splice(0)) host.receive(slot, t);
+    for (const [slot, g] of guests) {
+      for (const m of turns.slice(delivered.get(slot))) g.receive(m);
+      delivered.set(slot, turns.length);
+    }
+  };
   /** One frame: each game runs a tick if it can, then messages travel. */
   const frame = () => {
     now += 1000 * TICK;
     host.tick();
     host.flush(1, now);
-    guest.flush(now);
-    for (const t of toHost.splice(0)) host.receive(1, t);
-    for (const m of toGuest.splice(0)) guest.receive(m);
-    guest.tick();
+    for (const g of guests.values()) g.flush(now);
+    deliver();
+    for (const g of guests.values()) g.tick();
   };
-  /** A last turn, after which the guest runs every tick the host has. */
+  /** A last turn, after which every guest runs every tick the host has. */
   const settle = () => {
     host.flush(1, (now += 1000));
-    for (const m of toGuest.splice(0)) guest.receive(m);
-    while (guest.canTick) guest.tick();
+    deliver();
+    for (const g of guests.values()) while (g.canTick) g.tick();
   };
-  return { host, guest, frame, settle, cx, cy };
+  /**
+   * A guest joining under way: the host's copy reaches it `late` frames after it's taken, and it then
+   * hears every turn the host has sent so far (as a guest does, from its recent turns).
+   */
+  const join = (slot: number, late: number) => {
+    const snapshot = host.snapshot(slot, true);
+    for (let i = 0; i < late; i++) frame();
+    const g = new GuestLockstep(new Session(World.fromJSON(snapshot.world), slot), (t) => toHost.push([slot, t]), snapshot);
+    addGuest(slot, g, 0);
+    return g;
+  };
+  return { host, guest, frame, settle, join, cx, cy };
 }
 
 describe('Co-op lockstep', () => {
@@ -60,6 +85,55 @@ describe('Co-op lockstep', () => {
     expect(Math.abs(p1.y - (cy + 3.5))).toBeLessThan(1);
     expect(p0.x).toBeGreaterThan(p1.x);
     expect(guest.session.world.toJSON()).toBe(hw.toJSON());
+  });
+
+  it('lets a player join a game under way and play in step', () => {
+    const { host, guest, frame, settle, join, cx, cy } = pair();
+    for (let t = 0; t < 100; t++) {
+      if (t % 9 === 0) guest.submit({ kind: 'move', x: cx + (t % 4), y: cy + 2 });
+      if (t === 98) host.submit(0, { kind: 'place', type: 'wall', x: cx - 3, y: cy - 3, dir: 0, replaceBelt: false }); // sent with the snapshot's own turn
+      frame();
+    }
+    host.submit(0, { kind: 'place', type: 'wall', x: cx - 3, y: cy - 2, dir: 0, replaceBelt: false }); // not sent yet when the copy is taken
+    const late = join(2, 5);
+    for (let t = 0; t < 200; t++) {
+      if (t % 7 === 0) late.submit({ kind: 'move', x: cx - (t % 5), y: cy - 1 });
+      frame();
+    }
+    settle();
+    const hw = host.session.world;
+    expect(hw.state.players.map((p) => p.id)).toEqual([0, 1, 2]);
+    expect(hw.state.buildings.filter((b) => b.type === 'wall').length).toBe(2);
+    expect(late.desyncedAt).toBeNull();
+    expect(guest.desyncedAt).toBeNull();
+    expect(late.session.world.toJSON()).toBe(hw.toJSON());
+    expect(guest.session.world.toJSON()).toBe(hw.toJSON());
+  });
+
+  it('asks for a fresh copy when out of step, and plays on in step from it', () => {
+    const { host, guest, frame, settle, join } = pair();
+    const sent: string[] = [];
+    let resyncs = 0;
+    const h = new HostLockstep(host.session, () => {}, () => resyncs++);
+    h.receive(1, JSON.stringify({ t: 'resync' }));
+    expect(resyncs).toBe(1);
+    // The real one: the guest's game drifts, it notices at the next fingerprint, and asks once.
+    for (let t = 0; t < 10; t++) frame();
+    guest.session.world.state.inventory.stone = 1;
+    (guest as unknown as { send: (t: string) => void }).send = (t) => sent.push(t);
+    for (let t = 0; t < 40; t++) {
+      frame();
+      guest.checkHealth();
+    }
+    expect(guest.desyncedAt).not.toBeNull();
+    expect(sent.filter((t) => t.includes('resync')).length).toBe(1);
+    // The host answers with a copy for the same slot (no new engineer); from it the guest is in step.
+    const fresh = join(1, 2);
+    expect(host.session.world.state.players.length).toBe(2);
+    for (let t = 0; t < 60; t++) frame();
+    settle();
+    expect(fresh.desyncedAt).toBeNull();
+    expect(fresh.session.world.toJSON()).toBe(host.session.world.toJSON());
   });
 
   it('never lets a guest run a tick before it has every command for it', () => {
@@ -148,23 +222,56 @@ describe('A co-op room', () => {
     expect(g.world.state.players.map((p) => p.id)).toEqual([0, 1]);
     expect(summaryHash(g.world)).toBe(summaryHash(host.host!.session.world));
 
-    // A guest who leaves: its engineer walks back to the hub.
+    // A guest who leaves: its engineer is back below the hub at once, and what it carried is in stock.
     const hw = host.host!.session.world;
     const away = hw.state.players[1];
+    const home = { x: away.x, y: away.y };
     away.x += 6;
+    away.carry = ['iron_ore', 'iron_ore'];
+    const ore = hw.state.inventory.iron_ore ?? 0;
     guest.leave();
     await until(() => host.players.length === 1);
     for (let i = 0; i <= INPUT_DELAY; i++) host.host!.tick();
-    expect(away.path.length).toBeGreaterThan(0);
+    expect([away.x, away.y, away.carry.length]).toEqual([home.x, home.y, 0]);
+    expect(hw.state.inventory.iron_ore).toBe(ore + 2);
 
-    // Joining again once the game is under way isn't possible yet.
-    const again = new Coop('local', '1.0.0');
-    let why = '';
-    again.onEnd = (w) => (why = w);
-    again.joinRoom(host.code);
-    await until(() => why !== '');
-    expect(why).toMatch(/already started/);
-    expect(host.players).toEqual([0]);
+    // A player joining under way gets a copy of the game, and the free slot's engineer.
+    const late = new Coop('local', '1.0.0');
+    let lateGame: Session | null = null;
+    late.onStart = (s) => (lateGame = s);
+    late.joinRoom(host.code);
+    await until(() => lateGame != null);
+    expect((lateGame! as Session).player).toBe(1);
+    expect(host.players).toEqual([0, 1]);
+    late.leave();
+    host.leave();
+  });
+
+  it('gets a guest whose connection dropped back into the game', async () => {
+    const host = new Coop('local', '1.0.0');
+    const guest = new Coop('local', '1.0.0');
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    host.hostRoom();
+    await until(() => host.phase === 'lobby');
+    guest.joinRoom(host.code);
+    await until(() => host.players.length === 2);
+    const starts: boolean[] = [];
+    const notices: string[] = [];
+    guest.onStart = (_, again) => starts.push(again);
+    guest.onNotice = (n) => notices.push(n);
+    await host.start(World.create(4));
+    await until(() => starts.length === 1);
+    // The connection drops (a phone asleep, a train tunnel): the game stays, and comes back in step.
+    (guest as unknown as { link: { close(): void } }).link.close();
+    expect(guest.phase).toBe('playing');
+    await until(() => starts.length === 2);
+    expect(starts).toEqual([false, true]);
+    expect(notices).toEqual(['Connection lost. Getting back into the game…', 'Back in the game.']);
+    expect(guest.slot).toBe(1);
+    expect(summaryHash(guest.guest!.session.world)).toBe(summaryHash(host.host!.session.world));
     host.leave();
   });
 

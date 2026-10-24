@@ -1,38 +1,40 @@
-// The Play together dialog (co-op phase 1, D-078): host a new or saved game, or join one with its room
-// code, then wait in the room until the host starts. The room itself is in net/coop.ts.
+// The Play together dialog (D-078, D-079): host a new game, your own factory or a co-op game saved in
+// this browser, or join one with its room code (in the lobby or under way). The room is in net/coop.ts.
 
 import type { Coop } from '../net/coop';
 import { PLAYER_COLORS } from './state';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/** What the host shares: a new game, their own saved factory, or the co-op game saved in this browser. */
+export type HostChoice = 'new' | 'solo' | 'coop';
+
 export interface LobbyActions {
-  /** A line about the saved game, or null if there's none to host. */
-  savedGame(): string | null;
-  /** Whether hosting a new game replaces a saved one. */
-  hasGame(): boolean;
-  /** The host presses Start: share a new game, or the saved one. */
-  start(saved: boolean): void;
+  /** A line about each saved game, or null where there's none to host. */
+  saves(): { solo: string | null; coop: string | null };
+  /** The host presses Start. */
+  start(choice: HostChoice): void;
   openModal(id: string): void;
   closeModals(): void;
 }
 
 export class Lobby {
   /** What the host chose to share, kept until Start. */
-  private saved = false;
+  private choice: HostChoice = 'new';
 
   constructor(
     private coop: Coop,
     private actions: LobbyActions,
   ) {
-    $('coop-host-new').addEventListener('click', () => this.host(false));
-    $('coop-host-saved').addEventListener('click', () => this.host(true));
+    $('coop-host-new').addEventListener('click', () => this.host('new'));
+    $('coop-host-saved').addEventListener('click', () => this.host('solo'));
+    $('coop-host-coop').addEventListener('click', () => this.host('coop'));
     $('coop-join').addEventListener('submit', (e) => {
       e.preventDefault();
       const err = coop.joinRoom($<HTMLInputElement>('coop-code').value);
       this.status(err ?? 'Joining…');
     });
-    $('coop-start').addEventListener('click', () => actions.start(this.saved));
+    $('coop-start').addEventListener('click', () => actions.start(this.choice));
     $('coop-leave').addEventListener('click', () => {
       coop.leave();
       this.render();
@@ -43,10 +45,13 @@ export class Lobby {
   }
 
   open(): void {
-    const saved = this.actions.savedGame();
-    $('coop-host-saved').hidden = !saved;
-    $('coop-saved-note').textContent = saved ?? '';
-    $('coop-new-note').textContent = this.actions.hasGame() ? 'Standard mode. Your saved factory will be lost.' : 'Standard mode.';
+    const { solo, coop } = this.actions.saves();
+    $('coop-host-saved').hidden = !solo;
+    $('coop-saved-note').textContent = solo ?? '';
+    $('coop-host-coop').hidden = !coop;
+    $('coop-coop-note').textContent = coop ?? '';
+    // A new co-op game saves over the last one, never over your own factory.
+    $('coop-new-note').textContent = coop ? 'Standard mode. Replaces your saved co-op game.' : 'Standard mode.';
     this.status('');
     this.render();
     this.actions.openModal('coop');
@@ -83,8 +88,8 @@ export class Lobby {
     else this.status('Waiting for the host to start.');
   }
 
-  private host(saved: boolean): void {
-    this.saved = saved;
+  private host(choice: HostChoice): void {
+    this.choice = choice;
     this.coop.hostRoom();
   }
 

@@ -47,6 +47,11 @@ export class Session {
     this.queued.sort((a, b) => a.tick - b.tick || a.player - b.player); // stable: same-tick commands keep their order
   }
 
+  /** Commands waiting for their tick, from tick `tick` on (for a co-op snapshot, D-079). */
+  queuedFrom(tick: number): LoggedCommand[] {
+    return this.queued.filter((e) => e.tick >= tick);
+  }
+
   /** Runs one tick, applying the queued commands due on it first. */
   tick(): void {
     const now = this.ticks;
