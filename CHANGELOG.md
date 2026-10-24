@@ -5,7 +5,7 @@ what's **New** and what's **Fixed**.
 
 ## 0.43.1 · 2026-10-24 · Notes brought up to date
 ### New
-- Nothing new in the game this time: the project's notes are brought up to date, and drawn belt corners, ends and joins are planned.
+- Nothing new in the game this time: the project's notes are brought up to date, drawn belt corners, ends and joins are planned, and your latest feedback is in the plans.
 
 ## 0.43.0 · 2026-10-24 · Moving pictures
 ### New
