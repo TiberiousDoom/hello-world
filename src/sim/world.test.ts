@@ -298,6 +298,20 @@ describe('Production', () => {
     run(w, 3);
     expect(wall.hp).toBeGreaterThan(100);
   });
+
+  it('notes where repairs happen and buildings fall, for the effects (not saved)', () => {
+    const w = emptyWorld();
+    const wall = placed(w.place('wall', 20, 20, 0));
+    const station = placed(w.place('repair', 22, 20, 0));
+    wall.hp = 100;
+    run(w, 0.2);
+    expect(w.healed).toEqual([expect.objectContaining({ x: 20.5, y: 20.5, by: station.id })]);
+    run(w, 1.5);
+    expect(w.healed.length).toBeLessThanOrEqual(3); // one sparkle about every half second, not one a tick
+    w.remove(wall, true);
+    expect(w.lost).toEqual([expect.objectContaining({ id: wall.id, x: 20.5, y: 20.5, size: 1 })]);
+    expect(w.toJSON()).not.toContain('healed');
+  });
 });
 
 describe('Bugs', () => {

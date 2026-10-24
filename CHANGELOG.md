@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.43.0 · 2026-10-24 · Moving pictures
+### New
+- **Machines at work:** extractors spin, furnaces burn and smoke, gears and saws turn, the assembler's arm welds, and repair stations flare while they mend.
+- **Livelier bugs:** bugs scuttle in four steps and bite with their own animation when they reach your buildings or your engineer.
+- **Your engineer** walks, swings their tools while mining, stands about when idle, and sees stars where they were knocked out.
+- **Fights look the part:** muzzle flashes, sparks where shots land, cannon shells and explosions, bug splats, debris from lost buildings, sparkles on mended ones, and leaves flying when a tree is cut.
+- **Seasons:** fresh green in spring, leaf litter and orange trees in fall, and snow with frosted trees in winter.
+
 ## 0.42.0 · 2026-10-24 · Play together
 ### New
 - **Play together:** build one factory with friends. In the main menu, choose Play together: one player hosts a new game or their saved one and shares the room code, and the others join with it. The host presses Start when everyone is in.

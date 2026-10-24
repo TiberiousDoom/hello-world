@@ -205,10 +205,10 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
 
   | Season | Days | Tree regrowth | Look |
   |---|---|---|---|
-  | Spring | 4 (36 min) | 1.5× faster | Green |
-  | Summer | 2 (18 min) | 2× faster | A warm light |
-  | Fall | 4 (36 min) | 0.75× (slower) | Orange broadleaf trees, an amber tint |
-  | Winter | 2 (18 min) | 0.5× (slowest) | Frost on the ground and trees |
+  | Spring | 4 (36 min) | 1.5× faster | Fresh green grass and trees |
+  | Summer | 2 (18 min) | 2× faster | A warm light; a few broadleaf trees already turning |
+  | Fall | 4 (36 min) | 0.75× (slower) | Leaf litter on the ground, orange trees and bronze pines |
+  | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare frosted trees and snowy pines; grass and flowers are under the snow |
 
   A stump's regrowth time is set by the season it's cut in.
 - A message marks nightfall, each morning and each new season, and the top bar shows the season, the
@@ -503,6 +503,13 @@ one research tree, one supply ship.
 - **Battery saver** (pause menu): draws at normal resolution and 30 frames a second. Otherwise the
   game draws at most 60 frames a second, and 30 while paused or on the main menu (#46).
 - Hub stock floats above the hub (see [Map](#map)).
+- **Animation (D-082):** machines run a working animation while they work (the extractor's rotor, the
+  furnace's flames and smoke, turning gears and saws, the assembler's arm, the repair station's torch),
+  on game time, so it stops while paused. Bugs walk in 4 steps and play a bite while an angry bug stands at
+  a building or an engineer. The engineer walks, works (mining by hand, facing the ore), stands idle, and
+  sees stars where it was knocked out. Shots flash at the barrel and spark where they land, a cannon's
+  shell flies and explodes, bugs splat, buildings lost to bugs break into debris, mended buildings
+  sparkle and cut trees burst into leaves.
 
 ## Controls
 

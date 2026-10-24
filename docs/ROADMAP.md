@@ -13,7 +13,7 @@ quality and business work don't get left until the end.
 | M2a: Logistics and sustain | Branching lines, tunnels, repair | ✅ |
 | M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ |
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ |
-| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; upgraded sprites in (0.40.0, D-075); animation strips and effects to wire in |
+| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; upgraded sprites (0.40.0, D-075); animations, effects, seasonal art and working machines (0.43.0, D-082). Left: young-bug art, a hub idle loop, the app icon |
 | M3c: Playtest polish | Playtest notes: tutorial, store lock, hub weapon, controls; batch 2 (blueprints, belts, forest); batch 3 (music, tracker, lessons) | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
@@ -55,7 +55,8 @@ quality and business work don't get left until the end.
 24. ✅ **Belt batch** (playtest #61–#65): two-lane belts, splitter filters and side snapping (0.34.0, D-069); an exit blueprint for underground belts, and belt lines that go under belts they cross (0.35.0, D-070).
 25. ✅ **Art upgrade** (0.40.0, D-075): every sprite redrawn, walls and palisades that join up, burrow nests, damage that shows.
 26. ✅ **Co-op phases 1 to 3** (D-076 to D-081): the relay on Cloudflare (0.41.0); Play together (0.42.0): Host and Join with a room code, the host stamping command ticks and sending turns, every engineer on screen in its player's colour, no pausing for lessons, the first delivery or blueprint picks; joining a game under way, a fresh copy for a guest out of step or far behind, reconnecting, the shared game saved in every browser; pings, per-player messages, the blueprint offer as a card, engineers side by side, 4-player tests, and the host taking its room back after a dropped connection. **Next:** playtest co-op (balance for more players), and the art review refresh.
-27. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+27. ✅ **Animated art** (0.43.0, D-082): working machines, bug walks and bites, the engineer's states, sprite effects, seasonal ground and trees.
+28. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
@@ -178,11 +179,11 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Art upgrade (0.40.0, D-075): every sprite redrawn; wall and palisade sets that join up; burrow nests; damage overlays; damaged hub
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects, UI icons, app icon
-- ⬜ Loading animation strips (frame sheets) for belts, machines and enemies; the strips, effects and seasonal trees are drawn in `docs/art-upgrade/`
+- ✅ Animated art (0.43.0, D-082): strips cut into frames on loading; bugs walk in 4 steps and bite; the engineer walks, works, idles and sees stars when knocked out; sprite effects (muzzle flash, hit spark, cannon shell, explosion, death splat, debris, repair sparkle, leaf burst); seasonal ground and trees; every working machine animates (strips built from the machines' own sprites by `art/working.mjs`)
 - ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
-- 🚧 Animation: belts (chevrons, corners), turret aim and two-frame enemy walk cycles are in code; machine animations to come
+- ✅ Animation: belts (chevrons, corners) and turret aim in code; enemy, engineer and machine animations from strips (0.43.0, D-082). ⬜ A hub idle loop and young-bug art
 
 ## 5. Tech and quality
 - ✅ Unit tests for the simulation, run in CI on every PR

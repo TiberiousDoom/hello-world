@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 128"><defs><g id="mChute"><rect x="104" y="54" width="18" height="20" rx="3" fill="#2b3240" stroke="#0f1a2e" stroke-width="2.5" /><path d="M109 58 L116 64 L109 70" fill="none" stroke="#3fa9f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></g>
+      <linearGradient id="mBright" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef3f9" /><stop offset="1" stop-color="#8a96a8" /></linearGradient>
+      <path id="pSaw" d="M100 0 L77 22 L92 38 L63 50 L71 71 L39 70 L38 92 L9 79 L0 100 L-22 77 L-38 92 L-50 63 L-71 71 L-70 39 L-92 38 L-79 9 L-100 0 L-77 -22 L-92 -38 L-63 -50 L-71 -71 L-39 -70 L-38 -92 L-9 -79 L-0 -100 L22 -77 L38 -92 L50 -63 L71 -71 L70 -39 L92 -38 L79 -9 Z" />
+      <g id="mLog">
+        <rect x="0" y="0" width="50" height="13" rx="5" fill="url(#mWood)" stroke="#0f1a2e" stroke-width="1.8" />
+        <path d="M10 4 H40 M14 9 H44" stroke="#4a2e18" stroke-width="1" stroke-linecap="round" />
+        <path d="M6 2.5 H46" stroke="#c69060" stroke-width="1" opacity="0.7" />
+        <ellipse cx="3" cy="6.5" rx="4" ry="6.5" fill="#e2b77c" stroke="#0f1a2e" stroke-width="1.6" />
+        <ellipse cx="3" cy="6.5" rx="2" ry="3.4" fill="none" stroke="#b9874e" stroke-width="0.9" />
+      </g>
+    <linearGradient id="mWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a6a3c" /><stop offset="1" stop-color="#6b4426" /></linearGradient>
+      <linearGradient id="mSteel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a6678" /><stop offset="1" stop-color="#2c3644" /></linearGradient>
+      <filter id="mSh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="2.5" dy="4" stdDeviation="2.5" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+      </defs><svg x="0" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden"><g filter="url(#mSh)"><rect x="6" y="6" width="116" height="116" rx="12" fill="url(#mSteel)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <path d="M10 108 V20 Q10 10 20 10 H108" fill="none" stroke="#c9d2de" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+          <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M10 10 h14 l-14 14 z" /><path d="M10 118 h14 l-14 -14 z" /></g>
+          <rect x="15" y="17" width="62" height="94" rx="6" fill="#3e2a18" stroke="#0f1a2e" stroke-width="2.5" />
+          <use href="#mLog" x="20" y="21" /><use href="#mLog" x="22" y="38" /><use href="#mLog" x="19" y="55" /><use href="#mLog" x="23" y="72" /><use href="#mLog" x="20" y="89" />
+          <g fill="#5a6478" stroke="#0f1a2e" stroke-width="1.2"><rect x="72" y="18" width="5" height="92" rx="2" /></g>
+          <use href="#pSaw" transform="translate(96 64) rotate(10) scale(0.22)" fill="url(#mBright)" stroke="#0f1a2e" stroke-width="2.4" vector-effect="non-scaling-stroke" />
+          <circle cx="96" cy="64" r="14" fill="none" stroke="#8a96a8" stroke-width="1.5" />
+          <circle cx="96" cy="64" r="6.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><circle cx="96" cy="64" r="2.2" fill="#f2c14e" />
+          <path d="M80 54 A18 18 0 0 1 96 46" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+          <g fill="#e6c48c"><circle cx="84" cy="86" r="1.2" /><circle cx="88" cy="92" r="1.2" /><circle cx="80" cy="94" r="1.2" /><circle cx="106" cy="88" r="1.2" /></g>
+          <use href="#mChute" />
+        </svg><svg x="128" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden"><g filter="url(#mSh)"><rect x="6" y="6" width="116" height="116" rx="12" fill="url(#mSteel)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <path d="M10 108 V20 Q10 10 20 10 H108" fill="none" stroke="#c9d2de" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+          <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M10 10 h14 l-14 14 z" /><path d="M10 118 h14 l-14 -14 z" /></g>
+          <rect x="15" y="17" width="62" height="94" rx="6" fill="#3e2a18" stroke="#0f1a2e" stroke-width="2.5" />
+          <use href="#mLog" x="20" y="21" /><use href="#mLog" x="22" y="38" /><use href="#mLog" x="19" y="55" /><use href="#mLog" x="23" y="72" /><use href="#mLog" x="20" y="89" />
+          <g fill="#5a6478" stroke="#0f1a2e" stroke-width="1.2"><rect x="72" y="18" width="5" height="92" rx="2" /></g>
+          <use href="#pSaw" transform="translate(96 64) rotate(15.625) scale(0.22)" fill="url(#mBright)" stroke="#0f1a2e" stroke-width="2.4" vector-effect="non-scaling-stroke" />
+          <circle cx="96" cy="64" r="14" fill="none" stroke="#8a96a8" stroke-width="1.5" />
+          <circle cx="96" cy="64" r="6.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><circle cx="96" cy="64" r="2.2" fill="#f2c14e" />
+          <path d="M80 54 A18 18 0 0 1 96 46" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+          <g fill="#e6c48c"><circle cx="82" cy="90" r="1.2" /><circle cx="90" cy="96" r="1.2" /><circle cx="78" cy="98" r="1.2" /><circle cx="108" cy="92" r="1.2" /></g>
+          <use href="#mChute" />
+        </svg><svg x="256" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden"><g filter="url(#mSh)"><rect x="6" y="6" width="116" height="116" rx="12" fill="url(#mSteel)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <path d="M10 108 V20 Q10 10 20 10 H108" fill="none" stroke="#c9d2de" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+          <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M10 10 h14 l-14 14 z" /><path d="M10 118 h14 l-14 -14 z" /></g>
+          <rect x="15" y="17" width="62" height="94" rx="6" fill="#3e2a18" stroke="#0f1a2e" stroke-width="2.5" />
+          <use href="#mLog" x="20" y="21" /><use href="#mLog" x="22" y="38" /><use href="#mLog" x="19" y="55" /><use href="#mLog" x="23" y="72" /><use href="#mLog" x="20" y="89" />
+          <g fill="#5a6478" stroke="#0f1a2e" stroke-width="1.2"><rect x="72" y="18" width="5" height="92" rx="2" /></g>
+          <use href="#pSaw" transform="translate(96 64) rotate(21.25) scale(0.22)" fill="url(#mBright)" stroke="#0f1a2e" stroke-width="2.4" vector-effect="non-scaling-stroke" />
+          <circle cx="96" cy="64" r="14" fill="none" stroke="#8a96a8" stroke-width="1.5" />
+          <circle cx="96" cy="64" r="6.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><circle cx="96" cy="64" r="2.2" fill="#f2c14e" />
+          <path d="M80 54 A18 18 0 0 1 96 46" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+          <g fill="#e6c48c"><circle cx="86" cy="84" r="1.2" /><circle cx="84" cy="94" r="1.2" /><circle cx="92" cy="88" r="1.2" /><circle cx="104" cy="84" r="1.2" /></g>
+          <use href="#mChute" />
+        </svg><svg x="384" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden"><g filter="url(#mSh)"><rect x="6" y="6" width="116" height="116" rx="12" fill="url(#mSteel)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <path d="M10 108 V20 Q10 10 20 10 H108" fill="none" stroke="#c9d2de" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+          <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M10 10 h14 l-14 14 z" /><path d="M10 118 h14 l-14 -14 z" /></g>
+          <rect x="15" y="17" width="62" height="94" rx="6" fill="#3e2a18" stroke="#0f1a2e" stroke-width="2.5" />
+          <use href="#mLog" x="20" y="21" /><use href="#mLog" x="22" y="38" /><use href="#mLog" x="19" y="55" /><use href="#mLog" x="23" y="72" /><use href="#mLog" x="20" y="89" />
+          <g fill="#5a6478" stroke="#0f1a2e" stroke-width="1.2"><rect x="72" y="18" width="5" height="92" rx="2" /></g>
+          <use href="#pSaw" transform="translate(96 64) rotate(26.875) scale(0.22)" fill="url(#mBright)" stroke="#0f1a2e" stroke-width="2.4" vector-effect="non-scaling-stroke" />
+          <circle cx="96" cy="64" r="14" fill="none" stroke="#8a96a8" stroke-width="1.5" />
+          <circle cx="96" cy="64" r="6.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><circle cx="96" cy="64" r="2.2" fill="#f2c14e" />
+          <path d="M80 54 A18 18 0 0 1 96 46" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+          <g fill="#e6c48c"><circle cx="80" cy="88" r="1.2" /><circle cx="88" cy="98" r="1.2" /><circle cx="94" cy="92" r="1.2" /><circle cx="110" cy="90" r="1.2" /></g>
+          <use href="#mChute" />
+        </svg></svg>

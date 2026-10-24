@@ -24,6 +24,7 @@ npx vitest run src/sim/ship.test.ts            # one unit test file (add -t "nam
 npx playwright test e2e/lessons.spec.ts        # one browser suite
 npx playwright test --project=desktop          # one project (desktop, phone; firefox and webkit run only the determinism test)
 node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
+node art/working.mjs                           # rebuild the machines' working animations from their sprites
 cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)
 ```
 
@@ -58,7 +59,8 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   connection (`client.ts`; `?relay=local` runs a room between tabs, as the browser test does) and `pack.ts`.
 - `relay/`: the co-op relay, a Cloudflare Worker with a Durable Object per room (D-077), its own `package.json`.
   CI deploys it from master using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
-- `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`.
+- `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`. Animations
+  are strips of square frames named with their count (`_4f`), cut into frames by the loader (`frame(key, i)`, D-082).
 - `main.ts`: wiring, the game loop, save/load and the player profile (localStorage).
 
 How a frame flows: `main.ts` runs a fixed-step accumulator in `requestAnimationFrame` that calls

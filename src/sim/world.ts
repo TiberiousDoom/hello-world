@@ -218,8 +218,13 @@ export class World {
   /** The nest owning each territory cell (see cellKey). */
   nestCells = new Map<number, Nest>();
   shots: Shot[] = [];
-  /** Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing. */
-  lost: { id: number; age: number }[] = [];
+  /**
+   * Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing, and
+   * says where the debris flies (its centre, and how many tiles across it was).
+   */
+  lost: { id: number; age: number; x: number; y: number; size: number }[] = [];
+  /** Buildings a repair station mended in the last moment (not saved), for sparkles: their centres, and the station. */
+  healed: { x: number; y: number; age: number; by: number }[] = [];
   events: string[] = [];
   /**
    * Messages about one engineer (not saved): its own player reads `mine`, the others `others` (co-op
@@ -955,7 +960,11 @@ export class World {
   /** Takes a building off the map. `destroyed`: lost to bugs, not taken down by the player. */
   remove(b: Building, destroyed = false): void {
     if (b.type === 'shipyard') onShipyardRemoved(this, destroyed);
-    if (destroyed) this.lost.push({ id: b.id, age: 0 });
+    if (destroyed) {
+      const [cx, cy] = this.centreOf(b);
+      const [fw, fh] = this.footprintOf(b);
+      this.lost.push({ id: b.id, age: 0, x: cx, y: cy, size: Math.max(fw, fh) });
+    }
     const partner = b.link != null ? this.byId.get(b.link) : undefined;
     if (partner) {
       partner.link = null;
@@ -1317,6 +1326,8 @@ export class World {
     this.shots = this.shots.filter((sh) => sh.age < 0.12);
     for (const l of this.lost) l.age += dt;
     this.lost = this.lost.filter((l) => l.age < 2);
+    for (const h of this.healed) h.age += dt;
+    this.healed = this.healed.filter((h) => h.age < 1);
     for (const f of this.felled) f.age += dt;
     this.felled = this.felled.filter((f) => f.age < 2);
     for (const tap of this.taps) tap.age += dt;
@@ -1554,6 +1565,9 @@ export class World {
     const heal = Math.min(REPAIR.hpPerSecond * dt, this.maxHp(worst) - worst.hp, b.ammo);
     worst.hp += heal;
     b.ammo -= heal;
+    // A sparkle every half second or so on the building being mended.
+    const [hx, hy] = this.centreOf(worst);
+    if (!this.healed.some((h) => h.age < 0.45 && h.x === hx && h.y === hy)) this.healed.push({ x: hx, y: hy, age: 0, by: b.id });
   }
 
   private tickExtractor(b: Building, dt: number): void {
