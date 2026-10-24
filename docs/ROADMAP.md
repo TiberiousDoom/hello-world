@@ -103,7 +103,7 @@ Not the escape ship's hull. In this order:
 In this order. Phase 0 can start before the player character (playtest issue #40), which then builds on it:
 - ✅ **Phase 0, prepare in single player (D-058):** every world-changing action goes through a command list; players and the path-refresh timers in the saved state (a save version bump); a clock driven by commands; `Math.hypot` out of the rules; a summary hash and a cross-browser determinism test. No visible change. Building it added a checkpoint command, so a game joining from a snapshot has the same path fields as the host
 - ✅ **Before phase 1: the player character** (0.32.0, #40, D-067), built on commands; bugs notice it (0.39.0, D-074)
-- ⬜ **Phase 1, two-player prototype:** room codes, a test relay, a version check on joining, lockstep with input delay, both characters visible, no pausing for tutorials or the blueprint pick
+- 🚧 **Phase 1, two-player prototype:** ✅ the relay on Cloudflare (0.41.0, D-077); ⬜ room codes in the game, a version check on joining, lockstep with input delay, both characters visible, no pausing for tutorials or the blueprint pick
 - ⬜ **Phase 2, make it solid:** the real relay, joining mid-game, desync detection and resync, reconnecting after a phone sleeps
 - ⬜ **Phase 3, co-op design:** pings, player colours, blueprint picks without pausing, balance, up to 4 players
 
