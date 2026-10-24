@@ -77,7 +77,8 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
 export interface HudActions {
   getWorld(): World;
   /** Changes the world (D-058); the world itself is only read here. */
-  issue<C extends Command>(command: C): ResultOf<C>;
+  /** Undefined in co-op: the command is on its way, and applies a few ticks later (D-078). */
+  issue<C extends Command>(command: C): ResultOf<C> | undefined;
   newGame(mode: GameMode, tutorial: boolean): void;
   /** Whether the Essentials lesson has been shown on this device. */
   essentialsSeen(): boolean;
@@ -234,15 +235,15 @@ export class Hud {
     $('btn-gameover-new').addEventListener('click', () => this.openNewGame());
     $('blueprint-choices').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-blueprint]');
-      if (!btn || !actions.issue({ kind: 'pick-blueprint', id: btn.dataset.blueprint! })) return;
+      if (!btn || actions.issue({ kind: 'pick-blueprint', id: btn.dataset.blueprint! }) === false) return;
       this.closeModals();
-      this.setSpeed(this.speedBefore || 1);
+      if (!this.ui.coop) this.setSpeed(this.speedBefore || 1);
       actions.save();
       this.refresh();
     });
     $('btn-keep-playing').addEventListener('click', () => {
       this.closeModals();
-      this.setSpeed(this.speedBefore || 1);
+      if (!this.ui.coop) this.setSpeed(this.speedBefore || 1);
       actions.keptPlaying();
     });
     $('btn-victory-menu').addEventListener('click', () => {
@@ -312,7 +313,7 @@ export class Hud {
           this.rotate();
           break;
         case 'demolish':
-          if (id != null && this.actions.issue({ kind: 'demolish', id })) this.ui.selected = null;
+          if (id != null && this.actions.issue({ kind: 'demolish', id }) !== false) this.ui.selected = null;
           break;
         case 'launch':
           this.actions.issue({ kind: 'launch' });
@@ -363,6 +364,7 @@ export class Hud {
   }
 
   private setSpeed(speed: number): void {
+    if (this.ui.coop === 'guest') return; // the host's speed is everyone's
     this.ui.speed = speed;
     this.refresh();
   }
@@ -451,8 +453,11 @@ export class Hud {
           .map((r) => `<dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd>`)
           .join('');
         $('victory').hidden = false;
-        this.speedBefore = this.ui.speed;
-        this.setSpeed(0);
+        // In co-op nothing but the host's pause stops the shared clock (D-078).
+        if (!this.ui.coop) {
+          this.speedBefore = this.ui.speed;
+          this.setSpeed(0);
+        }
       }
       this.actions.delivered(first);
     }
@@ -466,9 +471,13 @@ export class Hud {
         .join('');
       this.closeModals();
       $('blueprints').hidden = false;
-      this.speedBefore = this.ui.speed;
-      this.setSpeed(0);
+      if (!this.ui.coop) {
+        this.speedBefore = this.ui.speed;
+        this.setSpeed(0);
+      }
     }
+    // Another player picked: the offer is gone.
+    if (!s.ship.offer && !$('blueprints').hidden) $('blueprints').hidden = true;
     const banner = $('launch-banner');
     banner.hidden = s.ship.launchAt == null;
     if (s.ship.launchAt != null) {
@@ -602,7 +611,7 @@ export class Hud {
         }
       }
       if (b.outputs.length) stats += `<br>Output buffer ${b.outputs.map(swatch).join('')}`;
-      const carried = world.state.players[0]?.carry.length ?? 0;
+      const carried = world.state.players.find((p) => p.id === this.ui.player)?.carry.length ?? 0;
       const drop = panel.querySelector<HTMLButtonElement>('[data-action="drop"]');
       if (drop) {
         drop.disabled = !carried;

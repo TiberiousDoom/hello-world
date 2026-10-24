@@ -1162,6 +1162,14 @@ export class World {
     return n;
   }
 
+  /** An engineer for a co-op player (D-076), standing below the hub. False if they already have one. */
+  addPlayer(id: number): boolean {
+    if (this.state.players.some((p) => p.id === id)) return false;
+    this.state.players.push(newPlayer(this, id));
+    this.state.players.sort((a, b) => a.id - b.id);
+    return true;
+  }
+
   /** The character walks to tile (x, y) (#40). */
   moveTo(x: number, y: number, player = 0): boolean {
     return moveTo(this, playerOf(this, player), x, y);

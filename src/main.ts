@@ -9,8 +9,8 @@ import { HUB_SIZE } from './sim/data';
 import { Command, ResultOf, applyCommand } from './sim/commands';
 import { createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
-import { Session } from './sim/session';
-import { OldSaveError, TICK, World } from './sim/world';
+import { LoggedCommand, Session } from './sim/session';
+import { OldSaveError, PlaceError, TICK, World } from './sim/world';
 import { VERSION, changelogHtml } from './ui/changelog';
 import { clockAt } from './sim/clock';
 import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from './ui/feedback';
@@ -18,6 +18,10 @@ import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { createUIState } from './ui/state';
 import { LESSONS, Tutorial } from './ui/tutorial';
+import { Lobby } from './ui/lobby';
+import { RELAY_URL } from './net/client';
+import { Coop } from './net/coop';
+import { CATCH_UP } from './net/lockstep';
 
 const SAVE_KEY = 'foundry-front-save';
 /** Progress that outlives a single game: lessons seen, tips on or off, hardcore unlocked. */
@@ -84,6 +88,7 @@ function saveProfile(): void {
 
 function save(): void {
   if (!game) return; // the menu's demo world is never saved
+  if (ui.coop === 'guest') return; // a guest keeps its own saved game; the host saves the shared one
   try {
     localStorage.setItem(SAVE_KEY, game.toJSON());
   } catch (err) {
@@ -108,9 +113,31 @@ let demo = createDemoWorld();
 let inMenu = true;
 const active = () => (inMenu || !game ? demo : game);
 
-/** Every change the player makes to the world goes through here, as a command (D-058). */
-function issue<C extends Command>(command: C): ResultOf<C> {
-  return !inMenu && session ? session.do(command) : applyCommand(active(), command);
+/** The co-op room, if any (D-078). `?relay=` picks another relay: a local one, or `local` for two tabs. */
+const coop = new Coop(new URLSearchParams(location.search).get('relay') ?? RELAY_URL, VERSION);
+
+/**
+ * Every change the player makes to the world goes through here, as a command (D-058). In co-op it
+ * goes to the host, which says on which tick every game applies it; the result comes back later.
+ */
+function issue<C extends Command>(command: C): ResultOf<C> | undefined {
+  if (inMenu || !session) return applyCommand(active(), command);
+  if (coop.host) return void coop.host.submit(0, command);
+  if (coop.guest) return void coop.guest.submit(command);
+  return session.do(command);
+}
+
+/** In co-op, this player's commands answer a few ticks late: report their errors then. */
+let lastPlaceError = 0;
+function lateResult(entry: LoggedCommand, result: unknown): void {
+  if (!session || entry.player !== session.player || !ui.coop) return;
+  const c = entry.command;
+  if (c.kind === 'mine' && result === 'full') hud.toast('Your hands are full. Walk back to the hub to drop off what you carry.');
+  if (c.kind === 'mine' && result === 'down') hud.toast('Your engineer is getting back on their feet at the hub.');
+  if ((c.kind === 'place' || c.kind === 'upgrade-belts') && typeof result === 'string' && result !== 'occupied' && result !== 'bounds') {
+    // One a second at most: a drag can fail on many tiles, and the input may have said so already.
+    placeError(result as PlaceError);
+  }
 }
 
 const profile = loadProfile();
@@ -128,9 +155,16 @@ function centreOnHub(world: World): void {
   camera.zoom = window.innerWidth < 600 ? 26 : 34;
 }
 
-function play(world: World): void {
+/** Plays a game: alone, or the shared game of a co-op room (its session made there). */
+function play(world: World, shared?: Session): void {
+  if (!shared && coop.active) coop.leave();
   game = world;
-  session = new Session(world);
+  session = shared ?? new Session(world);
+  session.onApplied = lateResult;
+  desyncShown = false;
+  ui.coop = shared ? coop.role : null;
+  ui.player = session.player;
+  document.body.classList.toggle('coop-guest', ui.coop === 'guest');
   inMenu = false;
   document.body.classList.remove('in-menu');
   ui.selected = null;
@@ -144,6 +178,11 @@ function play(world: World): void {
 
 function showMainMenu(): void {
   save();
+  if (ui.coop) {
+    // Leaving a co-op game leaves its room (the host's leaving ends it for everyone).
+    coop.leave();
+    endCoop();
+  }
   inMenu = true;
   document.body.classList.add('in-menu');
   demo = createDemoWorld();
@@ -168,6 +207,25 @@ function refreshMainMenu(): void {
     document.getElementById('mm-continue-sub')!.textContent = s.gameOver ? `${mode} · run over` : `${mode} · ${where}`;
     if (s.gameOver) btn.hidden = true;
   }
+}
+
+/** Back to playing alone: a guest's copy of the shared game isn't kept (D-078). */
+function endCoop(): void {
+  if (ui.coop === 'guest') {
+    game = null;
+    session = null;
+  }
+  ui.coop = null;
+  ui.player = 0;
+  document.body.classList.remove('coop-guest');
+}
+
+/** A building that can't go up. In co-op, said at most once a second: it may come again when the command lands. */
+function placeError(err: PlaceError): void {
+  if (ui.coop && performance.now() - lastPlaceError < 1000) return;
+  lastPlaceError = performance.now();
+  hud.placeError(err);
+  sfx.play('error');
 }
 
 const escapesCounted = new Set<number>();
@@ -239,10 +297,7 @@ const tutorial = new Tutorial(camera, active, ui, {
 const input = new Input(canvas, camera, ui, {
   getWorld: active,
   issue,
-  onPlaceError: (err) => {
-    hud.placeError(err);
-    sfx.play('error');
-  },
+  onPlaceError: placeError,
   onNotice: (text) => hud.toast(text),
   onChange: () => hud.refresh(),
 });
@@ -301,6 +356,45 @@ document.getElementById('mm-continue')!.addEventListener('click', () => {
 });
 document.getElementById('mm-new')!.addEventListener('click', () => hud.openNewGame());
 document.getElementById('mm-help')!.addEventListener('click', () => hud.openModal('help'));
+
+const lobby = new Lobby(coop, {
+  savedGame: () => {
+    const saved = game ?? (hasSave() ? loadWorld() : null);
+    if (!saved || saved.state.gameOver) return null;
+    const mins = Math.floor(saved.state.time / 60);
+    return `${saved.state.mode === 'hardcore' ? 'Hardcore' : 'Standard'} · ${mins} min played`;
+  },
+  hasGame: () => !!game || hasSave(),
+  start: (saved) => {
+    const world = saved ? (game ?? loadWorld()) : null;
+    void coop.start(world ?? World.create(undefined, 'standard'));
+  },
+  openModal: (id) => hud.openModal(id),
+  closeModals: () => hud.closeModals(),
+});
+document.getElementById('mm-coop')!.addEventListener('click', () => lobby.open());
+coop.onChange = () => lobby.render();
+coop.onStart = (shared) => {
+  play(shared.world, shared);
+  save();
+  hud.toast(coop.role === 'host' ? 'Playing together. Only you can pause or change the speed.' : 'Playing together. The host sets the speed.');
+};
+coop.onNotice = (text) => hud.toast(text);
+coop.onEnd = (why) => {
+  if (ui.coop === 'host') {
+    // The host's game is its own: it carries on alone.
+    endCoop();
+    hud.toast(`${why} You carry on alone.`);
+    return;
+  }
+  if (ui.coop) {
+    // A guest's game was under way: back to the menu, saying why.
+    endCoop();
+    showMainMenu();
+    lobby.open();
+  }
+  lobby.ended(why);
+};
 
 /** The version, and a dot on "What's new" until this player has looked at this version's changes. */
 function showVersion(): void {
@@ -395,6 +489,7 @@ let last = performance.now();
 let lastSeason: string | null = null;
 let acc = 0;
 let lastFrame = 0;
+let desyncShown = false;
 /**
  * Frame pacing (#46): at most 60 frames a second (a 120 Hz screen would otherwise
  * draw twice as often), and 30 while paused, on the main menu or in battery saver.
@@ -413,16 +508,38 @@ function frame(now: number): void {
   const world = active();
   const elapsed = Math.min(0.25, (now - last) / 1000);
   last = now;
+  const guest = inMenu ? null : coop.guest;
+  if (guest) ui.speed = guest.speed; // the host's speed, shown on the guest's screen too
   acc += elapsed * (inMenu ? 1 : ui.speed);
   let ticks = 0;
-  while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) {
-    if (!inMenu && session) session.tick();
-    else world.tick(TICK);
-    if (inMenu) sustainDemo(world);
-    acc -= TICK;
-    ticks++;
+  if (guest) {
+    // A guest runs only the ticks the host has run, and catches up when it falls behind. Paused, it
+    // runs on to the host's tick, so both stop on the same one.
+    while (ticks < MAX_TICKS_PER_FRAME && guest.canTick && (acc >= TICK || guest.ahead > CATCH_UP || guest.speed === 0)) {
+      guest.tick();
+      acc = Math.max(0, acc - TICK);
+      ticks++;
+    }
+    if (!guest.canTick) acc = Math.min(acc, TICK); // waiting for the host: don't bank time to rush later
+    guest.flush(now);
+    if (guest.desyncedAt != null && !desyncShown) {
+      desyncShown = true;
+      hud.toast("Your game no longer matches the host's. Leave and join again to fix it.");
+      console.warn(`Co-op: out of step with the host from tick ${guest.desyncedAt}.`);
+    }
+  } else {
+    while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) {
+      if (inMenu) world.tick(TICK);
+      else if (coop.host) coop.host.tick();
+      else if (session) session.tick();
+      else world.tick(TICK);
+      if (inMenu) sustainDemo(world);
+      acc -= TICK;
+      ticks++;
+    }
+    if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
+    if (!inMenu && coop.host) coop.host.flush(ui.speed, now);
   }
-  if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
   if (inMenu) {
     // Drift slowly around the demo factory.
     const hub = world.hub!;
@@ -437,7 +554,7 @@ function frame(now: number): void {
     lastSeason = season;
   } else lastSeason = null;
   // Walking with the keys, the camera keeps the character in view (#40).
-  const player = world.state.players[0];
+  const player = world.state.players.find((p) => p.id === ui.player);
   if (!inMenu && player && input.walkingByKeys) {
     const ease = Math.min(1, elapsed * 4);
     camera.x += (player.x - camera.x) * ease;
@@ -472,6 +589,8 @@ requestAnimationFrame(frame);
   music,
   sfx,
   version: VERSION,
+  /** The co-op room: its phase, this game's slot, and the lockstep (D-078). */
+  coop,
   /** The scripted game the cross-browser determinism test runs (D-058). */
   runScenario,
 };

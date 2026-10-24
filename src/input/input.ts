@@ -45,7 +45,8 @@ interface Tile {
 export interface InputCallbacks {
   getWorld(): World;
   /** Changes the world (D-058); the world itself is only read here. */
-  issue<C extends Command>(command: C): ResultOf<C>;
+  /** Undefined in co-op: the command is on its way, and applies a few ticks later (D-078). */
+  issue<C extends Command>(command: C): ResultOf<C> | undefined;
   onPlaceError(err: PlaceError): void;
   /** A short message for the player, such as full hands. */
   onNotice(text: string): void;
@@ -73,7 +74,8 @@ export class Input {
   private mode: Mode = 'none';
   private downAt = { x: 0, y: 0 };
   private lastTile: Tile | null = null;
-  private lastPlacedId: number | null = null;
+  /** The belt (or other building) this drag just placed, which the next tile may turn. */
+  private lastPlaced: { x: number; y: number; type: BuildingType } | null = null;
   private reportedError = false;
   private pinch = { dist: 0, midX: 0, midY: 0 };
   private wheelTurn = 0;
@@ -214,7 +216,7 @@ export class Input {
       this.ui.plan = { tool: this.ui.tool, tiles: [this.ui.hover] };
     } else if (this.ui.tool) {
       this.mode = 'paint';
-      this.lastPlacedId = null;
+      this.lastPlaced = null;
       this.reportedError = false;
       this.lastTile = this.ui.hover;
       this.paintTile(this.ui.hover, this.ui.dir, true);
@@ -306,7 +308,7 @@ export class Input {
     if (!b || b.type === 'hub') return;
     this.pressTimer = setTimeout(() => {
       this.pressTimer = null;
-      if (this.pointers.size !== 1 || this.lastPlacedId != null) return;
+      if (this.pointers.size !== 1 || this.lastPlaced != null) return;
       if (this.mode === 'plan') this.ui.plan = this.prevPlan; // the press started a blueprint: drop it
       if (this.mode === 'move') this.abandonMove();
       this.mode = 'none'; // lifting the finger does nothing more
@@ -522,7 +524,7 @@ export class Input {
       }
       if (this.ui.tool === 'belt' || this.ui.tool === 'express_belt') {
         // Dragging belts points each one at the next.
-        if (this.lastPlacedId != null) this.cb.issue({ kind: 'rotate', id: this.lastPlacedId, dir });
+        if (this.lastPlaced) this.cb.issue({ kind: 'turn', ...this.lastPlaced, dir });
         if (this.ui.dir !== dir) {
           this.ui.dir = dir;
           this.cb.onChange();
@@ -536,18 +538,20 @@ export class Input {
   /** `replaceBelt`: a single placement may go over a belt (not every tile of a drag). */
   private paintTile(t: Tile, dir: Dir, replaceBelt = false, tool = this.ui.tool): void {
     const world = this.cb.getWorld();
-    this.lastPlacedId = null;
+    this.lastPlaced = null;
     if (!tool) return;
     if (tool === 'demolish') {
       const b = world.buildingAt(t.x, t.y);
-      if (b && this.cb.issue({ kind: 'demolish', id: b.id }) && this.ui.selected === b.id) {
+      if (b && this.cb.issue({ kind: 'demolish', id: b.id }) !== false && this.ui.selected === b.id) {
         this.ui.selected = null;
         this.cb.onChange();
       }
       return;
     }
     const at = placementAt(world, tool, t, dir, replaceBelt);
-    const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt });
+    // In co-op the result comes later, so judge it now from the world as it is (the host's game decides).
+    const entrance = tool === 'tunnel' ? world.findTunnelEntrance(at.x, at.y, at.dir) : undefined;
+    const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt }) ?? world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt) ?? { ...at, link: entrance?.id ?? null };
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {
@@ -555,7 +559,7 @@ export class Input {
         this.cb.onPlaceError(result);
       }
     } else {
-      this.lastPlacedId = result.id;
+      this.lastPlaced = { x: result.x, y: result.y, type: tool };
       // A new underground entrance: its exit appears as a blueprint to confirm or slide along (#64).
       if (tool === 'tunnel' && this.ui.tool === 'tunnel' && result.link == null) {
         const spot = tunnelExitSpot(world, result.x, result.y, result.dir);

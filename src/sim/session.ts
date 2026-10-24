@@ -18,6 +18,8 @@ export class Session {
   readonly log: LoggedCommand[] = [];
   /** Commands waiting for their tick (from a replay now; from other players in co-op). */
   private queued: LoggedCommand[] = [];
+  /** Called with each queued command as it applies, and what it returned (co-op shows this player's errors late). */
+  onApplied: ((entry: LoggedCommand, result: unknown) => void) | null = null;
 
   constructor(
     readonly world: World,
@@ -36,7 +38,7 @@ export class Session {
   /** This player's action: applied at once, and logged for the tick it lands before. */
   do<C extends Command>(command: C): ResultOf<C> {
     this.log.push({ tick: this.ticks, player: this.player, command });
-    return applyCommand(this.world, command);
+    return applyCommand(this.world, command, this.player);
   }
 
   /** Commands to apply when their tick comes. */
@@ -51,7 +53,8 @@ export class Session {
     while (this.queued.length && this.queued[0].tick <= now) {
       const e = this.queued.shift()!;
       this.log.push(e);
-      applyCommand(this.world, e.command);
+      const result = applyCommand(this.world, e.command, e.player);
+      this.onApplied?.(e, result);
     }
     this.world.tick(TICK);
   }

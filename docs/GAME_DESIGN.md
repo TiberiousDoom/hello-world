@@ -237,7 +237,7 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 - **Knocked out:** at 0 health the engineer drops everything they carry (it's lost) and gets back on
   their feet below the hub **10 s** later, at full health. Until then they can't walk, mine, collect or
   drop off. Building still works.
-- In co-op each player will have their own engineer; the rules already keep a list of players.
+- In co-op each player has their own engineer (see Playing together).
 
 ## Starting from nothing
 
@@ -407,6 +407,33 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 
 The hardcore unlock is stored in the browser's profile, separate from the save file.
 
+## Playing together
+
+A first version of co-op (phase 1 of [COOP.md](COOP.md), D-078). Two to four players build one factory:
+one hub, one stock, one research tree, one supply ship.
+
+- **Host or join:** main menu → **Play together**. The host opens a room with a new game (Standard) or
+  their saved game and gets a 6-character room code to share. The others type the code and press
+  Join. Everyone must be on the same version; a mismatch is refused, naming both versions.
+- **Start:** the host presses Start once everyone is in. Everyone starts together; a player who arrives
+  after the start is turned away (joining a game under way comes in phase 2).
+- **Engineers:** each player has their own engineer, in their slot's colour (host yellow, then blue,
+  pink and green), with a ring under it. They start below the hub. The engineer of a player who
+  leaves walks back to the hub and waits there.
+- **The shared clock:** only the host pauses or changes the speed; the other players have no speed
+  buttons. Nothing else stops the game: lessons explain while it runs, without blocking the screen, and neither the first delivery's
+  screen nor the blueprint pick pauses it. The first player to pick a blueprint takes it, and the offer
+  closes for everyone.
+- **Delay:** every action applies 3 ticks (150 ms) after the host receives it, in every game, plus the
+  time it takes to reach the host. A building appears when its action lands; errors (like too little
+  stock) show then.
+- **Saving:** the host's game saves as usual, in the host's save slot. Other players' own saved games
+  are left alone (saving the shared game in every browser comes in phase 2).
+- **Leaving:** a guest who leaves goes back to the main menu; the others are told. When the host leaves,
+  the game ends for everyone else. A host whose connection drops carries on alone.
+- **Out of step:** once a second each game checks that it still matches the host's. If not, the player
+  is told to leave and join again (fixing it automatically is phase 2).
+
 ## Onboarding
 
 - The game opens on a **main menu**, with a small factory (and a calm bug territory) running behind it.
@@ -425,7 +452,7 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
-- **Explanation steps** pause the game until you press Next.
+- **Explanation steps** pause the game until you press Next (in co-op they don't pause it or block the screen).
 - A lesson waits while a window (research, menu…) is open, so it never covers what the player is reading.
 - A lesson card never covers its spotlight, nor a blueprint's ✓ ⟳ ✕ bar. It tries below, above, beside, then
   the top or bottom of the screen, and keeps clear of the toolbar when it can. When a map target is too big for any of those (a

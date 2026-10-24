@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.42.0 · 2026-10-24 · Play together
+### New
+- **Play together:** build one factory with friends. In the main menu, choose Play together: one player hosts a new game or their saved one and shares the room code, and the others join with it. The host presses Start when everyone is in.
+- **Your own engineer:** each player has an engineer, with a coloured ring to tell them apart.
+- **One clock for everyone:** only the host can pause or change the speed. Lessons, the first delivery and blueprint picks don't pause a game you play together, and the first player to pick a blueprint takes it.
+
 ## 0.41.1 · 2026-10-24 · Plans brought up to date
 ### New
 - Nothing new in the game this time: the project's plans and notes are brought up to date.

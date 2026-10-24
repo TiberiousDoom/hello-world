@@ -49,6 +49,7 @@
         <div class="mm-buttons">
           <button id="mm-continue" class="primary" hidden><i data-icon="play"></i><span>Continue<small id="mm-continue-sub"></small></span></button>
           <button id="mm-new"><i data-icon="new"></i><span>New game</span></button>
+          <button id="mm-coop"><i data-icon="coop"></i><span>Play together</span></button>
           <button id="mm-help"><i data-icon="help"></i><span>How to play</span></button>
         </div>
         <p class="mm-note" id="mm-note" hidden></p>
@@ -73,6 +74,33 @@
         </div>
         <label class="toggle"><input type="checkbox" id="newgame-tutorial" /> Start with the Essentials tutorial</label>
         <button data-close>Cancel</button>
+      </div>
+    </div>
+
+    <div id="coop" class="modal" hidden>
+      <div class="card">
+        <div class="card-head"><h2>Play together</h2><button data-close aria-label="Close" title="Close"><i data-icon="close"></i></button></div>
+        <div id="coop-choose">
+          <p class="muted">Build one factory together. One player hosts and shares the room code; the others join with it.</p>
+          <div class="modes">
+            <button id="coop-host-new"><i data-icon="new"></i><span><b>Host a new game</b><small id="coop-new-note">Standard mode.</small></span></button>
+            <button id="coop-host-saved" hidden><i data-icon="play"></i><span><b>Host your saved game</b><small id="coop-saved-note"></small></span></button>
+          </div>
+          <form id="coop-join" class="coop-join">
+            <input id="coop-code" maxlength="7" placeholder="Room code" aria-label="Room code" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+            <button type="submit" class="primary">Join</button>
+          </form>
+        </div>
+        <div id="coop-room" hidden>
+          <p class="muted small">Room code</p>
+          <p id="coop-room-code" class="coop-code"></p>
+          <ul id="coop-players" class="coop-players"></ul>
+          <div class="menu-list">
+            <button id="coop-start" class="primary"><i data-icon="play"></i>Start</button>
+            <button id="coop-leave"><i data-icon="close"></i>Leave</button>
+          </div>
+        </div>
+        <p id="coop-status" class="muted small" role="status"></p>
       </div>
     </div>
 

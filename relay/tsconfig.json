@@ -11,6 +11,5 @@
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types"]
   },
-  "include": ["src", "../src/net"],
-  "exclude": ["../src/net/**/*.test.ts"]
+  "include": ["src", "../src/net/protocol.ts", "../src/net/room.ts"]
 }

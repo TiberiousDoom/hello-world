@@ -1,8 +1,9 @@
 # Co-op plan
 
 A plan for 2–4 players building and defending one factory together, in the browser, on desktop
-and phones. We're going ahead with it (D-056); nothing is built yet. Progress is tracked in
-[ROADMAP.md](ROADMAP.md) under Co-op (M4c).
+and phones. We're going ahead with it (D-056). Phases 0 and 1 are built: players can host and join
+a game with a room code (0.42.0). Progress is tracked in [ROADMAP.md](ROADMAP.md) under Co-op (M4c);
+how it plays is in [GAME_DESIGN.md](GAME_DESIGN.md) under Playing together.
 
 ## The short version
 
@@ -194,6 +195,15 @@ computing the same game as Node.
 - **Hosting and accounts:** the relay is the project's first server. Room codes keep it
   anonymous: no accounts, no stored personal data. It limits message size and rate per player,
   and drops rooms once they're empty, so it can't be used to store or flood anything.
+
+**Phase 1 is done (D-078):** main menu → Play together. `src/net/coop.ts` (the room from a game's side:
+host, join, lobby, start), `src/net/lockstep.ts` (the host stamping commands 3 ticks ahead and sending
+turns; guests running only as far as their turns go; a fingerprint each second), `src/net/client.ts` (the
+WebSocket to the relay, or `?relay=local`: a room between tabs over a BroadcastChannel with the relay's
+rules, which the browser test uses), `src/net/pack.ts` (the world gzipped for the start) and
+`src/ui/lobby.ts` (the dialog). What phase 1 leaves for phase 2: joining a game under way, resync after a
+mismatch (it's only detected), reconnecting, the shared game saved in every browser, and waiting on or
+dropping a guest that falls behind (the host never waits today).
 
 ## Decided (D-076)
 

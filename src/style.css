@@ -526,6 +526,49 @@ body.in-menu #toasts {
   margin: 8px 0;
 }
 
+.coop-join {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.coop-join input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--navy-deep);
+  color: inherit;
+  font: 700 18px var(--display);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.coop-code {
+  margin: 0 0 10px;
+  font: 800 34px var(--display);
+  letter-spacing: 0.18em;
+  user-select: all;
+}
+.coop-players {
+  list-style: none;
+  padding: 0 !important;
+}
+.coop-players li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.coop-players .swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+/* Only the host sets the game's speed and pauses it. */
+body.coop-guest #speed {
+  display: none;
+}
+
 .modes {
   display: grid;
   gap: 8px;
