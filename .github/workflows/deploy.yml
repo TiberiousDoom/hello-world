@@ -61,3 +61,28 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # The co-op relay (relay/, D-077): a Cloudflare Worker. Pull requests check that it typechecks and
+  # bundles; master deploys it, once the game's tests have passed.
+  relay:
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: relay/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - name: Deploy the relay to Cloudflare
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: relay

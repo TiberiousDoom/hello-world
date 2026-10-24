@@ -24,6 +24,7 @@ npx vitest run src/sim/ship.test.ts            # one unit test file (add -t "nam
 npx playwright test e2e/lessons.spec.ts        # one browser suite
 npx playwright test --project=desktop          # one project (desktop, phone; firefox and webkit run only the determinism test)
 node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
+cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)
 ```
 
 Locally, Playwright reuses a server already listening on :4173 (`reuseExistingServer`), so a
@@ -52,6 +53,9 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   turns each frame's world changes into sounds (like the renderer's effects).
 - `src/ui/`: the HTML overlay (HUD, toolbar, dialogs, tutorial lessons, blueprint bar).
 - `src/input/`: mouse, touch and keyboard.
+- `src/net/`: co-op networking shared with the relay: the relay's messages (`protocol.ts`) and room rules (`room.ts`).
+- `relay/`: the co-op relay, a Cloudflare Worker with a Durable Object per room (D-077), its own `package.json`.
+  CI deploys it from master using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
 - `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`.
 - `main.ts`: wiring, the game loop, save/load and the player profile (localStorage).
 

@@ -131,8 +131,22 @@ game (room code, the players in it, the command stream). Options:
 | **Peer-to-peer (WebRTC)**, the host's browser is the relay | No relay traffic costs | Still needs a small signalling service to connect; some networks block direct connections |
 | **A small always-on server** (Node.js on a cheap VPS) | Full control | Upkeep, security updates, and it costs money even when no one is playing |
 
-**Suggestion:** serverless WebSocket rooms. For a quick prototype, a public WebRTC signalling
-service is fine to test with.
+**Chosen (D-077): serverless WebSocket rooms on Cloudflare**, in `relay/`: a Worker with one
+Durable Object per room, on the free plan. It's live at
+`wss://foundry-front-relay.<account>.workers.dev/rooms/<code>` once CI deploys it from master.
+
+- **The relay only routes.** A guest's messages go to the host; the host's go to one guest or to
+  all. Joining, leaving and the host's version are checked by the relay; everything else is the
+  games' business. The rules are in `src/net/room.ts` (unit tested), the messages in
+  `src/net/protocol.ts`, shared by the relay and the game.
+- **The host stamps the ticks**, not the relay: guests send their commands to the host, which gives
+  each a tick a few steps ahead of its own and sends it out to every game in turns. The relay then
+  needs no clock and no knowledge of the game, and everyone's commands wait the same delay.
+- **Rooms:** 6-character codes without easily confused characters; one host and up to 3 guests; a
+  guest on another version is refused with the host's version; the room closes when the host
+  leaves. Nothing is stored. Rooms sleep between messages (hibernation), so idle rooms cost nothing.
+- **Limits:** only the game's own pages (GitHub Pages, and localhost for development) may connect;
+  guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
 
 ## Phases
 
@@ -147,7 +161,7 @@ service is fine to test with.
    - remove `Math.hypot` from the rules
    - the summary hash, and the cross-browser determinism test
 1. **Two-player prototype:** room codes, a test relay, lockstep with input delay, both
-   characters visible. Both players start together; no joining later.
+   characters visible. Both players start together; no joining later. The relay is done (D-077).
 2. **Make it solid:** the real relay, joining mid-game by snapshot, desync detection and
    resync, reconnecting after a phone sleeps, the host leaving (the game ends, saved in every
    player's browser).
