@@ -133,7 +133,8 @@ game (room code, the players in it, the command stream). Options:
 
 **Chosen (D-077): serverless WebSocket rooms on Cloudflare**, in `relay/`: a Worker with one
 Durable Object per room, on the free plan. It's live at
-`wss://foundry-front-relay.<account>.workers.dev/rooms/<code>` once CI deploys it from master.
+`wss://foundry-front-relay.stephen-pederson.workers.dev/rooms/<code>` (`/health` answers `ok`), deployed by
+CI from master.
 
 - **The relay only routes.** A guest's messages go to the host; the host's go to one guest or to
   all. Joining, leaving and the host's version are checked by the relay; everything else is the
