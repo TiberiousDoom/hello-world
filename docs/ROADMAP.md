@@ -19,7 +19,7 @@ quality and business work don't get left until the end.
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
 | M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phases 1 and 2 done; forest and bugs next |
-| M4c: Co-op | 2–4 players in one shared world (D-056, [COOP.md](COOP.md)) | ⬜ |
+| M4c: Co-op | 2–4 players in one shared world (D-056, [COOP.md](COOP.md)) | 🚧 Phase 0 done; phase 1 started: the relay is live (0.41.0, D-077) |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -53,6 +53,9 @@ quality and business work don't get left until the end.
 22. ✅ **Player character** (0.32.0, #40, D-067): an engineer who walks (tap or WASD), mines by hand, carries items that trail behind, drops them at the hub, and fetches or hands over items. Bugs notice and bite the engineer since 0.39.0 (D-074). Next: co-op phase 1.
 23. ✅ **Day, night and seasons** (0.33.0, #42, D-068): a 9-minute day, bugs ranging further at night, four seasons changing tree regrowth and the look of the map, a clock, and a short piece of music for each season. Night raids (D-065) can come next. Belt feedback batch filed as #61–#65.
 24. ✅ **Belt batch** (playtest #61–#65): two-lane belts, splitter filters and side snapping (0.34.0, D-069); an exit blueprint for underground belts, and belt lines that go under belts they cross (0.35.0, D-070).
+25. ✅ **Art upgrade** (0.40.0, D-075): every sprite redrawn, walls and palisades that join up, burrow nests, damage that shows.
+26. 🚧 **Co-op phase 1** (D-076, D-077): ✅ the relay on Cloudflare (0.41.0). **Next:** Host and Join with a room code in the game, the host stamping command ticks and sending turns, both engineers on screen, no pausing for lessons or blueprint picks in co-op.
+27. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 

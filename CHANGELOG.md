@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.41.1 · 2026-10-24 · Plans brought up to date
+### New
+- Nothing new in the game this time: the project's plans and notes are brought up to date.
+
 ## 0.41.0 · 2026-10-24 · Getting ready to play together
 ### New
 - **Behind the scenes:** the server that will connect co-op games is up. Playing together comes in a later update.
