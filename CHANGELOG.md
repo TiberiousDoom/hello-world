@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.43.1 · 2026-10-24 · Notes brought up to date
+### New
+- Nothing new in the game this time: the project's notes are brought up to date, and drawn belt corners, ends and joins are planned.
+
 ## 0.43.0 · 2026-10-24 · Moving pictures
 ### New
 - **Machines at work:** extractors spin, furnaces burn and smoke, gears and saws turn, the assembler's arm welds, and repair stations flare while they mend.
