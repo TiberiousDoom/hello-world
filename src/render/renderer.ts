@@ -2,7 +2,7 @@
 // shapes if one is missing) and only reads the simulation, so a 3D renderer
 // can replace it later behind the same draw() call.
 
-import { sprite, spritesLoaded } from '../art';
+import { frame, frameCount, sprite, spritesLoaded } from '../art';
 import {
   BUILDINGS,
   BuildingType,
@@ -31,7 +31,7 @@ import {
   isMachine,
   type Season,
 } from '../sim/data';
-import { Building, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
+import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching } from '../sim/ship';
 import { clockAt, darkness } from '../sim/clock';
@@ -56,12 +56,27 @@ const LANE_OFFSET = 0.21;
 const ITEM_ON_BELT = 0.34;
 /** Pixels per tile below which belt arrows stop sliding (#66). */
 const STILL_BELTS_BELOW = 20;
-/** A wash over the ground for each season (#42); spring is the ground as drawn. */
+/**
+ * A wash over the ground for each season (#42). The seasons have their own ground and trees (D-082),
+ * so this only warms summer and settles the grass tufts and flowers into fall leaves and snow.
+ */
 const SEASON_TINT: Record<Season['id'], string | null> = {
   spring: null,
   summer: 'rgba(255,214,110,0.07)',
-  fall: 'rgba(214,120,40,0.13)',
-  winter: 'rgba(228,238,255,0.34)',
+  fall: 'rgba(214,120,40,0.07)',
+  winter: 'rgba(228,238,255,0.12)',
+};
+/** Each season's sprites for the ground and the two kinds of tree (summer is the art as first drawn). */
+const SEASON_ART: Record<Season['id'], { ground: string; round: string; pine: string; over?: [string, string] }> = {
+  spring: { ground: 'terrain/ground_spring', round: 'terrain/tree_round_spring', pine: 'terrain/tree_pine_spring' },
+  summer: { ground: 'terrain/ground', round: 'terrain/tree_round', pine: 'terrain/tree_pine' },
+  fall: { ground: 'terrain/ground_fall', round: 'terrain/tree_round_fall', pine: 'terrain/tree_pine_fall' },
+  winter: {
+    ground: 'terrain/ground_winter',
+    round: 'terrain/tree_round_winter',
+    pine: 'terrain/tree_pine_winter',
+    over: ['terrain/tree_round_winter_frost', 'terrain/tree_pine_winter_snow'],
+  },
 };
 /** Night (#42): how dark it gets, and lights that keep the factory readable. */
 const NIGHT = { color: '8,14,40', alpha: 0.58 };
@@ -105,13 +120,14 @@ interface Layer {
 const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
 
 interface Effect {
-  kind: 'puff' | 'blast' | 'shockwave' | 'sparks';
+  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite';
   x: number;
   y: number;
-  r: number;
+  r: number; // for a sprite, its size in tiles
   born: number; // ms
   life: number; // ms
-  color: string;
+  color: string; // for a sprite, its strip's name
+  angle?: number;
 }
 
 export class Renderer {
@@ -125,7 +141,7 @@ export class Renderer {
   private aims = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
   /** Last known enemy positions and headings, to face sprites and place death puffs. */
-  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number }>();
+  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number; movedAt: number }>();
   private effects: Effect[] = [];
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
@@ -252,16 +268,24 @@ export class Renderer {
       const track = this.enemies.get(e.id);
       const angle = track?.angle ?? 0;
       const [ex, ey] = this.smooth(e, e.x, e.y);
-      // Walk cycle: the legs swap every short stride, so bugs only scuttle while moving.
+      // Walk cycle: a step every short stride, so bugs only scuttle while moving. Standing at a building
+      // or an engineer while angry, they bite (D-082).
       const stride = def.radius * 0.7;
-      const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
+      const step = Math.floor((track?.walked ?? 0) / stride + e.id);
+      const biting = !!track && s.time - track.movedAt > 0.15 && this.biting(world, e, def.radius);
+      const frame = step % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
       // Young bugs (D-065) are smaller, duller and a little darker until they grow up (D-075: pale ones vanished
       // on the light grass); their health bar is out of what they can have now.
       const grown = strength(world, e);
       const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob * (0.4 + 0.6 * grown);
       if (grown < 1) ctx.filter = `saturate(${Math.round(55 + 45 * grown)}%) brightness(${Math.round(80 + 20 * grown)}%)`;
-      if (!this.drawSprite(`enemies/${e.type}${frame}`, ex - size / 2, ey - size / 2, size, angle)) {
+      const x = ex - size / 2;
+      const y = ey - size / 2;
+      const drawn = biting
+        ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
+        : this.drawFrame(`enemies/${e.type}_walk`, step, x, y, size, angle);
+      if (!drawn && !this.drawSprite(`enemies/${e.type}${frame}`, x, y, size, angle)) {
         ctx.fillStyle = def.color;
         dot(ctx, ex, ey, def.radius * (0.4 + 0.6 * grown));
       }
@@ -402,6 +426,19 @@ export class Renderer {
   private drawSprite(key: string, x: number, y: number, size: number, angle = 0): boolean {
     const img = sprite(key);
     if (!img) return false;
+    this.drawCanvas(img, x, y, size, angle);
+    return true;
+  }
+
+  /** Draws frame `i` of a strip into a square, rotated about its centre. Returns false if it isn't loaded. */
+  private drawFrame(key: string, i: number, x: number, y: number, size: number, angle = 0): boolean {
+    const img = frame(key, i);
+    if (!img) return false;
+    this.drawCanvas(img, x, y, size, angle);
+    return true;
+  }
+
+  private drawCanvas(img: HTMLCanvasElement, x: number, y: number, size: number, angle: number): void {
     const ctx = this.ctx;
     if (angle) {
       ctx.save();
@@ -412,15 +449,13 @@ export class Renderer {
     } else {
       ctx.drawImage(img, x, y, size, size);
     }
-    return true;
   }
 
   /**
    * Draws a building sprite over its footprint (fw × fh tiles at x, y), turned
    * to face `dir`. Sprites are drawn facing east, so sideways turns swap width and height.
    */
-  private drawSpriteRect(key: string, x: number, y: number, fw: number, fh: number, dir: Dir): boolean {
-    const img = sprite(key);
+  private drawSpriteRect(key: string, x: number, y: number, fw: number, fh: number, dir: Dir, img = sprite(key)): boolean {
     if (!img) return false;
     const ctx = this.ctx;
     const [w, h] = dir % 2 ? [fh, fw] : [fw, fh];
@@ -612,7 +647,7 @@ export class Renderer {
 
   private drawGround(w: number, h: number): void {
     const ctx = this.ctx;
-    const img = sprite('terrain/ground');
+    const img = sprite(SEASON_ART[this.season].ground) ?? sprite('terrain/ground');
     // A pattern belongs to the context it was made in, and the ground is painted rarely, so make it each time.
     const pattern = img ? ctx.createPattern(img, 'repeat') : null;
     pattern?.setTransform(new DOMMatrix().scale(1 / img!.width));
@@ -626,6 +661,8 @@ export class Renderer {
     const pick = h % 100;
     const key = pick < 14 ? 'terrain/tuft' : pick < 18 ? 'terrain/flowers' : pick < 21 ? 'terrain/flowers_blue' : pick < 23 ? 'terrain/pebbles' : pick < 24 ? 'terrain/mushrooms' : '';
     if (!key) return;
+    // Under the snow, only pebbles and mushrooms show (D-082).
+    if (this.season === 'winter' && pick < 21 && sprite('terrain/ground_winter')) return;
     const jx = ((h >>> 8) % 40) / 100 - 0.2;
     const jy = ((h >>> 16) % 40) / 100 - 0.2;
     this.drawSprite(key, x + jx, y + jy, 1, (((h >>> 24) % 4) * Math.PI) / 2);
@@ -701,12 +738,17 @@ export class Renderer {
         if (trees[world.idx(x, y)] !== TREE) continue;
         const hv = hash(x + 5000, y + 5000);
         const kind = hv % 10;
-        // In fall the broadleaf trees turn (#42).
-        const key = kind < 5 ? (this.season === 'fall' ? 'terrain/tree_autumn' : 'terrain/tree_round') : kind < 9 ? 'terrain/tree_pine' : 'terrain/tree_autumn';
+        // Each season has its own trees (#42, D-082); a few broadleaf trees are already turning in summer.
+        const art = SEASON_ART[this.season];
+        const pine = kind >= 5 && kind < 9;
+        const key = this.season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : art.round;
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const jx = ((hv >>> 12) % 20) / 100 - 0.1;
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
-        if (!this.drawSprite(key, x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4)) {
+        const at: [number, number, number, number] = [x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4];
+        if (this.drawSprite(key, ...at) || this.drawSprite(pine ? 'terrain/tree_pine' : 'terrain/tree_round', ...at)) {
+          if (art.over) this.drawSprite(art.over[pine ? 1 : 0], ...at); // snow and frost settle on top
+        } else {
           ctx.fillStyle = FOREST_CANOPY;
           dot(ctx, x + 0.5, y + 0.5, 0.55);
         }
@@ -714,9 +756,9 @@ export class Renderer {
     }
   }
 
-  /** Winter frost on the trees drawn into a cached canopy (only where trees were painted). */
+  /** Winter frost on the trees drawn into a cached canopy (only where trees were painted), until their winter art loads. */
   private frostTrees(x0: number, y0: number, x1: number, y1: number): void {
-    if (this.season !== 'winter') return;
+    if (this.season !== 'winter' || sprite('terrain/tree_round_winter')) return;
     const ctx = this.ctx;
     ctx.save();
     ctx.globalCompositeOperation = 'source-atop';
@@ -1014,7 +1056,13 @@ export class Renderer {
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
 
-    if (!this.drawSpriteRect(this.spriteKey(world, b), b.x, b.y, fw, fh, directional ? b.dir : 0)) {
+    // Working machines run their animation (D-082), on game time so it stops when the game pauses.
+    const working =
+      ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3) ||
+      (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6));
+    const key = this.spriteKey(world, b);
+    const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * 8 + b.id) : undefined;
+    if (!this.drawSpriteRect(key, b.x, b.y, fw, fh, directional ? b.dir : 0, anim ?? sprite(key))) {
       ctx.fillStyle = def.color;
       ctx.fillRect(b.x + 0.08, b.y + 0.08, fw - 0.16, fh - 0.16);
       if (directional && !big) {
@@ -1026,8 +1074,7 @@ export class Renderer {
     if (big && directional && b.type !== 'splitter') this.drawOutputPort(world, b, z);
 
     // Working machines glow and pulse.
-    const working = (isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3;
-    if (working) {
+    if (working && b.type !== 'repair') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
         b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : '120,190,255';
@@ -1288,8 +1335,18 @@ export class Renderer {
       this.seenShots.add(sh);
       if (sh.jump) continue; // starts at a bug, not a turret
       const b = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
-      if (b) this.aims.set(b.id, Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1));
-      if (sh.splash) this.effects.push({ kind: 'blast', x: sh.x2, y: sh.y2, r: sh.splash, born: now, life: 350, color: '255,170,70' });
+      const aim = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
+      if (b) this.aims.set(b.id, aim);
+      if (!sh.arc) {
+        // A flash at the barrel tip, and a spark where the shot lands (D-082).
+        const reach = b?.type === 'hub' ? 0.72 : 0.48;
+        this.spriteFx('effects/muzzle_flash', sh.x1 + Math.cos(aim) * reach, sh.y1 + Math.sin(aim) * reach, b?.type === 'hub' ? 0.8 : 0.6, 160, now, aim);
+        if (!sh.splash) this.spriteFx('effects/hit_spark', sh.x2, sh.y2, 0.6, 200, now);
+      }
+      // The explosion goes off as the shell lands.
+      if (sh.splash && !this.spriteFx('effects/explosion', sh.x2, sh.y2, sh.splash * 2.2, 550, now + 90)) {
+        this.effects.push({ kind: 'blast', x: sh.x2, y: sh.y2, r: sh.splash, born: now, life: 350, color: '255,170,70' });
+      }
     }
 
     const alive = new Set<number>();
@@ -1298,19 +1355,36 @@ export class Renderer {
       const prev = this.enemies.get(e.id);
       let angle = prev?.angle ?? 0;
       let walked = prev?.walked ?? 0;
+      let movedAt = prev?.movedAt ?? s.time;
       if (prev) {
         const dx = e.x - prev.x;
         const dy = e.y - prev.y;
-        if (dx * dx + dy * dy > 1e-6) angle = Math.atan2(dy, dx);
+        if (dx * dx + dy * dy > 1e-6) {
+          angle = Math.atan2(dy, dx);
+          movedAt = s.time;
+        }
         walked += Math.hypot(dx, dy);
       }
-      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked });
+      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked, movedAt });
     }
     // Trees cut by a Lumber Camp: a burst of leaves.
     for (const f of world.felled) {
       if (this.seenFelled.has(f)) continue;
       this.seenFelled.add(f);
-      this.effects.push({ kind: 'puff', x: f.x + 0.5, y: f.y + 0.5, r: 0.8, born: now, life: 500, color: '127,174,79' });
+      if (!this.spriteFx('effects/leaf_burst', f.x + 0.5, f.y + 0.5, 1.7, 650, now)) {
+        this.effects.push({ kind: 'puff', x: f.x + 0.5, y: f.y + 0.5, r: 0.8, born: now, life: 500, color: '127,174,79' });
+      }
+    }
+    // Buildings lost to bugs fly apart; mended ones sparkle.
+    for (const l of world.lost) {
+      if (this.seenFelled.has(l)) continue;
+      this.seenFelled.add(l);
+      this.spriteFx('effects/debris', l.x, l.y, 1 + l.size * 0.5, 650, now);
+    }
+    for (const h of world.healed) {
+      if (this.seenFelled.has(h)) continue;
+      this.seenFelled.add(h);
+      this.spriteFx('effects/repair_sparkle', h.x, h.y, 0.9, 500, now);
     }
 
     // Mining by hand (#38): sparks on every tap, and a puff of the ore when one comes loose.
@@ -1325,7 +1399,7 @@ export class Renderer {
     for (const [id, e] of this.enemies) {
       if (alive.has(id)) continue;
       this.enemies.delete(id);
-      if (!breached) {
+      if (!breached && !this.spriteFx('effects/death_splat', e.x, e.y, ENEMIES[e.type].radius * 4.5, 500, now, e.angle)) {
         this.effects.push({ kind: 'puff', x: e.x, y: e.y, r: ENEMIES[e.type].radius * 2.2, born: now, life: 400, color: '224,68,90' });
       }
     }
@@ -1340,6 +1414,24 @@ export class Renderer {
     this.effects = this.effects.filter((fx) => now - fx.born < fx.life);
   }
 
+  /** Whether an angry bug standing still is at something it bites: a building beside it, or an engineer. */
+  private biting(world: World, e: Enemy, radius: number): boolean {
+    const n = world.state.nests.find((q) => q.id === e.nest);
+    if (!e.raid && !(n && isAngry(world, n))) return false;
+    const reach = radius + 0.55;
+    for (const [dx, dy] of [[reach, 0], [-reach, 0], [0, reach], [0, -reach]]) {
+      if (world.buildingAt(Math.floor(e.x + dx), Math.floor(e.y + dy))) return true;
+    }
+    return world.state.players.some((p) => p.downUntil == null && Math.hypot(p.x - e.x, p.y - e.y) <= radius + 0.45);
+  }
+
+  /** Plays a strip once at (x, y), `size` tiles across, over `life` ms from `at`. False if it isn't loaded. */
+  private spriteFx(key: string, x: number, y: number, size: number, life: number, at: number, angle = 0): boolean {
+    if (!frameCount(key)) return false;
+    this.effects.push({ kind: 'sprite', x, y, r: size, born: at, life, color: key, angle });
+    return true;
+  }
+
   private drawShots(world: World, now: number, z: number): void {
     const ctx = this.ctx;
     for (const sh of world.shots) {
@@ -1348,14 +1440,21 @@ export class Renderer {
         this.drawArc(sh, fade, z);
         continue;
       }
+      if (sh.splash && sprite('effects/cannon_shell')) {
+        // A cannon's shell flies the length of the shot in its moment on screen (D-082).
+        const u = Math.min(1, (sh.age + this.alpha * TICK) / 0.1);
+        const aim = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
+        this.drawSprite('effects/cannon_shell', sh.x1 + (sh.x2 - sh.x1) * u - 0.2, sh.y1 + (sh.y2 - sh.y1) * u - 0.2, 0.4, aim);
+        continue;
+      }
       ctx.strokeStyle = `rgba(255,224,138,${fade})`;
       ctx.lineWidth = (sh.splash ? 3 : 1.5) / z;
       ctx.beginPath();
       ctx.moveTo(sh.x1, sh.y1);
       ctx.lineTo(sh.x2, sh.y2);
       ctx.stroke();
-      if (sh.age < 0.06) {
-        // Muzzle flash at the barrel tip.
+      if (sh.age < 0.06 && !frameCount('effects/muzzle_flash')) {
+        // Muzzle flash at the barrel tip (drawn as a sprite effect once that has loaded).
         const a = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
         const reach = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1))?.type === 'hub' ? 0.72 : 0.48;
         const mx = sh.x1 + Math.cos(a) * reach;
@@ -1397,8 +1496,14 @@ export class Renderer {
    */
   private drawPlayers(world: World, now: number, z: number): void {
     const ctx = this.ctx;
+    const t = world.state.time;
     for (const p of world.state.players) {
-      if (p.downUntil != null) continue; // knocked out (D-074): it reappears at the hub
+      if (p.downUntil != null) {
+        // Knocked out (D-074): seeing stars where it fell, until it's back up at the hub (D-082).
+        const was = this.players.get(p.id);
+        if (was) this.drawFrame('units/engineer_ko', t * 6, was.x - 0.5, was.y - 0.5, 1, was.angle);
+        continue;
+      }
       let d = this.players.get(p.id);
       if (!d) {
         d = { x: p.x, y: p.y, angle: Math.PI / 2, walked: 0, trail: [[p.x, p.y]], at: now };
@@ -1459,9 +1564,18 @@ export class Renderer {
       const moving = p.path.length > 0 || !!p.walk;
       const frame = moving && Math.floor(d.walked / 0.35) % 2 ? '_b' : '';
       // A red flash just after a bite (D-074).
-      const bitten = p.hurtAt != null && world.state.time - p.hurtAt < 0.25;
+      const bitten = p.hurtAt != null && t - p.hurtAt < 0.25;
       if (bitten) ctx.filter = 'sepia(1) saturate(6) hue-rotate(-40deg)';
-      if (!this.drawSprite(`units/engineer${frame}`, d.x - 0.5, d.y - 0.5, 1, d.angle)) {
+      // Walking, working (mining by hand), or idle, each its own strip (D-082).
+      const working = !moving && !!p.mining && t - p.mining.at < 0.5;
+      const [strip, i] = moving ? ['units/engineer_walk', d.walked / 0.2] : working ? ['units/engineer_work', t * 8] : ['units/engineer_idle', t * 2.5];
+      if (working) {
+        // Face the ore being mined.
+        const w = world.state.width;
+        d.angle = Math.atan2(Math.floor(p.mining!.tile / w) + 0.5 - d.y, (p.mining!.tile % w) + 0.5 - d.x);
+      }
+      const at: [number, number, number, number] = [d.x - 0.5, d.y - 0.5, 1, d.angle];
+      if (!this.drawFrame(strip, i, ...at) && !this.drawSprite(`units/engineer${frame}`, ...at)) {
         ctx.fillStyle = '#ffcc33';
         dot(ctx, d.x, d.y, 0.3);
       }
@@ -1500,7 +1614,12 @@ export class Renderer {
     for (const fx of this.effects) {
       const t = (now - fx.born) / fx.life;
       const a = 1 - t;
-      if (fx.kind === 'blast') {
+      if (fx.kind === 'sprite') {
+        if (t < 0) continue; // not started yet
+        const n = frameCount(fx.color);
+        const img = frame(fx.color, Math.min(n - 1, Math.floor(t * n)));
+        if (img) this.drawCanvas(img, fx.x - fx.r / 2, fx.y - fx.r / 2, fx.r, fx.angle ?? 0);
+      } else if (fx.kind === 'blast') {
         ctx.fillStyle = `rgba(${fx.color},${0.45 * a})`;
         dot(ctx, fx.x, fx.y, fx.r * (0.5 + 0.5 * t));
         ctx.strokeStyle = `rgba(255,240,200,${a})`;

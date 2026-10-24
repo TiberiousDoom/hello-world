@@ -1,0 +1,154 @@
+// Builds the machines' working animations (D-082) from their own sprites: each strip is 4 frames of the
+// building's SVG with only its moving parts changed (a rotor or saw turning, gears, flames, smoke, sparks,
+// sawdust). Run `node art/working.mjs` after redrawing a machine; it writes
+// src/art/buildings/<type>_working_4f.svg next to the sprite it comes from.
+//
+// Each change is a find-and-replace on the sprite's own markup, so a redraw that moves a part makes this
+// fail loudly rather than animate the wrong thing.
+
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ART = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'art', 'buildings');
+const FRAMES = 4;
+
+/** Replaces `find` (which must occur exactly once) in `svg`. */
+function swap(svg, find, replace, what) {
+  const n = svg.split(find).length - 1;
+  if (n !== 1) throw new Error(`${what}: expected one match for ${JSON.stringify(find.slice(0, 60))}, found ${n}`);
+  return svg.replace(find, replace);
+}
+
+/** Inserts `extra` just before the sprite's closing tag (drawn on top of everything). */
+const onTop = (svg, extra) => svg.replace(/<\/svg>\s*$/, `${extra}</svg>`);
+
+/** Small dots at (x, y) pairs, for sparks, chips and sawdust. */
+const dots = (fill, pts, r = 1.2) => `<g fill="${fill}">${pts.map(([x, y, rr]) => `<circle cx="${x}" cy="${y}" r="${rr ?? r}" />`).join('')}</g>`;
+
+/** Each machine: how frame `i` (0–3) differs from the still sprite. */
+const MACHINES = {
+  extractor(svg, i) {
+    // The rotor has three blades: 30° a frame turns it a third of the way round in 4 frames, so it loops.
+    svg = swap(svg, '<g transform="translate(64 64)" stroke="#0f1a2e"', `<g transform="translate(64 64) rotate(${30 * i})" stroke="#0f1a2e"`, 'extractor rotor');
+    const chips = [
+      [[46, 46], [84, 52], [70, 86]],
+      [[52, 40], [90, 64], [60, 88]],
+      [[42, 56], [86, 78], [74, 42]],
+      [[48, 82], [80, 44], [92, 70]],
+    ][i];
+    return onTop(svg, dots('#a88a5c', chips, 1.8));
+  },
+  furnace(svg, i) {
+    svg = swap(svg, 'fill="#ff8a3d" opacity="0.55"', `fill="#ff8a3d" opacity="${[0.5, 0.7, 0.58, 0.78][i]}"`, 'furnace glow');
+    // Flames licking up the firebox, a little different each frame.
+    const h = [
+      [16, 24, 18],
+      [22, 17, 25],
+      [18, 26, 15],
+      [25, 19, 22],
+    ][i];
+    const flames = [48, 62, 76]
+      .map((x, k) => `<path d="M${x - 7} 87 Q${x - 6} ${87 - h[k] * 0.6} ${x + (i % 2 ? 1 : -1)} ${87 - h[k]} Q${x + 6} ${87 - h[k] * 0.6} ${x + 7} 87 Z" />`)
+      .join('');
+    // Smoke from the chimney, rising and fading through the loop.
+    const puff = (k) => {
+      const t = (i + k) % FRAMES;
+      return `<circle cx="${32 + t * 6}" cy="${15 - t * 2.5}" r="${3.5 + t * 1.2}" opacity="${0.55 - t * 0.12}" />`; // stays inside the frame
+    };
+    svg = swap(
+      svg,
+      /<g fill="#d6dbe2">.*?<\/g>/s.exec(svg)?.[0] ?? '<g fill="#d6dbe2">',
+      `<g fill="#d6dbe2">${[0, 2].map(puff).join('')}</g>`,
+      'furnace smoke',
+    );
+    const embers = [
+      [[54, 62], [70, 74], [62, 54]],
+      [[56, 56], [68, 68], [60, 48]],
+      [[52, 50], [72, 62], [64, 70]],
+      [[58, 66], [66, 52], [50, 58]],
+    ][i];
+    return onTop(svg, `<g fill="#ffb347" opacity="0.85">${flames}</g>${dots('#fff6d0', embers, 1.6)}`);
+  },
+  workshop(svg, i) {
+    // Ten teeth: a quarter tooth a frame for the big gear, half a tooth the other way for the small one.
+    svg = swap(svg, 'translate(46 52) rotate(8)', `translate(46 52) rotate(${8 + 9 * i})`, 'workshop big gear');
+    svg = swap(svg, 'translate(73.5 79.5) rotate(26)', `translate(73.5 79.5) rotate(${26 - 18 * i})`, 'workshop small gear');
+    svg = swap(svg, '<circle cx="104" cy="104" r="9" fill="#ffd36b" opacity="0.2" />', `<circle cx="104" cy="104" r="9" fill="#ffd36b" opacity="${i % 2 ? 0.45 : 0.15}" />`, 'workshop lamp');
+    return svg;
+  },
+  assembler(svg, i) {
+    // The arm nods over the work, sparks at its tip, the gear turns and the lights take turns.
+    const start = '<path d="M84 156 L70 116 L100 94" fill="none" stroke="#0f1a2e" stroke-width="15"';
+    const end = '<circle cx="98" cy="96" r="2" fill="#ff8a3d" />';
+    const a = svg.indexOf(start);
+    const b = svg.indexOf(end);
+    if (a < 0 || b < a) throw new Error('assembler arm: not found');
+    const arm = svg.slice(a, b + end.length);
+    const angle = [0, -5, 0, 4][i];
+    svg = svg.slice(0, a) + `<g transform="rotate(${angle} 84 156)">${arm}${i % 2 ? '' : '<circle cx="100" cy="94" r="5" fill="#fff3b0" opacity="0.8" />'}</g>` + svg.slice(b + end.length);
+    svg = swap(svg, '<g transform="translate(108 92)"', `<g transform="translate(108 92) rotate(${11.25 * i})"`, 'assembler gear');
+    svg = swap(svg, '<circle cx="28" cy="28" r="5" fill="#6ee07a" />', `<circle cx="28" cy="28" r="5" fill="${i < 2 ? '#6ee07a' : '#2c6b38'}" />`, 'assembler green light');
+    svg = swap(svg, '<circle cx="164" cy="28" r="5" fill="#3fa9f5" />', `<circle cx="164" cy="28" r="5" fill="${i < 2 ? '#1d4f78' : '#3fa9f5'}" />`, 'assembler blue light');
+    return svg;
+  },
+  repair(svg, i) {
+    // Eight teeth: an eighth of a turn over the loop. The torch flares and the light blinks.
+    svg = swap(svg, 'transform="translate(29 30) scale(0.15)"', `transform="translate(29 30) rotate(${11.25 * i}) scale(0.15)"`, 'repair gear');
+    svg = swap(svg, '<circle cx="41" cy="17" r="5" fill="#bfe4ff" opacity="0.35" />', `<circle cx="41" cy="17" r="${[5, 7, 4.5, 6.5][i]}" fill="#bfe4ff" opacity="${[0.35, 0.55, 0.3, 0.5][i]}" />`, 'repair torch glow');
+    const sparks = [
+      'M41 17 l-4 -2 M41 17 l-1 -4.5 M41 17 l-4.5 1.5 M41 17 l-2 4',
+      'M41 17 l-5 -1 M41 17 l0 -5 M41 17 l-3.5 3 M41 17 l3 3',
+      'M41 17 l-3 -3.5 M41 17 l2 -4 M41 17 l-5 0.5 M41 17 l-1 4.5',
+      'M41 17 l-4.5 -3 M41 17 l-2 -4 M41 17 l-3 3.5 M41 17 l4 1',
+    ][i];
+    svg = swap(svg, 'M41 17 l-4 -2 M41 17 l-1 -4.5 M41 17 l-4.5 1.5 M41 17 l-2 4', sparks, 'repair sparks');
+    svg = swap(svg, '<circle cx="14" cy="14" r="3" fill="#6ee07a"', `<circle cx="14" cy="14" r="3" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'repair light');
+    return svg;
+  },
+  lumber_camp(svg, i) {
+    // Sixteen teeth: a quarter tooth a frame. Sawdust flies off the cut.
+    svg = swap(svg, 'translate(96 64) rotate(10)', `translate(96 64) rotate(${10 + 5.625 * i})`, 'lumber camp saw');
+    const dust = [
+      [[84, 86], [88, 92], [80, 94], [106, 88]],
+      [[82, 90], [90, 96], [78, 98], [108, 92]],
+      [[86, 84], [84, 94], [92, 88], [104, 84]],
+      [[80, 88], [88, 98], [94, 92], [110, 90]],
+    ][i];
+    svg = swap(svg, /<g fill="#e6c48c">.*?<\/g>/s.exec(svg)?.[0] ?? 'lumber dust', dots('#e6c48c', dust), 'lumber camp sawdust');
+    return svg;
+  },
+  sawmill(svg, i) {
+    svg = swap(svg, 'translate(64 64) rotate(4)', `translate(64 64) rotate(${4 + 5.625 * i})`, 'sawmill saw');
+    // The log feeds into the blade.
+    svg = swap(svg, '<use href="#mLog" x="16" y="57.5" transform="translate(0 0)" />', `<use href="#mLog" x="16" y="57.5" transform="translate(${2 * i} 0)" />`, 'sawmill log');
+    const dust = [
+      [[76, 88], [72, 92], [80, 94], [70, 40]],
+      [[74, 90], [78, 96], [84, 92], [74, 36]],
+      [[78, 86], [70, 94], [82, 98], [68, 38]],
+      [[72, 88], [76, 98], [86, 94], [76, 40]],
+    ][i];
+    svg = swap(svg, /<g fill="#e6c48c">.*?<\/g>/s.exec(svg)?.[0] ?? 'sawmill dust', dots('#e6c48c', dust), 'sawmill sawdust');
+    return svg;
+  },
+};
+
+/** Lays the frames side by side, each clipped to its own square, sharing the sprite's defs. */
+function strip(base, frame) {
+  const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(base) ?? [];
+  if (!w) throw new Error('no viewBox');
+  const inner = (svg) => svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+  const defs = /<defs>[\s\S]*?<\/defs>/.exec(base)?.[0] ?? '';
+  const frames = [];
+  for (let i = 0; i < FRAMES; i++) {
+    const body = inner(frame(base, i)).replace(/<defs>[\s\S]*?<\/defs>/, '');
+    frames.push(`<svg x="${i * w}" y="0" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" overflow="hidden">${body}</svg>`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w * FRAMES} ${h}">${defs}${frames.join('')}</svg>\n`;
+}
+
+for (const [type, frame] of Object.entries(MACHINES)) {
+  const base = readFileSync(join(ART, `${type}.svg`), 'utf8');
+  writeFileSync(join(ART, `${type}_working_4f.svg`), strip(base, frame));
+  console.log(`${type}_working_4f.svg`);
+}

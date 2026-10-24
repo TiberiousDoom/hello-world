@@ -3,6 +3,10 @@
 // over a .svg with the same name, so final art drops in beside the
 // placeholders without code changes. Missing sprites fall back to shapes
 // drawn in code.
+//
+// An animation is a strip: square frames side by side, named with the frame count, e.g.
+// 'enemies/crawler_walk_4f'. It's cut into frames on loading and read with frame('enemies/crawler_walk', i)
+// (D-082).
 
 const files = import.meta.glob<string>('./**/*.{svg,png}', { eager: true, query: '?url', import: 'default' });
 
@@ -42,7 +46,30 @@ const TILES: Record<string, [number, number]> = {
   'terrain/tree_autumn': [2, 2],
   'terrain/tree_pine': [2, 2],
   'terrain/bush': [2, 2],
+  'terrain/tree_round_spring': [2, 2],
+  'terrain/tree_round_fall': [2, 2],
+  'terrain/tree_round_winter': [2, 2],
+  'terrain/tree_round_winter_frost': [2, 2],
+  'terrain/tree_pine_spring': [2, 2],
+  'terrain/tree_pine_fall': [2, 2],
+  'terrain/tree_pine_winter': [2, 2],
+  'terrain/tree_pine_winter_snow': [2, 2],
+  'effects/explosion': [2, 2],
 };
+
+/** A strip's frame count from its name ('…_4f'), or 0 for a single sprite. */
+export function stripFrames(key: string): number {
+  const m = /_(\d+)f$/.exec(key);
+  return m ? Number(m[1]) : 0;
+}
+
+/** Tiles a sprite or one frame covers: a machine's working strip is the size of the machine. */
+function tilesOf(key: string): [number, number] {
+  return TILES[key] ?? TILES[key.replace(/_working$/, '')] ?? [1, 1];
+}
+
+/** Each strip's frames, by its name without the count ('enemies/crawler_walk'). */
+const strips = new Map<string, HTMLCanvasElement[]>();
 const cache = new Map<string, HTMLCanvasElement>();
 
 /** URL for use in HTML (toolbar, menus). */
@@ -60,6 +87,19 @@ export function sprite(key: string): HTMLCanvasElement | undefined {
   return cache.get(key);
 }
 
+/** Frame `i` of a strip (counting round: any whole number works), if it exists and has loaded. */
+export function frame(key: string, i: number): HTMLCanvasElement | undefined {
+  const frames = strips.get(key);
+  if (!frames) return undefined;
+  const n = frames.length;
+  return frames[((Math.floor(i) % n) + n) % n];
+}
+
+/** How many frames a strip has (0 if it isn't loaded). */
+export function frameCount(key: string): number {
+  return strips.get(key)?.length ?? 0;
+}
+
 /**
  * Loads and pre-renders every map sprite once, so drawing is a cheap image
  * copy instead of rasterising SVG every frame. UI icons are only used in HTML.
@@ -73,12 +113,28 @@ export async function loadArt(): Promise<void> {
           const img = new Image();
           img.onload = () => {
             const unit = key.startsWith('items/') ? PX_PER_TILE / 2 : PX_PER_TILE;
-            const [tw, th] = TILES[key] ?? [1, 1];
-            const canvas = document.createElement('canvas');
-            canvas.width = unit * tw;
-            canvas.height = unit * th;
-            canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-            cache.set(key, canvas);
+            const n = stripFrames(key);
+            const name = n ? key.replace(/_\d+f$/, '') : key;
+            const [tw, th] = tilesOf(name);
+            const w = unit * tw;
+            const h = unit * th;
+            const whole = document.createElement('canvas');
+            whole.width = w * Math.max(1, n);
+            whole.height = h;
+            whole.getContext('2d')!.drawImage(img, 0, 0, whole.width, whole.height);
+            if (n) {
+              // Cut the strip into its frames.
+              const frames: HTMLCanvasElement[] = [];
+              for (let i = 0; i < n; i++) {
+                const f = document.createElement('canvas');
+                f.width = w;
+                f.height = h;
+                f.getContext('2d')!.drawImage(whole, i * w, 0, w, h, 0, 0, w, h);
+                frames.push(f);
+              }
+              strips.set(name, frames);
+            }
+            cache.set(key, n ? strips.get(name)![0] : whole);
             resolve();
           };
           img.onerror = () => {

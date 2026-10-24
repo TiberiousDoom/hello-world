@@ -532,7 +532,7 @@ setInterval(save, AUTOSAVE_MS);
 hydrateIcons();
 renderer.resize();
 showMainMenu();
-loadArt(); // sprites appear as they finish loading; shapes are drawn until then
+const artLoaded = loadArt(); // sprites appear as they finish loading; shapes are drawn until then
 
 
 let last = performance.now();
@@ -636,6 +636,8 @@ requestAnimationFrame(frame);
   music,
   sfx,
   version: VERSION,
+  /** Resolves once every sprite has loaded (or failed to). */
+  artLoaded,
   /** The co-op room: its phase, this game's slot, and the lockstep (D-078). */
   coop,
   /** The scripted game the cross-browser determinism test runs (D-058). */
