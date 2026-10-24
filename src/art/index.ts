@@ -17,6 +17,15 @@ const PX_PER_TILE = 128;
 /** Sprites bigger than one tile: [width, height] in tiles, as drawn facing east. */
 const TILES: Record<string, [number, number]> = {
   'buildings/hub': [5, 5],
+  'buildings/hub_damaged': [5, 5],
+  'nests/warren': [2, 2],
+  'nests/hive': [2, 2],
+  'nests/den': [2, 2],
+  'nests/queen': [3, 3],
+  'nests/hardcore': [2, 2],
+  'nests/angry': [2, 2],
+  'nests/damaged': [2, 2],
+  'nests/destroyed': [2, 2],
   'buildings/extractor': [2, 2],
   'buildings/furnace': [2, 2],
   'buildings/workshop': [2, 2],

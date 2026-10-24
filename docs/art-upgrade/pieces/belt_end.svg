@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><g id="beltStraight">
+        <rect y="6" width="64" height="52" fill="#262b35" /><rect y="10" width="64" height="8" fill="#000000" opacity="0.25" />
+        <path d="M6 16 L15 32 L6 48 M22 16 L31 32 L22 48 M38 16 L47 32 L38 48 M54 16 L63 32 L54 48" fill="none" stroke="#353c4b" stroke-width="5" stroke-linejoin="round" />
+        <rect y="2" width="64" height="9" fill="url(#eRail)" stroke="#0f1a2e" stroke-width="1.5" /><rect y="53" width="64" height="9" fill="url(#eRail)" stroke="#0f1a2e" stroke-width="1.5" />
+        <path d="M0 3.8 H64" stroke="#eef3f9" stroke-width="1.2" opacity="0.8" />
+      </g>
+      <linearGradient id="eRail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d2de" /><stop offset="1" stop-color="#5a6478" /></linearGradient>
+      <pattern id="eHaz" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#f2c14e" /><rect width="4" height="8" fill="#1b2230" /></pattern>
+      </defs><g><use href="#beltStraight" /><rect x="52" y="4" width="10" height="56" rx="3" fill="url(#eHaz)" stroke="#0f1a2e" stroke-width="2" /><rect x="50" y="10" width="3" height="44" fill="#1b2230" /></g>
+      </svg>

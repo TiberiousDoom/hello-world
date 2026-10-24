@@ -38,6 +38,7 @@ import { clockAt, darkness } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
+import { runPiece } from './runs';
 import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
@@ -211,6 +212,9 @@ export class Renderer {
     const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
     this.drawLayer(this.ground, stamp, view, (lx0, ly0, lx1, ly1) => this.paintGround(world, lx0, ly0, lx1, ly1));
 
+    // Blighted ground around standing nests, under everything built, so danger zones read from the ground's colour.
+    for (const n of s.nests) if (!n.destroyed && visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawBlight(n);
+
     // Paired tunnels: a faint dotted line where the belt runs underground.
     for (const b of s.buildings) {
       if (b.type !== 'tunnel' || b.link == null || world.isTunnelExit(b)) continue;
@@ -252,10 +256,11 @@ export class Renderer {
       const stride = def.radius * 0.7;
       const frame = Math.floor((track?.walked ?? 0) / stride + e.id) % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
-      // Young bugs (D-065) are smaller and paler until they grow up; their health bar is out of what they can have now.
+      // Young bugs (D-065) are smaller, duller and a little darker until they grow up (D-075: pale ones vanished
+      // on the light grass); their health bar is out of what they can have now.
       const grown = strength(world, e);
       const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob * (0.4 + 0.6 * grown);
-      if (grown < 1) ctx.filter = `saturate(${Math.round(40 + 60 * grown)}%) brightness(${Math.round(140 - 40 * grown)}%)`;
+      if (grown < 1) ctx.filter = `saturate(${Math.round(55 + 45 * grown)}%) brightness(${Math.round(80 + 20 * grown)}%)`;
       if (!this.drawSprite(`enemies/${e.type}${frame}`, ex - size / 2, ey - size / 2, size, angle)) {
         ctx.fillStyle = def.color;
         dot(ctx, ex, ey, def.radius * (0.4 + 0.6 * grown));
@@ -381,9 +386,19 @@ export class Renderer {
       ctx.strokeRect(n.x - m, n.y - m, c + 2 * m, c + 2 * m);
       ctx.setLineDash([]);
     }
-    // The mound: a dirt heap with burrows, cracked when badly hurt, flattened once destroyed (D-065).
+    // The mound: a burrow entrance by kind (D-065), with eyes when angry and a collapsing rim when badly hurt.
     const standing = !n.destroyed;
     const [cx, cy] = nestCentre(n);
+    const kind = n.brood.brute > 0 ? 'den' : n.brood.runner > 0 ? 'hive' : 'warren';
+    const key = !standing ? 'nests/destroyed' : world.state.mode === 'hardcore' ? 'nests/hardcore' : `nests/${kind}`;
+    if (this.drawSprite(key, cx - 1, cy - 1, 2)) {
+      if (!standing) return;
+      if (angry) this.drawSprite('nests/angry', cx - 1, cy - 1, 2);
+      if (n.hp < n.maxHp / 2) this.drawSprite('nests/damaged', cx - 1, cy - 1, 2);
+      if (n.hp < n.maxHp) bar(ctx, cx - 0.7, cy - 1.25, 1.4, n.hp / n.maxHp, '#e0445a');
+      return;
+    }
+    // Drawn in code when the sprites are missing.
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
     ctx.ellipse(cx + 0.15, cy + 0.2, 1.5, 1.1, 0, 0, Math.PI * 2);
@@ -898,7 +913,33 @@ export class Renderer {
   private spriteKey(world: World, b: Building): string {
     if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
     if (TURRETS[b.type]) return `buildings/${b.type}_base`;
+    if (b.type === 'wall' || b.type === 'palisade') {
+      const key = `buildings/${b.type}${runPiece(world, b)}`;
+      return sprite(key) ? key : `buildings/${b.type}`;
+    }
+    if (b.type === 'hub' && b.hp < world.maxHp(b) / 2 && sprite('buildings/hub_damaged')) return 'buildings/hub_damaged';
     return `buildings/${b.type}`;
+  }
+
+  /** Dead, straw-coloured grass fading out around a nest's mound (blight). */
+  private drawBlight(n: Nest): void {
+    const ctx = this.ctx;
+    const [cx, cy] = nestCentre(n);
+    const r = NESTS.cell * 0.55;
+    const g = ctx.createRadialGradient(cx, cy, 0.8, cx, cy, r);
+    g.addColorStop(0, 'rgba(110,90,52,0.75)');
+    g.addColorStop(0.5, 'rgba(138,122,66,0.45)');
+    g.addColorStop(1, 'rgba(122,122,64,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+  }
+
+  /** Cracks and smoke over a building's footprint once it's badly hurt (the hub has its own damaged sprite). */
+  private drawDamage(world: World, b: Building, fw: number, fh: number): void {
+    if (b.type === 'hub' || isBelt(b.type)) return;
+    const health = b.hp / world.maxHp(b);
+    const img = health < 0.25 ? sprite('effects/damage_2') : health < 0.5 ? sprite('effects/damage_1') : undefined;
+    if (img) this.ctx.drawImage(img, b.x, b.y, fw, fh);
   }
 
   private drawBuilding(world: World, b: Building, now: number, z: number): void {
@@ -990,6 +1031,7 @@ export class Renderer {
     }
 
     if (b.type === 'shipyard') this.drawShip(world, b, now);
+    this.drawDamage(world, b, fw, fh);
     if (shake) ctx.translate(-shake, 0);
     const maxHp = world.maxHp(b);
     if (b.hp < maxHp) bar(ctx, b.x + 0.1, b.y + 0.02, fw - 0.2, b.hp / maxHp, b.hp / maxHp > 0.35 ? '#7bd389' : '#e0445a');

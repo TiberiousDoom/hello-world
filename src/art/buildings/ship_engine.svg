@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-<path d="M70 136 A26.0 6 0 0 0 122 136 L122 158 A26 8 0 0 1 70 158 Z" fill="#33404f" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round"/>
-<g fill="#ff9a3c" stroke="#0f1a2e" stroke-width="1"><rect x="78" y="144" width="7" height="4" rx="1"/><rect x="92.5" y="147" width="7" height="4" rx="1"/><rect x="107" y="144" width="7" height="4" rx="1"/></g>
-<path d="M78.0 162 L82.0 170 L94.0 170 L98.0 162 Z M94.0 162 L98.0 170 L110.0 170 L114.0 162 Z" fill="#5a6478" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round"/>
-<g fill="#ffd36b" opacity="0.9"><ellipse cx="88.0" cy="170" rx="6" ry="1.8"/><ellipse cx="104.0" cy="170" rx="6" ry="1.8"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><linearGradient id="sSkirt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4a5a6e" /><stop offset="0.35" stop-color="#5f7085" /><stop offset="1" stop-color="#1f2833" /></linearGradient>
+      <linearGradient id="sBell" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a96a8" /><stop offset="0.4" stop-color="#c9d2de" /><stop offset="1" stop-color="#3a4656" /></linearGradient>
+      </defs><g>
+        <path d="M70 136 A26 6 0 0 0 122 136 L122 158 A26 8 0 0 1 70 158 Z" fill="url(#sSkirt)" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M74 140 V156" stroke="#8aa0b8" stroke-width="2" opacity="0.6" />
+        <g stroke="#0f1a2e" stroke-width="1"><rect x="79" y="144" width="7" height="4" rx="1" fill="#ff9a3c" /><rect x="92.5" y="147" width="7" height="4" rx="1" fill="#ffb03a" /><rect x="106" y="144" width="7" height="4" rx="1" fill="#ff9a3c" /></g>
+        <g fill="#ffb03a" opacity="0.35"><ellipse cx="82.5" cy="146" rx="6" ry="4" /><ellipse cx="96" cy="149" rx="6" ry="4" /><ellipse cx="109.5" cy="146" rx="6" ry="4" /></g>
+        <path d="M79 161 L76 172 L96 172 L93 161 Z M99 161 L96 172 L116 172 L113 161 Z" fill="url(#sBell)" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+        <g fill="#ffd36b" opacity="0.9"><ellipse cx="86" cy="172" rx="9" ry="2" /><ellipse cx="106" cy="172" rx="9" ry="2" /></g>
+        <g fill="#3a1a0a"><ellipse cx="86" cy="172" rx="5" ry="1" /><ellipse cx="106" cy="172" rx="5" ry="1" /></g>
+      </g>
+      </svg>

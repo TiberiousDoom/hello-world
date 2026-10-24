@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.40.0 · 2026-10-23 · New art
+### New
+- **New art:** every building, bug, item and resource is redrawn, with one light, soft shadows and glossy bugs. The forest keeps its look, a little richer.
+- **Walls and palisades join up:** each piece is chosen from its neighbours, with its own corners, ends and a lone post. North–south runs show their side.
+- **Nests are burrows:** warrens, hives and dens look different by the bugs inside, Hardcore nests look meaner, and the ground around a nest is blighted. Angry and damaged nests show it, and a destroyed nest leaves a collapsed hole.
+- **Damage shows:** hurt buildings show cracks, and the hub looks battered below half health.
+- **Young bugs** are a little darker, so they stand out on the grass.
+
 ## 0.39.0 · 2026-10-23 · Bugs notice your engineer
 ### New
 - **Bugs notice your engineer:** walking close to calm bugs stirs up their nest, and angry bugs nearby go for the engineer. A health bar shows when they're hurt, and health comes back after a short rest.

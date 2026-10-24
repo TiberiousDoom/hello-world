@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-<path d="M82.0 46 Q96.0 38 110.0 46 L108.0 56 Q96.0 60 84.0 56 Z" fill="#7fc8ff" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round"/>
-<path d="M87.0 46 Q94.0 42 100.0 44" fill="none" stroke="#e8f6ff" stroke-width="2.5" stroke-linecap="round"/>
-<path d="M96.0 10 V2" stroke="#0f1a2e" stroke-width="2.5"/><circle cx="96.0" cy="3" r="3" fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.5"/>
-<path d="M120 72 q12 -6 16 4 q-9 4 -16 -4 z" fill="#c9d2de" stroke="#0f1a2e" stroke-width="2"/>
-<circle cx="38" cy="156" r="4" fill="#e0445a" stroke="#0f1a2e" stroke-width="1.5"/><circle cx="154" cy="156" r="4" fill="#7bd389" stroke="#0f1a2e" stroke-width="1.5"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><linearGradient id="sGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bfe4ff" /><stop offset="0.5" stop-color="#3fa9f5" /><stop offset="1" stop-color="#16305a" /></linearGradient>
+      <linearGradient id="sTruss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9d2de" /><stop offset="1" stop-color="#6d7a8d" /></linearGradient>
+      </defs><g>
+        <path d="M81 46 Q96 37 111 46 L109 57 Q96 61 83 57 Z" fill="url(#sGlass)" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M86 46 Q93 42 101 43.5" fill="none" stroke="#e8f6ff" stroke-width="2.5" stroke-linecap="round" />
+        <path d="M96 10 V0" stroke="#0f1a2e" stroke-width="2.5" />
+        <circle cx="96" cy="2" r="6" fill="#f2c14e" opacity="0.35" /><circle cx="96" cy="2" r="3" fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.5" />
+        <path d="M121 70 q13 -7 18 4 q-10 5 -18 -4 z" fill="url(#sTruss)" stroke="#0f1a2e" stroke-width="2" />
+        <path d="M128 72 L134 66" stroke="#0f1a2e" stroke-width="1.5" /><circle cx="134" cy="66" r="1.6" fill="#ff5a4a" />
+        <circle cx="42" cy="164" r="4" fill="#e0445a" stroke="#0f1a2e" stroke-width="1.5" /><circle cx="42" cy="164" r="8" fill="#e0445a" opacity="0.25" />
+        <circle cx="150" cy="164" r="4" fill="#6ee07a" stroke="#0f1a2e" stroke-width="1.5" /><circle cx="150" cy="164" r="8" fill="#6ee07a" opacity="0.25" />
+      </g>
+      </svg>

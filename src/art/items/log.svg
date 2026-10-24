@@ -1,7 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<path d="M14 24 L46 14 Q56 12 58 22 Q60 32 50 34 L18 44 Z" fill="#8a5a32" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round"/>
-<path d="M22 30 L44 23 M24 37 L48 29" stroke="#6b4426" stroke-width="2" stroke-linecap="round"/>
-<ellipse cx="16" cy="34" rx="8" ry="10" transform="rotate(-18 16 34)" fill="#e2b77c" stroke="#0f1a2e" stroke-width="3"/>
-<ellipse cx="16" cy="34" rx="4.5" ry="6" transform="rotate(-18 16 34)" fill="none" stroke="#b9874e" stroke-width="1.8"/>
-<circle cx="16" cy="34" r="1.6" fill="#8a5a32"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="iBark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8703e" /><stop offset="1" stop-color="#5e3a1a" /></linearGradient>
+      </defs><g>
+        <path d="M14 24 L46 14 Q56 12 58 22 Q60 32 50 34 L18 44 Z" fill="url(#iBark)" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round" />
+        <path d="M18 26 L46 17" stroke="#c99a64" stroke-width="2.4" stroke-linecap="round" opacity="0.8" />
+        <path d="M24 31 L44 25 M26 38 L50 30 M34 28 L40 26" stroke="#4a2c12" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M52 16 Q56 20 55 26" stroke="#4a2c12" stroke-width="1.2" fill="none" />
+        <ellipse cx="16" cy="34" rx="8" ry="10" transform="rotate(-18 16 34)" fill="#e8c28a" stroke="#0f1a2e" stroke-width="3" />
+        <ellipse cx="16" cy="34" rx="5" ry="6.5" transform="rotate(-18 16 34)" fill="none" stroke="#b9874e" stroke-width="1.4" />
+        <ellipse cx="16" cy="34" rx="2.4" ry="3.2" transform="rotate(-18 16 34)" fill="none" stroke="#b9874e" stroke-width="1.2" />
+        <path d="M16 34 L21 28" stroke="#9a6a3c" stroke-width="0.9" />
+      </g>
+      </svg>

@@ -1,12 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<rect x="0" y="6" width="64" height="52" fill="#20242d"/>
-<rect x="0" y="4" width="64" height="7" fill="#5a6478" stroke="#0f1a2e" stroke-width="1.5"/>
-<rect x="0" y="53" width="64" height="7" fill="#5a6478" stroke="#0f1a2e" stroke-width="1.5"/>
-<g fill="#8a96a8"><circle cx="56" cy="7.5" r="1.6"/><circle cx="56" cy="56.5" r="1.6"/></g>
-<g fill="#2c323e"><rect x="40" y="14" width="3" height="36"/><rect x="49" y="14" width="3" height="36"/></g>
-<path d="M34 4 H2 a2 2 0 0 0 -2 2 V58 a2 2 0 0 0 2 2 H34 Z" fill="#4a4540" stroke="#0f1a2e" stroke-width="3"/>
-<path d="M30 12 H6 V52 H30 Z" fill="#05070a"/>
-<g stroke="#20242d" stroke-width="3"><path d="M27 15 V49"/><path d="M21 18 V46"/><path d="M16 21 V43" opacity="0.6"/><path d="M12 24 V40" opacity="0.3"/></g>
-<path d="M33 6 L29 6 L33 12 Z M33 16 L29 10 L29 16 L33 22 Z M33 26 L29 20 L29 26 L33 32 Z M33 36 L29 30 L29 36 L33 42 Z M33 46 L29 40 L29 46 L33 52 Z" fill="#f2c14e"/>
-<path d="M44 25 L54 32 L44 39 Z" fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.5"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><pattern id="mHaz" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#f2c14e" /><rect width="4" height="8" fill="#1b2230" /></pattern>
+      <radialGradient id="mMouth" cx="30%" cy="50%" r="80%"><stop offset="0" stop-color="#1a1d24" /><stop offset="1" stop-color="#030406" /></radialGradient>
+      <linearGradient id="mStone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8f897f" /><stop offset="1" stop-color="#4a4743" /></linearGradient>
+      <filter id="mSh1" x="-15%" y="-15%" width="140%" height="140%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="1.4" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+      <g id="mBeltH">
+        <rect x="0" y="6" width="64" height="52" fill="#262b35" />
+        <rect x="0" y="10" width="64" height="8" fill="#000000" opacity="0.25" />
+        <path d="M6 16 L15 32 L6 48 M22 16 L31 32 L22 48 M38 16 L47 32 L38 48 M54 16 L63 32 L54 48" fill="none" stroke="#353c4b" stroke-width="5" stroke-linejoin="round" />
+        <rect x="0" y="2" width="64" height="9" fill="url(#mRail)" stroke="#0f1a2e" stroke-width="1.5" />
+        <rect x="0" y="53" width="64" height="9" fill="url(#mRail)" stroke="#0f1a2e" stroke-width="1.5" />
+        <path d="M0 3.8 H64" stroke="#eef3f9" stroke-width="1.2" opacity="0.8" />
+      </g>
+      <linearGradient id="mRail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d2de" /><stop offset="1" stop-color="#5a6478" /></linearGradient>
+      </defs><use href="#mBeltH" />
+          <path d="M42 24 L52 32 L42 40 Z" fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.5" stroke-linejoin="round" />
+          <g filter="url(#mSh1)"><path d="M36 3 H4 Q1 3 1 6 V58 Q1 61 4 61 H36 Z" fill="url(#mStone)" stroke="#0f1a2e" stroke-width="2.5" /></g>
+          <path d="M5 6 H32" stroke="#c2bbb1" stroke-width="1.4" stroke-linecap="round" />
+          <path d="M32 11 H7 Q6 11 6 12 V52 Q6 53 7 53 H32 Z" fill="url(#mMouth)" />
+          <g stroke="#20242d" stroke-width="2.5"><path d="M27 15 V49" /><path d="M21 18 V46" opacity="0.7" /><path d="M16 21 V43" opacity="0.45" /><path d="M12 24 V40" opacity="0.25" /></g>
+          <rect x="31" y="3" width="5" height="58" fill="url(#mHaz)" stroke="#0f1a2e" stroke-width="1.2" />
+        </svg>

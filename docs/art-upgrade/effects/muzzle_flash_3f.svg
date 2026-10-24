@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 32"><defs><g id="mf3"><g fill="#a9a49a" opacity="0.6"><circle cx="16" cy="15" r="5" /><circle cx="22" cy="17" r="4" /><circle cx="12" cy="18" r="3.5" /></g><circle cx="9" cy="16" r="3" fill="#ffd36b" opacity="0.6" /></g>
+      
+      <g id="mf2"><circle cx="14" cy="16" r="11" fill="url(#eGlowW)" /><path d="M3 16 L29 10 L23 16 L29 22 Z" fill="#ffb03a" /><path d="M3 16 L24 12.5 L19 16 L24 19.5 Z" fill="#fff3c4" /><use href="#pStar8" transform="translate(9 16) scale(0.08)" fill="#ffffff" /></g>
+      <radialGradient id="eGlowW"><stop offset="0" stop-color="#ffffff" /><stop offset="0.4" stop-color="#fff3c4" stop-opacity="0.8" /><stop offset="1" stop-color="#ffb03a" stop-opacity="0" /></radialGradient>
+      <path id="pStar8" d="M0 -100 L16 -39 L71 -71 L39 -16 L100 0 L39 16 L71 71 L16 39 L0 100 L-16 39 L-71 71 L-39 16 L-100 0 L-39 -16 L-71 -71 L-16 -39 Z" />
+      <g id="mf1"><circle cx="10" cy="16" r="7" fill="url(#eGlowW)" /><use href="#pStar4" transform="translate(10 16) scale(0.06)" fill="#fff3c4" /></g>
+      <path id="pStar4" d="M0 -100 L21 -21 L100 0 L21 21 L0 100 L-21 21 L-100 0 L-21 -21 Z" />
+      </defs><g transform="translate(0 0)"><use href="#mf1" /></g><g transform="translate(32 0)"><use href="#mf2" /></g><g transform="translate(64 0)"><use href="#mf3" /></g></svg>

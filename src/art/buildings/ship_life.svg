@@ -1,8 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-<path d="M70 92 A26.0 6 0 0 0 122 92 L122 122 A26 6 0 0 1 70 122 Z" fill="#4c6a6d" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round"/>
-<g stroke="#0f1a2e" stroke-width="2"><rect x="61" y="90" width="12" height="34" rx="6" fill="#9fb3b6"/><rect x="119" y="90" width="12" height="34" rx="6" fill="#7f9396"/></g>
-<g stroke="#2e3a40" stroke-width="2.5"><path d="M61 100 h12 M61 114 h12 M119 100 h12 M119 114 h12"/></g>
-<path d="M67 107 H76 M116 107 H125" stroke="#8a96a8" stroke-width="3"/>
-<g fill="#2e3a40"><rect x="83.0" y="102" width="4" height="12" rx="1"/><rect x="90.0" y="103" width="4" height="12" rx="1"/><rect x="97.0" y="103" width="4" height="12" rx="1"/><rect x="104.0" y="102" width="4" height="12" rx="1"/></g>
-<circle cx="112" cy="98" r="2.2" fill="#7bd389" stroke="#0f1a2e" stroke-width="1"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><pattern id="sHaz" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f2c14e" /><rect width="5" height="10" fill="#1b2230" /></pattern>
+
+      <linearGradient id="sLife" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5e8a8e" /><stop offset="0.35" stop-color="#8fb8bb" /><stop offset="1" stop-color="#2f4a4d" /></linearGradient>
+      <linearGradient id="sPod" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b9cfd1" /><stop offset="1" stop-color="#5e7a7d" /></linearGradient>
+      </defs><g>
+        <path d="M70 92 A26 6 0 0 0 122 92 L122 122 A26 6 0 0 1 70 122 Z" fill="url(#sLife)" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <g fill="#ffe29a" stroke="#0f1a2e" stroke-width="1"><rect x="82" y="103" width="4" height="7" rx="1.5" /><rect x="89.5" y="104" width="4" height="7" rx="1.5" /><rect x="97" y="104" width="4" height="7" rx="1.5" /><rect x="104.5" y="103" width="4" height="7" rx="1.5" /></g>
+        <g stroke="#0f1a2e" stroke-width="2"><rect x="60" y="89" width="13" height="36" rx="6.5" fill="url(#sPod)" /><rect x="119" y="89" width="13" height="36" rx="6.5" fill="url(#sPod)" /></g>
+        <g fill="url(#sHaz)"><rect x="60.5" y="96" width="12" height="4" /><rect x="119.5" y="96" width="12" height="4" /></g>
+        <path d="M63 93 V120" stroke="#e2eff0" stroke-width="1.6" stroke-linecap="round" opacity="0.8" />
+        <path d="M67 107 H76 M116 107 H125" stroke="#8a96a8" stroke-width="3" />
+        <circle cx="113" cy="98" r="2.3" fill="#6ee07a" stroke="#0f1a2e" stroke-width="1" /><circle cx="113" cy="98" r="5" fill="#6ee07a" opacity="0.25" />
+        <path d="M74 97 V118" stroke="#d8ecee" stroke-width="2.4" stroke-linecap="round" opacity="0.45" />
+      </g>
+      </svg>

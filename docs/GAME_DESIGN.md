@@ -151,7 +151,7 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
   woods as they regrow.
 - The **Sawmill** (2×2 machine) turns 1 log into 2 planks.
 - The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
-  like walls.
+  like walls. Walls and palisades join up with their neighbours, with their own corners and ends.
 - Selecting a camp shows its reach, and how many trees and regrowing stumps it has.
 - **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
   **Ballista** (researched after Palisades and Basic Defense). **Repair stations** burn planks as well as
@@ -261,7 +261,7 @@ A new game starts with an empty hub and no belts (#38, D-062). The first minutes
 There are no waves (D-038). Bugs are distant threats that only attack when provoked.
 Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts`.
 
-- Each **nest** owns one 10×10 cell, marked by a dirt mound. Its bugs stroll and rest inside that
+- Each **nest** owns one 10×10 cell, marked by a burrow entrance. Its bugs stroll and rest inside that
   cell and never leave it while calm.
 - A nest is **provoked** when:
   - anything is built inside its cell or within 2 tiles of it,
@@ -279,14 +279,14 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   a standing mound. A turret, cannon, ballista or tesla with **no bugs in reach** shoots a mound within
   range of its edge, which provokes the nest. The hub's gun never does. A damaged mound shows a health
   bar, and cracks below half.
-- **Destroying a mound** clears the territory for good: its mound goes flat, and the cell can be built
+- **Destroying a mound** clears the territory for good: its burrow collapses, and the cell can be built
   on, or taken by a spreading territory. It drops **chitin** into hub stock: 3, plus 1 per 25 tiles from
   the hub, up to 10. Its **surviving bugs stay angry**, with no home and no leash, until they're killed.
 - **Breeding (D-065, D-071).** A calm nest with fewer bugs than it started with breeds one every
   **60–90 s**, of a kind it's short of, until it's back to full. An angry nest doesn't breed, and its
   timer starts again once it calms down. A destroyed nest never breeds. A mound with no bugs left
   still stands, counts as a live nest, and breeds back.
-- **Young bugs** hatch at **half** an adult's health and bite, smaller and paler, and grow into adults
+- **Young bugs** hatch at **half** an adult's health and bite, smaller, duller and a little darker, and grow into adults
   over **3 minutes**: their health and bite rise steadily, keeping any damage they've taken.
 - **Threat (D-065, D-072).** A threat level starts at 0 and rises by 1 every **18 minutes** of play, up
   to 10. A message says when it rises, and the clock in the top bar shows it (⚠). At each level:

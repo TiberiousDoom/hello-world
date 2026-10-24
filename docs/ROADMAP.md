@@ -13,7 +13,7 @@ quality and business work don't get left until the end.
 | M2a: Logistics and sustain | Branching lines, tunnels, repair | ✅ |
 | M2b: Progression and onboarding | Research, tutorial, modes, hub ports, docs | ✅ |
 | M3a: Placeholder art and main menu | Detailed placeholder sprites, art pipeline, main menu, menu style | ✅ |
-| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; forest placeholders in; final sprites to come |
+| M3b: Final art and sound | Replace placeholders with final sprites, plus sound | 🚧 Music and sound effects done; upgraded sprites in (0.40.0, D-075); animation strips and effects to wire in |
 | M3c: Playtest polish | Playtest notes: tutorial, store lock, hub weapon, controls; batch 2 (blueprints, belts, forest); batch 3 (music, tracker, lessons) | ✅ |
 | M4: Depth | Upgrades, more content, balance | ⬜ |
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
@@ -110,9 +110,9 @@ In this order. Phase 0 can start before the player character (playtest issue #40
 ### Nests (D-065, #53)
 In this order:
 - ✅ **Phase 1, mounds and chitin** (0.31.0): nests are mounds with health; destroying one clears the territory, survivors stay angry until killed; chitin drops into stock; its first use is Chitin Plating (research: 1.5× health for turrets and walls)
-- ✅ **Phase 2, breeding and young bugs** (0.36.0, D-071): calm nests breed back to their starting number; young bugs hatch small and weak and grow up over 3 minutes. They reuse the adult sprites, smaller and paler, until young-bug art exists
+- ✅ **Phase 2, breeding and young bugs** (0.36.0, D-071): calm nests breed back to their starting number; young bugs hatch small and weak and grow up over 3 minutes. They reuse the adult sprites, smaller and duller (darker since 0.40.0), until young-bug art exists
 - ✅ **Phase 3, threat** (0.37.0, D-072): a threat level rising every 18 minutes makes new bugs tougher and spreading faster; shooting a nest's bugs wakes its neighbours
-- ⬜ **Phase 4, themed kinds and queens:** crawler warrens, runner hives and brute dens by distance, each with its own mound art; rare queen nests near the map edge
+- ⬜ **Phase 4, themed kinds and queens:** crawler warrens, runner hives and brute dens by distance, each with its own burrow art (drawn, and shown by brood since 0.40.0); rare queen nests near the map edge
 - ⬜ **Phase 5, Hardcore nests:** harder numbers, destroy only by building over the mound and a ring, faster breeding while being built over; the Hardcore look
 - ✅ **Night raids** (0.38.0, D-073): from the second night, some nights a nest near your buildings sends a small party with no leash until morning; every night in Hardcore
 
@@ -171,9 +171,10 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038)
 - ✅ Menu style: navy and sky blue, flat icons, Montserrat headings (M3a, D-011)
 - 🚧 Final P1 sprites from the project owner: items, resource nodes, belt, extractor, furnace, hub, turret, crawler
+- ✅ Art upgrade (0.40.0, D-075): every sprite redrawn; wall and palisade sets that join up; burrow nests; damage overlays; damaged hub
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects, UI icons, app icon
-- ⬜ Loading animation strips (frame sheets) for belts, machines and enemies
+- ⬜ Loading animation strips (frame sheets) for belts, machines and enemies; the strips, effects and seasonal trees are drawn in `docs/art-upgrade/`
 - ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is

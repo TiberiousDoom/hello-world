@@ -1,6 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<rect x="4" y="4" width="56" height="56" rx="6" fill="#33404f" stroke="#0f1a2e" stroke-width="3"/>
-<path d="M4 4 L22 22 M60 4 L42 22 M4 60 L22 42 M60 60 L42 42" stroke="#26303c" stroke-width="5"/>
-<circle cx="32" cy="32" r="20" fill="#174f45" stroke="#0f1a2e" stroke-width="2.5"/>
-<g fill="#f2c14e"><rect x="7" y="7" width="6" height="6" rx="1"/><rect x="51" y="7" width="6" height="6" rx="1"/><rect x="7" y="51" width="6" height="6" rx="1"/><rect x="51" y="51" width="6" height="6" rx="1"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs>
+            <filter id="cbSh" x="-15%" y="-15%" width="140%" height="140%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="1.4" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+            <linearGradient id="cbG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b9099" /><stop offset="1" stop-color="#454a53" /></linearGradient>
+          </defs>
+          <g filter="url(#cbSh)"><rect x="3" y="3" width="58" height="58" rx="9" fill="url(#cbG)" stroke="#0f1a2e" stroke-width="3" /></g>
+          <path d="M5.5 52 V12 Q5.5 5.5 12 5.5 H52" fill="none" stroke="#e3e6ea" stroke-width="1.4" opacity="0.6" />
+          <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1" stroke-linejoin="round"><path d="M7 7 h9 l-9 9 z" /><path d="M57 7 h-9 l9 9 z" /><path d="M7 57 h9 l-9 -9 z" /><path d="M57 57 h-9 l9 -9 z" /></g>
+          <g stroke="#5b6069" stroke-width="1"><path d="M20 6 L18 14 M44 58 L46 50 M58 22 L52 24" /></g>
+          <circle cx="32" cy="32" r="21" fill="#2c3644" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="32" cy="32" r="18.5" fill="none" stroke="#6d7a8d" stroke-width="1.5" stroke-dasharray="3 2" />
+        </svg>

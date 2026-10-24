@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64"><defs><g id="lb4" opacity="0.5"><use href="#leaf" transform="translate(10 14) rotate(160)" /><use href="#leafY" transform="translate(56 22) rotate(110)" /><use href="#leaf" transform="translate(42 60) rotate(240)" /><use href="#leafY" transform="translate(8 50) rotate(280)" /></g>
+
+      
+      <g id="leafY"><ellipse cx="0" cy="0" rx="4.5" ry="2.2" fill="#9ec95a" stroke="#1f4a1c" stroke-width="0.6" /></g>
+      <g id="leaf"><ellipse cx="0" cy="0" rx="4.5" ry="2.2" fill="#4f9550" stroke="#1f4a1c" stroke-width="0.6" /><path d="M-4 0 H4" stroke="#2f6a3a" stroke-width="0.6" /></g>
+      <g id="lb3"><use href="#leaf" transform="translate(14 16) rotate(110)" /><use href="#leafY" transform="translate(52 22) rotate(60)" /><use href="#leaf" transform="translate(40 54) rotate(190)" /><use href="#leafY" transform="translate(12 46) rotate(230)" /><use href="#leaf" transform="translate(34 8) rotate(10)" /></g>
+      <g id="lb2"><use href="#leaf" transform="translate(22 22) rotate(60)" /><use href="#leafY" transform="translate(44 26) rotate(10)" /><use href="#leaf" transform="translate(36 44) rotate(130)" /><use href="#leafY" transform="translate(20 40) rotate(170)" /><use href="#leaf" transform="translate(32 18) rotate(-40)" /></g>
+      <g id="lb1"><use href="#leaf" transform="translate(30 30) rotate(20)" /><use href="#leafY" transform="translate(35 33) rotate(-30)" /><use href="#leaf" transform="translate(32 36) rotate(70)" /><use href="#leafY" transform="translate(28 34) rotate(110)" /></g>
+      </defs><g transform="translate(0 0)"><use href="#lb1" /></g><g transform="translate(64 0)"><use href="#lb2" /></g><g transform="translate(128 0)"><use href="#lb3" /></g><g transform="translate(192 0)"><use href="#lb4" /></g></svg>
