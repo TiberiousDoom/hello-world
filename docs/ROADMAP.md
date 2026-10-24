@@ -59,8 +59,11 @@ quality and business work don't get left until the end.
 28. ⬜ **Playtest batch 6, bugs** (open issues, 0.43.0): research needs two taps or clicks to start (#86); buildings snap to belts too eagerly, with no way to override it (#85); belts don't meet the hub's corners with the new art (#78).
 29. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
 30. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
-31. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): a research tree that opens up step by step (#88, Q-23); ore kept at least 20 tiles from the hub (#89, Q-21); a Storage Unit, iron ingots and a Blacksmith, and a player inventory (#87, Q-22); fog of war (#43, Q-20).
-32. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+31. ⬜ **Three eras and defence tiers** (#88, D-083): early, mid and late game, each later one opened by a keystone research; wooden defences first (Ballista, Palisade), then Turret and Wall, then Cannon and Tesla; then Tiers 1 to 4 for each defence, paid from the engineer's inventory (after #87). See Gameplay → Next.
+32. ⬜ **Bugs that don't give up mid-chase** (owner's note): see Nests.
+33. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
+34. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); a Storage Unit, iron ingots and a Blacksmith, and a player inventory (#87, Q-22); fog of war (#43, Q-20).
+35. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
@@ -124,6 +127,7 @@ In this order:
 - ⬜ **Phase 4, themed kinds and queens:** crawler warrens, runner hives and brute dens by distance, each with its own burrow art (drawn, and shown by brood since 0.40.0); rare queen nests near the map edge
 - ⬜ **Phase 5, Hardcore nests:** harder numbers, destroy only by building over the mound and a ring, faster breeding while being built over; the Hardcore look
 - ✅ **Night raids** (0.38.0, D-073): from the second night, some nights a nest near your buildings sends a small party with no leash until morning; every night in Hardcore
+- ⬜ **A looser leash** (owner's note): today a provoked bug chases at most 22 tiles from its territory's centre (30 at night) and then turns back, even in the middle of a chase or a raid, which pulls you out of the game. Instead, a bug keeps going while it has a target, and gives up and goes home only when no building or engineer is within a set distance of it
 
 ### Next (M4)
 - ✅ Faster belts: the Express Belt, a colony blueprint (D-049, D-050)
@@ -138,7 +142,9 @@ In this order:
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (nest density and toughness)
-- ❓ **A research tree that opens up step by step (#88, Q-23):** today four researches are open from the start (Logistics, Basic Defense, Forestry, Masonry). The idea is fewer at first, with more needing others first (for example Palisades before Masonry's walls)
+- ⬜ **Three eras (#88, D-083):** the game splits into early, mid and late eras; each later era opens with a keystone research that needs several of the era before, and the research menu groups researches by era. Today four researches are open from the start (Logistics, Basic Defense, Forestry, Masonry)
+- ⬜ **Defences by era (D-083):** early, Basic Defense gives the Ballista and the Palisade; mid, the Turret and the Wall; late, the Cannon and the Tesla (moved from a colony blueprint to research)
+- ⬜ **Defence tiers (D-083):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, so it comes after the inventory (#87, Q-22). What each tier improves and costs is still to decide
 - ❓ **Ore further from the hub (#89, Q-21):** no ore within 20 tiles of the hub. Today a starter patch of each ore sits 8–12 tiles out so the start from nothing (D-062) is a short walk; moving it out makes the first minutes longer
 - ❓ **Storage and a player inventory (#87, Q-22):** a 1×2 Storage Unit (6 slots of 50); Iron Ingot from the furnace (1 ore), and a 2×2 Blacksmith that makes iron plates from it; an Inventory button opening 12 slots of 10 for the engineer, filled by Collect and by selecting a belt, splitter or underground belt with items on it, and emptied first by Drop off. It would replace what the engineer carries today (items trailing behind, D-067) and change every early recipe
 - ❓ **Fog of war (#43, Q-20):** the map hidden until the engineer or buildings clear it, slowly coming back. What it hides, how far things see, whether it changes play (then it's in the rules and must stay deterministic) and whether co-op shares it are still to decide
@@ -192,6 +198,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects, UI icons, app icon
 - ✅ Animated art (0.43.0, D-082): strips cut into frames on loading; bugs walk in 4 steps and bite; the engineer walks, works, idles and sees stars when knocked out; sprite effects (muzzle flash, hit spark, cannon shell, explosion, death splat, debris, repair sparkle, leaf burst); seasonal ground and trees; every working machine animates (strips built from the machines' own sprites by `art/working.mjs`)
+- ⬜ **Seasons that fade in** (owner's note): today the ground and trees switch at once when the season changes. Instead, autumn loses its leaves gradually, snow builds up gradually in winter, and spring brings flowers first and then leaves. Only the look changes, so it stays out of the rules
 - ⬜ **Belts and the hub's corners (#78, bug):** since the art upgrade the hub's sprite has cut corners, so a belt meeting a corner tile of the hub looks unattached. A join drawn there, or square corners where belts can meet them
 - ⬜ Belt corners, end caps and join flanges as sprites (reference art in `docs/art-upgrade/pieces/`), with the chevrons still moving in code. The tesla bolt stays drawn in code; its reference is only a guide
 - ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)

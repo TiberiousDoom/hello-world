@@ -5,7 +5,7 @@ what's **New** and what's **Fixed**.
 
 ## 0.43.1 · 2026-10-24 · Notes brought up to date
 ### New
-- Nothing new in the game this time: the project's notes are brought up to date, drawn belt corners, ends and joins are planned, and your latest feedback is in the plans.
+- Nothing new in the game this time: the project's notes are brought up to date, drawn belt corners, ends and joins are planned, and your latest feedback is in the plans: an early, mid and late game with wooden defences first and upgrades for every defence, bugs that don't give up in the middle of a chase, and seasons that fade in.
 
 ## 0.43.0 · 2026-10-24 · Moving pictures
 ### New
