@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GUEST_RATE, MAX_GUEST_MESSAGE, RelayMessage, Role, makeCode, validCode } from './protocol';
-import { Allowance, CLOSE_POLICY, Peer, admit, leave, route, welcome } from './room';
+import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, route, welcome } from './room';
 
 /** A connection that records what it was sent, and whether it was closed. */
 function peer(slot: number, role: Role = slot === 0 ? 'host' : 'guest', version = '1.0.0') {
@@ -84,6 +84,32 @@ describe('Co-op relay rooms (D-077)', () => {
     leave([host, a], peer(0));
     expect(a.got).toEqual([{ t: 'left', slot: 2 }, { t: 'closed', reason: 'host-left' }]);
     expect(a.closed).toBe(1000);
+  });
+
+  it('waits for a host whose connection dropped, and lets only that host back in (D-081)', () => {
+    const host = peer(0);
+    const a = peer(1);
+    const b = peer(2);
+    expect(leave([host, a, b], host, 1006)).toBe('wait');
+    expect(a.got).toEqual([{ t: 'host-away' }]);
+    expect(a.closed).toBeUndefined();
+    const room = { key: 'secret', version: '1.0.0' };
+    // Guests may still come in, on the host's version; only the host with the key may take it back.
+    expect(admit([a, b], 'guest', '1.0.0', '', room)).toEqual({ slot: 3 });
+    expect(admit([a, b], 'guest', '0.9.0', '', room)).toEqual({ refuse: 'version', hostVersion: '1.0.0' });
+    expect(admit([a, b], 'host', '1.0.0', 'guess', room)).toEqual({ refuse: 'taken' });
+    expect(admit([a, b], 'host', '1.0.0', 'secret', room)).toEqual({ slot: 0 });
+    // An empty room is new again: anyone may open it.
+    expect(admit([], 'host', '1.0.0', 'other', room)).toEqual({ slot: 0 });
+    expect(admit([], 'guest', '1.0.0', '', room)).toEqual({ refuse: 'no-room' });
+    // Not back in time: the room closes.
+    expire([a, b]);
+    expect(a.got.at(-1)).toEqual({ t: 'closed', reason: 'host-left' });
+    expect(b.closed).toBe(1000);
+    // A host leaving on purpose closes it at once.
+    const c = peer(1);
+    expect(leave([peer(0), c], peer(0), 1000)).toBeUndefined();
+    expect(c.got).toEqual([{ t: 'closed', reason: 'host-left' }]);
   });
 
   it("limits a guest's messages to GUEST_RATE a second, with short bursts", () => {

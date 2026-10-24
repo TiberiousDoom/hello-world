@@ -56,7 +56,7 @@ describe('The interface', () => {
   // Co-op only works if every change to the world is a command (D-058).
   it('changes the world only through commands', () => {
     // World methods that change it (not the interface's own methods of the same name, called on `this`).
-    const changes = /(?<!\bthis)\.(place|demolish|rotate|setRecipe|setFilter|startResearch|pauseResearch|researchNow|upgradeBeltLine|mineByHand|collect|dropOff|moveTo|walk|setSplitterSide|checkpoint|tick)\(|\b(launch|pickBlueprint|insertShip|applyCommand)\(/;
+    const changes = /(?<!\bthis)\.(place|demolish|rotate|setRecipe|setFilter|startResearch|pauseResearch|researchNow|upgradeBeltLine|mineByHand|collect|dropOff|moveTo|walk|setSplitterSide|addPlayer|sendHome|checkpoint|tick)\(|\b(launch|pickBlueprint|insertShip|applyCommand)\(/;
     // The interface's sources as text (main.ts may: it owns the session and the main menu's demo world).
     const sources = import.meta.glob<string>(['../ui/*.ts', '../input/*.ts', '!**/*.test.ts'], { query: '?raw', import: 'default', eager: true });
     expect(Object.keys(sources).length).toBeGreaterThan(4);

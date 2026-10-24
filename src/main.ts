@@ -9,17 +9,23 @@ import { HUB_SIZE } from './sim/data';
 import { Command, ResultOf, applyCommand } from './sim/commands';
 import { createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
-import { Session } from './sim/session';
-import { OldSaveError, TICK, World } from './sim/world';
+import { LoggedCommand, Session } from './sim/session';
+import { OldSaveError, PlaceError, TICK, World } from './sim/world';
 import { VERSION, changelogHtml } from './ui/changelog';
 import { clockAt } from './sim/clock';
 import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from './ui/feedback';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
-import { createUIState } from './ui/state';
+import { PING_MS, createUIState } from './ui/state';
 import { LESSONS, Tutorial } from './ui/tutorial';
+import { Lobby } from './ui/lobby';
+import { RELAY_URL } from './net/client';
+import { Coop } from './net/coop';
+import { CATCH_UP } from './net/lockstep';
 
 const SAVE_KEY = 'foundry-front-save';
+/** The last co-op game, kept by every player apart from their own factory (D-079). */
+const COOP_SAVE_KEY = 'foundry-front-coop-save';
 /** Progress that outlives a single game: lessons seen, tips on or off, hardcore unlocked. */
 const PROFILE_KEY = 'foundry-front-profile';
 const AUTOSAVE_MS = 20_000;
@@ -32,13 +38,13 @@ window.addEventListener('unhandledrejection', (e) => errorLog.push(`Unhandled: $
 const frameRate = new FrameRate();
 
 /** The saved game, or null. A save from before the new map (v8) can't be loaded, so it's cleared. */
-function loadWorld(): World | null {
+function loadWorld(key = SAVE_KEY): World | null {
   try {
-    const json = localStorage.getItem(SAVE_KEY);
+    const json = localStorage.getItem(key);
     if (json) return World.fromJSON(json);
   } catch (err) {
     if (err instanceof OldSaveError) {
-      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(key);
       const note = document.getElementById('mm-note');
       if (note) {
         note.textContent = 'Your saved factory was from an earlier version of the game, which used a different map. Start a new game to try the new one.';
@@ -85,15 +91,15 @@ function saveProfile(): void {
 function save(): void {
   if (!game) return; // the menu's demo world is never saved
   try {
-    localStorage.setItem(SAVE_KEY, game.toJSON());
+    localStorage.setItem(saveKey, game.toJSON());
   } catch (err) {
     console.warn('Could not save game.', err);
   }
 }
 
-function hasSave(): boolean {
+function hasSave(key = SAVE_KEY): boolean {
   try {
-    return localStorage.getItem(SAVE_KEY) != null;
+    return localStorage.getItem(key) != null;
   } catch {
     return false;
   }
@@ -103,14 +109,40 @@ function hasSave(): boolean {
 let game: World | null = null;
 /** That game's commands and clock (D-058). */
 let session: Session | null = null;
+/** Where it saves: your own factory's slot, or the co-op game's (D-079). */
+let saveKey = SAVE_KEY;
+/** The slot a hosted co-op game will save to: your factory's if you host it, else the co-op slot. */
+let hostSaveKey = COOP_SAVE_KEY;
 /** The factory running behind the main menu. */
 let demo = createDemoWorld();
 let inMenu = true;
 const active = () => (inMenu || !game ? demo : game);
 
-/** Every change the player makes to the world goes through here, as a command (D-058). */
-function issue<C extends Command>(command: C): ResultOf<C> {
-  return !inMenu && session ? session.do(command) : applyCommand(active(), command);
+/** The co-op room, if any (D-078). `?relay=` picks another relay: a local one, or `local` for two tabs. */
+const coop = new Coop(new URLSearchParams(location.search).get('relay') ?? RELAY_URL, VERSION);
+
+/**
+ * Every change the player makes to the world goes through here, as a command (D-058). In co-op it
+ * goes to the host, which says on which tick every game applies it; the result comes back later.
+ */
+function issue<C extends Command>(command: C): ResultOf<C> | undefined {
+  if (inMenu || !session) return applyCommand(active(), command);
+  if (coop.host) return void coop.host.submit(0, command);
+  if (coop.guest) return void coop.guest.submit(command);
+  return session.do(command);
+}
+
+/** In co-op, this player's commands answer a few ticks late: report their errors then. */
+let lastPlaceError = 0;
+function lateResult(entry: LoggedCommand, result: unknown): void {
+  if (!session || entry.player !== session.player || !ui.coop) return;
+  const c = entry.command;
+  if (c.kind === 'mine' && result === 'full') hud.toast('Your hands are full. Walk back to the hub to drop off what you carry.');
+  if (c.kind === 'mine' && result === 'down') hud.toast('Your engineer is getting back on their feet at the hub.');
+  if ((c.kind === 'place' || c.kind === 'upgrade-belts') && typeof result === 'string' && result !== 'occupied' && result !== 'bounds') {
+    // One a second at most: a drag can fail on many tiles, and the input may have said so already.
+    placeError(result as PlaceError);
+  }
 }
 
 const profile = loadProfile();
@@ -128,9 +160,10 @@ function centreOnHub(world: World): void {
   camera.zoom = window.innerWidth < 600 ? 26 : 34;
 }
 
-function play(world: World): void {
-  game = world;
-  session = new Session(world);
+/** Plays a game: alone, or the shared game of a co-op room (its session made there). */
+function play(world: World, shared?: Session): void {
+  if (!shared && coop.active) coop.leave();
+  useSession(world, shared);
   inMenu = false;
   document.body.classList.remove('in-menu');
   ui.selected = null;
@@ -142,8 +175,30 @@ function play(world: World): void {
   music.setMood('game');
 }
 
+/** Makes this the game being played: the camera and the rest of the screen stay as they are. */
+function useSession(world: World, shared?: Session): void {
+  game = world;
+  session = shared ?? new Session(world);
+  session.onApplied = lateResult;
+  ui.coop = shared ? coop.role : null;
+  ui.player = session.player;
+  saveKey = ui.coop === 'host' ? hostSaveKey : ui.coop === 'guest' ? COOP_SAVE_KEY : SAVE_KEY;
+  document.body.classList.toggle('coop-guest', ui.coop === 'guest');
+}
+
 function showMainMenu(): void {
   save();
+  if (ui.coop) {
+    // Leaving a co-op game leaves its room (the host's leaving ends it for everyone).
+    coop.leave();
+    endCoop();
+  }
+  if (saveKey !== SAVE_KEY) {
+    // A co-op game is saved in its own slot; Continue is for your own factory.
+    game = null;
+    session = null;
+    saveKey = SAVE_KEY;
+  }
   inMenu = true;
   document.body.classList.add('in-menu');
   demo = createDemoWorld();
@@ -168,6 +223,49 @@ function refreshMainMenu(): void {
     document.getElementById('mm-continue-sub')!.textContent = s.gameOver ? `${mode} · run over` : `${mode} · ${where}`;
     if (s.gameOver) btn.hidden = true;
   }
+}
+
+/**
+ * Back to playing alone. A guest's copy of the shared game stays in its co-op slot (D-079), to host
+ * later; it isn't the game Continue resumes.
+ */
+function endCoop(): void {
+  if (ui.coop === 'guest') {
+    save();
+    game = null;
+    session = null;
+    saveKey = SAVE_KEY;
+  }
+  ui.coop = null;
+  ui.pings = [];
+  ui.player = 0;
+  document.body.classList.remove('coop-guest');
+}
+
+/** This player points at tile (x, y) for the others (co-op, D-080): at most once a second. */
+let lastPing = -Infinity;
+function ping(x: number, y: number): boolean {
+  if (inMenu || !ui.coop) return false;
+  if (performance.now() - lastPing < 1000) return true;
+  lastPing = performance.now();
+  coop.ping(x, y);
+  showPing(ui.player, x, y);
+  return true;
+}
+
+/** A ping on the map, with its sound. */
+function showPing(player: number, x: number, y: number): void {
+  const now = performance.now();
+  ui.pings = [...ui.pings.filter((p) => now - p.at < PING_MS), { player, x, y, at: now }].slice(-12);
+  sfx.play('ping');
+}
+
+/** A building that can't go up. In co-op, said at most once a second: it may come again when the command lands. */
+function placeError(err: PlaceError): void {
+  if (ui.coop && performance.now() - lastPlaceError < 1000) return;
+  lastPlaceError = performance.now();
+  hud.placeError(err);
+  sfx.play('error');
 }
 
 const escapesCounted = new Set<number>();
@@ -239,12 +337,10 @@ const tutorial = new Tutorial(camera, active, ui, {
 const input = new Input(canvas, camera, ui, {
   getWorld: active,
   issue,
-  onPlaceError: (err) => {
-    hud.placeError(err);
-    sfx.play('error');
-  },
+  onPlaceError: placeError,
   onNotice: (text) => hud.toast(text),
   onChange: () => hud.refresh(),
+  ping,
 });
 const planBar = new PlanBar(camera, ui, {
   confirm: () => input.confirmPlan(),
@@ -301,6 +397,54 @@ document.getElementById('mm-continue')!.addEventListener('click', () => {
 });
 document.getElementById('mm-new')!.addEventListener('click', () => hud.openNewGame());
 document.getElementById('mm-help')!.addEventListener('click', () => hud.openModal('help'));
+
+/** A line about a saved game for the lobby, or null if there's none that can be hosted. */
+function describeSave(world: World | null): string | null {
+  if (!world || world.state.gameOver) return null;
+  const mins = Math.floor(world.state.time / 60);
+  return `${world.state.mode === 'hardcore' ? 'Hardcore' : 'Standard'} · ${mins} min played`;
+}
+
+const lobby = new Lobby(coop, {
+  saves: () => ({
+    solo: describeSave(saveKey === SAVE_KEY && game ? game : hasSave() ? loadWorld() : null),
+    coop: describeSave(hasSave(COOP_SAVE_KEY) ? loadWorld(COOP_SAVE_KEY) : null),
+  }),
+  start: (choice) => {
+    hostSaveKey = choice === 'solo' ? SAVE_KEY : COOP_SAVE_KEY;
+    const world = choice === 'solo' ? (saveKey === SAVE_KEY && game ? game : loadWorld()) : choice === 'coop' ? loadWorld(COOP_SAVE_KEY) : null;
+    void coop.start(world ?? World.create(undefined, 'standard'));
+  },
+  openModal: (id) => hud.openModal(id),
+  closeModals: () => hud.closeModals(),
+});
+document.getElementById('mm-coop')!.addEventListener('click', () => lobby.open());
+coop.onChange = () => lobby.render();
+coop.onStart = (shared, again) => {
+  // A fresh copy of the game a guest was already playing: swap it in where the player is looking.
+  if (again) return useSession(shared.world, shared);
+  play(shared.world, shared);
+  save();
+  hud.toast(coop.role === 'host' ? 'Playing together. Only you can pause or change the speed.' : 'Playing together. The host sets the speed.');
+};
+coop.onNotice = (text) => hud.toast(text);
+coop.onPing = showPing;
+coop.onEnd = (why) => {
+  if (ui.coop === 'host') {
+    // The host's game is its own: it carries on alone.
+    endCoop();
+    hud.toast(`${why} You carry on alone.`);
+    return;
+  }
+  if (ui.coop) {
+    // A guest's game was under way: saved, then back to the menu, saying why.
+    endCoop();
+    showMainMenu();
+    lobby.open();
+    why += ' It’s saved in this browser: host it from here to carry on.';
+  }
+  lobby.ended(why);
+};
 
 /** The version, and a dot on "What's new" until this player has looked at this version's changes. */
 function showVersion(): void {
@@ -413,16 +557,36 @@ function frame(now: number): void {
   const world = active();
   const elapsed = Math.min(0.25, (now - last) / 1000);
   last = now;
+  const guest = inMenu ? null : coop.guest;
+  if (guest) ui.speed = guest.speed; // the host's speed, shown on the guest's screen too
   acc += elapsed * (inMenu ? 1 : ui.speed);
   let ticks = 0;
-  while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) {
-    if (!inMenu && session) session.tick();
-    else world.tick(TICK);
-    if (inMenu) sustainDemo(world);
-    acc -= TICK;
-    ticks++;
+  if (guest) {
+    // A guest runs only the ticks the host has run, and catches up when it falls behind. Paused, it
+    // runs on to the host's tick, so both stop on the same one.
+    while (ticks < MAX_TICKS_PER_FRAME && guest.canTick && (acc >= TICK || guest.ahead > CATCH_UP || guest.speed === 0)) {
+      guest.tick();
+      acc = Math.max(0, acc - TICK);
+      ticks++;
+    }
+    if (!guest.canTick) acc = Math.min(acc, TICK); // waiting for the host: don't bank time to rush later
+    guest.flush(now);
+    // Out of step with the host, or far behind it: a fresh copy of the game is on its way (D-079).
+    if (!guest.resyncing && guest.desyncedAt != null) console.warn(`Co-op: out of step with the host from tick ${guest.desyncedAt}.`);
+    guest.checkHealth();
+  } else {
+    while (acc >= TICK && ticks < MAX_TICKS_PER_FRAME) {
+      if (inMenu) world.tick(TICK);
+      else if (coop.host) coop.host.tick();
+      else if (session) session.tick();
+      else world.tick(TICK);
+      if (inMenu) sustainDemo(world);
+      acc -= TICK;
+      ticks++;
+    }
+    if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
+    if (!inMenu && coop.host) coop.host.flush(ui.speed, now);
   }
-  if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
   if (inMenu) {
     // Drift slowly around the demo factory.
     const hub = world.hub!;
@@ -437,7 +601,7 @@ function frame(now: number): void {
     lastSeason = season;
   } else lastSeason = null;
   // Walking with the keys, the camera keeps the character in view (#40).
-  const player = world.state.players[0];
+  const player = world.state.players.find((p) => p.id === ui.player);
   if (!inMenu && player && input.walkingByKeys) {
     const ease = Math.min(1, elapsed * 4);
     camera.x += (player.x - camera.x) * ease;
@@ -472,6 +636,8 @@ requestAnimationFrame(frame);
   music,
   sfx,
   version: VERSION,
+  /** The co-op room: its phase, this game's slot, and the lockstep (D-078). */
+  coop,
   /** The scripted game the cross-browser determinism test runs (D-058). */
   runScenario,
 };

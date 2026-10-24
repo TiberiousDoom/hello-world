@@ -1,8 +1,10 @@
 # Co-op plan
 
 A plan for 2–4 players building and defending one factory together, in the browser, on desktop
-and phones. We're going ahead with it (D-056); nothing is built yet. Progress is tracked in
-[ROADMAP.md](ROADMAP.md) under Co-op (M4c).
+and phones. We're going ahead with it (D-056). Phases 0 to 3 are built: players can host and join
+a game with a room code, also under way, games get back in step on their own, and players can point
+at things (0.42.0). What's left is balance for more players, after playtesting. Progress is tracked in [ROADMAP.md](ROADMAP.md) under Co-op (M4c);
+how it plays is in [GAME_DESIGN.md](GAME_DESIGN.md) under Playing together.
 
 ## The short version
 
@@ -145,7 +147,10 @@ CI from master.
   needs no clock and no knowledge of the game, and everyone's commands wait the same delay.
 - **Rooms:** 6-character codes without easily confused characters; one host and up to 3 guests; a
   guest on another version is refused with the host's version; the room closes when the host
-  leaves. Nothing is stored. Rooms sleep between messages (hibernation), so idle rooms cost nothing.
+  leaves on purpose. If the host's connection drops, the room tells the guests and waits a minute for
+  the host to come back with the secret key it opened the room with (D-081); only that key and the
+  host's version are stored, and only while the room is open. Rooms sleep between messages
+  (hibernation), so idle rooms cost nothing.
 - **Limits:** only the game's own pages (GitHub Pages, and localhost for development) may connect;
   guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
 
@@ -194,6 +199,33 @@ computing the same game as Node.
 - **Hosting and accounts:** the relay is the project's first server. Room codes keep it
   anonymous: no accounts, no stored personal data. It limits message size and rate per player,
   and drops rooms once they're empty, so it can't be used to store or flood anything.
+
+**Phase 1 is done (D-078):** main menu → Play together. `src/net/coop.ts` (the room from a game's side:
+host, join, lobby, start), `src/net/lockstep.ts` (the host stamping commands 3 ticks ahead and sending
+turns; guests running only as far as their turns go; a fingerprint each second), `src/net/client.ts` (the
+WebSocket to the relay, or `?relay=local`: a room between tabs over a BroadcastChannel with the relay's
+rules, which the browser test uses), `src/net/pack.ts` (the world gzipped for the start) and
+`src/ui/lobby.ts` (the dialog). What phase 1 leaves for phase 2: joining a game under way, resync after a
+mismatch (it's only detected), reconnecting, the shared game saved in every browser, and waiting on or
+dropping a guest that falls behind (the host never waits today).
+
+**Phase 2 is done (D-079):** the host's `snapshot()` stamps a checkpoint (and a new engineer, for a
+player joining) for its own next tick, which no game has run yet, and copies the world as it is.
+The copy goes with the commands already sent that are still due and the number of turns sent so far;
+the guest ignores older turns and replays newer ones from the turns it keeps. The same copy serves a
+player joining under way, a guest out of step (it asks with `resync`), one 20 s or more behind, and one
+back after a dropped connection (five tries over about 15 s). Every player saves the shared game in a
+co-op slot of their own, so any of them can host it later (D-076). A departed player's engineer is sent
+home at once with a `send-home` command.
+
+**Phase 3 is done (D-080), and the host can reconnect (D-081):** pings (P under the mouse, or a finger
+held on empty ground) travel beside the lockstep, since they change nothing in the world; messages
+about one engineer read "Your engineer…" for its player and "Player 2's engineer…" for the others; the
+blueprint offer is a card over a running game, with Later; engineers start side by side below the hub;
+and four players are tested together. Balance for more players waits for playtesting, as planned. A
+host whose connection drops plays on alone, takes its room back with its key within a minute, and sends
+everyone a fresh copy. The host sends a turn at least every 5 s, so a guest that hears nothing for 15 s
+knows its connection is dead and reconnects.
 
 ## Decided (D-076)
 

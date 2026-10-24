@@ -145,12 +145,17 @@ function stocked(c: StepContext, item: ItemId): number {
 
 /** How much of an item has been mined by hand: in the hub (or spent), or still carried. */
 function mined(c: StepContext, item: ItemId): number {
-  return stocked(c, item) + (c.world.state.players[0]?.carry.filter((i) => i === item).length ?? 0);
+  return stocked(c, item) + (engineer(c)?.carry.filter((i) => i === item).length ?? 0);
+}
+
+/** This player's engineer. */
+function engineer(c: StepContext) {
+  return c.world.state.players.find((p) => p.id === c.ui.player);
 }
 
 /** The character, for the spotlight. */
-function playerTarget(w: World): TileTarget | null {
-  const p = w.state.players[0];
+function playerTarget(c: StepContext): TileTarget | null {
+  const p = engineer(c);
   return p ? { tx: Math.floor(p.x) - 1, ty: Math.floor(p.y) - 1, size: 3 } : null;
 }
 
@@ -213,7 +218,7 @@ export const LESSONS: Lesson[] = [
           'This is your hub. Everything you deliver here goes into its stock, which pays for buildings and research. It starts empty, and it has a small gun of its own.',
       },
       {
-        target: (c) => ({ tiles: playerTarget(c.world), shape: 'circle' }),
+        target: (c) => ({ tiles: playerTarget(c), shape: 'circle' }),
         text: () => 'This is your engineer. Tap or click the ground to walk there; on a keyboard, WASD or the arrow keys walk too.',
       },
       {
@@ -448,9 +453,12 @@ export class Tutorial {
     return this.lesson != null;
   }
 
-  /** True while showing an explanation (game paused, input blocked). */
+  /**
+   * True while showing an explanation (game paused, input blocked). Never in co-op (D-078): the shared
+   * game keeps running, so the player must be able to act while reading.
+   */
   private get blocking(): boolean {
-    return !!this.lesson && !this.lesson.steps[this.index].done;
+    return !!this.lesson && !this.lesson.steps[this.index].done && !this.ui.coop;
   }
 
   /** Starts any lesson whose moment has come. Call every frame while playing. */
@@ -493,6 +501,8 @@ export class Tutorial {
   }
 
   private setPaused(pause: boolean): void {
+    // A co-op game never stops for one player's lesson (D-078): the lesson explains while it runs.
+    if (this.ui.coop) pause = false;
     if (pause && !this.paused) {
       this.prevSpeed = this.ui.speed || this.prevSpeed || 1;
       this.ui.speed = 0;
@@ -514,7 +524,7 @@ export class Tutorial {
 
     const step = lesson.steps[this.index];
     this.setPaused(!step.done);
-    this.root.classList.toggle('blocking', !step.done);
+    this.root.classList.toggle('blocking', this.blocking);
     this.lastTiles = ''; // update() centres the camera on this step's map target, if it has one
     this.root.querySelector('.step')!.textContent = `${lesson.title} · ${this.index + 1} of ${lesson.steps.length}`;
     this.root.querySelector<HTMLButtonElement>('.tip-back')!.disabled = this.index === 0;

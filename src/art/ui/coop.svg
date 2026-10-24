@@ -1,0 +1,2 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><g><circle cx="8.5" cy="7.5" r="3.5" fill="currentColor" /><path d="M2 20 C2 15 5 12.5 8.5 12.5 C12 12.5 15 15 15 20 Z" fill="currentColor" /><circle cx="16.5" cy="8.5" r="3" fill="var(--icon-accent, #3fa9f5)" /><path d="M16.2 20 C16.2 17 15.4 15 14.2 13.8 C15 13.4 15.7 13.2 16.5 13.2 C19.6 13.2 22 15.6 22 20 Z" fill="var(--icon-accent, #3fa9f5)" /></g>
+      </svg>

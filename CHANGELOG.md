@@ -3,6 +3,20 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.42.0 · 2026-10-24 · Play together
+### New
+- **Play together:** build one factory with friends. In the main menu, choose Play together: one player hosts a new game or their saved one and shares the room code, and the others join with it. The host presses Start when everyone is in.
+- **Your own engineer:** each player has an engineer, with a coloured ring to tell them apart.
+- **One clock for everyone:** only the host can pause or change the speed. Lessons, the first delivery and blueprint picks don't pause a game you play together. The colony's blueprint offer is the team's: the first player to pick takes it.
+- **Join any time:** friends can join with the code after the game has started.
+- **Stays in step:** if your game drifts from the host's, or falls far behind (a phone that slept), it catches up on its own. If your connection drops, the game tries to get you back in.
+- **Everyone keeps the game:** each player saves the shared game in their browser, apart from their own factory, and can host it later from Play together.
+- **Leaving:** when a player leaves, their engineer is back at the hub at once, and what it carried goes into stock.
+- **Pings:** press P (or hold a finger on empty ground) to point at a spot for everyone, in your colour. An arrow at the edge of the screen shows pings that are off it.
+- **Blueprint card:** when playing together, the colony's offer is a card that leaves the game playable. Pick later from Research if you like.
+- **Your messages:** "Your engineer was knocked out" goes to that engineer's player; the others read whose it was.
+- **Host comes back:** if the host's connection drops, everyone waits up to a minute for the host to come back, then plays on.
+
 ## 0.41.1 · 2026-10-24 · Plans brought up to date
 ### New
 - Nothing new in the game this time: the project's plans and notes are brought up to date.

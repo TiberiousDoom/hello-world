@@ -50,7 +50,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
-import { Player, PlayerAction, goAndDo, isDown, moveTo, newPlayer, playerOf, reaches, inReach, tickPlayers, walk } from './player';
+import { Player, PlayerAction, goAndDo, isDown, moveTo, newPlayer, playerOf, reaches, inReach, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -221,6 +221,11 @@ export class World {
   /** Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing. */
   lost: { id: number; age: number }[] = [];
   events: string[] = [];
+  /**
+   * Messages about one engineer (not saved): its own player reads `mine`, the others `others` (co-op
+   * phase 3, D-080).
+   */
+  playerEvents: { player: number; mine: string; others: string }[] = [];
   /** Trees cut in the last moment (not saved), for effects and sound. */
   felled: { x: number; y: number; age: number }[] = [];
   /** Hand-mining taps in the last moment (not saved), for sparks and sound. */
@@ -1160,6 +1165,22 @@ export class World {
     const n = p.carry.length - kept.length;
     p.carry = kept;
     return n;
+  }
+
+  /** An engineer for a co-op player (D-076), standing below the hub. False if they already have one. */
+  addPlayer(id: number): boolean {
+    if (this.state.players.some((p) => p.id === id)) return false;
+    this.state.players.push(newPlayer(this, id));
+    this.state.players.sort((a, b) => a.id - b.id);
+    return true;
+  }
+
+  /** A co-op player left: their engineer goes back to the hub at once, handing in what it carried (D-079). */
+  sendHome(id: number): boolean {
+    const p = this.state.players.find((q) => q.id === id);
+    if (!p) return false;
+    sendHome(this, p);
+    return true;
   }
 
   /** The character walks to tile (x, y) (#40). */

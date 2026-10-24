@@ -1,10 +1,12 @@
 // The co-op relay (D-056, D-077): a Cloudflare Worker with one Durable Object per room. Games connect
-// by WebSocket to /rooms/<code>; the room passes messages between them (rules in room.ts). Rooms keep
-// nothing in storage, and use the hibernation API so an idle room costs nothing.
+// by WebSocket to /rooms/<code>; the room passes messages between them (rules in room.ts). Rooms use
+// the hibernation API so an idle room costs nothing. The only thing stored is the host's key and
+// version while the room is open, so a host whose connection drops can come back (D-081); it's
+// deleted when the room closes.
 
 import { DurableObject } from 'cloudflare:workers';
-import { RelayMessage, Role, validCode } from '../../src/net/protocol';
-import { Allowance, CLOSE_POLICY, Peer, admit, leave, route, welcome } from '../../src/net/room';
+import { HOST_GRACE_MS, RelayMessage, Role, RoomHost, validCode } from '../../src/net/protocol';
+import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, route, welcome } from '../../src/net/room';
 
 export interface Env {
   ROOMS: DurableObjectNamespace<Room>;
@@ -43,8 +45,10 @@ export class Room extends DurableObject<Env> {
     const url = new URL(request.url);
     const role: Role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
     const version = url.searchParams.get('v') ?? '';
+    const key = url.searchParams.get('key') ?? '';
     const [client, server] = Object.values(new WebSocketPair());
-    const result = admit(this.peers(), role, version);
+    const room = (await this.ctx.storage.get<RoomHost>('host')) ?? null;
+    const result = admit(this.peers(), role, version, key, room);
     if ('refuse' in result) {
       // Not let in: say why, then close. This socket isn't part of the room, so no hibernation.
       server.accept();
@@ -53,6 +57,11 @@ export class Room extends DurableObject<Env> {
       return new Response(null, { status: 101, webSocket: client });
     }
     const others = this.peers();
+    if (role === 'host') {
+      // A new room, or its host back: remember who may take it back, and stop waiting.
+      await this.ctx.storage.put('host', { key, version } satisfies RoomHost);
+      await this.ctx.storage.deleteAlarm();
+    }
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ slot: result.slot, role, version } satisfies Attachment);
     welcome(others, this.peer(server));
@@ -60,6 +69,7 @@ export class Room extends DurableObject<Env> {
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if (!ws.deserializeAttachment()) return; // already gone
     const from = this.peer(ws);
     if (from.role === 'guest') {
       let allowance = this.allowances.get(ws);
@@ -69,18 +79,42 @@ export class Room extends DurableObject<Env> {
     route(this.peers(), from, message);
   }
 
-  async webSocketClose(ws: WebSocket): Promise<void> {
-    this.gone(ws);
+  async webSocketClose(ws: WebSocket, code: number): Promise<void> {
+    // Answer the close, so the game's side knows at once that it's closed (and can reconnect).
+    try {
+      ws.close(code === 1005 || code === 1006 ? 1000 : code, 'bye');
+    } catch {
+      // Already closed.
+    }
+    await this.gone(ws, code);
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
-    this.gone(ws);
+    await this.gone(ws, 1006);
   }
 
-  private gone(ws: WebSocket): void {
+  /** The host isn't back in time: the room closes (D-081). */
+  async alarm(): Promise<void> {
+    const peers = this.peers();
+    if (peers.some((p) => p.role === 'host')) return;
+    expire(peers);
+    await this.ctx.storage.deleteAll();
+  }
+
+  private async gone(ws: WebSocket, code: number): Promise<void> {
     const a = ws.deserializeAttachment() as Attachment | null;
     if (!a) return;
-    leave(this.peers(), this.peer(ws));
+    try {
+      ws.serializeAttachment(null); // counted once, whether it closes or errors
+    } catch {
+      // Closed already: it won't be seen again anyway.
+    }
+    const peers = this.peers();
+    if (leave(peers, this.peer(ws, a), code) === 'wait') {
+      await this.ctx.storage.setAlarm(Date.now() + HOST_GRACE_MS);
+    } else if (a.role === 'host' || !peers.length) {
+      await this.ctx.storage.deleteAll(); // closed, or empty: nothing to remember
+    }
   }
 
   private peers(): Peer[] {
@@ -90,8 +124,7 @@ export class Room extends DurableObject<Env> {
       .map((ws) => this.peer(ws));
   }
 
-  private peer(ws: WebSocket): Peer {
-    const a = ws.deserializeAttachment() as Attachment;
+  private peer(ws: WebSocket, a = ws.deserializeAttachment() as Attachment): Peer {
     return {
       ...a,
       send: (message) => {

@@ -14,6 +14,9 @@ export type Command =
   | { kind: 'place'; type: BuildingType; x: number; y: number; dir: Dir; replaceBelt: boolean }
   | { kind: 'demolish'; id: number }
   | { kind: 'rotate'; id: number; dir?: Dir }
+  // Turns the building of this type at (x, y): a dragged belt pointing at the next one. By place, not id,
+  // because in co-op the belt is still on its way to the host when the next one is dragged.
+  | { kind: 'turn'; x: number; y: number; type: BuildingType; dir: Dir }
   | { kind: 'recipe'; id: number; recipe: string | null }
   | { kind: 'filter'; id: number; item: ItemId | null }
   | { kind: 'splitter-side'; id: number; side: 'left' | 'right' }
@@ -27,6 +30,9 @@ export type Command =
   | { kind: 'drop'; id: number }
   | { kind: 'move'; x: number; y: number }
   | { kind: 'walk'; dx: number; dy: number }
+  // An engineer for a player joining a co-op game (D-076), and sending it home when they leave (D-079).
+  | { kind: 'add-player'; id: number }
+  | { kind: 'send-home'; id: number }
   // Every game rebuilds its path fields on the same tick, before a snapshot is taken.
   | { kind: 'checkpoint' };
 
@@ -35,6 +41,7 @@ export interface CommandResults {
   place: Building | PlaceError;
   demolish: boolean;
   rotate: boolean;
+  turn: boolean;
   recipe: void;
   filter: void;
   'splitter-side': void;
@@ -48,16 +55,19 @@ export interface CommandResults {
   drop: number;
   move: boolean;
   walk: void;
+  'add-player': boolean;
+  'send-home': boolean;
   checkpoint: void;
 }
 
 export type ResultOf<C extends Command> = CommandResults[C['kind']];
 
-export function applyCommand<C extends Command>(w: World, c: C): ResultOf<C> {
-  return apply(w, c) as ResultOf<C>;
+/** Applies a command for `player`: whose engineer mines, walks and carries. */
+export function applyCommand<C extends Command>(w: World, c: C, player = 0): ResultOf<C> {
+  return apply(w, c, player) as ResultOf<C>;
 }
 
-function apply(w: World, c: Command): CommandResults[keyof CommandResults] {
+function apply(w: World, c: Command, player: number): CommandResults[keyof CommandResults] {
   switch (c.kind) {
     case 'place':
       return w.place(c.type, c.x, c.y, c.dir, c.replaceBelt);
@@ -65,6 +75,10 @@ function apply(w: World, c: Command): CommandResults[keyof CommandResults] {
       return w.demolish(c.id);
     case 'rotate':
       return w.rotate(c.id, c.dir);
+    case 'turn': {
+      const b = w.buildingAt(c.x, c.y);
+      return b?.type === c.type ? w.rotate(b.id, c.dir) : false;
+    }
     case 'recipe':
       return w.setRecipe(c.id, c.recipe);
     case 'filter':
@@ -82,15 +96,19 @@ function apply(w: World, c: Command): CommandResults[keyof CommandResults] {
     case 'pick-blueprint':
       return pickBlueprint(w, c.id);
     case 'mine':
-      return w.mineByHand(c.x, c.y);
+      return w.mineByHand(c.x, c.y, player);
     case 'collect':
-      return w.collect(c.id);
+      return w.collect(c.id, player);
     case 'drop':
-      return w.dropOff(c.id);
+      return w.dropOff(c.id, player);
     case 'move':
-      return w.moveTo(c.x, c.y);
+      return w.moveTo(c.x, c.y, player);
     case 'walk':
-      return w.walk(c.dx, c.dy);
+      return w.walk(c.dx, c.dy, player);
+    case 'add-player':
+      return w.addPlayer(c.id);
+    case 'send-home':
+      return w.sendHome(c.id);
     case 'checkpoint':
       return w.checkpoint();
   }

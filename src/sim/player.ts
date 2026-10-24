@@ -38,12 +38,26 @@ export interface Player {
   downUntil?: number;
 }
 
-/** A new player standing just below the middle of the hub. */
+/** Where each co-op slot's engineer stands below the hub, across from the middle, so none hides another. */
+const HOME_OFFSET = [0, 1, -1, 2];
+
+/** A new player standing just below the hub: the first in the middle, the others beside it. */
 export function newPlayer(w: World, id: number): Player {
   const hub = w.hub;
-  const x = hub ? hub.x + Math.floor(HUB_SIZE / 2) + 0.5 : w.state.width / 2;
+  const x = hub ? hub.x + Math.floor(HUB_SIZE / 2) + (HOME_OFFSET[id] ?? 0) + 0.5 : w.state.width / 2;
   const y = hub ? hub.y + HUB_SIZE + 0.5 : w.state.height / 2;
   return { id, x, y, carry: [], path: [], walk: null, pending: null, mining: null, hp: PLAYER.hp };
+}
+
+/**
+ * A co-op player left (D-079): their engineer is back below the hub at once, rather than walking home
+ * through bug country, and what it carried goes into the hub.
+ */
+export function sendHome(w: World, p: Player): void {
+  const hub = w.hub;
+  if (hub) for (const item of p.carry) w.insert(hub, item, hub.x - 1, hub.y);
+  const home = newPlayer(w, p.id);
+  Object.assign(p, { x: home.x, y: home.y, carry: [], path: [], walk: null, pending: null, mining: null });
 }
 
 /** Whether a player is knocked out (D-074): it can't walk or work until it's back up. */
@@ -64,7 +78,11 @@ export function hurtPlayer(w: World, p: Player, amount: number): void {
   p.walk = null;
   p.mining = null;
   p.downUntil = w.state.time + PLAYER.downFor;
-  w.events.push(`Your engineer was knocked out and dropped what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`);
+  w.playerEvents.push({
+    player: p.id,
+    mine: `Your engineer was knocked out and dropped what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`,
+    others: `Player ${p.id + 1}'s engineer was knocked out.`,
+  });
 }
 
 /** The standing player nearest (x, y) within `range`, if any. */

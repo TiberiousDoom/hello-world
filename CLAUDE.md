@@ -53,7 +53,9 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   turns each frame's world changes into sounds (like the renderer's effects).
 - `src/ui/`: the HTML overlay (HUD, toolbar, dialogs, tutorial lessons, blueprint bar).
 - `src/input/`: mouse, touch and keyboard.
-- `src/net/`: co-op networking shared with the relay: the relay's messages (`protocol.ts`) and room rules (`room.ts`).
+- `src/net/`: co-op networking. Shared with the relay: its messages (`protocol.ts`) and room rules (`room.ts`).
+  Game side: the room (`coop.ts`), lockstep (`lockstep.ts`: the host stamps ticks and sends turns), the
+  connection (`client.ts`; `?relay=local` runs a room between tabs, as the browser test does) and `pack.ts`.
 - `relay/`: the co-op relay, a Cloudflare Worker with a Durable Object per room (D-077), its own `package.json`.
   CI deploys it from master using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
 - `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`.
