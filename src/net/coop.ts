@@ -10,7 +10,7 @@ import { World } from '../sim/world';
 import { RelayLink, connect } from './client';
 import { GuestLockstep, HostLockstep, HostMessage } from './lockstep';
 import { pack, unpack } from './pack';
-import { HostSend, MAX_HOST_MESSAGE, RefuseReason, RelayMessage, Role, makeCode, validCode } from './protocol';
+import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RefuseReason, RelayMessage, Role, makeCode, validCode } from './protocol';
 
 export type CoopPhase = 'idle' | 'connecting' | 'lobby' | 'starting' | 'playing';
 
@@ -26,6 +26,13 @@ const RESYNC_MS = 5000;
  * otherwise go unnoticed for minutes after a phone sleeps.
  */
 export const SILENCE_MS = 15_000;
+/**
+ * The host sends the relay a heartbeat this often (ms), and takes its connection for dead when one goes
+ * unanswered for HEARTBEAT_WAIT_MS (D-085). A connection can die without closing, and the host, unlike a
+ * guest, may hear nothing for hours when nobody's playing.
+ */
+export const HEARTBEAT_MS = 10_000;
+export const HEARTBEAT_WAIT_MS = 10_000;
 
 /** Why a room couldn't be joined, for the player. */
 export function refusalText(reason: RefuseReason, hostVersion: string | undefined, version: string): string {
@@ -47,7 +54,7 @@ export class Coop {
   phase: CoopPhase = 'idle';
   role: Role | null = null;
   code = '';
-  /** This game's slot: 0 for the host, 1–3 for guests. Its engineer has the same id. */
+  /** This game's slot: 0 for the host, 1 to MAX_PLAYERS − 1 for guests. Its engineer has the same id. */
   slot = 0;
   /** Everyone in the room, by slot. */
   players: number[] = [];
@@ -63,18 +70,28 @@ export class Coop {
   /** Something for the player to know, during the game. */
   onNotice: (text: string) => void = () => {};
   /** The room is over for this game (refused, closed, connection lost), and why. */
-  onEnd: (why: string) => void = () => {};
+  /** `replaced`: another connection with this room's key took it over (D-085), so trying again would fight it. */
+  onEnd: (why: string, replaced?: boolean) => void = () => {};
   /** Another player points at tile (x, y) (D-080). */
   onPing: (player: number, x: number, y: number) => void = () => {};
 
   private link: RelayLink | null = null;
   /** The host's secret for its room: only it can take the room back after a dropped connection. */
   private key = '';
+  /** The room's code was chosen, not drawn (the dedicated server): a taken code isn't swapped for another. */
+  private fixed = false;
   /** When a guest last heard from its host, and the check that notices a silent connection. */
   private heardAt = 0;
   /** The host's connection dropped and the room waits for it: silence is expected meanwhile. */
   private hostAway = false;
   private watchdog: ReturnType<typeof setInterval> | null = null;
+  /** When the host last sent a heartbeat on this connection (D-085). */
+  private beatAt = 0;
+  /** The relay has answered a heartbeat on this connection. One from before heartbeats never does. */
+  private beatAnswered = false;
+  /** The heartbeat's timing (ms): tests shorten it. */
+  heartbeatMs = HEARTBEAT_MS;
+  heartbeatWaitMs = HEARTBEAT_WAIT_MS;
   /** A guest's recent turns from the host, for replaying after a fresh copy arrives. */
   private recent: HostMessage[] = [];
   private retry: ReturnType<typeof setTimeout> | null = null;
@@ -90,10 +107,14 @@ export class Coop {
     return this.phase !== 'idle';
   }
 
-  /** Opens a room with a new code. */
-  hostRoom(): void {
-    const key = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
-    this.open('host', makeCode(crypto.getRandomValues(new Uint8Array(6))), key);
+  /**
+   * Opens a room with a new code, or (the dedicated server, D-084) with its own code and key, the same
+   * every time it starts, so players always know where to find it and a restart takes the room back.
+   */
+  hostRoom(code?: string, key?: string): void {
+    this.fixed = code != null;
+    key ??= [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    this.open('host', code ?? makeCode(crypto.getRandomValues(new Uint8Array(6))), key);
   }
 
   /** Joins the room with this code (letters in any case, spaces ignored), in the lobby or under way. */
@@ -168,20 +189,18 @@ export class Coop {
     const link = connect(this.relay, this.code, this.role!, this.version, this.role === 'host' ? this.key : '');
     this.link = link;
     this.heardAt = Date.now();
+    this.beatAt = 0;
+    this.beatAnswered = false;
     link.onMessage = (m) => {
       if (this.link !== link) return;
       this.heardAt = Date.now();
+      if (m.t === 'heartbeat') {
+        this.beatAnswered = true;
+        return;
+      }
       this.message(m);
     };
-    if (this.role === 'guest' && !this.watchdog) {
-      this.watchdog = setInterval(() => {
-        if (this.phase === 'playing' && this.link && !this.hostAway && Date.now() - this.heardAt > SILENCE_MS) {
-          const silent = this.link;
-          silent.onClose(); // as if it had closed: reconnect
-          silent.close();
-        }
-      }, 1000);
-    }
+    if (!this.watchdog) this.watchdog = setInterval(() => this.watch(), Math.min(1000, this.heartbeatMs / 4));
     link.onClose = () => {
       if (this.link !== link) return;
       // A game under way tries to get back in (D-079, D-081). A guest carries on from a fresh copy; the
@@ -189,6 +208,35 @@ export class Coop {
       if (this.phase === 'playing' && this.reconnecting < RECONNECT_WAITS.length) return this.reconnect();
       this.end(this.phase === 'connecting' ? "Couldn't reach the game server. Check your connection and try again." : 'Lost the connection to the game.');
     };
+  }
+
+  /** Notices a connection that died without closing, and treats it as closed: the game reconnects. */
+  private watch(): void {
+    const link = this.link;
+    if (!link) return;
+    const now = Date.now();
+    if (this.role === 'guest') {
+      // A guest hears from its host at least every KEEPALIVE_MS.
+      if (this.phase === 'playing' && !this.hostAway && now - this.heardAt > SILENCE_MS) {
+        link.onClose();
+        link.close();
+      }
+      return;
+    }
+    if (this.phase !== 'lobby' && this.phase !== 'starting' && this.phase !== 'playing') return;
+    // The host (D-085): anything from the relay since the last heartbeat shows the connection is alive.
+    // Dead only once this relay has answered heartbeats before, so an older relay is never taken for dead.
+    if (this.beatAnswered && this.beatAt > this.heardAt && now - this.beatAt > this.heartbeatWaitMs) {
+      this.onNotice('No answer from the game server: reconnecting.');
+      link.onClose();
+      // Dropped, not left: if this reaches the relay at all, the room waits for the host to come back.
+      (link.drop ?? link.close)();
+      return;
+    }
+    if (now - this.beatAt >= this.heartbeatMs && this.beatAt <= this.heardAt) {
+      this.beatAt = now;
+      link.send(HEARTBEAT);
+    }
   }
 
   private reconnect(): void {
@@ -213,6 +261,9 @@ export class Coop {
         this.players = [...new Set([...this.players, m.slot])].sort((a, b) => a - b);
         if (m.slot === 0 && this.guest) {
           this.hostAway = false;
+          // Turns from before the host came back mean nothing now. A restarted server (D-084) counts its
+          // turns from 0 again, and old turns with higher counts would make this game ignore its new ones.
+          this.recent = [];
           this.onNotice('The host is back.');
         }
         if (this.host && this.phase === 'playing') {
@@ -235,10 +286,11 @@ export class Coop {
       case 'host':
         return this.fromHost(m.data);
       case 'refused':
-        if (m.reason === 'taken' && this.role === 'host' && this.phase === 'connecting') return this.hostRoom(); // that code is in use: another
+        if (m.reason === 'taken' && this.role === 'host' && this.phase === 'connecting' && !this.fixed) return this.hostRoom(); // that code is in use: another
         if (m.reason === 'no-room' && this.reconnecting) return this.end('The host left, so the game has ended.');
         return this.end(refusalText(m.reason, m.hostVersion, this.version));
       case 'closed':
+        if (m.reason === 'replaced') return this.end('This game was opened in the room again from somewhere else, so this copy left it.', true);
         return this.end('The host left, so the game has ended.');
       case 'host-away':
         this.hostAway = true;
@@ -320,11 +372,11 @@ export class Coop {
     this.link?.send(JSON.stringify({ to, data: JSON.stringify(message) } satisfies HostSend));
   }
 
-  private end(why: string): void {
+  private end(why: string, replaced = false): void {
     const link = this.link;
     this.reset();
     link?.close();
-    this.onEnd(why);
+    this.onEnd(why, replaced);
   }
 
   private reset(): void {

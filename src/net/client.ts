@@ -3,7 +3,7 @@
 // with the relay's rules from room.ts.
 
 import { CLOSE_LEAVING, HOST_GRACE_MS, RelayMessage, Role, RoomHost } from './protocol';
-import { Peer, admit, expire, leave, route, welcome } from './room';
+import { Peer, admit, expire, leave, retire, route, welcome } from './room';
 
 /** The relay on Cloudflare. `?relay=ws://localhost:8787` picks a local one, `?relay=local` two tabs. */
 export const RELAY_URL = 'wss://foundry-front-relay.stephen-pederson.workers.dev';
@@ -131,11 +131,15 @@ function localHost(code: string, version: string, key: string, link: RelayLink, 
   }
   if (!room) room = openLocalRoom(code, { key, version });
   const r = room;
+  // The host's old link, if it's still in the room (D-085): told, closed, and out of the room.
+  const old = retire(r.peers);
+  if (old) r.peers.splice(r.peers.indexOf(old), 1);
   r.host = { key, version };
   if (r.timer) clearTimeout(r.timer);
   r.timer = null;
   r.link = link;
-  const me: Peer = { slot: 0, role: 'host', version, send: (m) => setTimeout(() => !isClosed() && link.onMessage(m)), close: () => end() };
+  // Closing waits its turn after messages already sent, as on the relay, where a goodbye arrives first.
+  const me: Peer = { slot: 0, role: 'host', version, send: (m) => setTimeout(() => !isClosed() && link.onMessage(m)), close: () => setTimeout(end) };
   welcome(r.peers, me);
   r.peers.unshift(me);
   /** The host's link ends: on purpose (CLOSE_LEAVING) the room closes; dropped, it waits for the host. */

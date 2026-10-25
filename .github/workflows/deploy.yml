@@ -34,6 +34,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm run build:server # the dedicated server bundles (D-084)
       # Browser tests on desktop and phone viewports (e2e/, Playwright).
       - name: Check the Playwright image matches the installed version
         run: |

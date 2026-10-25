@@ -26,6 +26,7 @@ npx playwright test --project=desktop          # one project (desktop, phone; fi
 node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
 node art/working.mjs                           # rebuild the machines' working animations from their sprites
 cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)
+npm run server                                 # the dedicated server (build:server bundles it into dist-server/); see server/README.md
 ```
 
 Locally, Playwright reuses a server already listening on :4173 (`reuseExistingServer`), so a
@@ -57,6 +58,8 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
 - `src/net/`: co-op networking. Shared with the relay: its messages (`protocol.ts`) and room rules (`room.ts`).
   Game side: the room (`coop.ts`), lockstep (`lockstep.ts`: the host stamps ticks and sends turns), the
   connection (`client.ts`; `?relay=local` runs a room between tabs, as the browser test does) and `pack.ts`.
+- `server/`: the dedicated server (D-084): a co-op host run by Node, with no screen, reusing `src/net` and `src/sim`.
+  `npm run typecheck` checks it too (`server/tsconfig.json`, Node types). Setup, systemd units and the update script are there.
 - `relay/`: the co-op relay, a Cloudflare Worker with a Durable Object per room (D-077), its own `package.json`.
   CI deploys it from master using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
 - `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`. Animations

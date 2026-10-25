@@ -2,8 +2,8 @@
 // reads a game's commands. Joining players talk to the host; the host talks to everyone. The host
 // stamps each command with the tick it applies on and sends it out to every game, its own included.
 
-/** Players in one game, the host included. */
-export const MAX_PLAYERS = 4;
+/** Players in one game, the host included (D-083: 10, so a group of friends fits in one room). */
+export const MAX_PLAYERS = 10;
 /** Room codes: 6 letters and digits, without ones that are easy to mix up (0/O, 1/I/L). */
 export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const CODE_LENGTH = 6;
@@ -16,6 +16,15 @@ export const GUEST_RATE = 30;
 export const HOST_GRACE_MS = 60_000;
 /** The close code a host leaving on purpose uses; any other ends its connection by accident. */
 export const CLOSE_LEAVING = 1000;
+/**
+ * A host's heartbeat, and the relay's answer (D-085). A connection can die without closing (a router
+ * restarting, a new IP address): nothing arrives, and nothing says so. The host sends this every few
+ * seconds and takes a missing answer for a dead connection. The relay answers it without waking the room
+ * (Cloudflare's WebSocket auto-response). It's a valid host message that goes to nobody, so a relay
+ * from before heartbeats passes it on harmlessly and never answers, and the host then doesn't rely on it.
+ */
+export const HEARTBEAT = JSON.stringify({ to: -1, data: '' });
+export const HEARTBEAT_REPLY = JSON.stringify({ t: 'heartbeat' });
 
 /**
  * What a room remembers about its host while it's open, so the host can come back after a dropped
@@ -40,7 +49,10 @@ export type RelayMessage =
   | { t: 'host'; data: string }
   /** Not let in, or the room has closed; the connection closes after this. */
   | { t: 'refused'; reason: RefuseReason; hostVersion?: string }
-  | { t: 'closed'; reason: 'host-left' }
+  /** `replaced`: the host came back on a new connection while this one still looked open (D-085). */
+  | { t: 'closed'; reason: 'host-left' | 'replaced' }
+  /** The answer to a host's HEARTBEAT. */
+  | { t: 'heartbeat' }
   /** The host's connection dropped: the room waits HOST_GRACE_MS for it (D-081). It's back with `joined` slot 0. */
   | { t: 'host-away' };
 

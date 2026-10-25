@@ -38,8 +38,11 @@ export interface Player {
   downUntil?: number;
 }
 
-/** Where each co-op slot's engineer stands below the hub, across from the middle, so none hides another. */
-const HOME_OFFSET = [0, 1, -1, 2];
+/**
+ * Where each co-op slot's engineer stands below the hub, out from the middle in turn, so none hides
+ * another. One per slot up to MAX_PLAYERS (a test checks); the first four never move, so saves keep theirs.
+ */
+export const HOME_OFFSET = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5];
 
 /** A new player standing just below the hub: the first in the middle, the others beside it. */
 export function newPlayer(w: World, id: number): Player {
