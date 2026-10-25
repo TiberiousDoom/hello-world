@@ -81,12 +81,30 @@
       <div class="card">
         <div class="card-head"><h2>Play together</h2><button data-close aria-label="Close" title="Close"><i data-icon="close"></i></button></div>
         <div id="coop-choose">
-          <p class="muted">Build one factory together. One player hosts and shares the room code; the others join with it.</p>
+          <p class="muted">Build one factory together, with up to 10 players.</p>
+          <section id="coop-server" class="coop-server" data-state="checking">
+            <div class="coop-server-head">
+              <h3 id="coop-server-name">Dedicated server</h3>
+              <span id="coop-server-state" class="coop-state" role="status">Checking…</span>
+            </div>
+            <p class="muted small">Always on, with one shared factory. Join any time; it keeps going after you leave.</p>
+            <div id="coop-server-facts" class="coop-facts" hidden>
+              <span><small>Players</small><b id="coop-server-players"></b></span>
+              <span><small>Game</small><b id="coop-server-game"></b></span>
+              <span><small>Version</small><b id="coop-server-version"></b></span>
+            </div>
+            <p id="coop-server-note" class="small coop-note" hidden></p>
+            <button id="coop-server-join" class="primary"><i data-icon="play"></i>Join the server</button>
+          </section>
+          <h3>Host on this device</h3>
+          <p class="muted small">Your browser runs the game. Share the room code with friends; the game ends when you leave.</p>
           <div class="modes">
             <button id="coop-host-new"><i data-icon="new"></i><span><b>Host a new game</b><small id="coop-new-note">Standard mode.</small></span></button>
             <button id="coop-host-coop" hidden><i data-icon="coop"></i><span><b>Host your co-op game</b><small id="coop-coop-note"></small></span></button>
             <button id="coop-host-saved" hidden><i data-icon="play"></i><span><b>Host your factory</b><small id="coop-saved-note"></small></span></button>
           </div>
+          <h3>Join a friend</h3>
+          <p class="muted small">Type the room code your friend shares.</p>
           <form id="coop-join" class="coop-join">
             <input id="coop-code" maxlength="7" placeholder="Room code" aria-label="Room code" autocomplete="off" autocapitalize="characters" spellcheck="false" />
             <button type="submit" class="primary">Join</button>

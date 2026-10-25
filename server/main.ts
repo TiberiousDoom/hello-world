@@ -9,6 +9,7 @@
 //   FOUNDRY_RELAY       the relay (default: the one on Cloudflare; ws://localhost:8787 for `wrangler dev`)
 //   FOUNDRY_ORIGIN      the page origin the relay lets in (default: the game on GitHub Pages)
 //   FOUNDRY_PAUSE_EMPTY "0" keeps the game running with nobody in it (default: paused until someone joins)
+//   FOUNDRY_NAME        the name players see on the Play together screen (default: none, shown as "Dedicated server")
 //
 // A connection that dies without closing (a router restarting, a new IP address) is noticed by the
 // heartbeat in Coop (D-085): the server reconnects and the relay hands it the room.
@@ -18,6 +19,7 @@ import { join } from 'node:path';
 import { Coop } from '../src/net/coop';
 import { RELAY_URL } from '../src/net/client';
 import { makeCode, validCode } from '../src/net/protocol';
+import { clockAt } from '../src/sim/clock';
 import { OldSaveError, TICK, World } from '../src/sim/world';
 
 const env = process.env;
@@ -25,6 +27,7 @@ const DATA = env.FOUNDRY_DATA ?? 'server-data';
 const RELAY = env.FOUNDRY_RELAY ?? RELAY_URL;
 const ORIGIN = env.FOUNDRY_ORIGIN ?? 'https://tiberiousdoom.github.io';
 const PAUSE_EMPTY = env.FOUNDRY_PAUSE_EMPTY !== '0';
+const NAME = env.FOUNDRY_NAME?.trim() || undefined;
 /** The game's version, which every player must match: package.json's, kept equal to the changelog's by a test. */
 const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -146,6 +149,16 @@ function status(): void {
   }
 }
 
+/** Tells the Play together screen where the game is (D-086): sent when it changes, and with every save. */
+let lastInfo = '';
+function publish(): void {
+  const clock = clockAt(world.state.time);
+  const info = { name: NAME, day: clock.day, season: clock.season.name };
+  if (JSON.stringify(info) === lastInfo && coop.phase === 'playing') return;
+  lastInfo = JSON.stringify(info);
+  coop.setInfo(info);
+}
+
 /** The slots of the players in the room, the server's own left out. */
 function guests(): number[] {
   return coop.players.filter((s) => s !== 0);
@@ -193,6 +206,8 @@ coop.onChange = () => {
 };
 coop.onStart = (session) => {
   world = session.world;
+  lastInfo = '';
+  publish();
   log(`Room ${room.code} is open. Join with that code under Play together.`);
 };
 coop.onNotice = (text) => log(text);
@@ -230,7 +245,10 @@ setInterval(() => {
   host.flush(speed, now);
 }, BEAT_MS);
 
-setInterval(save, SAVE_MS);
+setInterval(() => {
+  save();
+  publish();
+}, SAVE_MS);
 
 // Stopping (systemd, Ctrl+C): save, and let the connection drop rather than close the room, so a
 // restart within a minute takes it back and nobody is sent away (D-081).

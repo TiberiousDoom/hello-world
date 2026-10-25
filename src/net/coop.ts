@@ -10,7 +10,7 @@ import { World } from '../sim/world';
 import { RelayLink, connect } from './client';
 import { GuestLockstep, HostLockstep, HostMessage } from './lockstep';
 import { pack, unpack } from './pack';
-import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RefuseReason, RelayMessage, Role, makeCode, validCode } from './protocol';
+import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RoomInfo, infoMessage, RefuseReason, RelayMessage, Role, makeCode, validCode } from './protocol';
 
 export type CoopPhase = 'idle' | 'connecting' | 'lobby' | 'starting' | 'playing';
 
@@ -89,6 +89,8 @@ export class Coop {
   private beatAt = 0;
   /** The relay has answered a heartbeat on this connection. One from before heartbeats never does. */
   private beatAnswered = false;
+  /** What this host tells the relay about its room (D-086); sent again on every new connection. */
+  private info: RoomInfo | null = null;
   /** The heartbeat's timing (ms): tests shorten it. */
   heartbeatMs = HEARTBEAT_MS;
   heartbeatWaitMs = HEARTBEAT_WAIT_MS;
@@ -159,6 +161,15 @@ export class Coop {
     this.onStart(session, false);
     // Anyone who came in while the world was packing joins the game under way.
     for (const slot of this.players) if (!starters.includes(slot)) void this.sendCopy(slot, true);
+  }
+
+  /**
+   * The host's room info for the Play together screen (D-086): the dedicated server's name, day and
+   * season. Sent now if the room is open, and again whenever the host connects.
+   */
+  setInfo(info: RoomInfo): void {
+    this.info = info;
+    if (this.role === 'host' && this.phase !== 'connecting') this.link?.send(infoMessage(info));
   }
 
   /** This player points at tile (x, y), for everyone in the game (D-080). */
@@ -251,6 +262,7 @@ export class Coop {
   private message(m: RelayMessage): void {
     switch (m.t) {
       case 'welcome':
+        if (this.role === 'host' && this.info) this.link?.send(infoMessage(this.info));
         if (this.host && this.phase === 'playing') return this.hostBack(m.players);
         this.slot = m.slot;
         this.players = m.players;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GUEST_RATE, HEARTBEAT, MAX_GUEST_MESSAGE, MAX_PLAYERS, RelayMessage, Role, makeCode, validCode } from './protocol';
-import { Allowance, CLOSE_POLICY, CLOSE_REPLACED, Peer, admit, expire, leave, retire, route, welcome } from './room';
+import { GUEST_RATE, HEARTBEAT, MAX_GUEST_MESSAGE, MAX_PLAYERS, RelayMessage, RoomInfo, infoMessage, Role, makeCode, validCode } from './protocol';
+import { Allowance, CLOSE_POLICY, CLOSE_REPLACED, Peer, admit, cleanInfo, expire, leave, retire, route, status, welcome } from './room';
 
 /** A connection that records what it was sent, and whether it was closed. */
 function peer(slot: number, role: Role = slot === 0 ? 'host' : 'guest', version = '1.0.0') {
@@ -62,6 +62,32 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(host.got).toEqual([{ t: 'heartbeat' }]);
     expect(guest.got).toEqual([]);
     expect(host.closed).toBeUndefined();
+  });
+
+  it("keeps a host's room info, checked, and passes it to nobody (D-086)", () => {
+    const host = peer(0);
+    const guest = peer(1);
+    let kept: RoomInfo | null = null;
+    route([host, guest], host, infoMessage({ name: "Stephen's server", day: 12, season: 'Winter' }), (i) => (kept = i));
+    expect(kept).toEqual({ name: "Stephen's server", day: 12, season: 'Winter' });
+    expect(guest.got).toEqual([]);
+    expect(host.closed).toBeUndefined();
+    // Only the known fields, short; anything malformed is dropped, and never closes the host.
+    expect(cleanInfo({ name: 'x'.repeat(100), day: 2.5, season: 'Fall', extra: 'no' })).toEqual({ name: 'x'.repeat(40), season: 'Fall' });
+    expect(cleanInfo('nope')).toBeNull();
+    route([host], host, JSON.stringify({ data: '', info: 'nope' }), () => expect.unreachable());
+    expect(host.closed).toBeUndefined();
+    // A guest can't set it.
+    route([host, guest], guest, infoMessage({ name: 'Mine now' }), () => expect.unreachable());
+  });
+
+  it("reports a room's status: open, waiting for its host, or not there (D-086)", () => {
+    const info = { name: 'Server', day: 3 };
+    const room = { key: 'k', version: '1.0.0' };
+    expect(status([peer(0), peer(1), peer(2)], room, info)).toEqual({ open: true, away: false, version: '1.0.0', players: 2, max: MAX_PLAYERS, info });
+    expect(status([peer(1)], room, info)).toEqual({ open: false, away: true, version: '1.0.0', players: 1, max: MAX_PLAYERS, info });
+    expect(status([], null, null)).toEqual({ open: false, away: false, version: null, players: 0, max: MAX_PLAYERS, info: null });
+    expect(status([], room, info).info).toBeNull(); // a closed room says nothing about itself
   });
 
   it('welcomes a newcomer with everyone in the room, and tells the others', () => {

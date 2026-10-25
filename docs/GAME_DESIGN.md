@@ -412,7 +412,11 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 Co-op ([COOP.md](COOP.md), D-078 to D-081). Two to ten players build one factory (D-083): one hub, one stock,
 one research tree, one supply ship.
 
-- **Host or join:** main menu → **Play together**. The host opens a room with a new game (Standard),
+- **The dedicated server (D-086):** main menu → **Play together** opens with the server's card: its name,
+  a light (online, offline, reconnecting, full, or on another version), players in (of 9: the server
+  takes one place), its game's day and season, and its version. **Join the server** works with no code,
+  and only when joining can work; otherwise the card says why. It checks again every 10 seconds.
+- **Host or join:** below the server, **Host on this device** opens a room with a new game (Standard),
   their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
   share. The others type the code and press Join. Everyone must be on the same version; a mismatch is
   refused, naming both versions.
