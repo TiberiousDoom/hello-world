@@ -58,6 +58,8 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
 - `src/net/`: co-op networking. Shared with the relay: its messages (`protocol.ts`) and room rules (`room.ts`).
   Game side: the room (`coop.ts`), lockstep (`lockstep.ts`: the host stamps ticks and sends turns), the
   connection (`client.ts`; `?relay=local` runs a room between tabs, as the browser test does) and `pack.ts`.
+  `SERVER_ROOM` in `client.ts` is the dedicated server's room code, which Play together joins with one button
+  (`?server=CODE` overrides it); the relay reports any room's status at `/rooms/<code>/status` (D-086).
 - `server/`: the dedicated server (D-084): a co-op host run by Node, with no screen, reusing `src/net` and `src/sim`.
   `npm run typecheck` checks it too (`server/tsconfig.json`, Node types). Setup, systemd units and the update script are there.
 - `relay/`: the co-op relay, a Cloudflare Worker with a Durable Object per room (D-077), its own `package.json`.

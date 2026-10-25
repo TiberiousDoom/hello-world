@@ -171,3 +171,61 @@ test("the host's connection drops: the others wait, and catch up when it's back"
   const look = (p: Page) => p.evaluate(() => JSON.stringify([window.game.world.state.players, window.game.world.state.rng]));
   expect(await look(guest)).toBe(await look(host));
 });
+
+// The dedicated server's card (D-086): its status comes from the relay, faked here.
+test("the dedicated server's card shows its status, and Join works only when it can", async ({ page }) => {
+  let body: object = { open: true, away: false, version: 'mine', players: 3, max: 10, info: { name: "Stephen's server", day: 12, season: 'Winter' } };
+  await page.route('http://relay.test/rooms/CREW42/status', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(body) }));
+  await setProfile(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
+  await page.goto('/?relay=ws://relay.test&server=CREW42');
+  const version = await page.locator('.app-version').first().textContent();
+  body = { ...body, version };
+  const card = page.locator('#coop-server');
+  const reopen = async () => {
+    await page.locator('#coop [data-close]').first().click();
+    await page.click('#mm-coop');
+  };
+
+  await page.click('#mm-coop');
+  await expect(card).toHaveAttribute('data-state', 'online');
+  await expect(page.locator('#coop-server-name')).toHaveText("Stephen's server");
+  await expect(page.locator('#coop-server-players')).toHaveText('3 of 9');
+  await expect(page.locator('#coop-server-game')).toHaveText('Day 12 · Winter');
+  await expect(page.locator('#coop-server-join')).toBeEnabled();
+  // The other ways to play are still there, apart from it.
+  await expect(page.locator('#coop-host-new')).toBeVisible();
+  await expect(page.locator('#coop-join')).toBeVisible();
+
+  body = { open: false, away: false, version: null, players: 0, max: 10, info: null };
+  await reopen();
+  await expect(card).toHaveAttribute('data-state', 'offline');
+  await expect(page.locator('#coop-server-join')).toBeDisabled();
+  await expect(page.locator('#coop-server-note')).toContainText("isn't running");
+
+  body = { open: true, away: false, version: '999.0.0', players: 0, max: 10, info: null };
+  await reopen();
+  await expect(card).toHaveAttribute('data-state', 'version');
+  await expect(page.locator('#coop-server-state')).toHaveText('Reload');
+  await expect(page.locator('#coop-server-join')).toBeDisabled();
+});
+
+test('Join the server joins its room with one button', async ({ page: host }) => {
+  const guest = await host.context().newPage();
+  await open(host, ALL_LESSONS);
+  await host.click('#coop-host-new');
+  const code = (await host.locator('#coop-room-code').textContent())!;
+  expect(code).toMatch(/^[A-Z2-9]{6}$/);
+
+  // The guest's server is that room. Another tab's local room can't be checked, so Join stays open.
+  await setProfile(guest, { lessonsSeen: ALL_LESSONS, tipsOff: true });
+  await guest.goto(`/?relay=local&server=${code}`);
+  await guest.click('#mm-coop');
+  await expect(guest.locator('#coop-server')).toHaveAttribute('data-state', 'unknown');
+  await guest.click('#coop-server-join');
+  await expect(host.locator('#coop-players li')).toHaveCount(2);
+  await expect(guest.locator('#coop-players li').first()).toContainText('Server');
+  await expect(guest.locator('#coop-status')).toContainText('Getting the game from the server');
+  await host.click('#coop-start');
+  await expect(guest.locator('#mainmenu')).toBeHidden();
+  expect(await guest.evaluate(() => window.game.ui.player)).toBe(1);
+});

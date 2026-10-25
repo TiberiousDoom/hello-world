@@ -36,6 +36,11 @@ All optional, as environment variables:
 | `FOUNDRY_RELAY` | The relay | The one on Cloudflare |
 | `FOUNDRY_ORIGIN` | The page origin the relay lets in | The game on GitHub Pages |
 | `FOUNDRY_PAUSE_EMPTY` | `0` keeps the game running with nobody in | Paused when empty |
+| `FOUNDRY_NAME` | The name players see on the Play together screen | "Dedicated server" |
+
+The game's Play together screen joins the room in `SERVER_ROOM` (`src/net/client.ts`) with one
+button and shows its status (D-086). If you change the server's room code, change `SERVER_ROOM` to
+match. To try a test server, open the game with `?server=CODE`.
 
 `status.json` in the data folder shows the version, the room code and who is in.
 

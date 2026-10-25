@@ -2,7 +2,7 @@
 // Object in relay/src/index.ts keeps each connection's details on the socket itself, so a room that sleeps
 // between messages wakes up knowing who's in it.
 
-import { CLOSE_LEAVING, GUEST_RATE, HEARTBEAT, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role, RoomHost } from './protocol';
+import { CLOSE_LEAVING, GUEST_RATE, HEARTBEAT, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus } from './protocol';
 
 /** A connection in a room: who it is, and how to reach it. */
 export interface Peer {
@@ -58,7 +58,7 @@ export function welcome(peers: Peer[], newcomer: Peer): void {
  * Routes one message. A guest's goes to the host; the host's goes to the guest it names, or to every
  * guest. Anything too big, or not text, closes the sender's connection.
  */
-export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer): void {
+export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer, onInfo?: (info: RoomInfo) => void): void {
   if (typeof raw !== 'string') return from.close(CLOSE_POLICY, 'text only');
   // The relay on Cloudflare answers heartbeats before they reach the room; this is for the local room.
   if (raw === HEARTBEAT) return from.send({ t: 'heartbeat' });
@@ -75,6 +75,11 @@ export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer): voi
     return from.close(CLOSE_POLICY, 'bad message');
   }
   if (typeof msg?.data !== 'string') return from.close(CLOSE_POLICY, 'bad message');
+  if (msg.info !== undefined) {
+    // The room's info (D-086): kept if it's well formed, otherwise ignored; never a reason to close.
+    const info = cleanInfo(msg.info);
+    if (info) onInfo?.(info);
+  }
   for (const p of peers) {
     if (p.role === 'host' || (msg.to != null && p.slot !== msg.to)) continue;
     p.send({ t: 'host', data: msg.data });
@@ -109,6 +114,34 @@ export function retire(peers: Peer[]): Peer | undefined {
   old.send({ t: 'closed', reason: 'replaced' });
   old.close(CLOSE_REPLACED, 'replaced');
   return old;
+}
+
+/**
+ * A host's room info, if it's well formed (D-086): only the known fields, short, so it fits on the
+ * host's socket (Cloudflare keeps at most 2 KB there) and on the screen.
+ */
+export function cleanInfo(raw: unknown): RoomInfo | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const info: RoomInfo = {};
+  if (typeof r.name === 'string' && r.name.trim()) info.name = r.name.trim().slice(0, 40);
+  if (Number.isInteger(r.day) && (r.day as number) >= 1 && (r.day as number) < 1e7) info.day = r.day as number;
+  if (typeof r.season === 'string' && r.season) info.season = r.season.slice(0, 12);
+  return info;
+}
+
+/** What the relay says about a room (D-086): open, waiting for its host, or not there. */
+export function status(peers: Peer[], room: RoomHost | null, info: RoomInfo | null): RoomStatus {
+  const host = peers.find((p) => p.role === 'host');
+  const away = !host && !!room && peers.length > 0;
+  return {
+    open: !!host,
+    away,
+    version: host?.version ?? (away ? room!.version : null),
+    players: peers.filter((p) => p.role === 'guest').length,
+    max: MAX_PLAYERS,
+    info: host || away ? info : null,
+  };
 }
 
 /** The room closes for good: every guest is told the host left. */

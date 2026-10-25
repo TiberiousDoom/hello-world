@@ -62,6 +62,41 @@ export type RefuseReason = 'version' | 'full' | 'no-room' | 'taken' | 'bad-reque
 export interface HostSend {
   to?: number;
   data: string;
+  /** The room's info for the Play together screen (D-086), kept by the relay while the host is in. */
+  info?: RoomInfo;
+}
+
+/**
+ * What a dedicated server says about itself on the Play together screen (D-086): a name, and where
+ * its game is (the day and season). Small, and checked by the relay (`cleanInfo`).
+ */
+export interface RoomInfo {
+  name?: string;
+  day?: number;
+  season?: string;
+}
+
+/** A room as the relay reports it at /rooms/<code>/status (D-086), for the Play together screen. */
+export interface RoomStatus {
+  /** Its host is in. */
+  open: boolean;
+  /** Its host's connection dropped and the room is waiting for it (D-081). */
+  away: boolean;
+  /** The host's version, which players must match. */
+  version: string | null;
+  /** Players in it, the host left out. */
+  players: number;
+  /** Players it holds, the host included. */
+  max: number;
+  info: RoomInfo | null;
+}
+
+/**
+ * A host message setting its room's info: a valid host message that goes to nobody, so a relay from
+ * before room info passes it on harmlessly (as with HEARTBEAT).
+ */
+export function infoMessage(info: RoomInfo): string {
+  return JSON.stringify({ to: -1, data: '', info } satisfies HostSend);
 }
 
 /** Whether a room code is well formed. */

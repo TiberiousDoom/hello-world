@@ -2,11 +2,33 @@
 // co-op in two tabs without a network, a room run by the host's own page over a BroadcastChannel,
 // with the relay's rules from room.ts.
 
-import { CLOSE_LEAVING, HOST_GRACE_MS, RelayMessage, Role, RoomHost } from './protocol';
-import { Peer, admit, expire, leave, retire, route, welcome } from './room';
+import { CLOSE_LEAVING, HOST_GRACE_MS, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus } from './protocol';
+import { Peer, admit, expire, leave, retire, route, status, welcome } from './room';
 
 /** The relay on Cloudflare. `?relay=ws://localhost:8787` picks a local one, `?relay=local` two tabs. */
 export const RELAY_URL = 'wss://foundry-front-relay.stephen-pederson.workers.dev';
+/**
+ * The dedicated server's room (D-084, D-086): the code it opened, kept in its room.json. The Play together
+ * screen joins it with one button and shows its status. `?server=CODE` picks another, for testing.
+ */
+export const SERVER_ROOM = '764D2J';
+
+/**
+ * A room's status from the relay (D-086), or null if it can't be told. A local room (two tabs) is known
+ * only in the tab that hosts it; elsewhere it can't be told, so Join stays open.
+ */
+export async function roomStatus(relay: string, code: string, signal?: AbortSignal): Promise<RoomStatus | null> {
+  if (relay === 'local') {
+    const r = localRooms.get(code);
+    return r ? status(r.peers, r.host, r.info) : null;
+  }
+  try {
+    const res = await fetch(`${relay.replace(/^ws/, 'http')}/rooms/${code}/status`, { signal, cache: 'no-store' });
+    return res.ok ? ((await res.json()) as RoomStatus) : null;
+  } catch {
+    return null;
+  }
+}
 
 export interface RelayLink {
   /** The host sends a HostSend (JSON); a guest sends text for the host. */
@@ -66,6 +88,8 @@ interface LocalRoom {
   link: RelayLink | null;
   /** Closes the room if the host isn't back in time. */
   timer: ReturnType<typeof setTimeout> | null;
+  /** The host's room info (D-086). */
+  info: RoomInfo | null;
 }
 const localRooms = new Map<string, LocalRoom>();
 
@@ -156,7 +180,7 @@ function localHost(code: string, version: string, key: string, link: RelayLink, 
     end();
   };
   link.send = (text) => {
-    if (!isClosed()) route(r.peers, me, text);
+    if (!isClosed()) route(r.peers, me, text, (info) => (r.info = info));
   };
   link.close = () => gone(CLOSE_LEAVING);
   link.drop = () => gone(1006);
@@ -166,7 +190,7 @@ function localHost(code: string, version: string, key: string, link: RelayLink, 
 function openLocalRoom(code: string, host: RoomHost): LocalRoom {
   const channel = new BroadcastChannel(`foundry-front-room-${code}`);
   const post = (m: ChannelMessage) => channel.postMessage(m);
-  const room: LocalRoom = { channel, peers: [], host, link: null, timer: null };
+  const room: LocalRoom = { channel, peers: [], host, link: null, timer: null, info: null };
   const guests = new Map<string, Peer>();
   channel.onmessage = (e: MessageEvent<ChannelMessage>) => {
     const m = e.data;

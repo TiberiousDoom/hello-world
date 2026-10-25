@@ -6,6 +6,7 @@ import { TICK, World } from '../sim/world';
 import { Coop } from './coop';
 import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, validCommand } from './lockstep';
 import { pack, unpack } from './pack';
+import { roomStatus } from './client';
 import { HEARTBEAT, MAX_PLAYERS } from './protocol';
 
 /** A host and a guest on the same world, wired together with message queues standing in for the relay. */
@@ -522,6 +523,24 @@ describe('A co-op room', () => {
     expect(ended![1]).toBe(true);
     expect(first.phase).toBe('idle');
     second.leave();
+  });
+
+  it("a host's room info reaches the relay, and is sent again after a dropped connection (D-086)", async () => {
+    const until = async (ok: () => boolean | Promise<boolean>) => {
+      for (let i = 0; i < 300 && !(await ok()); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(await ok()).toBe(true);
+    };
+    const host = new Coop('local', '1.0.0');
+    host.setInfo({ name: 'Server', day: 1, season: 'Spring' }); // before the room is open: kept for it
+    host.hostRoom('INFO22', 'key');
+    const info = async () => (await roomStatus('local', 'INFO22'))?.info?.day;
+    await until(async () => (await info()) === 1);
+    host.setInfo({ name: 'Server', day: 2, season: 'Spring' });
+    await until(async () => (await info()) === 2);
+    expect(await roomStatus('local', 'INFO22')).toMatchObject({ open: true, players: 0, version: '1.0.0' });
+    // Unknown here: a local room hosted in another tab can't be seen, so Join stays open.
+    expect(await roomStatus('local', 'NOROOM')).toBeNull();
+    host.leave();
   });
 
   it('ends the game for the guests when the host leaves', async () => {
