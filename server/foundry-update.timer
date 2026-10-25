@@ -1,0 +1,10 @@
+# Checks for a new version every 5 minutes (D-084).
+[Unit]
+Description=Check for Foundry Front updates
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

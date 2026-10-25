@@ -47,8 +47,11 @@ export function createUIState(): UIState {
   return { tool: null, dir: 0, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [] };
 }
 
-/** Each co-op player's colour, by slot: their engineer's ring and their name in the lobby. */
-export const PLAYER_COLORS = ['#ffcc33', '#4fd1ff', '#ff7ab8', '#8be36b'];
+/**
+ * Each co-op player's colour, by slot: their engineer's ring and their name in the lobby. One per slot up
+ * to MAX_PLAYERS (a test checks), picked to stay apart from each other on the map.
+ */
+export const PLAYER_COLORS = ['#ffcc33', '#4fd1ff', '#ff7ab8', '#8be36b', '#b48cff', '#f2f2f2', '#ff8c1a', '#2fd6a8', '#5b7cff', '#d9b77a'];
 
 /** True when a plan is a dragged belt line, whose belts each point at the next. */
 export function isBeltPath(plan: Plan): boolean {

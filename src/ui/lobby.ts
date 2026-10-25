@@ -76,7 +76,7 @@ export class Lobby {
       .map((s) => {
         const who = s === c.slot ? 'You' : `Player ${s + 1}`;
         const role = s === 0 ? ' (host)' : '';
-        return `<li><span class="swatch" style="background:${PLAYER_COLORS[s]}"></span>${who}${role}</li>`;
+        return `<li><span class="swatch" style="background:${PLAYER_COLORS[s % PLAYER_COLORS.length]}"></span>${who}${role}</li>`;
       })
       .join('');
     const host = c.role === 'host';

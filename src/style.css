@@ -552,6 +552,10 @@ body.in-menu #toasts {
 .coop-players {
   list-style: none;
   padding: 0 !important;
+  /* Up to 10 players (D-083): two columns when there's room, so the list stays short on a phone. */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  column-gap: 12px;
 }
 .coop-players li {
   display: flex;

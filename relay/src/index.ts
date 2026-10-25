@@ -5,8 +5,8 @@
 // deleted when the room closes.
 
 import { DurableObject } from 'cloudflare:workers';
-import { HOST_GRACE_MS, RelayMessage, Role, RoomHost, validCode } from '../../src/net/protocol';
-import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, route, welcome } from '../../src/net/room';
+import { HEARTBEAT, HEARTBEAT_REPLY, HOST_GRACE_MS, RelayMessage, Role, RoomHost, validCode } from '../../src/net/protocol';
+import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, retire, route, welcome } from '../../src/net/room';
 
 export interface Env {
   ROOMS: DurableObjectNamespace<Room>;
@@ -41,6 +41,12 @@ interface Attachment {
 export class Room extends DurableObject<Env> {
   private allowances = new WeakMap<WebSocket, Allowance>();
 
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    // Heartbeats are answered by Cloudflare without waking the room, so they cost next to nothing (D-085).
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(HEARTBEAT, HEARTBEAT_REPLY));
+  }
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const role: Role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
@@ -55,6 +61,20 @@ export class Room extends DurableObject<Env> {
       server.send(JSON.stringify({ t: 'refused', reason: result.refuse, hostVersion: result.hostVersion } satisfies RelayMessage));
       server.close(CLOSE_POLICY, result.refuse);
       return new Response(null, { status: 101, webSocket: client });
+    }
+    if (role === 'host') {
+      // Its old connection, if it still looks open (D-085): told, closed, and forgotten, so that its
+      // closing later isn't taken for the host leaving.
+      for (const ws of this.ctx.getWebSockets()) {
+        const a = ws.deserializeAttachment() as Attachment | null;
+        if (a?.role !== 'host') continue;
+        retire([this.peer(ws, a)]);
+        try {
+          ws.serializeAttachment(null);
+        } catch {
+          // Closed already.
+        }
+      }
     }
     const others = this.peers();
     if (role === 'host') {
