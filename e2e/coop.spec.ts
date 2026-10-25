@@ -178,7 +178,9 @@ test("the dedicated server's card shows its status, and Join works only when it 
   await page.route('http://relay.test/rooms/CREW42/status', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(body) }));
   await setProfile(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
   await page.goto('/?relay=ws://relay.test&server=CREW42');
-  const version = await page.locator('.app-version').first().textContent();
+  const versionBox = page.locator('.app-version').first();
+  await expect(versionBox).not.toBeEmpty();
+  const version = await versionBox.textContent();
   body = { ...body, version };
   const card = page.locator('#coop-server');
   const reopen = async () => {
@@ -213,8 +215,10 @@ test('Join the server joins its room with one button', async ({ page: host }) =>
   const guest = await host.context().newPage();
   await open(host, ALL_LESSONS);
   await host.click('#coop-host-new');
-  const code = (await host.locator('#coop-room-code').textContent())!;
-  expect(code).toMatch(/^[A-Z2-9]{6}$/);
+  // The code shows once the room is open: wait for it before reading it.
+  const codeBox = host.locator('#coop-room-code');
+  await expect(codeBox).toHaveText(/^[A-Z2-9]{6}$/);
+  const code = (await codeBox.textContent())!;
 
   // The guest's server is that room. Another tab's local room can't be checked, so Join stays open.
   await setProfile(guest, { lessonsSeen: ALL_LESSONS, tipsOff: true });
