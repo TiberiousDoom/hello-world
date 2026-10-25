@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.45.1 · 2026-10-25 · Always open, for real
+### Fixed
+- A test of the new Play together screen sometimes failed on the build server, which kept 0.45.0 from going out. Nothing changes in the game.
+
 ## 0.45.0 · 2026-10-25 · Always open
 ### New
 - **Join the server in one tap:** Play together now opens with the dedicated server at the top. Press Join the server; there's no code to type.
