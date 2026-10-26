@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.45.2 · 2026-10-26 · Notes brought up to date
+### New
+- Nothing new in the game this time: the project's notes are brought up to date, drawn belt corners, ends and joins are planned, and your latest feedback is in the plans: an early, mid and late game with wooden defences first and upgrades for every defence, bugs that don't give up in the middle of a chase, and seasons that fade in.
+
 ## 0.45.1 · 2026-10-25 · Always open, for real
 ### Fixed
 - A test of the new Play together screen sometimes failed on the build server, which kept 0.45.0 from going out. Nothing changes in the game.

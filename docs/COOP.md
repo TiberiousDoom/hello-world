@@ -156,7 +156,7 @@ CI from master.
 
 ## Phases
 
-0. **Prepare, in single player** (no network, no visible change):
+0. ✅ **Prepare, in single player** (no network, no visible change):
    - every world-changing call goes through a command list (`src/sim/commands.ts`); the UI
      issues commands instead of calling `World` directly. This is small: about a dozen places in
      `input.ts` and `hud.ts` change the world today (place, demolish, rotate, recipe, filter,
@@ -166,13 +166,13 @@ CI from master.
    - a clock that runs ticks from the command list (still driven by the frame in single player)
    - remove `Math.hypot` from the rules
    - the summary hash, and the cross-browser determinism test
-1. **Two-player prototype:** room codes, a test relay, lockstep with input delay, both
+1. ✅ **Two-player prototype:** room codes, a test relay, lockstep with input delay, both
    characters visible. Both players start together; no joining later. The relay is done (D-077).
-2. **Make it solid:** the real relay, joining mid-game by snapshot, desync detection and
+2. ✅ **Make it solid:** the real relay, joining mid-game by snapshot, desync detection and
    resync, reconnecting after a phone sleeps, the host leaving (the game ends, saved in every
    player's browser).
-3. **Co-op design:** pings, player colours, the blueprint pick without pausing, balance for
-   more players, up to 4 players.
+3. ✅ **Co-op design:** pings, player colours, the blueprint pick without pausing, up to 4 players.
+   Balance for more players waits for playtesting.
 
 Phase 0 is worth doing even without co-op: a command list gives replays (attach one to a bug
 report), undo (already on the roadmap), and tests that replay real games.

@@ -57,7 +57,14 @@ quality and business work don't get left until the end.
 26. ✅ **Co-op phases 1 to 3** (D-076 to D-081): the relay on Cloudflare (0.41.0); Play together (0.42.0): Host and Join with a room code, the host stamping command ticks and sending turns, every engineer on screen in its player's colour, no pausing for lessons, the first delivery or blueprint picks; joining a game under way, a fresh copy for a guest out of step or far behind, reconnecting, the shared game saved in every browser; pings, per-player messages, the blueprint offer as a card, engineers side by side, 4-player tests, and the host taking its room back after a dropped connection. **Next:** playtest co-op (balance for more players), and the art review refresh.
 27. ✅ **Animated art** (0.43.0, D-082): working machines, bug walks and bites, the engineer's states, sprite effects, seasonal ground and trees.
 28. ✅ **Dedicated server** (0.44.0, D-083 to D-086; one-button join and its status on Play together in 0.45.0): rooms of up to 10, and a server that hosts one room around the clock on a spare computer, paused while empty, saved every minute, updated from `master` when nobody is playing, and back in its room within seconds after an internet drop (D-085) ([server/README.md](../server/README.md)).
-29. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+29. ⬜ **Playtest batch 6, bugs** (open issues, 0.43.0): research needs two taps or clicks to start (#86); buildings snap to belts too eagerly, with no way to override it (#85); belts don't meet the hub's corners with the new art (#78).
+30. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
+31. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
+32. ⬜ **Three eras and defence tiers** (#88, D-087): early, mid and late game, each later one opened by a keystone research; wooden defences first (Ballista, Palisade), then Turret and Wall, then Cannon and Tesla; then Tiers 1 to 4 for each defence, paid from the engineer's inventory (after #87). See Gameplay → Next.
+33. ⬜ **Bugs that don't give up mid-chase** (owner's note): see Nests.
+34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
+35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); a Storage Unit, iron ingots and a Blacksmith, and a player inventory (#87, Q-22); fog of war (#43, Q-20).
+36. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
@@ -104,7 +111,7 @@ Not the escape ship's hull. In this order:
 - ✅ **Phase 2, wood in the economy (D-054):** the Ballista, firing stakes sawn from planks; repair stations also burn planks; planks in the Workshop, Repair Station and Shipyard (Workshops now needs Forestry); charcoal (furnace, from logs), then steel (charcoal and iron plates), carried from the fourth supply run on and the material for upgrades to come. Also: Reset tutorials in Menu → Tutorials
 - ⬜ **Phase 3, forests and bugs:** some nests deep in forest; cutting trees inside a territory provokes it; dense trees slow bugs, so clearing forest opens paths; a Tree Nursery that plants new forest (a colony blueprint, D-055)
 
-### Co-op (M4c, D-056, [COOP.md](COOP.md))
+### Co-op (M4c, D-056, [COOP.md](COOP.md), #41)
 In this order. Phase 0 can start before the player character (playtest issue #40), which then builds on it:
 - ✅ **Phase 0, prepare in single player (D-058):** every world-changing action goes through a command list; players and the path-refresh timers in the saved state (a save version bump); a clock driven by commands; `Math.hypot` out of the rules; a summary hash and a cross-browser determinism test. No visible change. Building it added a checkpoint command, so a game joining from a snapshot has the same path fields as the host
 - ✅ **Before phase 1: the player character** (0.32.0, #40, D-067), built on commands; bugs notice it (0.39.0, D-074)
@@ -121,6 +128,7 @@ In this order:
 - ⬜ **Phase 4, themed kinds and queens:** crawler warrens, runner hives and brute dens by distance, each with its own burrow art (drawn, and shown by brood since 0.40.0); rare queen nests near the map edge
 - ⬜ **Phase 5, Hardcore nests:** harder numbers, destroy only by building over the mound and a ring, faster breeding while being built over; the Hardcore look
 - ✅ **Night raids** (0.38.0, D-073): from the second night, some nights a nest near your buildings sends a small party with no leash until morning; every night in Hardcore
+- ⬜ **A looser leash** (owner's note): today a provoked bug chases at most 22 tiles from its territory's centre (30 at night) and then turns back, even in the middle of a chase or a raid, which pulls you out of the game. Instead, a bug keeps going while it has a target, and gives up and goes home only when no building or engineer is within a set distance of it
 
 ### Next (M4)
 - ✅ Faster belts: the Express Belt, a colony blueprint (D-049, D-050)
@@ -135,6 +143,12 @@ In this order:
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (nest density and toughness)
+- ⬜ **Three eras (#88, D-087):** the game splits into early, mid and late eras; each later era opens with a keystone research that needs several of the era before, and the research menu groups researches by era. Today four researches are open from the start (Logistics, Basic Defense, Forestry, Masonry)
+- ⬜ **Defences by era (D-087):** early, Basic Defense gives the Ballista and the Palisade; mid, the Turret and the Wall; late, the Cannon and the Tesla (moved from a colony blueprint to research)
+- ⬜ **Defence tiers (D-087):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, so it comes after the inventory (#87, Q-22). What each tier improves and costs is still to decide
+- ❓ **Ore further from the hub (#89, Q-21):** no ore within 20 tiles of the hub. Today a starter patch of each ore sits 8–12 tiles out so the start from nothing (D-062) is a short walk; moving it out makes the first minutes longer
+- ❓ **Storage and a player inventory (#87, Q-22):** a 1×2 Storage Unit (6 slots of 50); Iron Ingot from the furnace (1 ore), and a 2×2 Blacksmith that makes iron plates from it; an Inventory button opening 12 slots of 10 for the engineer, filled by Collect and by selecting a belt, splitter or underground belt with items on it, and emptied first by Drop off. It would replace what the engineer carries today (items trailing behind, D-067) and change every early recipe
+- ❓ **Fog of war (#43, Q-20):** the map hidden until the engineer or buildings clear it, slowly coming back. What it hides, how far things see, whether it changes play (then it's in the rules and must stay deterministic) and whether co-op shares it are still to decide
 - ✅ Enemy nests on the map that players can clear (D-038)
 
 ## 2. Balance and playtesting
@@ -153,6 +167,10 @@ In this order:
 - ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
 - ✅ **Hub stock only while the hub is selected or pointed at** (D-053), so the map around the hub stays clear
 - ⬜ **Clear a belt line** (owner's note, for later): one action empties every item off a whole belt line (the same line the Express Belt upgrade uses), leaving the belts in place. Where the items go (back into hub stock, or lost) is to be decided (Q-19)
+- ⬜ **Research takes two taps (#86, bug):** a tap or click on a research often does nothing the first time. Likely the list redrawing under the pointer between press and release
+- ⬜ **Belt snapping is too eager (#85, bug):** a building dropped by a belt lines up with it (D-053) even when that isn't wanted, and there's no way to override it. For example: rotating after the snap keeps your facing, or snapping only when dropped onto the belt itself
+- ⬜ **Haptics for mining by hand (#84):** a short vibration on each tap on phones that support it (a long press already vibrates)
+- ⬜ **Move a placed building (#76, #83):** a Move button in the building's panel, beside Rotate and Demolish, that picks it up as a blueprint (keeping its recipe, filter and contents) to put down elsewhere
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory
 - ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)
@@ -174,13 +192,16 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ❓ Name (Q-1)
 - ✅ Art pipeline: sprites load from `src/art/`, and a PNG replaces a same-named SVG placeholder (M3a)
 - ✅ Placeholder SVGs for every P1 and P2 sprite, plus UI icons and a logo mark (M3a)
-- ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038)
+- ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038). Since 0.43.0 most are sprite strips, with these as the fallback (D-082)
 - ✅ Menu style: navy and sky blue, flat icons, Montserrat headings (M3a, D-011)
 - 🚧 Final P1 sprites from the project owner: items, resource nodes, belt, extractor, furnace, hub, turret, crawler
 - ✅ Art upgrade (0.40.0, D-075): every sprite redrawn; wall and palisade sets that join up; burrow nests; damage overlays; damaged hub
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects, UI icons, app icon
 - ✅ Animated art (0.43.0, D-082): strips cut into frames on loading; bugs walk in 4 steps and bite; the engineer walks, works, idles and sees stars when knocked out; sprite effects (muzzle flash, hit spark, cannon shell, explosion, death splat, debris, repair sparkle, leaf burst); seasonal ground and trees; every working machine animates (strips built from the machines' own sprites by `art/working.mjs`)
+- ⬜ **Seasons that fade in** (owner's note): today the ground and trees switch at once when the season changes. Instead, autumn loses its leaves gradually, snow builds up gradually in winter, and spring brings flowers first and then leaves. Only the look changes, so it stays out of the rules
+- ⬜ **Belts and the hub's corners (#78, bug):** since the art upgrade the hub's sprite has cut corners, so a belt meeting a corner tile of the hub looks unattached. A join drawn there, or square corners where belts can meet them
+- ⬜ Belt corners, end caps and join flanges as sprites (reference art in `docs/art-upgrade/pieces/`), with the chevrons still moving in code. The tesla bolt stays drawn in code; its reference is only a guide
 - ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is

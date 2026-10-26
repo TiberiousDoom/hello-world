@@ -24,7 +24,7 @@ built from their sprites by `node art/working.mjs`; run it again after redrawing
 
 **Art review 2 (2026-10-23, for 0.39.0):** every sprite as it was then, with 5 new and 23 changed since round 1 tagged, and new screenshots (including the engineer by a nest, and night). Round 1's marks were cleared. **Out of date since the art upgrade (0.40.0):** its sprites and screenshots show the art from before it. To do later, when the owner asks: rebuild the page from `src/art` and retake the screenshots (the build and screenshot scripts work from scene saves made by the game's own rules).
 **Art upgrade (0.40.0, D-075):** every sprite was redrawn with one light source (top-left), soft contact shadows, one ink outline and glossy bugs; terrain got a lighter touch so the clearing keeps its look. Walls and palisades became sets that join into runs, nests became burrow entrances, and the animation strips, effects and seasonal trees are reference art in `docs/art-upgrade/` (see its README).
-**Animated art (0.43.0, D-082):** the strips, effects and seasonal ground and trees from the art upgrade are in the game, and every machine that works has a working animation. Still reference only: the belt pieces and the tesla bolt (`docs/art-upgrade/`).
+**Animated art (0.43.0, D-082):** the strips, effects and seasonal ground and trees from the art upgrade are in the game, and every machine that works has a working animation. Still reference only: the belt pieces (planned, see ROADMAP) and the tesla bolt, which stays a guide for the code (`docs/art-upgrade/`).
 
 Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
 They show the intended size, facing and silhouette.
@@ -90,8 +90,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 |---|---|---|---|---|---|
 | Hub | 5×5 (320×320) | Centrepiece, with a damaged variant drawn below half health (`buildings/hub_damaged`) | 1 (+idle loop) | P1 | Upgraded |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Upgraded |
-| Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). A sprite could replace it | 8 | P3 | Code; Reference sprite `pieces/belt_corner` |
-| Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code; Reference sprites `pieces/belt_end`, `belt_flange` |
+| Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). To become a sprite of the rails and bed, with the chevrons still moving over it in code | 8 | P3 | Code; Reference sprite `pieces/belt_corner`, planned (ROADMAP) |
+| Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code; Reference sprites `pieces/belt_end`, `belt_flange`, planned (ROADMAP) |
 | Extractor | 2×2 (128×128) | Drill, facing east. The game draws an output port at the middle of the east edge. Working: the rotor turns, chips fly | 1 + 4 working | P1 | Upgraded; working strip `extractor_working_4f` |
 | Furnace | 2×2 (128×128) | Idle and working, facing east. Working: flames, embers, smoke from the chimney | 1 + 4 | P1 | Upgraded; working strip `furnace_working_4f` |
 | Workshop | 2×2 (128×128) | Idle and working, facing east. Working: the gears turn, the lamp blinks | 1 + 4 | P2 | Upgraded; working strip `workshop_working_4f` |
@@ -124,7 +124,7 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 | Asset | Size on screen | Frames | Priority | Status |
 |---|---|---|---|---|
-| Engineer (the player character, #40): top-down, facing east; a yellow hard hat, orange overalls, boots | 1 tile (64×64) | 4 walk, 4 work (mining by hand, facing the ore), 4 idle, 4 knocked out (seeing stars where it fell) | P1 | Upgraded (`units/engineer_walk_4f`, `_work_4f`, `_idle_4f`, `_ko_4f`; `engineer` and `engineer_b` until they load) |
+| Engineer (the player character, #40): top-down, facing east; orange overalls and boots (the animation strips; the older single sprite has a yellow hard hat) | 1 tile (64×64) | 4 walk, 4 work (mining by hand, facing the ore), 4 idle, 4 knocked out (seeing stars where it fell) | P1 | Upgraded (`units/engineer_walk_4f`, `_work_4f`, `_idle_4f`, `_ko_4f`; `engineer` and `engineer_b` until they load) |
 
 ## Enemies
 
