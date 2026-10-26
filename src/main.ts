@@ -19,7 +19,7 @@ import { PlanBar } from './ui/plan';
 import { PING_MS, createUIState } from './ui/state';
 import { LESSONS, Tutorial } from './ui/tutorial';
 import { Lobby } from './ui/lobby';
-import { RELAY_URL } from './net/client';
+import { RELAY_URL, SERVER_ROOM, roomStatus } from './net/client';
 import { Coop } from './net/coop';
 import { CATCH_UP } from './net/lockstep';
 
@@ -119,7 +119,11 @@ let inMenu = true;
 const active = () => (inMenu || !game ? demo : game);
 
 /** The co-op room, if any (D-078). `?relay=` picks another relay: a local one, or `local` for two tabs. */
-const coop = new Coop(new URLSearchParams(location.search).get('relay') ?? RELAY_URL, VERSION);
+const params = new URLSearchParams(location.search);
+const relay = params.get('relay') ?? RELAY_URL;
+const coop = new Coop(relay, VERSION);
+/** The dedicated server's room (D-086): `?server=CODE` picks another, for testing. */
+const serverRoom = (params.get('server') ?? SERVER_ROOM).toUpperCase();
 
 /**
  * Every change the player makes to the world goes through here, as a command (D-058). In co-op it
@@ -417,6 +421,8 @@ const lobby = new Lobby(coop, {
   },
   openModal: (id) => hud.openModal(id),
   closeModals: () => hud.closeModals(),
+  server: { code: serverRoom, status: () => roomStatus(relay, serverRoom, AbortSignal.timeout(8000)) },
+  version: VERSION,
 });
 document.getElementById('mm-coop')!.addEventListener('click', () => lobby.open());
 coop.onChange = () => lobby.render();

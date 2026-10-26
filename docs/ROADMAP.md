@@ -19,7 +19,7 @@ quality and business work don't get left until the end.
 | M4s: Story layer | Colony supply ship with repeat runs and colony blueprints (D-046 to D-050). Food is set aside for wood (D-044). The Company, contracts and black market were dropped (D-040) | 🚧 |
 | M4m: Open map | Procedural 256×256 map, bug territories instead of waves, bigger buildings, leaner screen (D-038 to D-042) | ✅ |
 | M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | 🚧 Phases 1 and 2 done; forest and bugs next |
-| M4c: Co-op | 2–4 players in one shared world (D-056, [COOP.md](COOP.md)) | ✅ Phases 0–3 done (0.42.0, D-078 to D-081): Play together with a room code, joining under way, resync, reconnecting (the host too), pings. Balance for more players after playtesting |
+| M4c: Co-op | 2–10 players in one shared world (10 since 0.44.0, D-083) (D-056, [COOP.md](COOP.md)) | ✅ Phases 0–3 done (0.42.0, D-078 to D-081): Play together with a room code, joining under way, resync, reconnecting (the host too), pings. Balance for more players after playtesting |
 | M5: Mobile app | Store-ready iOS and Android builds | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⬜ |
 
@@ -56,14 +56,15 @@ quality and business work don't get left until the end.
 25. ✅ **Art upgrade** (0.40.0, D-075): every sprite redrawn, walls and palisades that join up, burrow nests, damage that shows.
 26. ✅ **Co-op phases 1 to 3** (D-076 to D-081): the relay on Cloudflare (0.41.0); Play together (0.42.0): Host and Join with a room code, the host stamping command ticks and sending turns, every engineer on screen in its player's colour, no pausing for lessons, the first delivery or blueprint picks; joining a game under way, a fresh copy for a guest out of step or far behind, reconnecting, the shared game saved in every browser; pings, per-player messages, the blueprint offer as a card, engineers side by side, 4-player tests, and the host taking its room back after a dropped connection. **Next:** playtest co-op (balance for more players), and the art review refresh.
 27. ✅ **Animated art** (0.43.0, D-082): working machines, bug walks and bites, the engineer's states, sprite effects, seasonal ground and trees.
-28. ⬜ **Playtest batch 6, bugs** (open issues, 0.43.0): research needs two taps or clicks to start (#86); buildings snap to belts too eagerly, with no way to override it (#85); belts don't meet the hub's corners with the new art (#78).
-29. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
-30. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
-31. ⬜ **Three eras and defence tiers** (#88, D-083): early, mid and late game, each later one opened by a keystone research; wooden defences first (Ballista, Palisade), then Turret and Wall, then Cannon and Tesla; then Tiers 1 to 4 for each defence, paid from the engineer's inventory (after #87). See Gameplay → Next.
-32. ⬜ **Bugs that don't give up mid-chase** (owner's note): see Nests.
-33. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
-34. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); a Storage Unit, iron ingots and a Blacksmith, and a player inventory (#87, Q-22); fog of war (#43, Q-20).
-35. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+28. ✅ **Dedicated server** (0.44.0, D-083 to D-086; one-button join and its status on Play together in 0.45.0): rooms of up to 10, and a server that hosts one room around the clock on a spare computer, paused while empty, saved every minute, updated from `master` when nobody is playing, and back in its room within seconds after an internet drop (D-085) ([server/README.md](../server/README.md)).
+29. ⬜ **Playtest batch 6, bugs** (open issues, 0.43.0): research needs two taps or clicks to start (#86); buildings snap to belts too eagerly, with no way to override it (#85); belts don't meet the hub's corners with the new art (#78).
+30. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
+31. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
+32. ⬜ **Three eras and defence tiers** (#88, D-087): early, mid and late game, each later one opened by a keystone research; wooden defences first (Ballista, Palisade), then Turret and Wall, then Cannon and Tesla; then Tiers 1 to 4 for each defence, paid from the engineer's inventory (after #87). See Gameplay → Next.
+33. ⬜ **Bugs that don't give up mid-chase** (owner's note): see Nests.
+34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
+35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); a Storage Unit, iron ingots and a Blacksmith, and a player inventory (#87, Q-22); fog of war (#43, Q-20).
+36. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
@@ -142,9 +143,9 @@ In this order:
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (nest density and toughness)
-- ⬜ **Three eras (#88, D-083):** the game splits into early, mid and late eras; each later era opens with a keystone research that needs several of the era before, and the research menu groups researches by era. Today four researches are open from the start (Logistics, Basic Defense, Forestry, Masonry)
-- ⬜ **Defences by era (D-083):** early, Basic Defense gives the Ballista and the Palisade; mid, the Turret and the Wall; late, the Cannon and the Tesla (moved from a colony blueprint to research)
-- ⬜ **Defence tiers (D-083):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, so it comes after the inventory (#87, Q-22). What each tier improves and costs is still to decide
+- ⬜ **Three eras (#88, D-087):** the game splits into early, mid and late eras; each later era opens with a keystone research that needs several of the era before, and the research menu groups researches by era. Today four researches are open from the start (Logistics, Basic Defense, Forestry, Masonry)
+- ⬜ **Defences by era (D-087):** early, Basic Defense gives the Ballista and the Palisade; mid, the Turret and the Wall; late, the Cannon and the Tesla (moved from a colony blueprint to research)
+- ⬜ **Defence tiers (D-087):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, so it comes after the inventory (#87, Q-22). What each tier improves and costs is still to decide
 - ❓ **Ore further from the hub (#89, Q-21):** no ore within 20 tiles of the hub. Today a starter patch of each ore sits 8–12 tiles out so the start from nothing (D-062) is a short walk; moving it out makes the first minutes longer
 - ❓ **Storage and a player inventory (#87, Q-22):** a 1×2 Storage Unit (6 slots of 50); Iron Ingot from the furnace (1 ore), and a 2×2 Blacksmith that makes iron plates from it; an Inventory button opening 12 slots of 10 for the engineer, filled by Collect and by selecting a belt, splitter or underground belt with items on it, and emptied first by Drop off. It would replace what the engineer carries today (items trailing behind, D-067) and change every early recipe
 - ❓ **Fog of war (#43, Q-20):** the map hidden until the engineer or buildings clear it, slowly coming back. What it hides, how far things see, whether it changes play (then it's in the rules and must stay deterministic) and whether co-op shares it are still to decide

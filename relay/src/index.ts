@@ -5,8 +5,8 @@
 // deleted when the room closes.
 
 import { DurableObject } from 'cloudflare:workers';
-import { HOST_GRACE_MS, RelayMessage, Role, RoomHost, validCode } from '../../src/net/protocol';
-import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, route, welcome } from '../../src/net/room';
+import { HEARTBEAT, HEARTBEAT_REPLY, HOST_GRACE_MS, RelayMessage, Role, RoomHost, RoomInfo, validCode } from '../../src/net/protocol';
+import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, retire, route, status, welcome } from '../../src/net/room';
 
 export interface Env {
   ROOMS: DurableObjectNamespace<Room>;
@@ -23,8 +23,10 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/health') return new Response('ok', { headers: { 'access-control-allow-origin': '*' } });
-    const m = url.pathname.match(/^\/rooms\/([A-Z0-9]+)$/);
+    const m = url.pathname.match(/^\/rooms\/([A-Z0-9]+)(\/status)?$/);
     if (!m || !validCode(m[1])) return new Response('Not found', { status: 404 });
+    // A room's status, for the Play together screen (D-086): public, read by any page.
+    if (m[2]) return request.method === 'GET' ? env.ROOMS.getByName(m[1]).fetch(request) : new Response('Use GET', { status: 405 });
     if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
     if (!allowedOrigin(request.headers.get('Origin'))) return new Response('Forbidden', { status: 403 });
     return env.ROOMS.getByName(m[1]).fetch(request);
@@ -36,13 +38,28 @@ interface Attachment {
   slot: number;
   role: Role;
   version: string;
+  /** The host's room info (D-086), kept here so it costs no storage and goes when the host does. */
+  info?: RoomInfo;
 }
 
 export class Room extends DurableObject<Env> {
   private allowances = new WeakMap<WebSocket, Allowance>();
 
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    // Heartbeats are answered by Cloudflare without waking the room, so they cost next to nothing (D-085).
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(HEARTBEAT, HEARTBEAT_REPLY));
+  }
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.endsWith('/status')) {
+      const host = this.ctx.getWebSockets().map((ws) => ws.deserializeAttachment() as Attachment | null).find((a) => a?.role === 'host');
+      const room = (await this.ctx.storage.get<RoomHost>('host')) ?? null;
+      return Response.json(status(this.peers(), room, host?.info ?? null), {
+        headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' },
+      });
+    }
     const role: Role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
     const version = url.searchParams.get('v') ?? '';
     const key = url.searchParams.get('key') ?? '';
@@ -55,6 +72,20 @@ export class Room extends DurableObject<Env> {
       server.send(JSON.stringify({ t: 'refused', reason: result.refuse, hostVersion: result.hostVersion } satisfies RelayMessage));
       server.close(CLOSE_POLICY, result.refuse);
       return new Response(null, { status: 101, webSocket: client });
+    }
+    if (role === 'host') {
+      // Its old connection, if it still looks open (D-085): told, closed, and forgotten, so that its
+      // closing later isn't taken for the host leaving.
+      for (const ws of this.ctx.getWebSockets()) {
+        const a = ws.deserializeAttachment() as Attachment | null;
+        if (a?.role !== 'host') continue;
+        retire([this.peer(ws, a)]);
+        try {
+          ws.serializeAttachment(null);
+        } catch {
+          // Closed already.
+        }
+      }
     }
     const others = this.peers();
     if (role === 'host') {
@@ -76,7 +107,13 @@ export class Room extends DurableObject<Env> {
       if (!allowance) this.allowances.set(ws, (allowance = new Allowance(Date.now())));
       if (!allowance.take(Date.now())) return from.close(CLOSE_POLICY, 'too many messages');
     }
-    route(this.peers(), from, message);
+    route(this.peers(), from, message, (info) => {
+      try {
+        ws.serializeAttachment({ ...(ws.deserializeAttachment() as Attachment), info } satisfies Attachment);
+      } catch {
+        // Closed meanwhile.
+      }
+    });
   }
 
   async webSocketClose(ws: WebSocket, code: number): Promise<void> {

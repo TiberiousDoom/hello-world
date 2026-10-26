@@ -2,7 +2,7 @@
 // Object in relay/src/index.ts keeps each connection's details on the socket itself, so a room that sleeps
 // between messages wakes up knowing who's in it.
 
-import { CLOSE_LEAVING, GUEST_RATE, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role, RoomHost } from './protocol';
+import { CLOSE_LEAVING, GUEST_RATE, HEARTBEAT, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus } from './protocol';
 
 /** A connection in a room: who it is, and how to reach it. */
 export interface Peer {
@@ -16,11 +16,14 @@ export interface Peer {
 /** Normal closure (1000), and a policy violation (1008) for a refusal or a broken rule. */
 export const CLOSE_NORMAL = 1000;
 export const CLOSE_POLICY = 1008;
+/** A host's old connection, closed because the host came back on a new one (D-085). */
+export const CLOSE_REPLACED = 4001;
 
 /**
- * Who may join: the host only into a room with no host, a guest only into an open room, on the host's
+ * Who may join: the host into a new or empty room, a guest only into an open room, on the host's
  * version, while there's a free slot. A room whose host dropped out (`room`, D-081) stays open, and
- * only a host with its key may take it back. Returns the new player's slot, or why not.
+ * only a host with its key may take it back, even while its old connection still looks open (D-085).
+ * Returns the new player's slot, or why not.
  */
 export function admit(
   peers: Peer[],
@@ -31,7 +34,13 @@ export function admit(
 ): { slot: number } | { refuse: RefuseReason; hostVersion?: string } {
   if (!version || version.length > 40 || key.length > 64) return { refuse: 'bad-request' };
   const host = peers.find((p) => p.role === 'host');
-  if (role === 'host') return host || (room && peers.length && room.key !== key) ? { refuse: 'taken' } : { slot: 0 };
+  if (role === 'host') {
+    // A new room, or one with nobody in it: any host. A room with people in it (its host there, or away):
+    // only its own host, with its key. The host's old connection may still look open when the host is
+    // back on a new one (D-085); the new one takes over, and the old is closed (`retire`).
+    if (!host && !(room && peers.length)) return { slot: 0 };
+    return room && key && room.key === key ? { slot: 0 } : { refuse: 'taken' };
+  }
   const hostVersion = host?.version ?? (peers.length ? room?.version : undefined);
   if (!hostVersion) return { refuse: 'no-room' };
   if (hostVersion !== version) return { refuse: 'version', hostVersion };
@@ -49,8 +58,10 @@ export function welcome(peers: Peer[], newcomer: Peer): void {
  * Routes one message. A guest's goes to the host; the host's goes to the guest it names, or to every
  * guest. Anything too big, or not text, closes the sender's connection.
  */
-export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer): void {
+export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer, onInfo?: (info: RoomInfo) => void): void {
   if (typeof raw !== 'string') return from.close(CLOSE_POLICY, 'text only');
+  // The relay on Cloudflare answers heartbeats before they reach the room; this is for the local room.
+  if (raw === HEARTBEAT) return from.send({ t: 'heartbeat' });
   if (from.role === 'guest') {
     if (raw.length > MAX_GUEST_MESSAGE) return from.close(CLOSE_POLICY, 'too big');
     peers.find((p) => p.role === 'host')?.send({ t: 'from', slot: from.slot, data: raw });
@@ -64,6 +75,11 @@ export function route(peers: Peer[], from: Peer, raw: string | ArrayBuffer): voi
     return from.close(CLOSE_POLICY, 'bad message');
   }
   if (typeof msg?.data !== 'string') return from.close(CLOSE_POLICY, 'bad message');
+  if (msg.info !== undefined) {
+    // The room's info (D-086): kept if it's well formed, otherwise ignored; never a reason to close.
+    const info = cleanInfo(msg.info);
+    if (info) onInfo?.(info);
+  }
   for (const p of peers) {
     if (p.role === 'host' || (msg.to != null && p.slot !== msg.to)) continue;
     p.send({ t: 'host', data: msg.data });
@@ -85,6 +101,47 @@ export function leave(peers: Peer[], gone: Peer, code = CLOSE_LEAVING): 'wait' |
     return expire(rest);
   }
   for (const p of rest) p.send({ t: 'left', slot: gone.slot });
+}
+
+/**
+ * The host is back on a new connection while its old one still looks open (D-085): the old one is told,
+ * then closed. Returns it, for the caller to forget before welcoming the new one, so that its closing
+ * later isn't taken for the host leaving.
+ */
+export function retire(peers: Peer[]): Peer | undefined {
+  const old = peers.find((p) => p.role === 'host');
+  if (!old) return undefined;
+  old.send({ t: 'closed', reason: 'replaced' });
+  old.close(CLOSE_REPLACED, 'replaced');
+  return old;
+}
+
+/**
+ * A host's room info, if it's well formed (D-086): only the known fields, short, so it fits on the
+ * host's socket (Cloudflare keeps at most 2 KB there) and on the screen.
+ */
+export function cleanInfo(raw: unknown): RoomInfo | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const info: RoomInfo = {};
+  if (typeof r.name === 'string' && r.name.trim()) info.name = r.name.trim().slice(0, 40);
+  if (Number.isInteger(r.day) && (r.day as number) >= 1 && (r.day as number) < 1e7) info.day = r.day as number;
+  if (typeof r.season === 'string' && r.season) info.season = r.season.slice(0, 12);
+  return info;
+}
+
+/** What the relay says about a room (D-086): open, waiting for its host, or not there. */
+export function status(peers: Peer[], room: RoomHost | null, info: RoomInfo | null): RoomStatus {
+  const host = peers.find((p) => p.role === 'host');
+  const away = !host && !!room && peers.length > 0;
+  return {
+    open: !!host,
+    away,
+    version: host?.version ?? (away ? room!.version : null),
+    players: peers.filter((p) => p.role === 'guest').length,
+    max: MAX_PLAYERS,
+    info: host || away ? info : null,
+  };
 }
 
 /** The room closes for good: every guest is told the host left. */

@@ -409,20 +409,30 @@ The hardcore unlock is stored in the browser's profile, separate from the save f
 
 ## Playing together
 
-Co-op ([COOP.md](COOP.md), D-078 to D-081). Two to four players build one factory: one hub, one stock,
+Co-op ([COOP.md](COOP.md), D-078 to D-081). Two to ten players build one factory (D-083): one hub, one stock,
 one research tree, one supply ship.
 
-- **Host or join:** main menu → **Play together**. The host opens a room with a new game (Standard),
+- **The dedicated server (D-086):** main menu → **Play together** opens with the server's card: its name,
+  a light (online, offline, reconnecting, full, or on another version), players in (of 9: the server
+  takes one place), its game's day and season, and its version. **Join the server** works with no code,
+  and only when joining can work; otherwise the card says why. It checks again every 10 seconds.
+- **Host or join:** below the server, **Host on this device** opens a room with a new game (Standard),
   their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
   share. The others type the code and press Join. Everyone must be on the same version; a mismatch is
   refused, naming both versions.
 - **Start:** the host presses Start once everyone is in. A player can also join a game under way with
   the code: the host sends them a copy of the game, and the others see "Player N joined".
 - **Engineers:** each player has their own engineer, in their slot's colour (host yellow, then blue,
-  pink and green), with a ring under it. They start side by side below the hub. A message about an
+  pink, green, violet, white, orange, teal, royal blue and tan), with a ring under it. They start side by side below the hub. A message about an
   engineer (knocked out) says "Your engineer…" to its player and "Player 2's engineer…" to the others. When a player leaves, their engineer
   is back below the hub at once (it doesn't walk home through bug country), and what it carried goes into
   the hub's stock. Someone joining later in that slot takes it over.
+- **Dedicated server (D-084):** the game can also be hosted by a server instead of a player
+  ([server/README.md](../server/README.md)). Its room is always open with the same code, and the game
+  starts at once, so everyone joins it under way. It is paused while nobody is in. The server is player 1;
+  its engineer stays at the hub. If the server restarts, players see "The host is back" and carry on.
+- **A host's dead connection (D-085):** a host whose connection dies without closing (a router restarting)
+  notices within about 20 seconds, reconnects and takes its room back; players see "The host is back".
 - **The shared clock:** only the host pauses or changes the speed; the other players have no speed
   buttons. Nothing else stops the game: lessons explain while it runs, without blocking the screen, and
   neither the first delivery's screen nor the blueprint pick pauses it.

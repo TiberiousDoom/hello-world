@@ -9,7 +9,8 @@ export default defineConfig({
   timeout: 90_000,
   fullyParallel: true,
   workers: process.env.CI ? 2 : undefined,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // On CI, failures are also written as annotations (the 'github' reporter): readable without the log.
+  reporter: process.env.CI ? [['list'], ['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:4173/',
     trace: 'retain-on-failure',

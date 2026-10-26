@@ -3,9 +3,31 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
-## 0.43.1 · 2026-10-24 · Notes brought up to date
+## 0.45.2 · 2026-10-26 · Notes brought up to date
 ### New
 - Nothing new in the game this time: the project's notes are brought up to date, drawn belt corners, ends and joins are planned, and your latest feedback is in the plans: an early, mid and late game with wooden defences first and upgrades for every defence, bugs that don't give up in the middle of a chase, and seasons that fade in.
+
+## 0.45.1 · 2026-10-25 · Always open, for real
+### Fixed
+- A test of the new Play together screen sometimes failed on the build server, which kept 0.45.0 from going out. Nothing changes in the game.
+
+## 0.45.0 · 2026-10-25 · Always open
+### New
+- **Join the server in one tap:** Play together now opens with the dedicated server at the top. Press Join the server; there's no code to type.
+- **Server status:** see at a glance whether the server is online, how many players are in, what day and season its game is on, and which version it runs. It checks again every few seconds while the screen is open.
+- **Clear reasons:** when you can't join (the server is offline, full, reconnecting, or on another version), the screen says why and what to do.
+- **Hosting and joining a friend** have their own sections, below the server.
+
+## 0.44.0 · 2026-10-25 · Bring the whole crew
+### New
+- **Up to 10 players:** a room now holds the host and nine friends, up from four.
+- **More colours:** six new engineer colours (violet, white, orange, teal, royal blue and tan), so everyone stays easy to tell apart.
+- **Room below the hub:** engineers start side by side below the hub, spreading out to either side as more players join.
+- The lobby lists players in two columns when there's room, so a full room fits on a phone.
+- **A game that's always on:** the game can now run on a spare computer as a dedicated server, with a room that stays open and a code that never changes. Friends join and leave whenever they like, and nobody has to host. The game waits, paused, while nobody is in.
+### Fixed
+- When the host's game restarts, players now carry on from the fresh copy it sends, instead of standing still.
+- When the host's internet drops without the connection closing (a router restarting, say), the host now notices within about 20 seconds and takes its room back, instead of leaving everyone waiting for many minutes.
 
 ## 0.43.0 · 2026-10-24 · Moving pictures
 ### New

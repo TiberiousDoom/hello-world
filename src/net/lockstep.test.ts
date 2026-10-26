@@ -6,6 +6,8 @@ import { TICK, World } from '../sim/world';
 import { Coop } from './coop';
 import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, validCommand } from './lockstep';
 import { pack, unpack } from './pack';
+import { roomStatus } from './client';
+import { HEARTBEAT, MAX_PLAYERS } from './protocol';
 
 /** A host and a guest on the same world, wired together with message queues standing in for the relay. */
 function pair() {
@@ -287,7 +289,7 @@ describe('A co-op room', () => {
     host.leave();
   });
 
-  it('holds four players, and turns a fifth away', async () => {
+  it('holds a full room (MAX_PLAYERS), and turns one more away', async () => {
     const until = async (ok: () => boolean) => {
       for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
       expect(ok()).toBe(true);
@@ -295,14 +297,15 @@ describe('A co-op room', () => {
     const host = new Coop('local', '1.0.0');
     host.hostRoom();
     await until(() => host.phase === 'lobby');
-    const guests = [1, 2, 3].map(() => new Coop('local', '1.0.0'));
+    const slots = Array.from({ length: MAX_PLAYERS - 1 }, (_, i) => i + 1);
+    const guests = slots.map(() => new Coop('local', '1.0.0'));
     const games = new Map<Coop, Session>();
     for (const g of guests) {
       g.onStart = (s) => games.set(g, s);
       g.joinRoom(host.code);
       await until(() => g.phase === 'lobby');
     }
-    expect(host.players).toEqual([0, 1, 2, 3]);
+    expect(host.players).toEqual([0, ...slots]);
     const fifth = new Coop('local', '1.0.0');
     let why = '';
     fifth.onEnd = (w) => (why = w);
@@ -311,9 +314,9 @@ describe('A co-op room', () => {
     expect(why).toMatch(/full/);
 
     await host.start(World.create(4));
-    await until(() => games.size === 3);
+    await until(() => games.size === guests.length);
     const hash = summaryHash(host.host!.session.world);
-    expect(guests.map((g) => games.get(g)!.player)).toEqual([1, 2, 3]);
+    expect(guests.map((g) => games.get(g)!.player)).toEqual(slots);
     for (const s of games.values()) expect(summaryHash(s.world)).toBe(hash);
 
     // A ping from one guest reaches the host and the other guests, not itself.
@@ -322,9 +325,9 @@ describe('A co-op room', () => {
     guests[1].ping(20, 21);
     await until(() => pinged.has(host));
     host.host!.flush(1, 1e9);
-    await until(() => pinged.has(guests[0]) && pinged.has(guests[2]));
+    await until(() => guests.every((g, i) => i === 1 || pinged.has(g)));
     expect(pinged.get(host)).toEqual([[2, 20, 21]]);
-    expect(pinged.get(guests[0])).toEqual([[2, 20, 21]]);
+    for (const g of guests) if (g !== guests[1]) expect(pinged.get(g)).toEqual([[2, 20, 21]]);
     expect(pinged.has(guests[1])).toBe(false);
     host.leave();
   });
@@ -390,6 +393,154 @@ describe('A co-op room', () => {
     expect(summaryHash(guest.guest!.session.world)).toBe(summaryHash(host.host!.session.world));
     host.leave();
     await until(() => guest.phase === 'idle');
+  });
+
+  it('a dedicated server keeps its room code, and a restarted one brings the guests back (D-084)', async () => {
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    const server = new Coop('local', '1.0.0');
+    server.hostRoom('CREW42', 'server-key');
+    await until(() => server.phase === 'lobby');
+    expect(server.code).toBe('CREW42');
+
+    // Someone else asking for the server's code is turned away; it isn't swapped for another code.
+    const other = new Coop('local', '1.0.0');
+    let why = '';
+    other.onEnd = (w) => (why = w);
+    other.hostRoom('CREW42', 'not-the-key');
+    await until(() => why !== '');
+    expect(why).toMatch(/taken/);
+
+    const guest = new Coop('local', '1.0.0');
+    const starts: boolean[] = [];
+    const notices: string[] = [];
+    guest.onStart = (_, again) => starts.push(again);
+    guest.onNotice = (n) => notices.push(n);
+    guest.joinRoom('CREW42');
+    await until(() => server.players.length === 2);
+    await server.start(World.create(4));
+    await until(() => starts.length === 1);
+    for (let i = 1; i <= 5; i++) {
+      for (let t = 0; t < 10; t++) server.host!.tick();
+      server.host!.flush(1, i * 1000);
+    }
+    await until(() => guest.guest!.through === 50);
+
+    // The server stops (its connection drops, nothing more from it) and a new one starts from its save,
+    // with the same code and key: it takes the room back and sends the guest a fresh copy.
+    const saved = server.host!.session.world.toJSON();
+    (server as unknown as { link: { drop(): void } }).link.drop();
+    (server as unknown as { reset(): void }).reset();
+    await until(() => notices.some((n) => n.startsWith("The host's connection dropped")));
+    const restarted = new Coop('local', '1.0.0');
+    restarted.onChange = () => {
+      if (restarted.phase === 'lobby') void restarted.start(World.fromJSON(saved));
+    };
+    restarted.hostRoom('CREW42', 'server-key');
+    await until(() => starts.length === 2);
+    // Its turns count from 1 again, and the guest follows them.
+    for (let t = 0; t < 10; t++) restarted.host!.tick();
+    restarted.host!.flush(1, 1e9);
+    await until(() => guest.guest!.through === 60);
+    expect(summaryHash(guest.guest!.session.world)).toBe(summaryHash(World.fromJSON(saved)));
+    restarted.leave();
+    await until(() => guest.phase === 'idle');
+  });
+
+  it('a host whose connection dies without closing notices, and takes its room back (D-085)', async () => {
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    const host = new Coop('local', '1.0.0');
+    host.heartbeatMs = 40;
+    host.heartbeatWaitMs = 80;
+    const hostNotices: string[] = [];
+    host.onNotice = (n) => hostNotices.push(n);
+    host.hostRoom('HBEAT2', 'key');
+    await until(() => host.phase === 'lobby');
+    const guest = new Coop('local', '1.0.0');
+    const starts: boolean[] = [];
+    const notices: string[] = [];
+    guest.onStart = (_, again) => starts.push(again);
+    guest.onNotice = (n) => notices.push(n);
+    guest.joinRoom('HBEAT2');
+    await until(() => host.players.length === 2);
+    await host.start(World.create(4));
+    await until(() => starts.length === 1);
+    const state = host as unknown as { beatAnswered: boolean; link: { send(t: string): void; onMessage(m: unknown): void; close(): void; drop(): void } };
+    await until(() => state.beatAnswered);
+
+    // The connection goes dead without closing: nothing gets through either way, and no close comes.
+    // The room still thinks the host is there.
+    const dead = state.link;
+    dead.send = () => {};
+    dead.onMessage = () => {};
+    dead.close = dead.drop = () => {};
+    for (let i = 0; i < 30; i++) host.host!.tick();
+    await until(() => hostNotices.includes('Back in the room.'));
+    expect(hostNotices[0]).toBe('No answer from the game server: reconnecting.');
+    // The new connection took over from the dead one, and the guest is brought up to date.
+    await until(() => starts.length === 2);
+    expect(notices).toContain('The host is back.');
+    expect(summaryHash(guest.guest!.session.world)).toBe(summaryHash(host.host!.session.world));
+    host.leave();
+    await until(() => guest.phase === 'idle');
+  });
+
+  it("doesn't take a relay that never answers heartbeats for a dead connection (D-085)", async () => {
+    const host = new Coop('local', '1.0.0');
+    host.heartbeatMs = 20;
+    host.heartbeatWaitMs = 40;
+    const notices: string[] = [];
+    host.onNotice = (n) => notices.push(n);
+    host.hostRoom('OLDRL2', 'key');
+    // A relay from before heartbeats: they go nowhere and nothing answers.
+    const link = (host as unknown as { link: { send(t: string): void } }).link;
+    const send = link.send;
+    link.send = (t) => (t === HEARTBEAT ? undefined : send(t));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(host.phase).toBe('lobby');
+    expect(notices).toEqual([]);
+    host.leave();
+  });
+
+  it('a second host with the same key takes the room, and the first is told and stays out (D-085)', async () => {
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    const first = new Coop('local', '1.0.0');
+    let ended: [string, boolean | undefined] | null = null;
+    first.onEnd = (why, replaced) => (ended = [why, replaced]);
+    first.hostRoom('TWINS2', 'key');
+    await until(() => first.phase === 'lobby');
+    const second = new Coop('local', '1.0.0');
+    second.hostRoom('TWINS2', 'key');
+    await until(() => second.phase === 'lobby' && ended != null);
+    expect(ended![1]).toBe(true);
+    expect(first.phase).toBe('idle');
+    second.leave();
+  });
+
+  it("a host's room info reaches the relay, and is sent again after a dropped connection (D-086)", async () => {
+    const until = async (ok: () => boolean | Promise<boolean>) => {
+      for (let i = 0; i < 300 && !(await ok()); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(await ok()).toBe(true);
+    };
+    const host = new Coop('local', '1.0.0');
+    host.setInfo({ name: 'Server', day: 1, season: 'Spring' }); // before the room is open: kept for it
+    host.hostRoom('INFO22', 'key');
+    const info = async () => (await roomStatus('local', 'INFO22'))?.info?.day;
+    await until(async () => (await info()) === 1);
+    host.setInfo({ name: 'Server', day: 2, season: 'Spring' });
+    await until(async () => (await info()) === 2);
+    expect(await roomStatus('local', 'INFO22')).toMatchObject({ open: true, players: 0, version: '1.0.0' });
+    // Unknown here: a local room hosted in another tab can't be seen, so Join stays open.
+    expect(await roomStatus('local', 'NOROOM')).toBeNull();
+    host.leave();
   });
 
   it('ends the game for the guests when the host leaves', async () => {

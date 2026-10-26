@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { RESEARCH } from '../sim/data';
 import { World } from '../sim/world';
-import { placementAt } from './state';
+import { MAX_PLAYERS } from '../net/protocol';
+import { HOME_OFFSET } from '../sim/player';
+import { PLAYER_COLORS, placementAt } from './state';
 
 /** A clear world with everything researched and plenty of stock. */
 function clearWorld(): World {
@@ -68,5 +70,23 @@ describe('Splitters snap onto either side of a belt (#63)', () => {
     expect(placementAt(w, 'splitter', { x: x0 + 1, y, fx: 0.5, fy: 0.2 }, 0, true)).toEqual({ x: x0 + 1, y, dir: 0 });
     for (let i = 0; i < 4; i++) w.place('belt', x0 + 10, y + i, 1); // running south: the lanes go east and west
     expect(placementAt(w, 'splitter', { x: x0 + 10, y: y + 1, fx: 0.1, fy: 0.5 }, 3, true)).toEqual({ x: x0 + 9, y: y + 1, dir: 1 });
+  });
+});
+
+describe('Every co-op slot has its own look and place (D-083)', () => {
+  it('a colour and a start spot below the hub for each slot, none shared', () => {
+    expect(PLAYER_COLORS.length).toBeGreaterThanOrEqual(MAX_PLAYERS);
+    expect(new Set(PLAYER_COLORS.slice(0, MAX_PLAYERS)).size).toBe(MAX_PLAYERS);
+    expect(HOME_OFFSET.length).toBeGreaterThanOrEqual(MAX_PLAYERS);
+    expect(new Set(HOME_OFFSET.slice(0, MAX_PLAYERS)).size).toBe(MAX_PLAYERS);
+    expect(HOME_OFFSET.slice(0, 4)).toEqual([0, 1, -1, 2]); // saved games keep their engineers' spots
+  });
+
+  it('engineers in a full room all start on the map, apart', () => {
+    const w = World.create(3);
+    for (let id = 1; id < MAX_PLAYERS; id++) w.addPlayer(id);
+    const spots = w.state.players.map((p) => `${p.x},${p.y}`);
+    expect(new Set(spots).size).toBe(MAX_PLAYERS);
+    for (const p of w.state.players) expect(p.x >= 0 && p.x < w.state.width && p.y >= 0 && p.y < w.state.height).toBe(true);
   });
 });

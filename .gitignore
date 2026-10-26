@@ -8,3 +8,5 @@ coverage/
 .idea/
 test-results/
 playwright-report/
+dist-server
+server-data

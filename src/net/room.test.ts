@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GUEST_RATE, MAX_GUEST_MESSAGE, RelayMessage, Role, makeCode, validCode } from './protocol';
-import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, route, welcome } from './room';
+import { GUEST_RATE, HEARTBEAT, MAX_GUEST_MESSAGE, MAX_PLAYERS, RelayMessage, RoomInfo, infoMessage, Role, makeCode, validCode } from './protocol';
+import { Allowance, CLOSE_POLICY, CLOSE_REPLACED, Peer, admit, cleanInfo, expire, leave, retire, route, status, welcome } from './room';
 
 /** A connection that records what it was sent, and whether it was closed. */
 function peer(slot: number, role: Role = slot === 0 ? 'host' : 'guest', version = '1.0.0') {
@@ -24,7 +24,7 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(validCode('ABCDE0')).toBe(false); // no zero: it looks like an O
   });
 
-  it('lets in one host, then guests on the same version, up to 4 players', () => {
+  it('lets in one host, then guests on the same version, up to MAX_PLAYERS players', () => {
     expect(admit([], 'guest', '1.0.0')).toEqual({ refuse: 'no-room' });
     expect(admit([], 'host', '1.0.0')).toEqual({ slot: 0 });
     const host = peer(0);
@@ -32,8 +32,62 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(admit([host], 'guest', '1.0.1')).toEqual({ refuse: 'version', hostVersion: '1.0.0' });
     expect(admit([host], 'guest', '1.0.0')).toEqual({ slot: 1 });
     expect(admit([host, peer(1), peer(3)], 'guest', '1.0.0')).toEqual({ slot: 2 }); // a free slot is reused
-    expect(admit([host, peer(1), peer(2), peer(3)], 'guest', '1.0.0')).toEqual({ refuse: 'full' });
+    const full = [host, ...Array.from({ length: MAX_PLAYERS - 1 }, (_, i) => peer(i + 1))];
+    expect(MAX_PLAYERS).toBe(10); // D-083
+    expect(admit(full.slice(0, -1), 'guest', '1.0.0')).toEqual({ slot: MAX_PLAYERS - 1 });
+    expect(admit(full, 'guest', '1.0.0')).toEqual({ refuse: 'full' });
     expect(admit([], 'host', '')).toEqual({ refuse: 'bad-request' });
+  });
+
+  it("lets a host with its key take over from its own old connection, and nobody else (D-085)", () => {
+    const host = peer(0);
+    const room = { key: 'secret', version: '1.0.0' };
+    expect(admit([host, peer(1)], 'host', '1.0.0', 'secret', room)).toEqual({ slot: 0 });
+    expect(admit([host, peer(1)], 'host', '1.0.0', 'wrong', room)).toEqual({ refuse: 'taken' });
+    expect(admit([host, peer(1)], 'host', '1.0.0', '', room)).toEqual({ refuse: 'taken' });
+    expect(admit([host], 'host', '1.0.0', 'secret', null)).toEqual({ refuse: 'taken' });
+    // The old connection is told, then closed; guests are left alone.
+    const guest = peer(1);
+    expect(retire([host, guest])).toBe(host);
+    expect(host.got).toEqual([{ t: 'closed', reason: 'replaced' }]);
+    expect(host.closed).toBe(CLOSE_REPLACED);
+    expect(guest.got).toEqual([]);
+    expect(retire([guest])).toBeUndefined();
+  });
+
+  it('answers a heartbeat to its sender only, and passes it to nobody (D-085)', () => {
+    const host = peer(0);
+    const guest = peer(1);
+    route([host, guest], host, HEARTBEAT);
+    expect(host.got).toEqual([{ t: 'heartbeat' }]);
+    expect(guest.got).toEqual([]);
+    expect(host.closed).toBeUndefined();
+  });
+
+  it("keeps a host's room info, checked, and passes it to nobody (D-086)", () => {
+    const host = peer(0);
+    const guest = peer(1);
+    let kept: RoomInfo | null = null;
+    route([host, guest], host, infoMessage({ name: "Stephen's server", day: 12, season: 'Winter' }), (i) => (kept = i));
+    expect(kept).toEqual({ name: "Stephen's server", day: 12, season: 'Winter' });
+    expect(guest.got).toEqual([]);
+    expect(host.closed).toBeUndefined();
+    // Only the known fields, short; anything malformed is dropped, and never closes the host.
+    expect(cleanInfo({ name: 'x'.repeat(100), day: 2.5, season: 'Fall', extra: 'no' })).toEqual({ name: 'x'.repeat(40), season: 'Fall' });
+    expect(cleanInfo('nope')).toBeNull();
+    route([host], host, JSON.stringify({ data: '', info: 'nope' }), () => expect.unreachable());
+    expect(host.closed).toBeUndefined();
+    // A guest can't set it.
+    route([host, guest], guest, infoMessage({ name: 'Mine now' }), () => expect.unreachable());
+  });
+
+  it("reports a room's status: open, waiting for its host, or not there (D-086)", () => {
+    const info = { name: 'Server', day: 3 };
+    const room = { key: 'k', version: '1.0.0' };
+    expect(status([peer(0), peer(1), peer(2)], room, info)).toEqual({ open: true, away: false, version: '1.0.0', players: 2, max: MAX_PLAYERS, info });
+    expect(status([peer(1)], room, info)).toEqual({ open: false, away: true, version: '1.0.0', players: 1, max: MAX_PLAYERS, info });
+    expect(status([], null, null)).toEqual({ open: false, away: false, version: null, players: 0, max: MAX_PLAYERS, info: null });
+    expect(status([], room, info).info).toBeNull(); // a closed room says nothing about itself
   });
 
   it('welcomes a newcomer with everyone in the room, and tells the others', () => {

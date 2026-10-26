@@ -111,7 +111,7 @@ holds. To do:
 | Messages like "You disturbed a nest" | Everyone sees them: they come from the shared rules |
 | Carried items when a player leaves | Dropped into the hub |
 | More players, more bugs? | Not at first. Tune after playtesting |
-| How many players? | 2 to start, then up to 4 |
+| How many players? | 2 to start, then up to 4; 10 since 0.44.0 (D-083) |
 | Seeing each other | Each player's character in their own colour; a "ping" to point at a spot. No text chat at first (no moderation needed) |
 
 ## Phones
