@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, TURRETS, nestComposition } from './data';
+import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -16,7 +16,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999 };
   return w;
 }
 
@@ -202,14 +202,15 @@ describe('Production', () => {
     expect(w.place('belt', x0 + 7, y, 0, true)).toBe('occupied'); // belts don't replace belts
   });
 
-  it('starts with a few buildings and unlocks more through research, including the shipyard', () => {
+  it('starts with nothing built and unlocks everything through research, including the shipyard', () => {
     const w = World.create(3);
-    expect(w.isUnlocked('extractor')).toBe(true);
+    expect(w.isUnlocked('extractor')).toBe(false); // smelting comes with Industry (D-093)
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
-    expect(w.researchNow('workshop')).toBe('requires'); // workshops need planks, so Forestry comes first
-    for (const id of ['defense', 'forestry', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999 };
+    expect(w.researchNow('workshop')).toBe('requires'); // workshops need Industry, which needs Forestry
+    for (const id of ['forestry', 'industry', 'defense', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    expect(w.isUnlocked('extractor') && w.isUnlocked('furnace')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
   });
@@ -504,7 +505,7 @@ describe('Bugs', () => {
 describe('Research over time', () => {
   it('draws items from stock over its research time, then unlocks', () => {
     const w = emptyWorld();
-    w.state.researched = [];
+    w.state.researched = ['forestry', 'industry'];
     w.state.inventory = { iron_plate: 100 };
     expect(w.startResearch('defense')).toBeNull();
     run(w, 10);
@@ -517,7 +518,7 @@ describe('Research over time', () => {
 
   it('stalls when the hub runs out, and keeps progress when switching', () => {
     const w = emptyWorld();
-    w.state.researched = [];
+    w.state.researched = ['forestry', 'industry'];
     w.state.inventory = { iron_plate: 5, brick: 50 };
     w.startResearch('defense');
     run(w, 20);
@@ -702,7 +703,7 @@ describe('Wood', () => {
     const w = World.create(3);
     expect(w.isUnlocked('lumber_camp')).toBe(false);
     expect(w.checkResearch('palisades')).toBe('requires');
-    w.state.inventory.iron_plate = 999;
+    w.state.inventory.log = 999;
     expect(w.researchNow('forestry')).toBeNull();
     expect(w.isUnlocked('lumber_camp') && w.isUnlocked('sawmill')).toBe(true);
     const e = emptyWorld();
@@ -865,15 +866,43 @@ describe('Demo world', () => {
 });
 
 describe('Starting from nothing (#38)', () => {
-  it('starts with an empty hub, only extractors and furnaces, and Logistics to research first', () => {
+  it('starts with an empty hub, nothing to build, and Forestry, paid in logs, to research first (D-093)', () => {
     const w = World.create(3);
     expect(w.state.inventory).toEqual({});
-    expect(w.isUnlocked('furnace')).toBe(true);
-    expect(w.isUnlocked('extractor')).toBe(true);
-    expect(w.isUnlocked('belt')).toBe(false);
-    expect(w.availableResearch().map((r) => r.id)).toContain('logistics');
+    for (const t of ['furnace', 'extractor', 'belt', 'lumber_camp'] as const) expect(w.isUnlocked(t)).toBe(false);
+    expect(w.availableResearch().map((r) => r.id)).toEqual(['forestry']);
+    expect(RESEARCH_BY_ID.forestry.cost).toEqual({ log: 15 });
+    // Everything Forestry opens is paid in wood, so the Wood Age needs nothing smelted.
+    expect(BUILDINGS.lumber_camp.cost).toEqual({ log: 8 });
+    expect(BUILDINGS.sawmill.cost).toEqual({ log: 14 });
+    expect(RESEARCH_BY_ID.industry.unlocks.sort()).toEqual(['extractor', 'furnace']);
     expect(BUILDINGS.furnace.cost).toEqual({ stone: 6 });
     expect(Object.keys(BUILDINGS.extractor.cost).sort()).toEqual(['iron_ore', 'stone']);
+  });
+
+  it('eight taps on a tree fell it for two logs, leaving a stump that grows back (D-093)', () => {
+    const w = emptyWorld();
+    w.state.inventory = {};
+    const [x, y] = [w.hub!.x - 6, w.hub!.y];
+    w.state.trees[w.idx(x, y)] = TREE;
+    stand(w, x + 1, y);
+    for (let i = 1; i < HAND_MINING.taps; i++) {
+      const tap = w.mineByHand(x, y);
+      expect(typeof tap !== 'string' && tap.item).toBe(null);
+    }
+    const last = w.mineByHand(x, y);
+    expect(typeof last !== 'string' && last.item).toBe('log');
+    expect(heldOf(w.state.players[0], 'log')).toBe(LUMBER.logsPerTree);
+    expect(w.treeAt(x, y)).toBe(STUMP);
+    expect(w.felled.length).toBe(1);
+    expect(w.state.regrow[w.idx(x, y)]).toBeGreaterThan(w.state.time);
+    expect(w.mineByHand(x, y)).toBe('no-ore'); // a stump can't be chopped
+    // A tree needs room for both logs.
+    const p = w.state.players[0];
+    w.state.trees[w.idx(x, y)] = TREE;
+    p.slots = p.slots.map(() => ({ item: 'stone', n: 10 }));
+    p.slots[0] = { item: 'log', n: 9 };
+    expect(w.mineByHand(x, y)).toBe('full');
   });
 
   it('eight taps in a row on an ore tile loosen one ore, which the character carries', () => {
@@ -917,7 +946,7 @@ describe('Starting from nothing (#38)', () => {
 
   it('from nothing: mine, carry it to the hub, build a furnace and an extractor, and collect plates without belts', () => {
     const w = emptyWorld();
-    w.state.researched = [];
+    w.state.researched = ['forestry', 'industry'];
     w.state.inventory = {};
     const [x, y] = [w.hub!.x - 14, w.hub!.y];
     ore(w, x, y, 3, 1); // one stone tile
@@ -994,7 +1023,7 @@ describe('Starting from nothing (#38)', () => {
     old.research.paid = { logistics: { iron_plate: 5 } };
     const loaded = World.fromJSON(JSON.stringify(old));
     expect(loaded.state.version).toBe(SAVE_VERSION);
-    expect(loaded.state.researched.sort()).toEqual(['forestry', 'logistics']);
+    expect(loaded.state.researched.sort()).toEqual(['forestry', 'industry', 'logistics']); // Industry from v23 (D-093)
     expect(loaded.state.research.active).toBe(null);
     expect(loaded.state.research.paid).toEqual({});
     expect(loaded.isUnlocked('belt')).toBe(true);
@@ -1175,6 +1204,16 @@ describe('The player character (#40)', () => {
     expect(w.state.inventory.stone).toBeUndefined();
     expect(w.dropOff(w.hub!.id)).toBe(4); // a Drop off still puts it in
     expect(w.state.inventory.stone).toBe(4);
+  });
+
+  it('v22 saves get Forestry and Industry as done: they were played with smelting from the start (D-093)', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 22;
+    old.researched = ['logistics'];
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.researched.sort()).toEqual(['forestry', 'industry', 'logistics']);
+    expect(loaded.isUnlocked('furnace') && loaded.isUnlocked('extractor') && loaded.isUnlocked('lumber_camp')).toBe(true);
   });
 
   it('v20 saves put what the engineer carried into its inventory', () => {

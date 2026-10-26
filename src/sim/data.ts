@@ -137,11 +137,11 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     color: '#6b4a2e',
     hp: 100,
     size: [2, 2],
-    cost: { iron_plate: 8 },
+    cost: { log: 8 },
     blocking: true,
     description: 'Place near trees. It cuts the nearest one into logs; the stump grows back in time.',
   },
-  sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { iron_plate: 6, brick: 2 }, blocking: true, description: 'Saws logs into planks.' },
+  sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
   palisade: { name: 'Palisade', short: '', color: '#8a6234', hp: 160, cost: { plank: 2 }, blocking: true, description: 'A cheap wooden wall. Weaker than stone.' },
   shipyard: {
     name: 'Shipyard',
@@ -221,7 +221,10 @@ export const PLAYER = {
   downFor: 10, // seconds a knocked-out engineer takes to get back on their feet at the hub
 };
 
-/** Mining by hand (#38): taps on one ore tile loosen one of its ore, which the character carries. */
+/**
+ * Mining by hand (#38): taps on one ore tile loosen one of its ore, which the character carries. Trees are
+ * chopped the same way (D-093): the same taps fell one for LUMBER.logsPerTree logs, leaving a stump.
+ */
 export const HAND_MINING = {
   taps: 8, // taps for one item
   resetAfter: 3, // seconds without a tap before the count starts over
@@ -268,8 +271,8 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   brute: { name: 'Brute', hp: 110, speed: 0.55, dps: 30, radius: 0.36, color: '#a8203a' },
 };
 
-/** Buildings available at the start; everything else is researched. */
-export const STARTING_BUILDINGS: BuildingType[] = ['extractor', 'furnace'];
+/** Buildings available at the start; everything else is researched. The Wood Age starts with none (D-093). */
+export const STARTING_BUILDINGS: BuildingType[] = [];
 
 export interface Research {
   id: string;
@@ -284,14 +287,16 @@ export interface Research {
 }
 
 export const RESEARCH: Research[] = [
-  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: [], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
-  { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: [], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
-  { id: 'forestry', name: 'Forestry', cost: { iron_plate: 15 }, time: 30, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
+  { id: 'forestry', name: 'Forestry', cost: { log: 15 }, time: 20, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
+  // The Iron Age's keystone (D-089, D-093). Its full cost (trusses, Basic Defense 2) comes with the Wood Age's later steps.
+  { id: 'industry', name: 'Industry', cost: { plank: 40, stone: 30 }, time: 60, requires: ['forestry'], unlocks: ['extractor', 'furnace'], description: 'Extractors and furnaces: ore, smelted into plates, ingots and bricks.' },
+  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: ['industry'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
+  { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: ['industry'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
   { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
   { id: 'ballistae', name: 'Ballistae', cost: { plank: 20, iron_plate: 10 }, time: 45, requires: ['palisades', 'defense'], unlocks: ['ballista'], description: 'Long-range towers that fire wooden stakes.' },
   { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
-  { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: [], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
-  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['forestry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
+  { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: ['industry'], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
+  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['industry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },

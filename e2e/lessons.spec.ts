@@ -1,6 +1,6 @@
 import { ALL_LESSONS, buildTile, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, tap, test, uncoveredTile } from './helpers';
 
-test('the Essentials and Bugs lessons run, then can be replayed and switched off', async ({ page }, info) => {
+test('the Essentials, Smelting and Bugs lessons run, then can be replayed and switched off', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: [], fresh: true });
   const step = stepLabel(page);
   const speed = () => page.evaluate(() => window.game.ui.speed);
@@ -15,43 +15,122 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   await page.click('.tip-next');
   await expect.poll(speed).toBe(1); // action steps let it run
 
-  // Mine stone by hand: a tap sends the engineer over, then eight taps loosen one stone, which they carry.
+  // Chop a tree by hand: a tap sends the engineer over, then eight taps fell it for two logs, which they carry.
   await expect(step).toContainText('3 of');
+  await expect(page.locator('#tutorial .tip-text')).toContainText('0 of 23');
   await settled(page.locator('#tutorial .spot'));
   await cameraSettled(page);
-  const stone = await page.evaluate(() => {
+  const tree = await page.evaluate(() => {
     const w = window.game.world;
     let best: [number, number] = [0, 0];
     let bestD = Infinity;
     for (let y = 0; y < w.state.height; y++)
       for (let x = 0; x < w.state.width; x++) {
-        if (w.resourceAt(x, y) !== 'stone' || w.buildingAt(x, y)) continue;
+        if (w.treeAt(x, y) !== 1) continue;
         const d = Math.abs(x - w.hub.x) + Math.abs(y - w.hub.y);
         if (d < bestD) [bestD, best] = [d, [x, y]];
       }
     return best;
   });
-  const at = await uncoveredTile(page, ...stone);
-  await tap(page, info, ...at);
-  await expect
-    .poll(() => page.evaluate(() => window.game.world.state.players[0].path.length), { timeout: 30000 })
-    .toBe(0); // arrived
-  await cameraSettled(page);
-  const here = await uncoveredTile(page, ...stone); // the camera may have moved while it walked
-  // Eight taps loosen a stone, which the engineer carries (or drops straight into the hub when the stone
-  // is next to it). On a slow machine a tap can land late, so keep tapping until one comes loose.
-  const minedStone = () =>
-    page.evaluate(() => {
-      const w = window.game.world;
-      return w.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0) + (w.state.inventory.stone ?? 0);
-    });
-  for (let i = 0; i < 30 && (await minedStone()) === 0; i++) await tap(page, info, ...here);
-  expect(await minedStone()).toBe(1);
-  await page.evaluate(() => (window.game.world.state.inventory.stone = 10));
+  const logs = () =>
+    page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'log' ? s.n : 0), 0));
+  // A tap that lands while the camera glides can miss the tree and send the engineer elsewhere: then try again.
+  for (let attempt = 0; attempt < 3 && (await logs()) === 0; attempt++) {
+    await cameraSettled(page);
+    await tap(page, info, ...(await uncoveredTile(page, ...tree)));
+    await expect
+      .poll(() => page.evaluate(() => window.game.world.state.players[0].path.length), { timeout: 30000 })
+      .toBe(0); // arrived
+    await cameraSettled(page);
+    const here = await uncoveredTile(page, ...tree); // the camera may have moved while it walked
+    // On a slow machine a tap can land late, so keep tapping until the tree comes down.
+    for (let i = 0; i < 30 && (await logs()) === 0; i++) await tap(page, info, ...here);
+  }
+  expect(await logs()).toBe(2);
+  expect(await page.evaluate(([x, y]) => window.game.world.treeAt(x, y), tree)).toBe(2); // a stump
+  // The rest of the logs, as if chopped.
+  await page.evaluate(() => {
+    const p = window.game.world.state.players[0];
+    p.slots[5] = { item: 'log', n: 10 };
+    p.slots[6] = { item: 'log', n: 10 };
+    p.slots[7] = { item: 'log', n: 1 };
+  });
   await expect(step).toContainText('4 of');
-  // With the ore in stock too, the drop-off step (5) is already done.
-  await page.evaluate(() => (window.game.world.state.inventory.iron_ore = 4));
+
+  // Back to the hub, where the logs go into stock.
+  await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
+  await expect(step).toContainText('5 of', { timeout: 30000 });
+  expect(await stockOf('log')).toBe(23);
+
+  // Forestry, from the hub.
+  await selectHub(page, info);
+  await page.click('#info [data-action="research"]');
+  await page.click('[data-research="forestry"]');
+  await page.click('#research [data-close]');
   await expect(step).toContainText('6 of');
+  await page.evaluate(() => {
+    window.game.world.state.research.paid.forestry = { log: 999 }; // finish it now
+  });
+  await expect.poll(() => page.evaluate(() => window.game.world.isUnlocked('lumber_camp'))).toBe(true);
+
+  // A Lumber Camp beside the trees nearest the hub, with room for the sawmill at its output.
+  const spot = await page.evaluate(() => {
+    const w = window.game.world;
+    const cx = w.hub.x + 2;
+    const cy = w.hub.y + 2;
+    let best: [number, number] | null = null;
+    let bestD = Infinity;
+    for (let y = cy - 40; y < cy + 40; y++) {
+      for (let x = cx - 40; x < cx + 40; x++) {
+        const d = Math.hypot(x - cx, y - cy);
+        if (d >= bestD || w.checkPlace('lumber_camp', x, y, 0) || w.checkPlace('sawmill', x + 2, y, 0)) continue;
+        if (!w.treesInReach(x, y, 2, 2).trees.length) continue;
+        best = [x, y];
+        bestD = d;
+      }
+    }
+    return best;
+  });
+  expect(spot, 'room for a camp and sawmill beside some trees').not.toBeNull();
+  await page.click('[data-tool="lumber_camp"]');
+  await settled(page.locator('#tutorial .tip'));
+  await buildTile(page, info, ...spot!);
+  await expect(step).toContainText('7 of');
+
+  // The sawmill, once there are logs for it, at the camp's output.
+  await page.evaluate(() => (window.game.world.state.inventory.log = 20));
+  await page.click('[data-tool="sawmill"]');
+  await settled(page.locator('#tutorial .tip'));
+  await buildTile(page, info, spot![0] + 2, spot![1]);
+  await expect(step).toContainText('8 of');
+
+  // Collect its planks by hand and bring them to the hub.
+  await page.click('[data-tool="sawmill"]'); // put the tool down
+  const saw = await page.evaluate(() => {
+    const b = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'sawmill');
+    b.outputs = ['plank', 'plank'];
+    return [b.x, b.y] as [number, number];
+  });
+  await tap(page, info, ...(await uncoveredTile(page, ...saw)));
+  await page.click('#info [data-action="collect"]');
+  const planks = () =>
+    page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'plank' ? s.n : 0), 0));
+  await expect.poll(planks, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
+  await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
+  await expect(step).toContainText('9 of', { timeout: 30000 });
+  await page.click('.tip-next');
+  await expect(step).toContainText('10 of');
+  await page.click('.tip-next');
+  await expect(page.locator('#tutorial')).toBeHidden();
+
+  // Industry starts the Smelting lesson. With stone and ore in stock, its first step is done.
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.inventory = { plank: 999, stone: 999 };
+    w.researchNow('industry');
+    w.state.inventory = { stone: 10, iron_ore: 4 };
+  });
+  await expect(step).toHaveText(/^Smelting · 2/);
 
   // Pick the extractor, then build it over the highlighted ore.
   await page.click('[data-tool="extractor"]');
@@ -77,7 +156,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return best;
   });
   await buildTile(page, info, ...node);
-  await expect(step).toContainText('7 of');
+  await expect(step).toContainText('3 of');
 
   // The furnace goes right in front of the extractor's arrow.
   await page.click('[data-tool="furnace"]');
@@ -89,7 +168,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return [o.x, o.y] as [number, number];
   });
   await buildTile(page, info, ...out);
-  await expect(step).toContainText('8 of');
+  await expect(step).toContainText('4 of');
 
   // Collect its plates by hand.
   await page.click('[data-tool="furnace"]'); // put the tool down
@@ -110,16 +189,13 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   await expect.poll(plates, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
   await expect.poll(() => stockOf('iron_plate'), { timeout: 30000 }).toBeGreaterThanOrEqual(2);
-  await expect(step).toContainText('9 of');
-  await page.click('.tip-next');
-
   // Logistics, from the hub.
-  await expect(step).toContainText('10 of');
+  await expect(step).toContainText('5 of');
   await selectHub(page, info);
   await page.click('#info [data-action="research"]');
   await page.click('[data-research="logistics"]');
   await page.click('#research [data-close]');
-  await expect(step).toContainText('11 of');
+  await expect(step).toContainText('6 of');
   await page.evaluate(() => {
     window.game.world.state.research.paid.logistics = { iron_plate: 999 }; // finish it now
   });
@@ -137,7 +213,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
     return [0, 1, 2].map((i) => [o.x + i, o.y] as [number, number]);
   });
   for (const [x, y] of belts) await buildTile(page, info, x, y);
-  await expect(step).toContainText('12 of');
+  await expect(step).toContainText('7 of');
   await page.click('.tip-next');
 
   // Logistics also unlocked splitters, which have a lesson of their own.
@@ -170,7 +246,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   // Replay from the menu, then switch lessons off.
   await page.click('#menu-btn');
   await page.click('#btn-tutorial');
-  await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(3);
+  await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(4);
   await page.click('[data-lesson="essentials"]');
   await expect(step).toHaveText(/^Essentials/);
   await page.click('.tip-hide');

@@ -131,23 +131,23 @@ function nearestNode(w: World, item: ItemId): TileTarget | null {
   return best;
 }
 
+/** Logs for Forestry and the first Lumber Camp, chopped by hand (D-093). */
+const FIRST_LOGS = (RESEARCH_BY_ID.forestry.cost.log ?? 0) + (BUILDINGS.lumber_camp.cost.log ?? 0);
+const SAWMILL_LOGS = BUILDINGS.sawmill.cost.log ?? 0;
+
 /** Stone and iron ore for the first furnace and extractor (#38). */
 const FIRST_STONE = (BUILDINGS.furnace.cost.stone ?? 0) + (BUILDINGS.extractor.cost.stone ?? 0);
 const FIRST_ORE = BUILDINGS.extractor.cost.iron_ore ?? 0;
 
-/** How much of an item has reached the hub this step: what's in stock, plus what the furnaces and extractors built since cost. */
-function stocked(c: StepContext, item: ItemId): number {
-  const spent = (['furnace', 'extractor'] as const).reduce(
-    (sum, t) => sum + (BUILDINGS[t].cost[item] ?? 0) * Math.max(0, count(c.world, t) - (c.start.buildings[t] ?? 0)),
-    0,
-  );
-  return (c.world.state.inventory[item] ?? 0) + spent;
+/** How much of an item the engineer has gathered this step: carried, or delivered to the hub. */
+function got(c: StepContext, item: ItemId): number {
+  const p = engineer(c);
+  return (p ? heldOf(p, item) : 0) + (c.world.delivered[item] ?? 0) - (c.start.delivered[item] ?? 0);
 }
 
-/** How much of an item has been mined by hand: in the hub (or spent), or still in the engineer's inventory. */
-function mined(c: StepContext, item: ItemId): number {
-  const p = engineer(c);
-  return stocked(c, item) + (p ? heldOf(p, item) : 0);
+/** How much of an item is in stock to build with. */
+function have(c: StepContext, item: ItemId): number {
+  return c.world.state.inventory[item] ?? 0;
 }
 
 /** This player's engineer. */
@@ -192,6 +192,20 @@ function nearestTrees(w: World): TileTarget | null {
   return { tx: (best % w.state.width) - 1, ty: Math.floor(best / w.state.width) - 1, size: 3 };
 }
 
+/** The first Sawmill the player built. */
+function sawmillTarget(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'sawmill');
+  return b ? { tx: b.x, ty: b.y, size: 2 } : null;
+}
+
+/** The tile in front of the first Lumber Camp's arrow, where the first sawmill goes. */
+function campOutput(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'lumber_camp');
+  if (!b) return null;
+  const o = w.outputTile(b);
+  return { tx: o.x, ty: o.y, size: 1 };
+}
+
 /** The first Lumber Camp the player built. */
 function campTarget(w: World): TileTarget | null {
   const b = w.state.buildings.find((b) => b.type === 'lumber_camp');
@@ -211,8 +225,8 @@ export const LESSONS: Lesson[] = [
   {
     id: 'essentials',
     title: 'Essentials',
-    // A fresh factory: nothing built yet.
-    trigger: (w) => count(w, 'extractor') === 0 && count(w, 'furnace') === 0 && count(w, 'belt') === 0,
+    // A fresh factory: nothing built yet but the hub.
+    trigger: (w) => w.state.buildings.every((b) => b.type === 'hub'),
     steps: [
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
@@ -224,21 +238,89 @@ export const LESSONS: Lesson[] = [
         text: () => 'This is your engineer. Tap or click the ground to walk there; on a keyboard, WASD or the arrow keys walk too.',
       },
       {
-        target: (c) => ({ tiles: nearestNode(c.world, 'stone'), shape: 'circle' }),
-        done: (c) => mined(c, 'stone') >= FIRST_STONE,
+        target: (c) => ({ tiles: nearestTrees(c.world), shape: 'circle' }),
+        done: (c) => got(c, 'log') >= FIRST_LOGS,
         text: (c) =>
-          `Start by mining by hand. Tap the grey stone (or click it): your engineer walks over, and every ${HAND_MINING.taps} taps loosen one stone, which they carry. Hold your finger or the mouse button down to keep mining. ` +
-          `A furnace and an extractor need ${FIRST_STONE} stone: ${Math.min(FIRST_STONE, mined(c, 'stone'))} of ${FIRST_STONE}.`,
-      },
-      {
-        target: (c) => ({ tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
-        done: (c) => mined(c, 'iron_ore') >= FIRST_ORE,
-        text: (c) => `Now mine ${FIRST_ORE} iron ore the same way, for the extractor: ${Math.min(FIRST_ORE, mined(c, 'iron_ore'))} of ${FIRST_ORE}.`,
+          `Everything starts with wood. Tap a tree (or click it): your engineer walks over, and every ${HAND_MINING.taps} taps fell it for ${LUMBER.logsPerTree} logs, which they carry. Hold your finger or the mouse button down to keep chopping. ` +
+          `Forestry and a Lumber Camp need ${FIRST_LOGS} logs: ${Math.min(FIRST_LOGS, got(c, 'log'))} of ${FIRST_LOGS}.`,
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
-        done: (c) => stocked(c, 'stone') >= FIRST_STONE && stocked(c, 'iron_ore') >= FIRST_ORE,
+        done: (c) => heldOf(engineer(c)!, 'log') === 0,
         text: () => 'Walk back to the hub (tap the ground next to it). Your engineer drops off everything they carry as soon as they reach it.',
+      },
+      {
+        // Once the hub is selected, point at its Research button.
+        target: (c) =>
+          document.querySelector('#info:not([hidden]) [data-action="research"]')
+            ? { el: '#info [data-action="research"]' }
+            : { tiles: hubTarget(c.world), shape: 'circle' },
+        done: (c) => c.world.state.researched.includes('forestry') || c.world.state.research.active === 'forestry',
+        text: () =>
+          `Select the hub, open Research and start Forestry. It takes ${RESEARCH_BY_ID.forestry.cost.log} logs from stock, and unlocks the Lumber Camp and the Sawmill.`,
+      },
+      {
+        target: (c) => (c.world.isUnlocked('lumber_camp') ? toolThen(c, 'lumber_camp', { tiles: nearestTrees(c.world), shape: 'circle' }) : {}),
+        done: (c) => built(c, 'lumber_camp'),
+        text: (c) =>
+          !c.world.isUnlocked('lumber_camp')
+            ? 'Forestry is researching. This step goes on once it is done.'
+            : c.ui.tool === 'lumber_camp'
+              ? `Place it beside the trees: the blue circle shows its reach of ${LUMBER.range} tiles. It cuts the nearest tree into ${LUMBER.logsPerTree} logs every ${LUMBER.period} seconds, and sends them out of the side its arrow marks. ` +
+                `A cut tree leaves a stump, which grows back in about ${Math.round(LUMBER.regrow / 60)} minutes.` +
+                confirmHint(c)
+              : 'A Lumber Camp cuts trees for you. Pick the Lumber Camp.',
+      },
+      {
+        target: (c) =>
+          c.ui.tool === 'sawmill'
+            ? { tiles: campOutput(c.world), shape: 'circle' }
+            : (c.world.state.inventory.log ?? 0) >= SAWMILL_LOGS
+              ? { el: '[data-tool="sawmill"]' }
+              : document.querySelector('#info:not([hidden]) [data-action="collect"]')
+                ? { el: '#info [data-action="collect"]' }
+                : { tiles: campTarget(c.world), shape: 'circle' },
+        done: (c) => built(c, 'sawmill'),
+        text: (c) =>
+          c.ui.tool === 'sawmill'
+            ? "Place the sawmill touching the camp's arrow, so the logs go straight in. Each log becomes two planks." + confirmHint(c)
+            : (c.world.state.inventory.log ?? 0) >= SAWMILL_LOGS
+              ? 'Logs need sawing into planks. Pick the Sawmill.'
+              : `A Sawmill costs ${SAWMILL_LOGS} logs: ${c.world.state.inventory.log ?? 0} in stock. Select the camp and tap Collect to fetch its logs (or chop some more), then bring them to the hub.`,
+      },
+      {
+        // Once the sawmill is selected, point at its Collect button.
+        target: (c) =>
+          document.querySelector('#info:not([hidden]) [data-action="collect"]')
+            ? { el: '#info [data-action="collect"]' }
+            : { tiles: sawmillTarget(c.world), shape: 'circle' },
+        done: (c) => (c.world.delivered.plank ?? 0) > (c.start.delivered.plank ?? 0),
+        text: () => 'Planks pile up in the sawmill. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub.',
+      },
+      {
+        target: () => ({ el: '#inventory' }),
+        text: () =>
+          'Your stock went up. It shows above the hub while you point at it or select it. Right-click (or tap the tool again) to put a tool down.',
+      },
+      {
+        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
+        text: () =>
+          'That is the whole loop: gather, make, deliver. Planks pay for Palisades, cheap wooden walls, and for Industry, which brings extractors and furnaces for ore. Select the hub any time to open Research.',
+      },
+    ],
+  },
+  {
+    id: 'industry',
+    title: 'Smelting',
+    // Industry is done, in a factory that hasn't smelted yet (a game from before D-093 already has).
+    trigger: (w) => w.isUnlocked('extractor') && count(w, 'extractor') === 0 && count(w, 'furnace') === 0,
+    steps: [
+      {
+        target: (c) => ({ tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
+        done: (c) => (have(c, 'stone') >= FIRST_STONE && have(c, 'iron_ore') >= FIRST_ORE) || built(c, 'extractor'),
+        text: (c) =>
+          `Industry unlocked the Extractor and the Furnace. Between them they need ${FIRST_STONE} stone and ${FIRST_ORE} iron ore: mine them by hand like a tree, ${HAND_MINING.taps} taps for each, and bring them to the hub. ` +
+          `In stock: stone ${Math.min(FIRST_STONE, have(c, 'stone'))} of ${FIRST_STONE}, iron ore ${Math.min(FIRST_ORE, have(c, 'iron_ore'))} of ${FIRST_ORE}.`,
       },
       {
         target: (c) => toolThen(c, 'extractor', { tiles: nearestNode(c.world, 'iron_ore'), shape: 'circle' }),
@@ -268,11 +350,6 @@ export const LESSONS: Lesson[] = [
         text: () => 'Plates pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub. Soon belts will do this for you.',
       },
       {
-        target: () => ({ el: '#inventory' }),
-        text: () =>
-          'Your stock went up. It shows above the hub while you point at it or select it. Right-click (or tap the tool again) to put a tool down.',
-      },
-      {
         target: (c) =>
           document.querySelector('#info:not([hidden]) [data-action="research"]')
             ? { el: '#info [data-action="research"]' }
@@ -294,8 +371,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
-        text: () =>
-          'That is the whole loop: mine, move, make, deliver. Everything else builds on it. Select the hub any time to open Research, which unlocks new buildings.',
+        text: () => 'Now ore turns into plates on its own, and belts carry them home. Everything else builds on it.',
       },
     ],
   },
@@ -316,9 +392,12 @@ export const LESSONS: Lesson[] = [
           document.querySelector('#info:not([hidden]) [data-action="research"]')
             ? { el: '#info [data-action="research"]' }
             : { tiles: hubTarget(c.world), shape: 'circle' },
-        done: (c) => c.world.state.researched.includes('defense'),
-        text: () =>
-          'Select the hub, open Research and start Basic Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.',
+        // Before Industry (D-093), the defence to research is Palisades.
+        done: (c) => c.world.state.researched.includes(c.world.state.researched.includes('industry') ? 'defense' : 'palisades'),
+        text: (c) =>
+          c.world.state.researched.includes('industry')
+            ? 'Select the hub, open Research and start Basic Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.'
+            : 'Select the hub, open Research and start Palisades: cheap wooden walls, paid in planks, to keep bugs off your buildings. Your hub has a gun of its own meanwhile.',
       },
     ],
   },
@@ -331,40 +410,6 @@ export const LESSONS: Lesson[] = [
         target: () => ({ el: '[data-tool="splitter"]' }),
         text: () =>
           'Splitters span two belt lanes. They take items from behind either lane and send them out of both lanes in turn. Use them to branch a line, for example plates to both the hub and a turret.',
-      },
-    ],
-  },
-  {
-    id: 'forestry',
-    title: 'Wood',
-    trigger: (w) => w.isUnlocked('lumber_camp'),
-    steps: [
-      {
-        target: (c) => toolThen(c, 'lumber_camp', { tiles: nearestTrees(c.world), shape: 'circle' }),
-        done: (c) => built(c, 'lumber_camp'),
-        text: (c) =>
-          c.ui.tool === 'lumber_camp'
-            ? `Place it beside the trees: the blue circle shows its reach of ${LUMBER.range} tiles. It cuts the nearest tree into ${LUMBER.logsPerTree} logs every ${LUMBER.period} seconds, and sends them out of the side its arrow marks.` +
-              confirmHint(c)
-            : 'Trees are in the way of building, but they are also wood. Pick the Lumber Camp.',
-      },
-      {
-        target: (c) => ({ tiles: campTarget(c.world), shape: 'circle' }),
-        text: () =>
-          `A cut tree leaves a stump, which grows back in about ${Math.round(LUMBER.regrow / 60)} minutes. Stumps don't block building: build over one to clear it for good, or leave the woods to regrow and keep cutting.`,
-      },
-      {
-        target: (c) => toolThen(c, 'sawmill'),
-        done: (c) => built(c, 'sawmill'),
-        text: (c) =>
-          c.ui.tool === 'sawmill'
-            ? "Place it where the camp's logs can reach it by belt, or drop it onto a belt line. Each log becomes two planks." + confirmHint(c)
-            : 'Logs need sawing into planks. Pick the Sawmill.',
-      },
-      {
-        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
-        text: () =>
-          'Belt the planks to the hub. They pay for Palisades, cheap wooden walls you can research next, and later supply runs carry them to the colony.',
       },
     ],
   },

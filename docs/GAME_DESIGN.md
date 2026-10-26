@@ -5,8 +5,8 @@ How the game works on `master` today. Balance numbers live in
 
 ## Core loop
 
-1. Mine raw resources with **extractors** placed over ore, and cut trees with **lumber camps**. At the
-   very start, mine by hand (see [Starting from nothing](#starting-from-nothing)).
+1. Cut trees with **lumber camps**, and mine ore with **extractors** once Industry is researched. At the
+   very start, chop trees and mine by hand (see [Starting from nothing](#starting-from-nothing)).
 2. Carry them on **belts** to machines that turn them into parts.
 3. Deliver items to the **hub**. Its stock pays for buildings and research.
 4. **Research** (in the hub) unlocks new buildings.
@@ -56,8 +56,8 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Building | Size | Cost | HP | Unlocked by |
 |---|---|---|---|---|
 | Belt | 1×1 | 1 iron plate | 30 | Logistics |
-| Extractor | 2×2 | 4 stone, 4 iron ore | 80 | start |
-| Furnace | 2×2 | 6 stone | 120 | start |
+| Extractor | 2×2 | 4 stone, 4 iron ore | 80 | Industry |
+| Furnace | 2×2 | 6 stone | 120 | Industry |
 | Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Basic Defense |
 | Ballista | 1×1 | 8 planks, 4 iron plates | 140 | Ballistae |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
@@ -71,8 +71,8 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
 | Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
 | Shipyard | 3×3 | 30 bricks, 30 iron plates, 20 planks | 900 | Shipyard |
-| Lumber Camp | 2×2 | 8 iron plates | 100 | Forestry |
-| Sawmill | 2×2 | 6 iron plates, 2 bricks | 100 | Forestry |
+| Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
+| Sawmill | 2×2 | 14 logs | 100 | Forestry |
 | Palisade | 1×1 | 2 planks | 160 | Palisades |
 
 - Sizes are width × depth when facing east (the first number runs along the direction the building
@@ -146,6 +146,9 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 
 - **Engineers and bugs walk under the trees** (#95): the canopy is drawn over them. An engineer under a tree
   shows through faintly, so it isn't lost.
+- **Chopping by hand (D-093):** with no tool in hand, tap a tree. Like mining, the engineer walks over,
+  and **8 taps** fell it for **2 logs**, with wood chips and a chop on each tap. The tree leaves a stump
+  that grows back, like a lumber camp's. There must be room for both logs in the inventory.
 - **Trees block building.** Every building, belts included, needs tree-free ground. Underground belts
   can still pass under trees.
 - A **Lumber Camp** (2×2) must have at least one tree or stump within **4 tiles** of its centre. Every
@@ -162,15 +165,16 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 - **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
   **Ballista** (researched after Palisades and Basic Defense). **Repair stations** burn planks as well as
   iron plates. The **Workshop**, **Repair Station** and **Shipyard** cost a few planks, so Workshops
-  research now needs Forestry first. A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
+  research needs Industry, which needs Forestry. A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
   2 iron plates and 1 charcoal. Steel is cargo for the fourth supply run on, and the material for upgrades
   to come.
 - Still to come: forest that matters to bugs ([ROADMAP.md](ROADMAP.md)).
 
 ## Research
 
-You start with the extractor and furnace. Everything else is researched, except colony
-blueprints, which come from supply runs. **Select the hub** and press **Research** to open the list.
+You start with nothing to build (D-093): Forestry, paid in logs chopped by hand, comes first, then
+Industry for extractors and furnaces. Everything is researched, except colony blueprints, which come
+from supply runs. **Select the hub** and press **Research** to open the list.
 
 - **Start** a research, and it draws its items from hub stock at a steady pace over its research
   time. For example, Basic Defense takes 20 iron plates over 30 s.
@@ -180,14 +184,15 @@ blueprints, which come from supply runs. **Select the hub** and press **Research
 
 | Research | Items | Time | Needs | Unlocks |
 |---|---|---|---|---|
-| Logistics | 10 iron plates | 20 s | — | Belt, Splitter, Underground Belt |
-| Basic Defense | 20 iron plates | 30 s | — | Turret |
-| Forestry | 15 iron plates | 30 s | — | Lumber Camp, Sawmill |
+| Forestry | 15 logs | 20 s | — | Lumber Camp, Sawmill |
+| Industry | 40 planks, 30 stone | 60 s | Forestry | Extractor, Furnace |
+| Logistics | 10 iron plates | 20 s | Industry | Belt, Splitter, Underground Belt |
+| Basic Defense | 20 iron plates | 30 s | Industry | Turret |
 | Palisades | 12 planks | 30 s | Forestry | Palisade |
 | Ballistae | 20 planks, 10 iron plates | 45 s | Palisades, Basic Defense | Ballista |
 | Chitin Plating | 10 chitin, 20 iron plates | 45 s | Basic Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
-| Masonry | 12 bricks | 30 s | — | Wall |
-| Workshops | 30 iron plates, 10 copper | 60 s | Forestry | Workshop |
+| Masonry | 12 bricks | 30 s | Industry | Wall |
+| Workshops | 30 iron plates, 10 copper | 60 s | Industry | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
 | Assembly | 30 gears, 30 wire | 120 s | Workshops | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
@@ -255,20 +260,22 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 
 ## Starting from nothing
 
-A new game starts with an empty hub and no belts (#38, D-062). The first minutes go:
+A new game starts with an empty hub, nothing to build and no belts (#38, D-062). The Wood Age comes first
+(D-093). The first minutes go:
 
-1. **Mine by hand.** With no tool in hand, tap or click a tile of bare ore or stone. The engineer
-   walks over, and every **8 taps** in a row loosen **1**, which it carries; a ring around the tile
-   fills with each tap, with sparks and a pickaxe sound. Holding the finger or mouse button down taps
-   **4 times a second**. Tapping another tile, or **3 s** without a tap, starts the count over.
-   Dragging from there pans, as usual. With a full inventory, mining stops and a message says so.
-2. **Carry it to the hub**, then **build a furnace** (6 stone) and an **extractor** (4 stone, 4 iron
-   ore) over iron ore, with the furnace in front of the extractor's arrow: a building's output passes
-   straight into a building in front of it.
+1. **Chop trees by hand.** With no tool in hand, tap or click a tree. The engineer walks over, and every
+   **8 taps** in a row fell it for **2 logs**, which it carries; a ring around the tile fills with each
+   tap. Holding the finger or mouse button down taps **4 times a second**. Tapping another tile, or
+   **3 s** without a tap, starts the count over. Dragging from there pans, as usual. With a full
+   inventory, chopping stops and a message says so. Ore and stone are mined by hand the same way, one at
+   a time, with sparks and a pickaxe sound.
+2. **Carry it to the hub** and research **Forestry** (15 logs): it unlocks the **Lumber Camp** (8 logs)
+   and the **Sawmill** (14 logs).
 3. **Collect by hand.** Select a machine, extractor or lumber camp and press **Collect**: the engineer
-   fetches its finished items (up to 3), to carry to the hub.
-4. **Research Logistics** (10 iron plates) to unlock belts, splitters and underground belts. From
-   there, belts do the carrying.
+   fetches its finished items (up to 3), to carry to the hub. A building's output passes straight into a
+   building in front of it, so a sawmill at a camp's arrow saws its logs.
+4. **Research Industry** (40 planks, 30 stone mined by hand) to unlock the **extractor** and the
+   **furnace**, then **Logistics** (10 iron plates) for belts. From there, belts do the carrying.
 
 ## Bugs
 
@@ -490,15 +497,15 @@ one research tree, one supply ship.
   It offers **Continue** (when a save exists, showing its mode and time played),
   **New game** (choose the mode) and **How to play**.
 
-- **Tutorial lessons** (five) start by themselves the first time each one is useful:
+- **Tutorial lessons** (six) start by themselves the first time each one is useful:
 
   | Lesson | Starts when | Steps |
   |---|---|---|
-  | Essentials | A game has no extractors, furnaces or belts yet | The hub → your engineer → mine 10 stone by hand → mine 4 iron ore → walk back to the hub → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → hub stock → research Logistics → lay 3 belts → the loop |
-  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense from the hub |
+  | Essentials | Nothing is built yet but the hub | The hub → your engineer → chop 23 logs by hand → walk back to the hub → research Forestry → place a Lumber Camp beside the nearest trees → bring logs for the Sawmill and place it at the camp's arrow → Collect planks and bring them back → hub stock → the loop, and what planks are for (Palisades, Industry) |
+  | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → research Logistics → lay 3 belts |
+  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Palisades from the hub (Basic Defense once Industry is done) |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
-  | Wood | Forestry is researched | Pick the Lumber Camp → place it beside the nearest trees → stumps and regrowth → pick and place the Sawmill → what planks are for |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
@@ -511,7 +518,7 @@ one research tree, one supply ship.
 - Every lesson card has ✕ (close) and **Hide tips** (switches lessons off).
 - Lessons play once. Menu → Tutorials lists them, replays any of them, and switches automatic lessons on or off.
   **Reset tutorials** marks every lesson unseen and switches automatic lessons back on, so each shows again
-  when its moment comes (one whose moment is now, like Wood after Forestry, starts straight away).
+  when its moment comes (one whose moment is now, like Smelting after Industry, starts straight away).
 
 ## Screen
 
@@ -633,7 +640,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v13**). v13 adds the timer for territories spreading. v12 saved
+- Save files are versioned (currently **v23**). v23 (D-093) gives a game saved before the Wood Age
+  Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved
   the attack-path timers and a player list (co-op groundwork, D-058). v11 added colony blueprints: a game
   that had delivered runs loads with an offer of both blueprints to pick from.
 - v10 turned the escape ship into the supply ship: a game

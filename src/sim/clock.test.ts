@@ -66,7 +66,7 @@ describe('Day, night and seasons (#42)', () => {
     const regrowTime = (time: number) => {
       const w = World.create(3);
       w.state.time = time;
-      w.state.inventory = { plank: 99, iron_plate: 99 };
+      w.state.inventory = { plank: 99, iron_plate: 99, log: 99 };
       w.state.researched = RESEARCH.map((r) => r.id);
       const hub = w.hub!;
       const [x, y] = [hub.x - 12, hub.y];
