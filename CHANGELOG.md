@@ -11,6 +11,7 @@ what's **New** and what's **Fixed**.
 - Grass tufts, flowers and mushrooms stand upright instead of lying sideways or upside down.
 - The music is quieter: its slider's low end is very soft now, and at full it sits under the sound effects.
 - The Music and Sound effects sliders are the same length.
+- **No more strangers in co-op:** when a friend's phone slept and woke, they came back as a new player, which looked like someone joining without the code. Now they get their own engineer back.
 
 ## 0.46.1 · 2026-10-26 · Off the leash
 ### New

@@ -38,6 +38,8 @@ interface Attachment {
   slot: number;
   role: Role;
   version: string;
+  /** A guest's own key (#100), so that reconnecting takes back its slot. */
+  key?: string;
   /** The host's room info (D-086), kept here so it costs no storage and goes when the host does. */
   info?: RoomInfo;
 }
@@ -73,18 +75,16 @@ export class Room extends DurableObject<Env> {
       server.close(CLOSE_POLICY, result.refuse);
       return new Response(null, { status: 101, webSocket: client });
     }
-    if (role === 'host') {
-      // Its old connection, if it still looks open (D-085): told, closed, and forgotten, so that its
-      // closing later isn't taken for the host leaving.
-      for (const ws of this.ctx.getWebSockets()) {
-        const a = ws.deserializeAttachment() as Attachment | null;
-        if (a?.role !== 'host') continue;
-        retire([this.peer(ws, a)]);
-        try {
-          ws.serializeAttachment(null);
-        } catch {
-          // Closed already.
-        }
+    // Its old connection, if it still looks open (D-085, #100): told, closed, and forgotten, so that its
+    // closing later isn't taken for the player leaving.
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = ws.deserializeAttachment() as Attachment | null;
+      if (a?.role !== role || a.slot !== result.slot) continue;
+      retire([this.peer(ws, a)], result.slot);
+      try {
+        ws.serializeAttachment(null);
+      } catch {
+        // Closed already.
       }
     }
     const others = this.peers();
@@ -94,7 +94,7 @@ export class Room extends DurableObject<Env> {
       await this.ctx.storage.deleteAlarm();
     }
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ slot: result.slot, role, version } satisfies Attachment);
+    server.serializeAttachment((role === 'guest' && key ? { slot: result.slot, role, version, key } : { slot: result.slot, role, version }) satisfies Attachment);
     welcome(others, this.peer(server));
     return new Response(null, { status: 101, webSocket: client });
   }

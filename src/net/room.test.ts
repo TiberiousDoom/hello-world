@@ -55,6 +55,24 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(retire([guest])).toBeUndefined();
   });
 
+  it('gives a guest back with its key its own slot, and retires its old connection (#100)', () => {
+    const host = peer(0);
+    const sleepy = { ...peer(1), key: 'mine' };
+    const other = { ...peer(2), key: 'theirs' };
+    // Back with its key while its old connection still looks open: the same slot, not a new player.
+    expect(admit([host, sleepy, other], 'guest', '1.0.0', 'mine')).toEqual({ slot: 1 });
+    // Another key, or none, is a new player.
+    expect(admit([host, sleepy, other], 'guest', '1.0.0', 'new')).toEqual({ slot: 3 });
+    expect(admit([host, sleepy, other], 'guest', '1.0.0')).toEqual({ slot: 3 });
+    // A host's key never takes a guest's slot, nor a guest's key the host's.
+    expect(admit([host, sleepy], 'host', '1.0.0', 'mine', { key: 'secret', version: '1.0.0' })).toEqual({ refuse: 'taken' });
+    const old = peer(1);
+    expect(retire([host, old, peer(2)], 1)).toBe(old);
+    expect(old.got).toEqual([{ t: 'closed', reason: 'replaced' }]);
+    expect(old.closed).toBe(CLOSE_REPLACED);
+    expect(host.got).toEqual([]);
+  });
+
   it('answers a heartbeat to its sender only, and passes it to nobody (D-085)', () => {
     const host = peer(0);
     const guest = peer(1);

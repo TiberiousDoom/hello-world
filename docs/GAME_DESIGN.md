@@ -451,6 +451,9 @@ one research tree, one supply ship.
   its engineer stays at the hub. If the server restarts, players see "The host is back" and carry on.
 - **A host's dead connection (D-085):** a host whose connection dies without closing (a router restarting)
   notices within about 20 seconds, reconnects and takes its room back; players see "The host is back".
+- **A player back in their own slot (D-092, #100):** each player joins with a random key of their own. A
+  player whose connection died without closing (a phone that slept) reconnects into their own slot and
+  engineer; before, they came back as a new player, which looked like a stranger joining.
 - **The shared clock:** only the host pauses or changes the speed; the other players have no speed
   buttons. Nothing else stops the game: lessons explain while it runs, without blocking the screen, and
   neither the first delivery's screen nor the blueprint pick pauses it.
