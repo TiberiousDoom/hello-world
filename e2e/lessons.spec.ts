@@ -87,6 +87,8 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
         const d = Math.hypot(x - cx, y - cy);
         if (d >= bestD || w.checkPlace('lumber_camp', x, y, 0) || w.checkPlace('sawmill', x + 2, y, 0)) continue;
         if (!w.treesInReach(x, y, 2, 2).trees.length) continue;
+        // Building within 16 tiles of a nest would start the Bugs lesson ahead of the ones this test expects.
+        if (w.state.nests.some((n: { x: number; y: number }) => Math.hypot(n.x + 5 - x, n.y + 5 - y) < 22)) continue;
         best = [x, y];
         bestD = d;
       }
@@ -142,22 +144,27 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await expect(page.locator('#tutorial .tip-text')).toContainText('tap the iron ore');
   await settled(page.locator('#tutorial .spot')); // it glides to the ore
   await cameraSettled(page);
-  // The nearest iron ore with clear ground around it for the extractor, and east of it for the furnace and belts (maps are random).
+  // A clear patch of iron ore made for the test, with room east of it for the furnace and belts, and no
+  // bugs nearby (maps are random, and ore lies 20+ tiles out, D-097).
   const node = await page.evaluate(() => {
     const w = window.game.world;
-    const roomEast = (x: number, y: number) => {
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 8; dx++) if (!['locked', null].includes(w.checkPlace('belt', x + dx, y + dy))) return false; // belts aren't researched yet
-      return true;
-    };
-    let best: [number, number] = [0, 0];
-    let bestD = Infinity;
-    for (let y = 0; y < w.state.height; y++)
-      for (let x = 0; x < w.state.width; x++) {
-        if (w.resourceAt(x, y) !== 'iron_ore' || w.buildingAt(x, y) || !roomEast(x, y)) continue;
-        const d = Math.abs(x - w.hub.x) + Math.abs(y - w.hub.y);
-        if (d < bestD) [bestD, best] = [d, [x, y]];
+    const s = w.state;
+    // The spot 24 to 34 tiles out farthest from any nest (building within 16 tiles of one starts the
+    // Bugs lesson ahead of the ones this test expects).
+    const nearest = (x: number, y: number) => Math.min(...s.nests.map((n: { x: number; y: number }) => Math.hypot(n.x + 5 - x, n.y + 5 - y)));
+    let [x, y, best] = [0, 0, -1];
+    for (let r = 24; r <= 34; r += 2) {
+      for (let k = 0; k < 24; k++) {
+        const sx = Math.round(w.hub.x + 4 + r * Math.cos((k * Math.PI) / 12));
+        const sy = Math.round(w.hub.y + 4 + r * Math.sin((k * Math.PI) / 12));
+        const d = nearest(sx + 4, sy);
+        if (d > best) [x, y, best] = [sx, sy, d];
       }
-    return best;
+    }
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 9; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) s.resources[w.idx(x + dx, y + dy)] = 1;
+    w.layout++; // redraw the ground
+    return [x, y] as [number, number];
   });
   await buildTile(page, info, ...node);
   await expect(step).toContainText('3 of');
@@ -183,6 +190,8 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   });
   await tap(page, info, ...(await uncoveredTile(page, ...furnace)));
   await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect [2-4]/); // it may finish more plates meanwhile
+  // Ore lies 20+ tiles out (D-097): skip the engineer's walk there and back, which isn't what this tests.
+  await page.evaluate(([x, y]) => Object.assign(window.game.world.state.players[0], { x: x - 0.5, y: y + 0.5, path: [] }), furnace);
   await page.click('#info [data-action="collect"]');
   // The engineer fetches them, then carries them back to the hub. (Next to the hub, they go straight in.)
   const plates = () =>
@@ -191,7 +200,10 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
       return w.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'iron_plate' ? s.n : 0), 0) + (w.state.inventory.iron_plate ?? 0);
     });
   await expect.poll(plates, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
-  await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
+  await page.evaluate(() => {
+    const w = window.game.world;
+    Object.assign(w.state.players[0], { x: w.hub.x - 1.5, y: w.hub.y + 2.5, path: [] }); // beside the hub: it drops off
+  });
   await expect.poll(() => stockOf('iron_plate'), { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   // Logistics, from the hub.
   await expect(step).toContainText('5 of');

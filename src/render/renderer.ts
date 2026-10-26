@@ -44,6 +44,8 @@ import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
 const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
+/** The bed of earth under an ore patch (D-096), darker than the grass. */
+const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,76,70,0.75)'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
@@ -597,6 +599,14 @@ export class Renderer {
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     this.drawGround(s.width, s.height);
     const decorate = this.camera.zoom >= 14;
+    // Ore patches first (#91, D-096): touching tiles of one ore share one bed of earth, so a patch reads
+    // as one deposit, with its rocks on top.
+    for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
+      for (let x = Math.max(0, x0); x < Math.min(s.width, x1); x++) {
+        const r = s.resources[world.idx(x, y)];
+        if (r) this.drawPatch(world, r, x, y);
+      }
+    }
     for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
       for (let x = Math.max(0, x0); x < Math.min(s.width, x1); x++) {
         const i = world.idx(x, y);
@@ -827,10 +837,25 @@ export class Renderer {
     }
   }
 
+  /** A tile's share of its ore patch: a rounded bed, joined to the next tile of the same ore. */
+  private drawPatch(world: World, kind: number, x: number, y: number): void {
+    const ctx = this.ctx;
+    const same = (dx: number, dy: number) => world.inBounds(x + dx, y + dy) && world.state.resources[world.idx(x + dx, y + dy)] === kind;
+    const m = 0.1; // the bed's margin where the patch ends
+    const l = same(-1, 0) ? 0 : m;
+    const r = same(1, 0) ? 0 : m;
+    const t = same(0, -1) ? 0 : m;
+    const b = same(0, 1) ? 0 : m;
+    ctx.fillStyle = PATCH_COLORS[kind];
+    roundRect(ctx, x + l, y + t, 1 - l - r, 1 - t - b, Math.min(l, r, t, b) ? 0.25 : 0.12);
+    ctx.fill();
+  }
+
   private drawNode(kind: number, x: number, y: number): void {
     // Rotate each node by a fixed per-tile amount so clusters don't look stamped.
     const turn = ((x * 7 + y * 13) % 4) * (Math.PI / 2);
-    if (this.drawSprite(RESOURCE_NODES[kind], x, y, 1, turn)) return;
+    // A little smaller than the tile, so the patch's bed shows between the rocks (D-096).
+    if (this.drawSprite(RESOURCE_NODES[kind], x + 0.07, y + 0.07, 0.86, turn)) return;
     const ctx = this.ctx;
     ctx.fillStyle = RESOURCE_COLORS[kind];
     ctx.fillRect(x + 0.04, y + 0.04, 0.92, 0.92);
