@@ -373,16 +373,16 @@ describe('Bugs', () => {
     expect(turret.hp).toBeLessThan(BUILDINGS.turret.hp);
   });
 
-  it("don't chase past their leash, and calm down after a while", () => {
+  it("give up on buildings out of reach, stay home, and calm down after a while (D-091)", () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 2);
     const [cx, cy] = nestCentre(n);
-    const far = placed(w.place('wall', Math.round(cx) + NESTS.leash + 10, Math.round(cy), 0));
+    const far = placed(w.place('wall', Math.round(cx) + NESTS.giveUp + 12, Math.round(cy), 0));
     n.angryUntil = w.state.time + 5;
     w.markFlowDirty();
     run(w, 30);
     expect(far.hp).toBe(w.maxHp(far));
-    for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeLessThanOrEqual(NESTS.leash + 1);
+    for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeLessThanOrEqual(NESTS.cell);
     expect(isAngry(w, n)).toBe(false);
   });
 
@@ -421,22 +421,48 @@ describe('Bugs', () => {
     expect(w.events).toContain('Bugs have spread into a new territory.');
   });
 
-  it('hold still at the end of their leash instead of twitching back and forth', () => {
+  it('chase as far as it takes while something is in reach, with no fixed leash (D-091)', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 3);
     const [cx, cy] = nestCentre(n);
-    placed(w.place('wall', Math.round(cx) + NESTS.leash + 3, Math.round(cy), 0));
-    n.angryUntil = w.state.time + 120;
+    // A line of walls leading away: each within reach of the last, ending 64 tiles from home.
+    const walls = [8, 22, 36, 50, 64].map((d) => placed(w.place('wall', Math.round(cx) + d, Math.round(cy), 0)));
+    n.angryUntil = 1e9;
     w.markFlowDirty();
-    run(w, 60); // time to reach the edge
-    let moved = 0;
-    for (let t = 0; t < 3; t += TICK) {
-      const last = w.state.enemies.map((e) => [e.x, e.y]);
-      w.tick();
-      w.state.enemies.forEach((e, i) => (moved += Math.hypot(e.x - last[i][0], e.y - last[i][1])));
+    run(w, 300);
+    expect(walls.every((b) => !w.byId.has(b.id))).toBe(true); // chewed all the way along
+  });
+
+  it('a bug that gave up walks home without dithering, and comes back out when something is built close (D-091)', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    const bug = w.state.enemies[0];
+    const [cx, cy] = nestCentre(n);
+    n.angryUntil = 1e9;
+    const wall = placed(w.place('wall', Math.round(cx) + 8, Math.round(cy), 0));
+    w.markFlowDirty();
+    run(w, 6);
+    w.demolish(wall.id); // the target is gone, and nothing else is in reach
+    w.markFlowDirty();
+    run(w, 2);
+    expect(bug.home).toBe(true);
+    const inside = () => bug.x >= n.x && bug.x < n.x + NESTS.cell && bug.y >= n.y && bug.y < n.y + NESTS.cell;
+    let away = Math.hypot(bug.x - cx, bug.y - cy);
+    for (let i = 0; i < 80 && !inside(); i++) {
+      run(w, 0.25);
+      const d = Math.hypot(bug.x - cx, bug.y - cy);
+      expect(d).toBeLessThanOrEqual(away + 0.01); // only ever closer to home
+      away = d;
     }
-    expect(moved).toBeLessThan(0.01);
-    for (const e of w.state.enemies) expect(Math.hypot(e.x - cx, e.y - cy)).toBeGreaterThan(NESTS.leash - 1);
+    expect(inside()).toBe(true);
+    run(w, 3);
+    expect(bug.home).toBe(true); // still angry, but nothing in reach: it stays home
+    const lure = placed(w.place('wall', Math.round(cx) + 6, Math.round(cy), 0));
+    w.markFlowDirty();
+    run(w, 2);
+    expect(bug.home).toBeUndefined();
+    run(w, 30);
+    expect(lure.hp).toBeLessThan(w.maxHp(lure));
   });
 
   it('standard mode survives losing the hub, at a cost, and the bugs go home', () => {
@@ -1003,7 +1029,7 @@ describe('Nest mounds and chitin (D-065)', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 2);
     const [cx, cy] = nestCentre(n);
-    const far = placed(w.place('wall', Math.round(cx) + NESTS.leash + 6, Math.round(cy), 0));
+    const far = placed(w.place('wall', Math.round(cx) + NESTS.giveUp + 12, Math.round(cy), 0));
     n.hp = 0;
     n.destroyed = true;
     w.markFlowDirty();
@@ -1398,10 +1424,10 @@ describe('Threat (D-065)', () => {
 describe('Night raids (D-065)', () => {
   const nightfall = (day: number) => (day - 1) * (CLOCK.day + CLOCK.night) + CLOCK.day;
 
-  it('from the second night, a nest near buildings sends grown bugs past its leash, without waking', () => {
+  it('from the second night, a nest near buildings sends grown bugs out, without waking, until morning finds nothing in reach', () => {
     const w = emptyWorld('hardcore'); // a raid every night
     const n = addNest(w, 50, 50, 3);
-    const wall = placed(w.place('wall', 55 + CLOCK.nightLeash + 5, 55, 0)); // past the leash, in raid range
+    const wall = placed(w.place('wall', 55 + CLOCK.nightGiveUp + 5, 55, 0)); // beyond an angry bug's reach, in raid range
     w.state.nextSpread = Infinity;
     w.state.time = nightfall(1) - 0.01;
     w.tick();
@@ -1414,8 +1440,12 @@ describe('Night raids (D-065)', () => {
     expect(wall.hp).toBeLessThan(w.maxHp(wall));
     expect(isAngry(w, n)).toBe(false); // the rest of the nest stayed calm
     w.state.time = nightfall(2) + CLOCK.night - 0.01;
-    w.tick();
-    expect(w.state.enemies.some((e) => e.raid)).toBe(false); // morning: they go home
+    run(w, 1);
+    expect(w.state.enemies.some((e) => e.raid)).toBe(true); // morning, but still at the wall: they finish
+    w.demolish(wall.id);
+    w.markFlowDirty();
+    run(w, 1);
+    expect(w.state.enemies.some((e) => e.raid)).toBe(false); // nothing left in reach: they go home
   });
 
   it('nests far from buildings, or with only young bugs, do not raid', () => {

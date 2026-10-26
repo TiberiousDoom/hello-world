@@ -50,9 +50,10 @@ describe('Day, night and seasons (#42)', () => {
     const n = newNest(0, 50, 50, 0);
     w.state.nests.push(n);
     w.nestCells.set(cellKey(5, 5), n);
-    w.spawnBug('crawler', n, 1);
+    const bug = w.spawnBug('crawler', n, 1);
     const [cx, cy] = nestCentre(n);
-    const wall = w.place('wall', Math.round(cx) + NESTS.leash + 4, Math.round(cy), 0);
+    Object.assign(bug, { x: Math.round(cx) + 0.5, y: Math.round(cy) + 0.5 });
+    const wall = w.place('wall', Math.round(cx) + NESTS.giveUp + 4, Math.round(cy), 0); // out of reach by day, not at night
     if (typeof wall === 'string') throw new Error(wall);
     w.state.time = CLOCK.day + 1; // night
     n.angryUntil = w.state.time + 60;

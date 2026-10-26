@@ -123,7 +123,7 @@ describe('Supply ship', () => {
   it('woken bugs come for the shipyard from past their usual leash, and chew it', () => {
     const w = quiet();
     const b = yard(w);
-    // A nest whose centre is 35 tiles west of the yard: well beyond the 22-tile leash.
+    // A nest whose centre is 35 tiles west of the yard: far beyond the 20 tiles an angry bug looks for targets.
     const n = addNest(w, Math.floor((b.x - 40) / 10) * 10, Math.floor(b.y / 10) * 10);
     finishShip(w);
     loadCargo(w);
@@ -137,7 +137,7 @@ describe('Supply ship', () => {
     expect(b.hp).toBeLessThan(BUILDINGS.shipyard.hp);
   });
 
-  it('without a launch, the same nest stays on its leash and never reaches the shipyard', () => {
+  it('without a launch, the same nest finds nothing in reach and never reaches the shipyard', () => {
     const w = quiet();
     const b = yard(w);
     const n = addNest(w, Math.floor((b.x - 40) / 10) * 10, Math.floor(b.y / 10) * 10);

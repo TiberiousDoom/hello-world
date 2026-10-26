@@ -71,8 +71,9 @@ export type { ResearchState };
  * v19 (D-065) lets nests breed: each records the bugs it breeds back up to.
  * v20 (D-074) gives the engineer health.
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
+ * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  */
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -126,7 +127,8 @@ export interface Enemy {
   ty: number;
   wait: number; // seconds left resting while calm
   born?: number; // game time it hatched, while it's still growing up (D-065); adults have none
-  raid?: boolean; // out on a night raid (D-065), until morning
+  raid?: boolean; // out on a night raid (D-065), until morning and nothing is left in reach
+  home?: boolean; // gave up the chase with nothing in reach (D-091): heading back into its territory
 }
 
 export interface GameState {
@@ -195,7 +197,7 @@ export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 /** A save from before v8: it can't be loaded into the new kind of map. */
 export class OldSaveError extends Error {}
 
-/** Attack paths reach this far from buildings (bugs never chase further than their leash anyway). */
+/** Attack paths reach this far from buildings (bugs give up long before; see NESTS.giveUp). */
 const FLOW_RANGE = 80;
 /** Attack paths are recomputed at most this often (seconds), while any nest is angry. */
 const FLOW_REFRESH = 0.5;
@@ -312,10 +314,16 @@ export class World {
     if (state.version === 18) World.migrateV18(state);
     if (state.version === 19) World.migrateV19(state);
     if (state.version === 20) World.migrateV20(state);
+    if (state.version === 21) World.migrateV21(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v21 to v22 (D-091): bugs may carry a `home` flag; none has given up yet, so nothing to change. */
+  private static migrateV21(state: GameState): void {
+    state.version = 22;
   }
 
   /** v20 to v21 (#87): what each engineer carried goes into its inventory, which empties at the hub as before. */

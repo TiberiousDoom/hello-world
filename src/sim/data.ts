@@ -203,7 +203,7 @@ export const CLOCK = {
     { id: 'fall', name: 'Fall', days: 4, regrow: 0.75 },
     { id: 'winter', name: 'Winter', days: 2, regrow: 0.5 },
   ] as Season[],
-  nightLeash: 30, // provoked bugs chase this far from home at night (NESTS.leash by day)
+  nightGiveUp: 28, // at night an angry bug gives up only with nothing this close (NESTS.giveUp by day)
   nightCloseRadius: 5, // a building this close to a calm bug provokes its nest at night (NESTS.closeRadius by day)
 };
 
@@ -393,7 +393,7 @@ export const NESTS = {
   nearMargin: 2, // building within this many tiles of a territory provokes it
   closeRadius: 3, // a building this close to a calm bug provokes its nest
   calmAfter: 30, // seconds without fresh provocation before a nest settles down
-  leash: 22, // provoked bugs chase no further than this from their territory's centre
+  giveUp: 20, // an angry bug chases while a building or an engineer is this close (straight line); with none, it goes home (D-091)
   pause: [1, 4] as [number, number], // seconds a roaming bug rests between strolls
   spreadEvery: 240, // seconds between territories spreading into a neighbouring cell (#51)
   spreadShare: 0.5, // a new territory starts with this share of the bugs a nest there would have
@@ -413,7 +413,8 @@ export const NESTS = {
 
 /**
  * Night raids (D-065). At nightfall a nest near your buildings may send a small party of grown bugs
- * after them, without the rest of the nest waking. Raiders keep going, with no leash, until morning.
+ * after them, without the rest of the nest waking. Raiders keep going until morning, and then until nothing is
+ * left within their give-up distance.
  */
 export const RAIDS = {
   firstNight: 2, // the first night with raids (day 2's)
