@@ -63,8 +63,9 @@ quality and business work don't get left until the end.
 32. 🚧 **The research tree in four ages** ([RESEARCH_TREE.md](RESEARCH_TREE.md), D-089): Wood, Iron, Steam and Electric Ages, built age by age. The engineer's inventory is done (0.46.0, D-090); next the Wood Age, decided (D-093), built in five steps: the start (chopping, Forestry paid in logs, smelting at Industry, a wood lesson), wooden parts, rollers and the crate, the spike pit and trebuchet, the 5×5 shipyard. See Gameplay → Next.
 33. ✅ **Bugs that don't give up mid-chase** (0.46.1, D-091): no fixed leash; a bug chases while something is within 20 tiles of it (28 at night), then walks home.
 34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
-35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); fog of war (#43, Q-20).
-36. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+35. ⬜ **Playtest batch 6, decided** (D-094 to D-102): trees that regrow about 3 times (#102); ponds and the Water Wheel with the Iron Age (#102); ore drawn as patches, 1200 a tile, richer under bigger extractors (#91); all ore 20+ tiles from the hub (#89); an 8×8 hub and a staked-out shipyard site (#98, with the Wood Age shipyard step); fog of war after the Wood Age (#43); nests merging and growing with the nest plan (#90, #53).
+36. ⬜ **Playtest batch 6, ideas to build** (D-101, D-102): sun, moon, moving shadows and critter sounds with gradual seasons (#101); splitters that sort two kinds of item (#92); belts that go underground across obstacles (#93); a long snaking runner (#96); example factories on the main menu (#99).
+37. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
@@ -150,8 +151,8 @@ In this order:
   - ⬜ **Steam Age:** boilers, steel beams and bearings, Turret Mk.2, mortar and artillery, the hull
   - ⬜ **Electric Age:** power, circuits, drones, tesla, shield pylon, arc fence, launch and supply runs
 - ⬜ **Defence tiers (D-089):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, chitin among them (replaces Chitin Plating). What each tier improves and costs is still to decide
-- ❓ **Ore further from the hub (#89, Q-21):** no ore within 20 tiles of the hub. Today a starter patch of each ore sits 8–12 tiles out so the start from nothing (D-062) is a short walk; moving it out makes the first minutes longer
-- ❓ **Fog of war (#43, Q-20):** the map hidden until the engineer or buildings clear it, slowly coming back. What it hides, how far things see, whether it changes play (then it's in the rules and must stay deterministic) and whether co-op shares it are still to decide
+- ⬜ **Ore further from the hub (#89, D-097):** all ore, stone included, at least 20 tiles from the hub. Ore drawn as patches, 1200 a tile, richer under bigger extractors (#91, D-096).
+- ⬜ **Fog of war (#43, D-099):** hides terrain, ore and nests until explored, shared in co-op, turrets still fire into it. After the Wood Age.
 - ✅ Enemy nests on the map that players can clear (D-038)
 
 ## 2. Balance and playtesting

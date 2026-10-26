@@ -51,10 +51,11 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 
 **The start**
 - **Chopping by hand:** like mining. With no tool in hand, tap a tree; the engineer walks over, and 8 taps
-  fell it for 2 logs. It leaves a stump that grows back, like a lumber camp's.
+  fell it for 2 logs. It leaves a stump that grows back, like a lumber camp's, about 3 times before the
+  ground stays clear (D-094).
 - **Forestry (15 logs)** opens both first buildings, paid in wood: the Lumber Camp (about 8 logs) and the
   Sawmill (about 10 logs and 4 planks).
-- **Stone and ore:** all of them can be mined by hand from the start. Iron and copper ore wait in the hub
+- **Stone and ore:** all of them can be mined by hand from the start, at least 20 tiles from the hub (D-097). Iron and copper ore wait in the hub
   until Industry; stone is the trebuchet's ammunition and part of Industry's cost.
 - **The first lesson is rewritten around wood:** chop trees, research Forestry, build a lumber camp and a
   sawmill, lay rollers to the hub. A later lesson covers Industry (furnaces, extractors, plates).
@@ -78,6 +79,8 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
   inside 6 tiles, so it needs other defences close in.
 
 **The ship**
+- **The shipyard's site is staked out from the start** (D-098): a 5×5 site within 15 tiles of the hub, and
+  the yard is built there once Shipyard is researched. The hub grows to 8×8.
 - **Saved games with a 3×3 shipyard:** it's refunded and the ship's progress kept; the player builds the
   5×5 yard where it fits, and the ship carries on.
 - **The scaffolding stage** costs about 150 planks, 40 trusses and 60 rope, belted or dropped off into the
@@ -99,7 +102,7 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 | Research | Gives | Costs | Needs |
 |---|---|---|---|
 | **Industry** (keystone) | Furnace, Extractor; iron plates, copper ingots, bricks | 100 planks, 50 trusses, 50 stone | Basic Defense 2 |
-| Hydraulics | Well, pump, pipes, drive shafts (power for belts and hydraulic defences) | 80 iron plates, 40 iron rods, 20 bricks | Industry |
+| Hydraulics | Well, pump, Water Wheel (at a pond, D-095), pipes, drive shafts (power for belts and hydraulic defences) | 80 iron plates, 40 iron rods, 20 bricks | Industry |
 | Metal Logistics | Powered Belt, Splitter, Underground Belt, Storage Unit | 60 iron plates, 40 iron rods, 20 bricks | Hydraulics |
 | Blacksmith | Blacksmith (iron rods, rivets; plates from iron ingots) | 60 iron plates, 30 bricks | Industry |
 | Machine Shop | Machine Shop (gears, copper wire) | 80 iron plates, 40 rivets, 20 copper | Blacksmith |
@@ -112,7 +115,9 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 | Launch Pad | The ship's launch pad | *to set* (iron, bricks) | Industry |
 
 - **Fuel:** furnaces and the Blacksmith burn logs, or charcoal once it's researched (it burns longer).
-- **Wells and pumps work anywhere**, drawing groundwater; the map needs no rivers.
+- **Wells and pumps work anywhere**, drawing groundwater. Ponds (30+ tiles from the hub) take a Water Wheel,
+  a stronger source (D-095).
+- **Ore runs out** (D-096): each ore tile holds 1200; extractors over more ore tiles make more.
 - Masonry goes: the brick wall comes with Advanced Defense. Chitin Plating goes (see tiers).
 
 ## Steam Age
@@ -184,4 +189,5 @@ researched something in it, and refunds researches that are removed.
 - What each defence tier improves, and what it costs.
 - How power, fuel and pipes look and feel in play; each needs its own design before it's built (rollers are
   decided, D-093).
-- Ore distance (Q-21) and fog of war (Q-20) are separate questions.
+- Fog of war (D-099) and finite ore (D-096) are decided and built separately; finite ore needs the balance
+  pass to check that a game can still reach launch.

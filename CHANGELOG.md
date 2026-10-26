@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.46.3 · 2026-10-26 · Ideas decided
+### New
+- Nothing new in the game this time: the playtest ideas are decided. Coming up: trees that regrow a few times, ponds and a water wheel, ore that runs out (and extractors that make more over bigger patches), ore further from the hub, a bigger hub with the shipyard's site staked out from the start, fog of war, nests that merge and grow, a sun with moving shadows and critter sounds, splitters that sort, belts that go underground on their own, a long snaking runner, and example factories on the main menu.
+
 ## 0.46.2 · 2026-10-26 · Under the trees
 ### New
 - **Under the trees:** your engineer and the bugs now walk under the trees instead of over them. Your engineer shows through the leaves faintly, so you don't lose them.
