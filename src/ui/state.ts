@@ -181,6 +181,9 @@ export interface Spot {
  * building (`keepDir`), it keeps their facing and only slides to line up (#85).
  */
 export function placementAt(world: World, type: BuildingType, t: Spot, dir: Dir, replaceBelt: boolean, keepDir = false): { x: number; y: number; dir: Dir } {
+  // The shipyard has one place: its staked-out site (D-109), wherever the pointer is.
+  const site = world.state.shipSite;
+  if (type === 'shipyard' && site) return { x: site.x, y: site.y, dir: 0 };
   const belt = replaceBelt ? world.beltToReplace(type, t.x, t.y) : undefined;
   if (belt && type === 'splitter') return splitterOnBelt(world, t, belt.dir);
   if (belt && type !== 'port') {

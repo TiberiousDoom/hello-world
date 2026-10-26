@@ -109,7 +109,7 @@ export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 export const CRATE_SIZE = 50;
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
-  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [5, 5], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
+  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [8, 8], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
   express_belt: {
     name: 'Express Belt',
@@ -195,10 +195,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     short: 'SHIP',
     color: '#3a4a3a',
     hp: 900,
-    size: [3, 3],
-    cost: { brick: 30, iron_plate: 30, plank: 20 },
+    size: [5, 5],
+    cost: { plank: 60, truss: 10, log: 20 },
     blocking: true,
-    description: "A dock for your colony supply ship. Belt in the parts for each stage, then each run's cargo, then launch. Only one.",
+    description: "A dock for your colony supply ship, built on the site staked out for it. Bring in the parts for each stage, then each run's cargo, then launch.",
   },
 };
 
@@ -365,7 +365,7 @@ export const RESEARCH: Research[] = [
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop', 'industry'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
-  { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
+  { id: 'shipyard', name: 'Shipyard', cost: { plank: 80, truss: 20, rope: 20 }, time: 90, requires: ['carpentry'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
   { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
 ];
 export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));
@@ -377,6 +377,12 @@ export const BREACH = {
   stockLost: 0.25, // fraction of every item in hub stock
   hubRestore: 0.5, // fraction of hub HP restored
 };
+
+/**
+ * The shipyard's site (#98, D-098, D-109): staked out at the start, its middle this far from the hub's
+ * middle, and the only place the shipyard goes.
+ */
+export const SHIP_SITE = { minDist: 9, maxDist: 15 };
 
 export const PORT_PERIOD = 0.5; // seconds per item a hub port puts out
 
@@ -392,6 +398,8 @@ export interface ShipStage {
 
 export const SHIP = {
   stages: [
+    // One stage per age (D-089); the Wood Age's is the scaffolding (D-109).
+    { id: 'scaffold', name: 'Scaffolding', items: { plank: 150, truss: 40, rope: 60 } },
     { id: 'hull', name: 'Hull', items: { iron_plate: 150, brick: 80 } },
     { id: 'engine', name: 'Engine', items: { motor: 30, gear: 80 } },
     { id: 'life', name: 'Life support', items: { wire: 120, copper_ingot: 60 } },
@@ -442,7 +450,7 @@ export function cargoFor(run: number): ItemCounts {
 export const START_INVENTORY: ItemCounts = {};
 
 export const MAP_SIZE = 256;
-export const HUB_SIZE = 5;
+export const HUB_SIZE = 8; // 5 before D-108
 
 /** A building's width and height on the map when facing `dir` (sideways turns swap them). */
 export function footprint(t: BuildingType, dir: Dir = 0): [number, number] {

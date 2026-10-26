@@ -11,7 +11,7 @@ How the game works on `master` today. Balance numbers live in
 3. Deliver items to the **hub**. Its stock pays for buildings and research.
 4. **Research** (in the hub) unlocks new buildings.
 5. Expand carefully: **bug territories** dot the map, and their bugs attack if provoked.
-6. Research the **Shipyard**, build the supply ship, then load it and launch it again and again to supply the colony.
+6. Research the **Shipyard**, build it on the site staked out near the hub, build the supply ship, then load it and launch it again and again to supply the colony.
 
 ## Map
 
@@ -23,7 +23,7 @@ How the game works on `master` today. Balance numbers live in
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
-- The **5×5 hub** sits in the centre.
+- The **8×8 hub** sits in the centre (5×5 before D-108).
 - **Bug territories:** the map is divided into 10×10 cells. About 18% of the cells whose nearest tile is
   at least 30 tiles from the hub's centre hold a nest (roughly 100 per map). See [Bugs](#bugs).
 - Hub stock is shown just above the hub, as part of the map, **only while the hub is selected or the
@@ -76,7 +76,7 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
 | Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
 | Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
-| Shipyard | 3×3 | 30 bricks, 30 iron plates, 20 planks | 900 | Shipyard |
+| Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
 | Sawmill | 2×2 | 14 logs | 100 | Forestry |
 | Palisade | 1×1 | 2 planks | 160 | Basic Defense |
@@ -89,7 +89,7 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 - Bigger buildings centre on the tile you pick.
 - Building costs are paid from hub stock. Demolishing a building refunds its
   cost, scaled by the HP it has left.
-- **Hub:** 5×5, 1,000 HP. Accepts any item from any side. **Select it to open Research.**
+- **Hub:** 8×8 (D-108), 1,000 HP. Accepts any item from any side. **Select it to open Research.**
   It has a **built-in gun**: 9 damage, 1.2 shots/s, range 8 from its centre, and no ammo needed.
 
 ## Logistics rules
@@ -219,7 +219,7 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Distribution | 25 iron plates, 10 copper | 60 s | Advanced Defense | Hub Port |
 | Assembly | 30 gears, 30 wire | 120 s | Workshops, Industry | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
-| Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
+| Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Advanced Defense | Cannon |
 
 The hub starts empty.
@@ -415,13 +415,17 @@ They are fuelled by iron plates (1 plate = 40 HP) or planks (1 plank = 30 HP), h
 You keep a far-off colony supplied (D-046). There's no final win: the game carries on. Numbers live in
 `SHIP` and `cargoFor` in `src/sim/data.ts`; the rules are in `src/sim/ship.ts`.
 
-- The **Shipyard** research unlocks the **Shipyard**: 3×3, 900 HP, 40 bricks and 40 iron plates. Only one
-  can exist at a time.
-- The ship is built once, in four **stages**, in order. Belt each stage's items into the shipyard; it
-  accepts only what the current stage still needs, so nothing is wasted.
+- **The site (D-109):** a new game stakes out a **5×5 site** for the shipyard, its middle 9 to 15 tiles
+  from the hub's, on clear ground. Stakes and a rope mark it until the yard is built. It's the only place
+  the shipyard goes: with the Shipyard tool, the blueprint sits on the site wherever you point.
+- The **Shipyard** research (a Wood Age research after Carpentry) unlocks the **Shipyard**: 5×5, 900 HP,
+  60 planks, 10 trusses and 20 logs. Only one can exist at a time.
+- The ship is built once, in five **stages**, in order. Bring each stage's items into the shipyard (by
+  roller, belt or by hand); it accepts only what the current stage still needs, so nothing is wasted.
 
   | Stage | Items |
   |---|---|
+  | Scaffolding (Wood Age) | 150 planks, 40 trusses, 60 rope |
   | Hull | 150 iron plates, 80 bricks |
   | Engine | 30 motors, 80 gears |
   | Life support | 120 wire, 60 copper ingots |
@@ -438,8 +442,10 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   | 5 and on | Run 4's list, 25% more each run (rounded up to tens) |
 
 - A message pops up as each stage is finished and when the cargo is loaded. Selecting the shipyard
-  shows the stages, the runs delivered, and what the stage or the cargo still needs. The ship appears
-  on the pad stage by stage.
+  shows the stages, the runs delivered, and what the stage or the cargo still needs. On the map the ship
+  is drawn top-down, appearing stage by stage. **Side view** (on the selected shipyard) opens a window
+  with the ship drawn from the side: built stages solid, the current one filling in as its parts
+  arrive, and the rest as dashed outlines, with each stage's progress listed below.
 - **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**.
   The engines wake **every nest within 48 tiles** of the shipyard on the first run, **8 tiles further for
   each run delivered** (up to 96), because a loaded ship is heavier and needs more thrust (D-049). They
@@ -547,7 +553,7 @@ one research tree, one supply ship.
   | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → research Logistics → lay 3 belts |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Industry is done |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
-  | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
+  | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it on its staked-out site → stages and the side view → cargo and launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
 - **Action steps** (marked by a pulsing spotlight and a "Skip step" button) wait for you to act. The game keeps running and the dim overlay lets clicks through.
@@ -682,7 +688,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v24**). v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
+- Save files are versioned (currently **v26**). v26 (D-109) stakes out a site for the shipyard, refunds
+  an old 3×3 shipyard, and counts the new scaffolding stage as built for a ship already under way. v25 (D-108) grows the hub from 5×5 to 8×8 about its old
+  centre, refunding buildings in the way. v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
   Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved
   the attack-path timers and a player list (co-op groundwork, D-058). v11 added colony blueprints: a game
   that had delivered runs loads with an offer of both blueprints to pick from.

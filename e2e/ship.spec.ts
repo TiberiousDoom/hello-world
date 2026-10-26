@@ -8,12 +8,13 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   const spot = await page.evaluate(() => {
     const w = window.game.world;
     const s = w.state;
-    s.inventory = { iron_plate: 999, brick: 999, plank: 999 };
-    s.researched.push('defense', 'workshop', 'assembly', 'shipyard');
+    s.inventory = { iron_plate: 999, brick: 999, plank: 999, log: 999, truss: 999, rope: 999 };
+    s.researched.push('workshop', 'carpentry', 'shipyard');
     const x = w.hub.x - 22;
     const y = w.hub.y + 1;
-    // Clear ore and trees (forest can start 20 tiles out) under the shipyard.
+    // The site staked out for the shipyard (D-109), on ground cleared of ore and trees.
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    s.shipSite = { x: x - 2, y: y - 2 };
     window.game.camera.x = x + 0.5;
     window.game.camera.y = y + 0.5;
     return { x, y };
@@ -30,7 +31,7 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
     const b = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'shipyard');
     return { x: b.x, y: b.y };
   });
-  expect(yard).toEqual({ x: spot.x - 1, y: spot.y - 1 }); // centred on the tap
+  expect(yard).toEqual({ x: spot.x - 2, y: spot.y - 2 }); // on its site
   await page.click('.tip-next');
   await page.click('.tip-next');
   await expect(page.locator('#tutorial')).toBeHidden();
@@ -40,17 +41,26 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   await page.evaluate(() => {
     const w = window.game.world;
     const b = w.state.buildings.find((b: { type: string }) => b.type === 'shipyard');
-    for (let i = 0; i < 10; i++) w.insert(b, 'iron_plate', b.x - 1, b.y);
+    for (let i = 0; i < 10; i++) w.insert(b, 'plank', b.x - 1, b.y);
   });
   await page.mouse.click(...(await tilePoint(page, spot.x, spot.y)));
   await expect(page.locator('#info')).toContainText('Belt in:');
   await expect(page.locator('#info')).toContainText('10/150');
+
+  // The side view shows the scaffolding under way and the rest still to come.
+  await page.click('#info [data-action="ship-view"]');
+  await expect(page.locator('#ship-view')).toBeVisible();
+  await expect(page.locator('#ship-view .ship-stages li.now')).toContainText('Scaffolding');
+  await expect(page.locator('#ship-view .ship-side')).toBeVisible();
+  await page.click('#ship-view [data-close]');
+  await expect(page.locator('#ship-view')).toBeHidden();
 
   // Finish every stage: the cargo list appears.
   await page.evaluate(() => {
     const w = window.game.world;
     const b = w.state.buildings.find((b: { type: string }) => b.type === 'shipyard');
     const stages = [
+      { plank: 150, truss: 40, rope: 60 },
       { iron_plate: 150, brick: 80 },
       { motor: 30, gear: 80 },
       { wire: 120, copper_ingot: 60 },

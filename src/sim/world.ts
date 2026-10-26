@@ -36,6 +36,7 @@ import {
   RESEARCH_BY_ID,
   RESOURCE_ITEMS,
   SHIP,
+  SHIP_SITE,
   SPIKES,
   STARTING_BUILDINGS,
   START_INVENTORY,
@@ -76,7 +77,7 @@ export type { ResearchState };
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  */
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 26;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -169,6 +170,8 @@ export interface GameState {
   players: Player[];
   /** Game time when a bug territory next spreads (#51). */
   nextSpread: number;
+  /** Where the shipyard goes: a 5×5 site staked out at the start (D-109). Its top-left tile. */
+  shipSite?: { x: number; y: number };
 }
 
 export interface PathTimers {
@@ -201,7 +204,7 @@ export interface Shot {
 
 /** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
 export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
-export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
+export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
@@ -306,6 +309,8 @@ export class World {
     generateTrees(world, centre, centre);
     state.nests = generateNests(world, centre, centre);
     for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
+    const sites = shipSites(state);
+    state.shipSite = sites[Math.floor(world.random() * sites.length)];
     return world;
   }
 
@@ -327,10 +332,63 @@ export class World {
     if (state.version === 21) World.migrateV21(state);
     if (state.version === 22) World.migrateV22(state);
     if (state.version === 23) World.migrateV23(state);
+    if (state.version === 24) World.migrateV24(state);
+    if (state.version === 25) World.migrateV25(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v25 to v26 (D-109): the shipyard grows to 5×5 on a site staked out for it, and the ship gains a first
+   * stage, the scaffolding. The site goes on the nearest free spot. An old 3×3 shipyard is refunded (it
+   * may not fit where it was); a ship already started counts its scaffolding as built and keeps the rest.
+   */
+  private static migrateV25(state: GameState): void {
+    const old = state.buildings.find((b) => b.type === 'shipyard');
+    if (old) {
+      state.buildings = state.buildings.filter((b) => b !== old);
+      for (const [k, n] of Object.entries({ brick: 30, iron_plate: 30, plank: 20 })) state.inventory[k as ItemId] = (state.inventory[k as ItemId] ?? 0) + n;
+    }
+    const ship = state.ship;
+    if (old || ship.stage > 0 || ship.runs > 0 || Object.keys(ship.delivered).length) ship.stage = Math.min(ship.stage + 1, SHIP.stages.length);
+    state.shipSite = shipSites(state)[0];
+    state.version = 26;
+  }
+
+  /**
+   * v24 to v25 (D-108): the hub grows from 5×5 to 8×8 about its old centre (a tile more to the left and
+   * up, two more to the right and down). Buildings in the way are refunded, trees there cleared, and an
+   * engineer standing there steps out below.
+   */
+  private static migrateV24(state: GameState): void {
+    const hub = state.buildings.find((b) => b.id === state.hubId);
+    if (hub) {
+      hub.x -= 1;
+      hub.y -= 1;
+      const [hx, hy] = [hub.x, hub.y];
+      const overlaps = (b: Building) => {
+        const [fw, fh] = footprint(b.type, b.dir);
+        return b.x < hx + HUB_SIZE && b.x + fw > hx && b.y < hy + HUB_SIZE && b.y + fh > hy;
+      };
+      state.buildings = state.buildings.filter((b) => {
+        if (b === hub || !overlaps(b)) return true;
+        for (const [k, n] of Object.entries(BUILDINGS[b.type].cost)) state.inventory[k as ItemId] = (state.inventory[k as ItemId] ?? 0) + n!;
+        return false;
+      });
+      for (let y = hy; y < hy + HUB_SIZE; y++) {
+        for (let x = hx; x < hx + HUB_SIZE; x++) {
+          const i = y * state.width + x;
+          state.trees[i] = NO_TREE;
+          delete state.regrow[i];
+        }
+      }
+      for (const p of state.players) {
+        if (p.x >= hx && p.x < hx + HUB_SIZE && p.y >= hy && p.y < hy + HUB_SIZE) [p.x, p.y, p.path] = [hx + HUB_SIZE / 2 + 0.5, hy + HUB_SIZE + 0.5, []];
+      }
+    }
+    state.version = 25;
   }
 
   /**
@@ -921,6 +979,8 @@ export class World {
       }
     }
     if (type === 'shipyard' && shipyard(this)) return 'unique';
+    const site = this.state.shipSite;
+    if (type === 'shipyard' && site && (x !== site.x || y !== site.y)) return 'site'; // only on its stakes (D-109)
     if (!this.isUnlocked(type)) return 'locked';
     if (type === 'extractor' && !this.oreUnder(x, y, w, h)) return 'needs-resource';
     if (type === 'lumber_camp') {
@@ -2010,6 +2070,49 @@ class MinHeap {
 }
 
 /** Buildings whose finished items can be carried to the hub by hand (#38). */
+/**
+ * Spots for the shipyard's site (D-109): 5×5, its middle SHIP_SITE.minDist to maxDist from the hub's,
+ * on clear ground (no buildings, ore, trees or nest mounds), nearest first. Plain state, so a save
+ * migration can use it too.
+ */
+export function shipSites(state: GameState): { x: number; y: number }[] {
+  const hub = state.buildings.find((b) => b.id === state.hubId);
+  if (!hub) return [];
+  const [fw] = BUILDINGS.shipyard.size!;
+  const taken = new Set<number>();
+  for (const b of state.buildings) {
+    const [w, h] = footprint(b.type, b.dir);
+    for (let y = b.y; y < b.y + h; y++) for (let x = b.x; x < b.x + w; x++) taken.add(y * state.width + x);
+  }
+  const mounds = new Set<number>();
+  for (const n of state.nests) {
+    const c = Math.floor(NESTS.cell / 2);
+    for (let y = n.y + c - 1; y <= n.y + c + 1; y++) for (let x = n.x + c - 1; x <= n.x + c + 1; x++) mounds.add(y * state.width + x);
+  }
+  const hx = hub.x + HUB_SIZE / 2;
+  const hy = hub.y + HUB_SIZE / 2;
+  const out: { x: number; y: number; d: number }[] = [];
+  for (let y = Math.floor(hy - SHIP_SITE.maxDist - fw); y <= hy + SHIP_SITE.maxDist; y++) {
+    for (let x = Math.floor(hx - SHIP_SITE.maxDist - fw); x <= hx + SHIP_SITE.maxDist; x++) {
+      const d = hypot(x + fw / 2 - hx, y + fw / 2 - hy);
+      if (d < SHIP_SITE.minDist || d > SHIP_SITE.maxDist) continue;
+      let ok = x >= 0 && y >= 0 && x + fw <= state.width && y + fw <= state.height;
+      for (let ty = y; ok && ty < y + fw; ty++) {
+        for (let tx = x; tx < x + fw; tx++) {
+          const i = ty * state.width + tx;
+          if (taken.has(i) || mounds.has(i) || state.resources[i] || state.trees[i] === TREE) {
+            ok = false;
+            break;
+          }
+        }
+      }
+      if (ok) out.push({ x, y, d });
+    }
+  }
+  out.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
+  return out.map(({ x, y }) => ({ x, y }));
+}
+
 export function canCollect(t: BuildingType): boolean {
   return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || isMachine(t);
 }

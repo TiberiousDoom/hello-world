@@ -36,6 +36,7 @@ import { PlaceError, World, canCollect } from '../sim/world';
 import { Player, held } from '../sim/player';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
+import { shipSideView } from './shipview';
 import { Tool, UIState, turnTool } from './state';
 
 const TOOLBAR: BuildingType[] = [
@@ -81,6 +82,7 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
   'needs-hub': 'Hub ports must go right next to the hub.',
   nest: "You can't build on a nest's mound. Destroy it first: turrets in range shoot it.",
   unique: 'You can only have one shipyard.',
+  site: 'The shipyard goes on the site staked out for it.',
 };
 
 export interface HudActions {
@@ -396,6 +398,11 @@ export class Hud {
         case 'research':
           this.openResearch();
           break;
+        case 'ship-view':
+          this.shipViewKey = '';
+          this.renderShipView(this.actions.getWorld());
+          this.openModal('ship-view');
+          break;
         case 'close':
           this.ui.selected = null;
           this.ui.tool = null;
@@ -511,6 +518,7 @@ export class Hud {
     this.updateClock(s.time);
 
     if (!$('research').hidden) this.renderResearch(world);
+    if (!$('ship-view').hidden) this.renderShipView(world);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
       b.classList.toggle('active', Number(b.dataset.speed) === this.ui.speed);
     }
@@ -691,6 +699,7 @@ export class Hud {
           if (takes) actions += `<button data-action="drop" title="Your engineer hands it what they carry"><span class="drop-label">Drop off</span></button>`;
           actions += '</div>';
         }
+        if (b!.type === 'shipyard') actions += `<div class="row"><button data-action="ship-view">Side view</button></div>`;
         if (b!.type === 'shipyard' && checkLaunch(world) === null) {
           actions += `<div class="row"><button data-action="launch" class="primary launch">🚀 Launch</button></div>`;
         }
@@ -799,6 +808,16 @@ export class Hud {
       const el = panel.querySelector('.stats');
       if (el) el.innerHTML = stats;
     }
+  }
+
+  private shipViewKey = '';
+
+  /** The ship's side view (D-109), redrawn while it's open as parts arrive. */
+  private renderShipView(world: World): void {
+    const key = JSON.stringify([world.state.ship.stage, world.state.ship.delivered]);
+    if (key === this.shipViewKey) return;
+    this.shipViewKey = key;
+    $('ship-view-body').innerHTML = shipSideView(world);
   }
 
   private openResearch(): void {

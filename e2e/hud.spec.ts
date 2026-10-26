@@ -15,7 +15,7 @@ test('the top bar has only speed, the clock and the menu; hub stock shows above 
   const box = (await stock.boundingBox())!;
   const [hx, hy] = await page.evaluate(() => {
     const h = window.game.world.hub;
-    return window.game.camera.toScreen(h.x + 2.5, h.y);
+    return window.game.camera.toScreen(h.x + 4, h.y); // the middle of the 8×8 hub's top edge
   });
   expect(box.y + box.height).toBeLessThanOrEqual(hy + 1);
   expect(Math.abs(box.x + box.width / 2 - hx)).toBeLessThan(4);

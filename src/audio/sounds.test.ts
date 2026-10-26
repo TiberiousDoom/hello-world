@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from '../render/camera';
-import { LUMBER, NESTS, RESEARCH } from '../sim/data';
+import { HUB_SIZE, LUMBER, NESTS, RESEARCH } from '../sim/data';
 import { Nest, cellKey, newNest } from '../sim/nests';
 import { Building, TICK, TREE, World } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
@@ -36,8 +36,8 @@ function setup() {
   camera.width = 800;
   camera.height = 600;
   camera.zoom = 32;
-  camera.x = hub.x + 2.5;
-  camera.y = hub.y + 2.5;
+  camera.x = hub.x + HUB_SIZE / 2;
+  camera.y = hub.y + HUB_SIZE / 2;
   const sfx = new FakeSfx();
   const watcher = new SoundWatcher(sfx as unknown as Sfx, camera);
   watcher.update(w); // takes in the starting state silently
@@ -66,7 +66,7 @@ describe('Sound effects', () => {
     const { w, hub, sfx, watcher } = setup();
     placed(w.place('belt', hub.x - 3, hub.y, 0));
     placed(w.place('furnace', hub.x - 8, hub.y, 0));
-    const turret = placed(w.place('turret', hub.x + 7, hub.y, 0));
+    const turret = placed(w.place('turret', hub.x + HUB_SIZE + 2, hub.y, 0));
     watcher.update(w);
     expect(sfx.names()).toEqual(['belt', 'place_big', 'place']);
 
@@ -76,7 +76,7 @@ describe('Sound effects', () => {
     expect(sfx.names()).toEqual(['demolish']);
 
     sfx.played = [];
-    const t2 = placed(w.place('turret', hub.x + 7, hub.y, 0));
+    const t2 = placed(w.place('turret', hub.x + HUB_SIZE + 2, hub.y, 0));
     watcher.update(w);
     t2.hp = 0;
     w.tick(TICK);
@@ -87,7 +87,7 @@ describe('Sound effects', () => {
   it('a tesla zaps once per shot, however far its arc jumps; a line upgrade sounds once', () => {
     const { w, hub, sfx, watcher } = setup();
     w.state.ship.blueprints = ['express_belt', 'tesla'];
-    const t = placed(w.place('tesla', hub.x + 7, hub.y, 0));
+    const t = placed(w.place('tesla', hub.x + HUB_SIZE + 2, hub.y, 0));
     const n = addNest(w, 0, 0);
     for (let i = 0; i < 3; i++) {
       const e = w.spawnBug('crawler', n, 1);
