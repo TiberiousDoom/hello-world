@@ -1,7 +1,7 @@
 // Soft placement (D-030): the ✓ / ⟳ / ✕ bar that floats beside a blueprint.
 
 import { BUILDINGS, BuildingType, DX, DY, Dir, ItemCounts, ItemId, TUNNEL_RANGE, isBelt } from '../sim/data';
-import { PlaceError, World } from '../sim/world';
+import { PlaceError, TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { Plan, Spot, UIState, isBeltPath, placementAt, planDirs } from './state';
 
@@ -28,7 +28,8 @@ export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false): 
   const single = plan.tiles.length === 1; // only a single placement may go over a belt
   const dirs = planDirs(plan, dir);
   const steps: PlanStep[] = plan.tiles.map((tile, i) => ({ tile, tool: plan.tool, dir: dirs[i], status: null }));
-  if (isBeltPath(plan) && isBelt(plan.tool) && world.isUnlocked('tunnel')) tunnelUnder(world, steps);
+  // Rollers have no underground (D-102): only belts tunnel.
+  if (isBeltPath(plan) && isBelt(plan.tool) && plan.tool !== 'roller' && world.isUnlocked('tunnel')) tunnelUnder(world, steps);
   const spent: ItemCounts = {};
   const afford = (tools: BuildingType[]) => {
     const need: ItemCounts = {};
@@ -55,13 +56,16 @@ export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false): 
 }
 
 /**
- * Along a dragged belt line, a run of existing belts crossing it at right angles is tunnelled under:
- * the tiles just before and after become an underground belt's entrance and exit (#65).
+ * Along a dragged belt line, whatever is in the way is tunnelled under: a run of belts crossing it at
+ * right angles (#65), and any other building or trees (#93, D-102). The tiles just before and after
+ * become an underground belt's entrance and exit, paid for like any other.
  */
 function tunnelUnder(world: World, steps: PlanStep[]): void {
   const crosses = (s: PlanStep) => {
-    const b = world.buildingAt(s.tile.x, s.tile.y);
-    return !!b && isBelt(b.type) && b.dir % 2 !== s.dir % 2;
+    const { x, y } = s.tile;
+    const b = world.buildingAt(x, y);
+    if (b) return isBelt(b.type) ? b.dir % 2 !== s.dir % 2 : true;
+    return world.treeAt(x, y) === TREE;
   };
   for (let i = 1; i < steps.length - 1; i++) {
     if (!crosses(steps[i])) continue;

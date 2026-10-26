@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CLOCK, LUMBER, NESTS, RESEARCH } from './data';
-import { clockAt, darkness } from './clock';
+import { clockAt, darkness, seasonTurn } from './clock';
 import { cellKey, newNest, nestCentre } from './nests';
 import { TICK, TREE, World } from './world';
 
@@ -81,5 +81,15 @@ describe('Day, night and seasons (#42)', () => {
     const winter = regrowTime(10 * DAY + 10);
     expect(summer).toBeLessThan((LUMBER.regrow + LUMBER.regrowSpread) / 2 + 5);
     expect(winter).toBeGreaterThan((LUMBER.regrow - LUMBER.regrowSpread) / 0.5 - 5);
+  });
+
+  it('turns the land to the next season over the last day of each', () => {
+    expect(seasonTurn(0)).toEqual({ season: 'spring', next: 'summer', shift: 0 });
+    expect(seasonTurn(3 * DAY).shift).toBe(0);
+    expect(seasonTurn(3.5 * DAY).shift).toBeCloseTo(0.5);
+    expect(seasonTurn(4 * DAY - 1).shift).toBeGreaterThan(0.99);
+    expect(seasonTurn(4 * DAY)).toEqual({ season: 'summer', next: 'fall', shift: 0 });
+    // Winter turns back into spring at the year's end.
+    expect(seasonTurn(11.5 * DAY)).toMatchObject({ season: 'winter', next: 'spring' });
   });
 });

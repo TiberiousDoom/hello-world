@@ -47,3 +47,23 @@ export function darkness(time: number): number {
   if (into < DAY - CLOCK.twilight) return 1;
   return (DAY - into) / CLOCK.twilight;
 }
+
+/**
+ * How far the land has turned towards the next season (D-111): 0 for most of a season, rising to 1 over
+ * its last CLOCK.turn days. Only the look follows it; the rules change on the day the season does.
+ */
+export function seasonTurn(time: number): { season: Season['id']; next: Season['id']; shift: number } {
+  const t = Math.max(0, time) % YEAR;
+  let start = 0;
+  for (let i = 0; i < CLOCK.seasons.length; i++) {
+    const s = CLOCK.seasons[i];
+    const end = start + s.days * DAY;
+    if (t < end) {
+      const next = CLOCK.seasons[(i + 1) % CLOCK.seasons.length].id;
+      const span = CLOCK.turn * DAY;
+      return { season: s.id, next, shift: Math.min(1, Math.max(0, (t - (end - span)) / span)) };
+    }
+    start = end;
+  }
+  return { season: CLOCK.seasons[0].id, next: CLOCK.seasons[1].id, shift: 0 };
+}

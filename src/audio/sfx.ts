@@ -27,7 +27,12 @@ export type Sound =
   | 'stage'
   | 'provoked'
   | 'launch'
-  | 'ping';
+  | 'ping'
+  | 'bird'
+  | 'cricket'
+  | 'katydid'
+  | 'cicada'
+  | 'frog';
 
 /** The shortest gap (seconds) between two plays of a sound, so a busy fight doesn't turn into noise. */
 const MIN_GAP: Partial<Record<Sound, number>> = {
@@ -45,6 +50,11 @@ const MIN_GAP: Partial<Record<Sound, number>> = {
   destroyed: 0.15,
   hub_hit: 0.6,
   provoked: 1,
+  bird: 0.4,
+  cricket: 0.3,
+  katydid: 0.8,
+  cicada: 3,
+  frog: 0.5,
 };
 /** At most this many sounds at once. */
 const MAX_VOICES = 24;
@@ -154,6 +164,42 @@ function recipe(sound: Sound): Layer[] {
     case 'ping':
       // Two bright blips, rising: someone points at something.
       return [tone('sine', 1320, 1320, 0.12, 0.22), tone('sine', 1760, 1760, 0.18, 0.22, 0.1), tone('triangle', 880, 880, 0.25, 0.06, 0.1)];
+    // Critters (D-101): each call a little different, so the chorus doesn't loop.
+    case 'bird': {
+      // A few quick whistled notes, each swooping up or down.
+      const base = 2200 + Math.random() * 1600;
+      const notes = 2 + Math.floor(Math.random() * 4);
+      return Array.from({ length: notes }, (_, i) => {
+        const f = base * (1 + (Math.random() - 0.5) * 0.3);
+        return tone('sine', f, f * (Math.random() < 0.5 ? 1.25 : 0.8), 0.07 + Math.random() * 0.05, 0.12, i * (0.09 + Math.random() * 0.05), 0.01);
+      });
+    }
+    case 'cricket': {
+      // Three or four short pulses of one high note.
+      const f = 4300 + Math.random() * 500;
+      const n = 3 + Math.floor(Math.random() * 2);
+      return Array.from({ length: n }, (_, i) => tone('sine', f, f, 0.03, 0.06, i * 0.05, 0.005));
+    }
+    case 'katydid': {
+      // Ka-ty-did: three rasps.
+      const f = 5500 + Math.random() * 1500;
+      return [0, 0.12, 0.24].map((at, i) => noise('bandpass', f, f * 0.9, i === 2 ? 0.07 : 0.05, 0.12, 6, at, 0.005));
+    }
+    case 'cicada': {
+      // A long buzz that swells and dies away, with a fast throb in it.
+      const f = 4500 + Math.random() * 1500;
+      const pulses = Array.from({ length: 14 }, (_, i) => noise('bandpass', f, f * 0.95, 0.12, 0.05 + 0.04 * Math.sin((i / 13) * Math.PI), 8, i * 0.11, 0.03));
+      return pulses;
+    }
+    case 'frog': {
+      // A low, rattling croak, sometimes two.
+      const f = 140 + Math.random() * 80;
+      const n = Math.random() < 0.4 ? 2 : 1;
+      return Array.from({ length: n }, (_, i) => [
+        tone('sawtooth', f, f * 0.85, 0.22, 0.07, i * 0.35, 0.02),
+        noise('bandpass', f * 4, f * 3, 0.2, 0.06, 3, i * 0.35, 0.02),
+      ]).flat();
+    }
   }
 }
 

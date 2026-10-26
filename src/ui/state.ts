@@ -32,6 +32,8 @@ export interface UIState {
   coop: 'host' | 'guest' | null;
   /** Spots co-op players pointed at (D-080), newest last; `at` is the page clock (ms). */
   pings: Ping[];
+  /** A building being moved (#76, #83): the tool in hand is its type, and the next tap puts it there. */
+  moving: number | null;
 }
 
 /** A co-op ping: player `player` points at tile (x, y). */
@@ -46,7 +48,7 @@ export interface Ping {
 export const PING_MS = 5000;
 
 export function createUIState(): UIState {
-  return { tool: null, dir: 0, dirSet: false, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [] };
+  return { tool: null, dir: 0, dirSet: false, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [], moving: null };
 }
 
 /**

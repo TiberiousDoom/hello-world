@@ -83,6 +83,7 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
   nest: "You can't build on a nest's mound. Destroy it first: turrets in range shoot it.",
   unique: 'You can only have one shipyard.',
   site: 'The shipyard goes on the site staked out for it.',
+  unmovable: "That can't be moved.",
 };
 
 export interface HudActions {
@@ -398,6 +399,17 @@ export class Hud {
         case 'research':
           this.openResearch();
           break;
+        case 'move': {
+          // Moving a building (#76, #83): it becomes the tool in hand, facing as it does; the next tap puts it down.
+          const b = id != null ? this.actions.getWorld().byId.get(id) : undefined;
+          if (!b) break;
+          this.setTool(b.type);
+          this.ui.moving = b.id;
+          this.ui.dir = b.dir;
+          this.ui.dirSet = true;
+          this.toast(`Tap where the ${BUILDINGS[b.type].name.toLowerCase()} goes. Rotate turns it; right-click or tap its tool to cancel.`);
+          break;
+        }
         case 'ship-view':
           this.shipViewKey = '';
           this.renderShipView(this.actions.getWorld());
@@ -445,6 +457,7 @@ export class Hud {
 
   setTool(tool: Tool): void {
     if (tool !== this.ui.tool) this.ui.dirSet = false; // a new tool lines up with belts again (#85)
+    this.ui.moving = null;
     this.ui.tool = tool;
     this.ui.plan = null;
     if (tool) this.ui.selected = null;
@@ -706,6 +719,7 @@ export class Hud {
         if (b!.type !== 'hub') {
           actions += `<div class="row">`;
           if (!NO_ROTATE.includes(b!.type) && b!.type !== 'tunnel') actions += `<button data-action="rotate">⟳ Rotate</button>`;
+          if (world.canMove(b!)) actions += `<button data-action="move" title="Pick it up and put it somewhere else, with what it holds">✥ Move</button>`;
           actions += `<button data-action="demolish" class="danger">✕ Demolish</button></div>`;
         }
         html = `<div class="info-head"><span>${buildingIcon(b!.type, 'head-icon')}${esc(def.name)}</span><button data-action="close">${ico('close')}</button></div>

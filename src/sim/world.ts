@@ -54,6 +54,7 @@ import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
+import { newFog, revealBuilding, tickFog } from './fog';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
@@ -77,8 +78,9 @@ export type { ResearchState };
  * v20 (D-074) gives the engineer health.
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
+ * v27 (D-112) adds fog of war; older saves have seen what their buildings and engineers can see.
  */
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -177,6 +179,8 @@ export interface GameState {
   oreMined?: Record<number, number>;
   /** Times each tile's tree has been cut (D-094); past LUMBER.regrowths the stump doesn't grow back. */
   cuts?: Record<number, number>;
+  /** Fog of war (D-112): 1 for each FOG.cell-sized cell anyone has seen, row by row. */
+  explored: number[];
 }
 
 export interface PathTimers {
@@ -209,7 +213,7 @@ export interface Shot {
 
 /** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
 export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
-export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site';
+export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site' | 'unmovable';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
@@ -302,7 +306,9 @@ export class World {
       paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
       players: [],
       nextSpread: NESTS.spreadEvery,
+      explored: [],
     };
+    state.explored = newFog(state);
     const world = new World(state);
     const hx = Math.floor((size - HUB_SIZE) / 2);
     const hy = hx;
@@ -311,6 +317,7 @@ export class World {
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
     state.players = [newPlayer(world, 0)];
+    tickFog(state);
     generateTrees(world, centre, centre);
     state.nests = generateNests(world, centre, centre);
     for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
@@ -339,10 +346,19 @@ export class World {
     if (state.version === 23) World.migrateV23(state);
     if (state.version === 24) World.migrateV24(state);
     if (state.version === 25) World.migrateV25(state);
+    if (state.version === 26) World.migrateV26(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v26 to v27 (D-112): fog of war. What the buildings and engineers can see now counts as explored. */
+  private static migrateV26(state: GameState): void {
+    state.explored = newFog(state);
+    for (const b of state.buildings) revealBuilding(state, b, ...footprint(b.type, b.dir));
+    tickFog(state);
+    state.version = 27;
   }
 
   /**
@@ -882,6 +898,7 @@ export class World {
     };
     this.state.buildings.push(b);
     this.index(b);
+    revealBuilding(this.state, b, ...footprint(type, dir));
     return b;
   }
 
@@ -972,13 +989,14 @@ export class World {
    * Whether a building can go with its top-left at (x, y), facing `dir`.
    * `replaceBelt`: allow building over a belt (single placements, not drags across a line).
    */
-  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false): PlaceError | null {
+  /** Whether `type` can go at (x, y) facing `dir`. Moving (#76, #83): `moving` itself is no obstacle, and it's free. */
+  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false, moving?: Building): PlaceError | null {
     const [w, h] = footprint(type, dir);
     for (let dy = 0; dy < h; dy++) {
       for (let dx = 0; dx < w; dx++) {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
         const b = this.buildingAt(x + dx, y + dy);
-        if (b && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
+        if (b && b !== moving && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
         if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
         if (moundAt(this, x + dx, y + dy)) return 'nest';
       }
@@ -993,8 +1011,31 @@ export class World {
       if (!reach.trees.length && !reach.stumps) return 'needs-trees';
     }
     if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
-    if (!this.canAfford(BUILDINGS[type].cost)) return 'cost';
+    if (!moving && !this.canAfford(BUILDINGS[type].cost)) return 'cost';
     return null;
+  }
+
+  /** Whether a building can be moved at all (#76, #83): not the hub, the shipyard (it has its site) or a paired tunnel. */
+  canMove(b: Building): boolean {
+    return b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'tunnel';
+  }
+
+  /**
+   * Moves a building to (x, y), facing `dir` (#76, #83). It keeps everything it holds and costs nothing.
+   * It can go anywhere a new one could, its old tiles included.
+   */
+  relocate(id: number, x: number, y: number, dir: Dir): Building | PlaceError {
+    const b = this.byId.get(id);
+    if (!b) return 'occupied';
+    if (!this.canMove(b)) return 'unmovable';
+    const err = this.checkPlace(b.type, x, y, dir, false, b);
+    if (err) return err;
+    this.unindex(b);
+    [b.x, b.y, b.dir] = [x, y, dir];
+    if (b.type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(b.type, dir));
+    this.index(b);
+    revealBuilding(this.state, b, ...footprint(b.type, dir));
+    return b;
   }
 
   place(type: BuildingType, x: number, y: number, dir: Dir, replaceBelt = false): Building | PlaceError {
@@ -1500,6 +1541,7 @@ export class World {
     tickSpread(this);
     tickBreeding(this, dt);
     tickPlayers(this, dt, (p, a) => this.act(p, a));
+    tickFog(s);
     this.announceClock(s.time - dt, s.time);
     announceThreat(this, s.time - dt, s.time);
     startRaids(this, s.time - dt, s.time);

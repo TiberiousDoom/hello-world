@@ -27,6 +27,12 @@ How the game works on `master` today. Balance numbers live in
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
 - The **8×8 hub** sits in the centre (5×5 before D-108).
+- **Fog of war (D-099, D-112):** the map is hidden under the dark of the forest until something sees it,
+  in 4×4-tile cells with a soft edge. The hub sees 36 tiles from its middle (past the starter ore), your
+  engineer 9 tiles around them as they walk, and every other building 5 tiles past its edge (turrets and
+  other towers their range more). Explored ground stays explored. In co-op it's shared: what one engineer
+  finds, everyone sees. It's only the view: buildings can be placed and turrets fire into it, and bugs
+  walk out of it. Numbers are in `FOG` in `src/sim/data.ts`.
 - **Bug territories:** the map is divided into 10×10 cells. About 18% of the cells whose nearest tile is
   at least 30 tiles from the hub's centre hold a nest (roughly 100 per map). See [Bugs](#bugs).
 - Hub stock is shown just above the hub, as part of the map, **only while the hub is selected or the
@@ -144,11 +150,12 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 - **Choosing the exit (#64):** after you place an entrance, its exit appears as a blueprint at the first
   free tile past whatever is in the way (or two tiles on, if nothing is). Tap ✓ (or click it) to build
   it, or drag it along the line, up to 5 tiles ahead, first.
-- **Going under belts automatically (#65):** a belt line dragged straight across one or more belts
-  running the other way goes under them: the tiles just before and after become an underground belt's
-  entrance and exit, and you pay for both. The blueprint shows them. If you can't afford both, the line
-  is built up to the crossing and stops there (the blueprint shows the rest in red). Only belts are
-  tunnelled under; walls and machines still stop a line.
+- **Going under things automatically (#65, #93):** a belt line dragged straight across anything in its
+  way goes under it: belts running the other way, any other building (walls, machines), and trees (D-102).
+  The tiles just before and after become an underground belt's entrance and exit, and you pay for both.
+  The blueprint shows them. If you can't afford both, or the gap is longer than an underground belt
+  reaches (5 tiles), the line is built up to the obstacle and stops there (the blueprint shows the rest
+  in red). Rollers have no underground: a roller line stops at what's in its way.
 - **Hub ports** must touch the hub, and always face away from it. Each port
   takes a chosen item out of hub stock, one every 0.5 s, and puts it on a belt.
   A docking collar joins it to the hub, with items visibly streaming out while it sends.
@@ -252,6 +259,15 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare frosted trees and snowy pines; grass and flowers are under the snow |
 
   A stump's regrowth time is set by the season it's cut in.
+- **Seasons fade in (D-111):** over the last day of each season the land turns to the next one's look.
+  Trees change one by one, each at its own moment; the ground and the light cross-fade; snow covers the
+  grass and flowers bit by bit. Coming out of winter, flowers come back in the first half of that day and
+  leaves in the second. Only the look changes: the rules (tree regrowth) change on the day the season does.
+- **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
+  right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
+  and short at midday, and right in the evening, growing long towards dusk. At night the moon casts
+  fainter ones the same way; each fades out as the light changes over at dusk and dawn. Belts, rollers
+  and spike pits are flat and cast none.
 - A message marks nightfall, each morning and each new season, and the top bar shows the season, the
   day and a sun or moon (its tooltip says how long until morning or nightfall).
 - Each new season plays its own short piece of music (see [Music](#music)).
@@ -546,7 +562,12 @@ one research tree, one supply ship.
 
 ## Onboarding
 
-- The game opens on a **main menu**, with a small factory (and a calm bug territory) running behind it.
+- The game opens on a **main menu**, with example factories running behind it, one after another every
+  40 seconds with a fade between them (#99, D-111): **Industry** (iron, copper, stone and wood lines into
+  the hub, with turrets), **The Wood Age** (lumber camps, a sawmill, a workshop, rollers through a crate,
+  palisades, spike pits, a trebuchet and ballistae) and **Holding the line** (a walled ring of turrets,
+  cannons, a tesla, ballistae and repair stations). Each has a calm bug territory in view, and its name in
+  the corner.
   It offers **Continue** (when a save exists, showing its mode and time played),
   **New game** (choose the mode) and **How to play**.
 
@@ -606,6 +627,12 @@ one research tree, one supply ship.
 
 ## Controls
 
+**Moving a building (#76, #83, D-110):** a selected building's panel has **Move**. The building becomes the
+tool in hand, facing as it does (Rotate turns it); the next click or tap puts it there, with everything it
+holds (inputs, outputs, ammo, items on a belt), for free. It can go anywhere a new one could, its own tiles
+included. Right-click, or tapping its tool, cancels. The hub, the shipyard (it has its site) and
+underground belts (they'd lose their pair) can't be moved.
+
 | | Desktop | Touch |
 |---|---|---|
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
@@ -618,6 +645,7 @@ one research tree, one supply ship.
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
+| Move a building (#76, #83) | Select it, Move, then click where it goes | Select it, Move, then tap where it goes |
 | Inventory | I, or the Inventory button | Inventory button (right end of the toolbar) |
 | Pick a building | 1–9 | Toolbar |
 | Build more like a placed building | Middle-click it | Hold a finger still on it (about half a second) |
@@ -689,13 +717,17 @@ strings and light percussion, with a roomy reverb.
 - Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
   right by where they happen. A provoked nest is a warning, so it's always heard, quietly if far away.
 - Busy fights are kept tidy: each sound has a shortest gap between plays, and at most 24 play at once.
+- **Critters (D-101, D-111):** heard from all over, quietly, now and then: birds in the morning and less
+  at midday, crickets and katydids in the evening and early night, cicadas at dusk, frogs at night. Fewest
+  in early spring, most in summer, fading through fall to almost none in winter (a few birds). They're
+  quiet while the game is paused. The timing is in `src/audio/critters.ts`.
 - Nothing plays on the main menu except button clicks. Menu → Sound effects sets the volume (saved per
   device, default 60%); zero mutes it.
 
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v26**). v26 (D-109) stakes out a site for the shipyard, refunds
+- Save files are versioned (currently **v27**). v27 (D-112) adds fog of war, with what the buildings and engineers see already explored. v26 (D-109) stakes out a site for the shipyard, refunds
   an old 3×3 shipyard, and counts the new scaffolding stage as built for a ship already under way. v25 (D-108) grows the hub from 5×5 to 8×8 about its old
   centre, refunding buildings in the way. v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
   Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved

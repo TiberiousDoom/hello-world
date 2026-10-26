@@ -71,6 +71,7 @@ const GUEST_KINDS: Record<string, string[]> = {
   place: ['x', 'y', 'dir'],
   demolish: ['id'],
   rotate: ['id'],
+  relocate: ['id', 'x', 'y', 'dir'],
   turn: ['x', 'y', 'dir'],
   recipe: ['id'],
   filter: ['id'],

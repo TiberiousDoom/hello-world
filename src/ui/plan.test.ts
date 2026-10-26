@@ -69,3 +69,36 @@ describe('Underground exit blueprint (#64)', () => {
     expect(tunnelExitSpot(w, x, y, 0)).toEqual({ x: x + 3, y });
   });
 });
+
+describe('Belts dragged across anything else go under it too (#93, D-102)', () => {
+  it('a wall, a machine or trees in the way are tunnelled under, and paid for', () => {
+    const w = clearWorld();
+    const [x0, y] = [w.hub!.x - 30, w.hub!.y - 12];
+    w.place('wall', x0 + 3, y, 0);
+    const steps = planSteps(w, eastLine(x0, x0 + 6, y), 0);
+    expect(steps.map((s) => (s.over ? 'under' : s.exit ? 'exit' : s.tool))).toEqual(['belt', 'belt', 'tunnel', 'under', 'exit', 'belt', 'belt']);
+    expect(steps.filter((s) => !s.over).every((s) => s.status === null)).toBe(true);
+    const t = clearWorld();
+    for (const x of [x0 + 3, x0 + 4]) t.state.trees[t.idx(x, y)] = 1; // a strip of trees
+    expect(planSteps(t, eastLine(x0, x0 + 7, y), 0).map((s) => (s.over ? 'under' : s.exit ? 'exit' : s.tool))).toEqual([
+      'belt',
+      'belt',
+      'tunnel',
+      'under',
+      'under',
+      'exit',
+      'belt',
+      'belt',
+    ]);
+  });
+
+  it('rollers have no underground: a roller line stops at what is in the way', () => {
+    const w = clearWorld();
+    w.state.inventory = { plank: 99, dowel: 99, iron_plate: 99, brick: 99 };
+    const [x0, y] = [w.hub!.x - 30, w.hub!.y - 12];
+    w.place('wall', x0 + 3, y, 0);
+    const steps = planSteps(w, { tool: 'roller', tiles: eastLine(x0, x0 + 6, y).tiles }, 0);
+    expect(steps.some((s) => s.tool === 'tunnel')).toBe(false);
+    expect(steps[3].status).toBe('occupied');
+  });
+});

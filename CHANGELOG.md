@@ -3,6 +3,19 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.54.0 · 2026-10-26 · Sun, seasons and fog
+### New
+- **Seasons fade in:** over the last day of each season the land turns to the next one. Trees change one by one, snow settles bit by bit, and in spring the flowers come back before the leaves.
+- **Moving shadows:** buildings and trees cast shadows that follow the sun across the sky, long in the morning and evening and short at noon. The moon casts fainter ones at night.
+- **Critters:** birds in the morning, crickets and katydids in the evening, cicadas at dusk and frogs at night, growing quiet through fall and nearly silent in winter.
+- **Fog of war:** the map beyond the hub is hidden until you explore it. Your engineer uncovers the ground around them as they walk, and every building you put up sees around it. In co-op, what anyone finds, everyone sees. Saved games have already explored what their buildings and engineers can see.
+- **Example factories on the main menu:** three scenes take turns behind the menu: an industrial factory, the Wood Age, and a walled base holding the line.
+
+## 0.53.0 · 2026-10-26 · Rearranging
+### New
+- **Move buildings:** select a building and press Move, then tap where it should go. It keeps everything it holds and costs nothing. (Not the hub, the shipyard or underground belts.)
+- **Belts go under anything:** drag a belt line across a wall, a machine or trees, and it goes underground beneath them on its own, as it already did under other belts. Rollers still stop at what's in their way.
+
 ## 0.52.0 · 2026-10-26 · Deposits
 ### New
 - **Ore runs out:** every ore tile holds 1,200 ore. Mining by hand and extractors use it up, and then it's bare ground.
