@@ -1425,7 +1425,8 @@ export class Renderer {
     for (const tap of world.taps) {
       if (this.seenTaps.has(tap)) continue;
       this.seenTaps.add(tap);
-      this.effects.push({ kind: 'sparks', x: tap.x + 0.5, y: tap.y + 0.5, r: 0.55, born: now, life: 260, color: '255,214,120' });
+      // Wood chips off a tree chopped by hand (D-093), sparks off ore.
+      this.effects.push({ kind: 'sparks', x: tap.x + 0.5, y: tap.y + 0.5, r: 0.55, born: now, life: 260, color: tap.ore === 'log' ? '196,150,90' : '255,214,120' });
       if (tap.item) this.effects.push({ kind: 'puff', x: tap.x + 0.5, y: tap.y + 0.5, r: 0.9, born: now, life: 450, color: hexRgb(ITEMS[tap.item].color) });
     }
 

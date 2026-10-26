@@ -12,7 +12,7 @@ export function createDemoWorld(seed = 20261019): World {
   const w = World.create(seed);
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
-  s.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999 };
+  s.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999, log: 9999 };
   const hub = w.hub!;
   const hx = hub.x;
   const hy = hub.y;

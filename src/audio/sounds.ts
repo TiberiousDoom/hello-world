@@ -91,7 +91,10 @@ export class SoundWatcher {
     for (const tap of world.taps) {
       if (this.seenTaps.has(tap)) continue;
       this.seenTaps.add(tap);
-      this.play(tap.item ? 'pick_done' : 'pick', tap.x + 0.5, tap.y + 0.5);
+      // A tree chopped by hand (D-093) chops on each tap; its fall is heard with the felled trees above.
+      if (tap.ore === 'log') {
+        if (!tap.item) this.play('chop', tap.x + 0.5, tap.y + 0.5);
+      } else this.play(tap.item ? 'pick_done' : 'pick', tap.x + 0.5, tap.y + 0.5);
     }
 
     // Bugs killed (but not the ones sent home by a breach).

@@ -20,8 +20,8 @@
 // blueprint waits for a click on it (or Enter, or ✓). Pressing a waiting
 // blueprint moves it, and tapping or clicking it builds it.
 //
-// With nothing in hand, tapping or clicking bare ore mines it by hand (#38); holding the finger or
-// button down keeps mining. Dragging from there pans, as usual.
+// With nothing in hand, tapping or clicking bare ore mines it by hand (#38), and a tree chops it
+// (D-093); holding the finger or button down keeps mining. Dragging from there pans, as usual.
 //
 // The character (#40): with nothing in hand, tapping or clicking empty ground walks there, and the
 // character walks over by itself to mine or fetch things. WASD or the arrow keys walk it directly.
@@ -29,7 +29,7 @@
 import { BuildingType, DX, DY, Dir, HAND_MINING, TUNNEL_RANGE, footprint } from '../sim/data';
 import { planSteps, tunnelExitSpot } from '../ui/plan';
 import type { Command, ResultOf } from '../sim/commands';
-import { PlaceError, World } from '../sim/world';
+import { PlaceError, TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { buzz } from './haptics';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
@@ -233,7 +233,8 @@ export class Input {
 
   private canMine(t: Tile): boolean {
     const world = this.cb.getWorld();
-    return !!world.resourceAt(t.x, t.y) && !world.buildingAt(t.x, t.y);
+    // Trees are chopped by hand like ore is mined (D-093).
+    return (!!world.resourceAt(t.x, t.y) || world.treeAt(t.x, t.y) === TREE) && !world.buildingAt(t.x, t.y);
   }
 
   /** One tap now, then more at HAND_MINING.holdRate while the press is held. */
@@ -243,7 +244,8 @@ export class Input {
       const r = this.cb.issue({ kind: 'mine', x: t.x, y: t.y });
       // A tick for each tap, a longer buzz when the ore comes loose (#84).
       if (typeof r === 'object' && r) buzz(r.item ? 30 : 8);
-      if (r === 'full') {
+      if (r === 'no-ore') this.stopMining(); // the tree came down
+      else if (r === 'full') {
         this.stopMining();
         this.cb.onNotice('Your inventory is full. Walk back to the hub to drop it off.');
       } else if (r === 'down') {

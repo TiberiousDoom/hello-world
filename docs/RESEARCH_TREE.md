@@ -35,7 +35,7 @@ The start. Nothing is smelted yet: furnaces and extractors arrive with Industry.
 
 | Research | Gives | Costs | Needs |
 |---|---|---|---|
-| Forestry | Lumber Camp (about 8 logs), Sawmill (about 10 logs, 4 planks); planks, dowels, stakes | 15 logs, chopped by hand | — |
+| Forestry | Lumber Camp (8 logs), Sawmill (14 logs); planks, dowels, stakes | 15 logs, chopped by hand | — |
 | Basic Logistics | Wooden Roller (one lane), storage crate (50 of one item) | 20 logs, 20 planks, 50 dowels | Forestry |
 | Workshops | Workshop (pegs, rope) | 40 planks, 20 logs | Forestry |
 | Carpentry | Truss recipe (planks, pegs, rope) | 60 planks, 40 pegs, 20 rope | Workshops |
@@ -53,8 +53,8 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 - **Chopping by hand:** like mining. With no tool in hand, tap a tree; the engineer walks over, and 8 taps
   fell it for 2 logs. It leaves a stump that grows back, like a lumber camp's, about 3 times before the
   ground stays clear (D-094).
-- **Forestry (15 logs)** opens both first buildings, paid in wood: the Lumber Camp (about 8 logs) and the
-  Sawmill (about 10 logs and 4 planks).
+- **Forestry (15 logs)** opens both first buildings, paid in wood: the Lumber Camp (8 logs) and the
+  Sawmill (14 logs; planks can't be paid before the first sawmill, D-103).
 - **Stone and ore:** all of them can be mined by hand from the start, at least 20 tiles from the hub (D-097). Iron and copper ore wait in the hub
   until Industry; stone is the trebuchet's ammunition and part of Industry's cost.
 - **The first lesson is rewritten around wood:** chop trees, research Forestry, build a lumber camp and a
@@ -91,7 +91,9 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
   peg and truss items, rollers and their corners, the crate, the spike pit, the trebuchet, the 5×5 shipyard,
   the top-down ship and its side view.
 - **Order, each playtested:**
-  1. The start: chopping, Forestry paid in logs, smelting moved to Industry, the new lesson.
+  1. ✅ The start (0.47.0, D-103): chopping, Forestry paid in logs, smelting moved to Industry, the new
+     lesson. Until steps 2 and 4 bring trusses and Basic Defense 2, Industry costs 40 planks and 30 stone
+     and needs only Forestry.
   2. Wooden parts: dowels, pegs, rope, trusses (the Workshop and Carpentry).
   3. Rollers and the crate.
   4. The spike pit and the trebuchet.
@@ -173,7 +175,7 @@ About fifteen, added age by age with the age that uses them:
 Age by age, each playtested before the next:
 
 1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
-2. **Wood Age** (decided, D-093; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
+2. 🚧 **Wood Age** (decided, D-093; step 1 done in 0.47.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
 3. **Iron Age:** water power, powered belts, the Blacksmith and Machine Shop, fuel, hydraulic defences.

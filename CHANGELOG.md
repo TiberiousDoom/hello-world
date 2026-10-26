@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.47.0 · 2026-10-26 · The Wood Age begins
+### New
+- **Start with wood:** a new game begins with nothing to build. Tap a tree to chop it: eight taps fell it for two logs, and it leaves a stump that grows back.
+- **Forestry first:** research it with 15 logs. The Lumber Camp now costs 8 logs and the Sawmill 14 logs, so the first buildings are paid in wood.
+- **Industry:** a new research (40 planks, 30 stone) brings the extractor and the furnace. Belts, turrets, walls and workshops come after it.
+- **A new first lesson** walks you through chopping, Forestry, your first lumber camp and sawmill, and bringing planks home. A Smelting lesson follows Industry, and the Bugs lesson suggests Palisades until you have turrets.
+- Saved games keep everything they had: they get Forestry and Industry as researched.
+
 ## 0.46.3 · 2026-10-26 · Ideas decided
 ### New
 - Nothing new in the game this time: the playtest ideas are decided. Coming up: trees that regrow a few times, ponds and a water wheel, ore that runs out (and extractors that make more over bigger patches), ore further from the hub, a bigger hub with the shipyard's site staked out from the start, fog of war, nests that merge and grow, a sun with moving shadows and critter sounds, splitters that sort, belts that go underground on their own, a long snaking runner, and example factories on the main menu.

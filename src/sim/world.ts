@@ -73,7 +73,7 @@ export type { ResearchState };
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  */
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -315,10 +315,22 @@ export class World {
     if (state.version === 19) World.migrateV19(state);
     if (state.version === 20) World.migrateV20(state);
     if (state.version === 21) World.migrateV21(state);
+    if (state.version === 22) World.migrateV22(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v22 to v23 (D-093): extractors and furnaces moved behind the new Industry research, and Forestry behind
+   * nothing. A game saved before that was played with smelting from the start, so it gets Industry, and
+   * Forestry with it, as researched.
+   */
+  private static migrateV22(state: GameState): void {
+    for (const id of ['forestry', 'industry']) if (!state.researched.includes(id)) state.researched.push(id);
+    if (state.research.active === 'forestry' || state.research.active === 'industry') state.research.active = null;
+    state.version = 23;
   }
 
   /** v21 to v22 (D-091): bugs may carry a `home` flag; none has given up yet, so nothing to change. */
@@ -1119,10 +1131,12 @@ export class World {
   /**
    * One tap of mining by hand (#38). HAND_MINING.taps taps in a row on the same ore tile loosen one
    * of its ore, which the character carries (#40); tapping another tile, or pausing too long, starts
-   * the count over. Out of reach, the character walks over first and mines on arriving.
+   * the count over. Out of reach, the character walks over first and mines on arriving. A tree is
+   * chopped the same way (D-093): the last tap fells it for LUMBER.logsPerTree logs, leaving a stump.
    */
   mineByHand(x: number, y: number, player = 0): HandTap | MineError {
-    const ore = this.resourceAt(x, y);
+    const tree = this.treeAt(x, y) === TREE;
+    const ore = tree ? 'log' : this.resourceAt(x, y);
     if (!ore) return 'no-ore';
     if (this.buildingAt(x, y)) return 'occupied';
     const p = playerOf(this, player);
@@ -1131,7 +1145,8 @@ export class World {
       goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
       return 'far';
     }
-    if (!roomFor(p, ore)) return 'full';
+    const yields = tree ? LUMBER.logsPerTree : 1;
+    if (roomFor(p, ore) < yields) return 'full';
     const tile = this.idx(x, y);
     const t = this.state.time;
     const m = p.mining && p.mining.tile === tile && t - p.mining.at <= HAND_MINING.resetAfter ? p.mining : { tile, taps: 0, at: t };
@@ -1141,7 +1156,8 @@ export class World {
     if (m.taps >= HAND_MINING.taps) {
       m.taps = 0;
       item = ore;
-      give(p, ore);
+      for (let k = 0; k < yields; k++) give(p, ore);
+      if (tree) this.fell(tile);
     }
     p.mining = m;
     const tap: HandTap = { x, y, ore, item, age: 0 };
@@ -1405,6 +1421,16 @@ export class World {
     }
   }
 
+  /** A tree comes down, by a lumber camp or by hand: a stump that grows back in time. */
+  private fell(i: number): void {
+    const s = this.state;
+    s.trees[i] = STUMP;
+    this.layout++;
+    // Seasons change how fast stumps grow back (#42): the season when it's cut sets its time.
+    s.regrow[i] = s.time + (LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread) / clockAt(s.time).season.regrow;
+    this.felled.push({ x: i % s.width, y: Math.floor(i / s.width), age: 0 });
+  }
+
   /** Cuts the nearest tree in reach into logs, one tree every LUMBER.period seconds. */
   private tickLumberCamp(b: Building, dt: number): void {
     const s = this.state;
@@ -1424,11 +1450,7 @@ export class World {
             const d = hypot((i % s.width) + 0.5 - cx, Math.floor(i / s.width) + 0.5 - cy);
             if (d < best) [pick, best] = [i, d];
           }
-          s.trees[pick] = STUMP;
-          this.layout++;
-          // Seasons change how fast stumps grow back (#42): the season when it's cut sets its time.
-          s.regrow[pick] = s.time + (LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread) / clockAt(s.time).season.regrow;
-          this.felled.push({ x: pick % s.width, y: Math.floor(pick / s.width), age: 0 });
+          this.fell(pick);
           for (let k = 0; k < LUMBER.logsPerTree; k++) b.outputs.push('log');
           this.noteMade(b, LUMBER.logsPerTree);
         }
