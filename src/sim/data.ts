@@ -69,7 +69,7 @@ export const RECIPES: Recipe[] = [
   { id: 'plank', machine: 'sawmill', inputs: { log: 1 }, output: 'plank', count: 2, time: 1.5 },
   { id: 'stake', machine: 'sawmill', inputs: { plank: 1 }, output: 'stake', count: 3, time: 1.5 },
   { id: 'dowel', machine: 'sawmill', inputs: { plank: 1 }, output: 'dowel', count: 4, time: 1.5 },
-  { id: 'charcoal', machine: 'furnace', inputs: { log: 2 }, output: 'charcoal', count: 1, time: 2.5 },
+  { id: 'charcoal', machine: 'furnace', inputs: { log: 2 }, output: 'charcoal', count: 1, time: 2.5, requires: 'charcoal' },
   { id: 'steel', machine: 'furnace', inputs: { iron_plate: 2, charcoal: 1 }, output: 'steel', count: 1, time: 3 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
@@ -214,6 +214,17 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     description: "A dock for your colony supply ship, built on the site staked out for it. Bring in the parts for each stage, then each run's cargo, then launch.",
   },
 };
+
+/**
+ * Fuel (D-113, D-114): furnaces and blacksmiths burn logs, or charcoal once researched, stored as seconds
+ * of burning (in `Building.ammo`). They burn only while working, and stop when it runs out.
+ */
+export const FUEL = {
+  burns: { log: 8, charcoal: 24 } as Partial<Record<ItemId, number>>,
+  max: 48,
+  types: ['furnace', 'blacksmith'] as BuildingType[],
+};
+export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
 
 export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
@@ -386,6 +397,7 @@ export const RESEARCH: Research[] = [
   { id: 'industry', name: 'Industry', cost: { plank: 100, truss: 50, stone: 50 }, time: 90, requires: ['carpentry', 'defense2'], unlocks: ['extractor', 'furnace'], description: 'Extractors and furnaces: ore, smelted into iron and copper ingots, and stone into bricks.' },
   // The Iron Age's shops (D-089, D-113). Plates now come from the Blacksmith, so what costs plates needs it.
   { id: 'blacksmith', name: 'Blacksmith', cost: { iron_ingot: 50, stone: 30 }, time: 45, requires: ['industry'], unlocks: ['blacksmith'], description: 'Blacksmiths hammer iron ingots into plates and rods, and rods into rivets.' },
+  { id: 'charcoal', name: 'Charcoal', cost: { log: 40, iron_plate: 20 }, time: 45, requires: ['blacksmith'], unlocks: [], description: 'Furnaces can burn logs into charcoal, a fuel that lasts three times as long as a log.' },
   { id: 'machine_shop', name: 'Machine Shop', cost: { iron_plate: 80, rivet: 40, copper_ingot: 20 }, time: 60, requires: ['blacksmith'], unlocks: ['machine_shop'], description: 'Machine shops make gears from iron plates and wire from copper ingots.' },
   { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: ['blacksmith'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
   { id: 'defense', name: 'Advanced Defense', cost: { iron_plate: 20 }, time: 30, requires: ['blacksmith'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },

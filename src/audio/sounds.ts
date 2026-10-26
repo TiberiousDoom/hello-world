@@ -5,7 +5,7 @@
 import { Camera } from '../render/camera';
 import { BUILDINGS, HUB_SIZE, isBelt, isMachine } from '../sim/data';
 import { isAngry, nestCentre } from '../sim/nests';
-import { Shot, World } from '../sim/world';
+import { Shot, World, outOfFuel } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
 
 /** How far past the screen's edge (as a fraction of half the screen) a sound fades to nothing. */
@@ -141,7 +141,7 @@ export class SoundWatcher {
     // The machine hum: louder the more machines are working on (or near) the screen.
     let busy = 0;
     for (const b of s.buildings) {
-      if (b.progress < 0 || !(isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp')) continue;
+      if (b.progress < 0 || outOfFuel(b) || !(isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp')) continue;
       const [w, h] = world.footprintOf(b);
       busy += this.spot(b.x + w / 2, b.y + h / 2).gain ?? 1;
     }

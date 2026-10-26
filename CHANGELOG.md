@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.56.0 · 2026-10-26 · Fuel
+### New
+- **Furnaces and blacksmiths burn fuel:** logs (8 s each) or charcoal (24 s each), fed by roller, belt or by hand. They burn only while working and stop when the fuel runs out. An orange bar on each shows how much is left, and a flashing mark shows one that has run dry.
+- New furnaces and blacksmiths arrive with a full store, and so do the ones in saved games.
+- **Charcoal research** (after Blacksmith): furnaces can burn logs into charcoal, which lasts three times as long as a log. Games already making charcoal have it.
+
 ## 0.55.0 · 2026-10-26 · The Iron Age begins
 ### New
 - **Iron ingots:** furnaces now smelt iron ore into ingots.

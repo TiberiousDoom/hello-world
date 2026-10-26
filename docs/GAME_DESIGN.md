@@ -60,13 +60,19 @@ How the game works on `master` today. Balance numbers live in
 | Peg ×2 | Workshop | 1 dowel | 1.5 s |
 | Rope | Workshop | 2 logs | 3 s |
 | Truss | Workshop (after Carpentry) | 3 planks + 2 pegs + 1 rope | 4 s |
-| Charcoal | Furnace | 2 logs | 2.5 s |
+| Charcoal | Furnace (after Charcoal) | 2 logs | 2.5 s |
 | Steel | Furnace | 2 iron plates + 1 charcoal | 3 s |
 | Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
 picks one in its info panel. A recipe that needs a research (the truss needs Carpentry) isn't offered,
 or picked, until it's done. Changing the recipe discards inputs it has already received.
+
+**Fuel (D-114):** furnaces and blacksmiths burn **logs** (8 s each) or **charcoal** (24 s each), fed by
+belt, roller or Drop off like any input, into a fuel store of **48 s**. They burn only while working, and
+**stop when it runs out**. A new one arrives with a full store. Fuel never picks a recipe; a furnace making
+charcoal takes logs as its input first and burns what's left over. An orange bar on the building shows the
+store, and a flashing mark shows one that has run out. Other machines take no fuel.
 
 ## Buildings
 
@@ -230,6 +236,7 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Industry | 100 planks, 50 trusses, 50 stone | 90 s | Carpentry, Basic Defense 2 | Extractor, Furnace |
 | Blacksmith | 50 iron ingots, 30 stone | 45 s | Industry | Blacksmith (plates, rods, rivets) |
 | Machine Shop | 80 iron plates, 40 rivets, 20 copper | 60 s | Blacksmith | Machine Shop (gears, wire) |
+| Charcoal | 40 logs, 20 iron plates | 45 s | Blacksmith | The charcoal recipe (a fuel that lasts three times as long as a log) |
 | Logistics | 10 iron plates | 20 s | Blacksmith | Belt, Splitter, Underground Belt |
 | Advanced Defense | 20 iron plates | 30 s | Blacksmith | Turret |
 | Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
@@ -588,7 +595,7 @@ one research tree, one supply ship.
   | Essentials | Nothing is built yet but the hub | The hub → your engineer → chop 23 logs by hand → walk back to the hub → research Forestry → place a Lumber Camp beside the nearest trees → bring logs for the Sawmill and place it at the camp's arrow → Collect planks and bring them back → hub stock → the loop, and what planks are for (Palisades, Workshops) |
   | Rollers | Basic Logistics is researched, before any roller is laid | Pick the Wooden Roller → lay 3 → how rollers move, and the Storage Crate |
   | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
-  | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect an ingot and bring it back → research Blacksmith → place a blacksmith in front of the furnace's arrow → what it makes, and what plates pay for |
+  | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect an ingot and bring it back (and what the fuel bar means) → research Blacksmith → place a blacksmith in front of the furnace's arrow → what it makes, and what plates pay for |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Blacksmith is done |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it on its staked-out site → stages and the side view → cargo and launch |
@@ -737,7 +744,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v28**). v28 (D-113) switches furnaces making plates to iron ingots, turns workshops
+- Save files are versioned (currently **v29**). v29 (D-114) fills the fuel store of every furnace and blacksmith, and gives a game
+  already making or holding charcoal the Charcoal research. v28 (D-113) switches furnaces making plates to iron ingots, turns workshops
   making gears or wire into machine shops in place, and gives a game past Industry the Blacksmith (and the Machine Shop, if it
   made gears or wire or researched what needs them). v27 (D-112) adds fog of war, with what the buildings and engineers see already explored. v26 (D-109) stakes out a site for the shipyard, refunds
   an old 3×3 shipyard, and counts the new scaffolding stage as built for a ship already under way. v25 (D-108) grows the hub from 5×5 to 8×8 about its old
