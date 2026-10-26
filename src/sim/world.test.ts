@@ -16,7 +16,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, dowel: 999, peg: 999, rope: 999, truss: 999, stake: 999 };
+  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, dowel: 999, peg: 999, rope: 999, truss: 999, stake: 999, iron_ingot: 999, iron_rod: 999, rivet: 999 };
   return w;
 }
 
@@ -160,7 +160,7 @@ describe('Buildings', () => {
 });
 
 describe('Production', () => {
-  /** Extractor → belt → furnace → belts → hub, along the hub's middle row. */
+  /** Extractor → belt → furnace → blacksmith → belts → hub, along the hub's middle row (D-113). */
   function line(w: World) {
     const hub = w.hub!;
     const y = hub.y + 2;
@@ -169,7 +169,8 @@ describe('Production', () => {
     placed(w.place('extractor', x0, y, 0));
     placed(w.place('belt', x0 + 2, y, 0));
     placed(w.place('furnace', x0 + 3, y, 0));
-    for (let x = x0 + 5; x < hub.x; x++) placed(w.place('belt', x, y, 0));
+    placed(w.place('blacksmith', x0 + 5, y, 0));
+    for (let x = x0 + 7; x < hub.x; x++) placed(w.place('belt', x, y, 0));
     return { x0, y };
   }
 
@@ -203,9 +204,9 @@ describe('Production', () => {
     const furnace = placed(w.place('furnace', x0 + 4, y, 0, true));
     expect(w.buildingAt(x0 + 5, y)).toBe(furnace);
     expect(w.state.inventory.iron_plate).toBe(plates + 2); // two belts refunded (a furnace costs stone)
-    const start = w.state.inventory.iron_plate!;
+    const start = w.state.inventory.iron_ingot!;
     run(w, 30);
-    expect(w.state.inventory.iron_plate! - start).toBeGreaterThan(10);
+    expect(w.state.inventory.iron_ingot! - start).toBeGreaterThan(10); // furnaces smelt ingots (D-113)
     expect(w.place('belt', x0 + 7, y, 0, true)).toBe('occupied'); // belts don't replace belts
   });
 
@@ -214,9 +215,10 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(false); // smelting comes with Industry (D-093)
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999, dowel: 999 };
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999, dowel: 999, iron_ingot: 999, rivet: 999 };
     expect(w.researchNow('workshop')).toBe('requires'); // workshops need Forestry
-    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    expect(w.researchNow('defense')).toBe('requires'); // turrets fire plates, which need a blacksmith (D-113)
+    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'blacksmith', 'machine_shop', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('extractor') && w.isUnlocked('furnace')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
@@ -512,7 +514,7 @@ describe('Bugs', () => {
 describe('Research over time', () => {
   it('draws items from stock over its research time, then unlocks', () => {
     const w = emptyWorld();
-    w.state.researched = ['forestry', 'industry'];
+    w.state.researched = ['forestry', 'industry', 'blacksmith'];
     w.state.inventory = { iron_plate: 100 };
     expect(w.startResearch('defense')).toBeNull();
     run(w, 10);
@@ -525,7 +527,7 @@ describe('Research over time', () => {
 
   it('stalls when the hub runs out, and keeps progress when switching', () => {
     const w = emptyWorld();
-    w.state.researched = ['forestry', 'industry'];
+    w.state.researched = ['forestry', 'industry', 'blacksmith'];
     w.state.inventory = { iron_plate: 5, brick: 50 };
     w.startResearch('defense');
     run(w, 20);
@@ -1223,7 +1225,7 @@ describe('Starting from nothing (#38)', () => {
     expect(w.mineByHand(x, y)).toBe('occupied');
   });
 
-  it('from nothing: mine, carry it to the hub, build a furnace and an extractor, and collect plates without belts', () => {
+  it('from nothing: mine, carry it to the hub, build a furnace and an extractor, and collect ingots without belts', () => {
     const w = emptyWorld();
     w.state.researched = ['forestry', 'industry'];
     w.state.inventory = {};
@@ -1254,7 +1256,7 @@ describe('Starting from nothing (#38)', () => {
     expect(w.collect(w.hub!.id)).toBe(0);
     w.moveTo(hub.x - 1, hub.y + 2);
     run(w, 8);
-    expect(w.state.inventory.iron_plate).toBeGreaterThan(0);
+    expect(w.state.inventory.iron_ingot).toBeGreaterThan(0); // furnaces smelt ingots (D-113)
   });
 
   it('v14 saves resize workshops, assemblers and splitters, keeping outputs where they were or refunding (#33, #34)', () => {
@@ -1302,7 +1304,7 @@ describe('Starting from nothing (#38)', () => {
     old.research.paid = { logistics: { iron_plate: 5 } };
     const loaded = World.fromJSON(JSON.stringify(old));
     expect(loaded.state.version).toBe(SAVE_VERSION);
-    expect(loaded.state.researched.sort()).toEqual(['forestry', 'industry', 'logistics']); // Industry from v23 (D-093)
+    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'forestry', 'industry', 'logistics']); // Industry from v23 (D-093), Blacksmith from v28 (D-113)
     expect(loaded.state.research.active).toBe(null);
     expect(loaded.state.research.paid).toEqual({});
     expect(loaded.isUnlocked('belt')).toBe(true);
@@ -1491,7 +1493,7 @@ describe('The player character (#40)', () => {
     old.version = 22;
     old.researched = ['logistics'];
     const loaded = World.fromJSON(JSON.stringify(old));
-    expect(loaded.state.researched.sort()).toEqual(['forestry', 'industry', 'logistics']);
+    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'forestry', 'industry', 'logistics']);
     expect(loaded.isUnlocked('furnace') && loaded.isUnlocked('extractor') && loaded.isUnlocked('lumber_camp')).toBe(true);
   });
 
@@ -1895,5 +1897,84 @@ describe('Bugs notice the engineer (D-074)', () => {
     old.version = 19;
     for (const p of old.players) delete p.hp;
     expect(World.fromJSON(JSON.stringify(old)).state.players[0].hp).toBe(PLAYER.hp);
+  });
+});
+
+describe('The Iron Age: ingots, the Blacksmith and the Machine Shop (D-113)', () => {
+  it('furnaces smelt ingots; the blacksmith hammers them into plates or rods, and rods into rivets', () => {
+    const w = emptyWorld();
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    expect(w.insert(fu, 'iron_ore', 19, 20)).toBe(true);
+    expect(fu.recipe).toBe('iron_ingot');
+    run(w, 2);
+    expect(fu.outputs).toEqual(['iron_ingot']);
+    // A new blacksmith fed an ingot starts on plates.
+    const bs = placed(w.place('blacksmith', 30, 20, 0));
+    expect(w.insert(bs, 'iron_ingot', 29, 20)).toBe(true);
+    expect(bs.recipe).toBe('iron_plate');
+    run(w, 2);
+    expect(bs.outputs).toEqual(['iron_plate']);
+    w.setRecipe(bs.id, 'iron_rod');
+    bs.outputs = [];
+    w.insert(bs, 'iron_ingot', 29, 20);
+    run(w, 2);
+    expect(bs.outputs).toEqual(['iron_rod', 'iron_rod']);
+    w.setRecipe(bs.id, 'rivet');
+    bs.outputs = [];
+    expect(w.insert(bs, 'iron_ingot', 29, 20)).toBe(false); // rivets are made from rods
+    w.insert(bs, 'iron_rod', 29, 20);
+    run(w, 2);
+    expect(bs.outputs).toEqual(['rivet', 'rivet', 'rivet', 'rivet']);
+  });
+
+  it('gears and wire come from the machine shop, not the workshop', () => {
+    const w = emptyWorld();
+    const ws = placed(w.place('workshop', 20, 20, 0));
+    expect(w.insert(ws, 'iron_plate', 19, 20)).toBe(false);
+    expect(w.insert(ws, 'copper_ingot', 19, 20)).toBe(false);
+    const ms = placed(w.place('machine_shop', 30, 20, 0));
+    expect(w.insert(ms, 'copper_ingot', 29, 20)).toBe(true);
+    expect(ms.recipe).toBe('wire');
+    run(w, 2);
+    expect(ms.outputs).toEqual(['wire', 'wire']);
+  });
+
+  it('plates need the Blacksmith research, paid in ingots and stone; the Machine Shop needs it, and Assembly needs the Machine Shop', () => {
+    expect(RESEARCH_BY_ID.blacksmith.requires).toEqual(['industry']);
+    expect(Object.keys(RESEARCH_BY_ID.blacksmith.cost).sort()).toEqual(['iron_ingot', 'stone']);
+    expect(Object.keys(BUILDINGS.blacksmith.cost).sort()).toEqual(['iron_ingot', 'stone']);
+    expect(RESEARCH_BY_ID.machine_shop.requires).toEqual(['blacksmith']);
+    expect(RESEARCH_BY_ID.assembly.requires).toEqual(['machine_shop']);
+    // Everything that costs plates comes after the Blacksmith.
+    const after = (id: string, need: string): boolean => id === need || RESEARCH_BY_ID[id].requires.some((r) => after(r, need));
+    for (const r of RESEARCH) if (r.cost.iron_plate) expect(after(r.id, 'blacksmith'), r.id).toBe(true);
+    for (const r of RESEARCH) if (r.cost.gear || r.cost.wire) expect(after(r.id, 'machine_shop'), r.id).toBe(true);
+  });
+
+  it('v27 saves: furnaces making plates make ingots, workshops making gears or wire become machine shops, and the shops are researched', () => {
+    const w = emptyWorld();
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    const gears = placed(w.place('workshop', 30, 20, 0));
+    const rope = placed(w.place('workshop', 40, 20, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 27;
+    old.researched = ['forestry', 'industry', 'logistics', 'workshop'];
+    const byId = (id: number) => old.buildings.find((b: { id: number }) => b.id === id);
+    byId(fu.id).recipe = 'iron_plate';
+    byId(gears.id).recipe = 'gear';
+    byId(gears.id).inputs = { iron_plate: 2 };
+    byId(rope.id).recipe = 'rope';
+    const loaded = World.fromJSON(JSON.stringify(old));
+    const get = (id: number) => loaded.state.buildings.find((b) => b.id === id)!;
+    expect(get(fu.id).recipe).toBe('iron_ingot');
+    expect(get(gears.id).type).toBe('machine_shop');
+    expect(get(gears.id).inputs).toEqual({ iron_plate: 2 }); // it keeps what it held
+    expect(get(rope.id).type).toBe('workshop');
+    expect(loaded.state.researched).toContain('blacksmith');
+    expect(loaded.state.researched).toContain('machine_shop');
+    // A game that had only just reached Industry researches the shops itself.
+    old.researched = ['forestry', 'industry'];
+    byId(gears.id).recipe = 'rope';
+    expect(World.fromJSON(JSON.stringify(old)).state.researched.sort()).toEqual(['forestry', 'industry']);
   });
 });

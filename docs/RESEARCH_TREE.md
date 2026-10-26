@@ -1,7 +1,7 @@
 # The research tree in four ages (planned)
 
-The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step; nothing here is
-built yet. [GAME_DESIGN.md](GAME_DESIGN.md) still describes the game as it is on `master`.
+The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood Age
+is built, and the Iron Age is under way. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the
@@ -113,7 +113,7 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 | **Industry** (keystone) | Furnace, Extractor; iron plates, copper ingots, bricks | 100 planks, 50 trusses, 50 stone | Basic Defense 2 |
 | Hydraulics | Well, pump, Water Wheel (at a pond, D-095), pipes, drive shafts (power for belts and hydraulic defences) | 80 iron plates, 40 iron rods, 20 bricks | Industry |
 | Metal Logistics | Powered Belt, Splitter, Underground Belt, Storage Unit | 60 iron plates, 40 iron rods, 20 bricks | Hydraulics |
-| Blacksmith | Blacksmith (iron rods, rivets; plates from iron ingots) | 60 iron plates, 30 bricks | Industry |
+| Blacksmith | Blacksmith (plates and rods from iron ingots, rivets from rods) | 50 iron ingots, 30 stone (D-113) | Industry |
 | Machine Shop | Machine Shop (gears, copper wire) | 80 iron plates, 40 rivets, 20 copper | Blacksmith |
 | Advanced Defense | Hydraulic Turret (fires iron plates), Brick Wall | 40 iron plates, 20 copper, 20 rivets, 20 bricks | Hydraulics |
 | Advanced Defense 2 | Hydraulic Cannon (fires gears), Reinforced Wall | 100 iron plates, 80 bricks, 50 gears, 40 rivets | Advanced Defense, Machine Shop |
@@ -128,6 +128,35 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
   a stronger source (D-095).
 - **Ore runs out** (D-096): each ore tile holds 1200; extractors over more ore tiles make more.
 - Masonry goes: the brick wall comes with Advanced Defense. Chitin Plating goes (see tiers).
+
+### How the Iron Age plays (D-113)
+
+The owner's answers, 2026-10-26. Numbers are first guesses to test.
+
+- **Iron (#87):** furnaces smelt iron ore into **iron ingots**. The **Blacksmith** (2×2) hammers ingots
+  into **plates** or **rods**, and rods into **rivets**. So Blacksmith comes first in the age, paid in
+  ingots and stone, and everything that costs plates comes after it.
+- **Gears and wire** move from the Workshop to the **Machine Shop** (2×2).
+- **Power: drive shafts.** Wells and water wheels turn shafts, laid like belts. Everything touching a
+  connected shaft shares that network's power; short of power, it all slows evenly. A line of belts passes
+  power along itself, so one shaft touching a line powers it.
+- **Sources:** a small **Well** (2×2) works anywhere; the **Water Wheel** (1×3, one tile in a pond) gives
+  much more. No pumps and no water pipes.
+- **Powered belts without power** roll at roller speed (a third of belt speed): running short slows the
+  factory instead of freezing it.
+- **Fuel is needed:** furnaces and the Blacksmith burn logs, or charcoal once researched (it burns
+  longer), fed by belt like any input into a small fuel store. Out of fuel, they stop. Furnaces in old saves
+  start with a full store.
+- **Hydraulic defences:** today's turret and cannon become the Hydraulic Turret and Hydraulic Cannon. They
+  **don't fire without power**, so a cut shaft leaves a gap.
+- **Order, each playtested:**
+  1. ✅ Iron (0.55.0): ingots, the Blacksmith (plates, rods, rivets), the Machine Shop (gears, wire), the
+     Smelting lesson rewritten.
+  2. Fuel: furnaces and the Blacksmith burn logs, then charcoal.
+  3. Water power and Metal Logistics: wells, ponds, the Water Wheel, drive shafts, powered belts, the
+     Storage Unit.
+  4. Hydraulic defences: the turret and cannon need power; the brick and reinforced walls.
+  5. The launch pad, the ship's Iron Age stage.
 
 ## Steam Age
 
@@ -182,10 +211,12 @@ About fifteen, added age by age with the age that uses them:
 Age by age, each playtested before the next:
 
 1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
-2. 🚧 **Wood Age** (decided, D-093; all five steps done in 0.47.0 to 0.51.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
+2. ✅ **Wood Age** (decided, D-093; all five steps done in 0.47.0 to 0.51.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
-3. **Iron Age:** water power, powered belts, the Blacksmith and Machine Shop, fuel, hydraulic defences.
+3. 🚧 **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
+   Blacksmith and Machine Shop (0.55.0), then fuel, water power and powered belts, hydraulic defences, the
+   launch pad.
 4. **Steam Age:** steam, steel parts, gunpowder weapons, the hull.
 5. **Electric Age:** electricity, circuits, drones, electric defences, launch and supply runs.
 

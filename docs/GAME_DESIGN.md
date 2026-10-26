@@ -44,11 +44,14 @@ How the game works on `master` today. Balance numbers live in
 | Item | Made in | From | Time |
 |---|---|---|---|
 | Iron ore, copper ore, stone | Extractor | ore under it | 1.5 s |
-| Iron plate | Furnace | 1 iron ore | 1.6 s |
+| Iron ingot | Furnace | 1 iron ore | 1.6 s |
 | Copper ingot | Furnace | 1 copper ore | 1.6 s |
 | Brick | Furnace | 2 stone | 2 s |
-| Gear | Workshop | 2 iron plates | 2 s |
-| Copper wire ×2 | Workshop | 1 copper ingot | 1.5 s |
+| Iron plate | Blacksmith | 1 iron ingot | 1.5 s |
+| Iron rod ×2 | Blacksmith | 1 iron ingot | 1.5 s |
+| Rivet ×4 | Blacksmith | 1 iron rod | 1.5 s |
+| Gear | Machine Shop | 2 iron plates | 2 s |
+| Copper wire ×2 | Machine Shop | 1 copper ingot | 1.5 s |
 | Motor | Assembler | 1 gear + 2 wire + 1 iron plate | 4 s |
 | Log ×2 | Lumber Camp | 1 tree in reach | 3 s |
 | Plank ×2 | Sawmill | 1 log | 1.5 s |
@@ -77,6 +80,8 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 | Trebuchet | 2×2 | 40 planks, 10 rope, 8 trusses | 220 | Basic Defense 2 |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
 | Workshop | 2×2 | 10 planks, 6 logs | 120 | Workshops |
+| Blacksmith | 2×2 | 10 stone, 6 iron ingots | 140 | Blacksmith |
+| Machine Shop | 2×2 | 10 iron plates, 10 rivets, 4 bricks | 140 | Machine Shop |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Logistics |
@@ -220,19 +225,21 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Research | Items | Time | Needs | Unlocks |
 |---|---|---|---|---|
 | Forestry | 15 logs | 20 s | — | Lumber Camp, Sawmill |
-| Workshops | 40 planks, 20 logs | 45 s | Forestry | Workshop (pegs, rope; gears and wire from metal) |
+| Workshops | 40 planks, 20 logs | 45 s | Forestry | Workshop (pegs, rope) |
 | Carpentry | 60 planks, 40 pegs, 20 rope | 60 s | Workshops | The truss recipe |
 | Industry | 100 planks, 50 trusses, 50 stone | 90 s | Carpentry, Basic Defense 2 | Extractor, Furnace |
-| Logistics | 10 iron plates | 20 s | Industry | Belt, Splitter, Underground Belt |
-| Advanced Defense | 20 iron plates | 30 s | Industry | Turret |
+| Blacksmith | 50 iron ingots, 30 stone | 45 s | Industry | Blacksmith (plates, rods, rivets) |
+| Machine Shop | 80 iron plates, 40 rivets, 20 copper | 60 s | Blacksmith | Machine Shop (gears, wire) |
+| Logistics | 10 iron plates | 20 s | Blacksmith | Belt, Splitter, Underground Belt |
+| Advanced Defense | 20 iron plates | 30 s | Blacksmith | Turret |
 | Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
 | Basic Defense 2 | 100 logs, 100 planks, 200 rope, 50 trusses | 120 s | Basic Defense, Carpentry | Trebuchet, Ballista |
 | Basic Logistics | 20 logs, 20 planks, 50 dowels | 45 s | Forestry | Wooden Roller, Storage Crate |
 | Chitin Plating | 10 chitin, 20 iron plates | 45 s | Advanced Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
 | Masonry | 12 bricks | 30 s | Industry | Wall |
 | Distribution | 25 iron plates, 10 copper | 60 s | Advanced Defense | Hub Port |
-| Assembly | 30 gears, 30 wire | 120 s | Workshops, Industry | Assembler |
-| Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
+| Assembly | 30 gears, 30 wire | 120 s | Machine Shop | Assembler |
+| Field Repair | 20 gears, 20 wire | 90 s | Machine Shop, Masonry | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Advanced Defense | Cannon |
 
@@ -327,7 +334,10 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 6. **Defences (D-107):** **Basic Defense** (palisades, spike pits), then **Basic Defense 2** (the
    trebuchet, which throws stone, and the ballista).
 7. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand, after Basic Defense 2) to unlock the **extractor** and
-   the **furnace**, then **Logistics** (10 iron plates) for belts. From there, belts do the carrying.
+   the **furnace**, which smelts iron ore into **ingots**.
+8. **The Iron Age's shops (D-113):** research **Blacksmith** (50 ingots, 30 stone) for the Blacksmith, which
+   hammers ingots into **plates** (or rods, and rods into rivets). Plates pay for **Logistics** (belts) and
+   **Advanced Defense** (turrets). The **Machine Shop** (after Blacksmith) makes gears and wire.
 
 ## Bugs
 
@@ -578,8 +588,8 @@ one research tree, one supply ship.
   | Essentials | Nothing is built yet but the hub | The hub → your engineer → chop 23 logs by hand → walk back to the hub → research Forestry → place a Lumber Camp beside the nearest trees → bring logs for the Sawmill and place it at the camp's arrow → Collect planks and bring them back → hub stock → the loop, and what planks are for (Palisades, Workshops) |
   | Rollers | Basic Logistics is researched, before any roller is laid | Pick the Wooden Roller → lay 3 → how rollers move, and the Storage Crate |
   | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
-  | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → research Logistics → lay 3 belts |
-  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Industry is done |
+  | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect an ingot and bring it back → research Blacksmith → place a blacksmith in front of the furnace's arrow → what it makes, and what plates pay for |
+  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Blacksmith is done |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it on its staked-out site → stages and the side view → cargo and launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
@@ -727,7 +737,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v27**). v27 (D-112) adds fog of war, with what the buildings and engineers see already explored. v26 (D-109) stakes out a site for the shipyard, refunds
+- Save files are versioned (currently **v28**). v28 (D-113) switches furnaces making plates to iron ingots, turns workshops
+  making gears or wire into machine shops in place, and gives a game past Industry the Blacksmith (and the Machine Shop, if it
+  made gears or wire or researched what needs them). v27 (D-112) adds fog of war, with what the buildings and engineers see already explored. v26 (D-109) stakes out a site for the shipyard, refunds
   an old 3×3 shipyard, and counts the new scaffolding stage as built for a ship already under way. v25 (D-108) grows the hub from 5×5 to 8×8 about its old
   centre, refunding buildings in the way. v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
   Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved

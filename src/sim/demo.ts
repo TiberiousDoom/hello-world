@@ -36,24 +36,25 @@ export const DEMO_SCENES: DemoScene[] = [
     name: 'Industry',
     seed: 20261019,
     build: ({ hx, hy, mx, my, put, ore, line, grove, nest }) => {
-      // Iron from the west: extractor → furnace → splitter (its second lane feeds a turret) → hub.
+      // Iron from the west: extractor → furnace → blacksmith → splitter (its second lane feeds a turret) → hub.
       ore(hx - 16, my, IRON);
       put('extractor', hx - 16, my, 0);
       put('belt', hx - 14, my, 0);
       put('furnace', hx - 13, my, 0);
-      line('belt', hx - 11, my, hx - 9, my, 0);
+      put('blacksmith', hx - 11, my, 0);
+      put('belt', hx - 9, my, 0);
       put('splitter', hx - 8, my, 0);
       line('belt', hx - 7, my, hx - 1, my, 0);
       put('belt', hx - 7, my + 1, 0);
       put('turret', hx - 6, my + 1, 0);
-      // Copper from the east into a workshop making wire, then the hub.
+      // Copper from the east into a machine shop making wire, then the hub.
       const ex = hx + HUB_SIZE;
       ore(ex + 11, my, COPPER);
       put('extractor', ex + 11, my, 2);
       put('belt', ex + 10, my, 2);
       put('furnace', ex + 8, my, 2);
       put('belt', ex + 7, my, 2);
-      put('workshop', ex + 5, my, 2);
+      put('machine_shop', ex + 5, my, 2);
       line('belt', ex + 4, my, ex, my, 2);
       // Stone from the south, under a wall, into the hub.
       const sy = hy + HUB_SIZE;
@@ -127,7 +128,8 @@ export const DEMO_SCENES: DemoScene[] = [
       put('extractor', hx - 16, my, 0);
       put('belt', hx - 14, my, 0);
       put('furnace', hx - 13, my, 0);
-      line('belt', hx - 11, my, hx - 1, my, 0);
+      put('blacksmith', hx - 11, my, 0);
+      line('belt', hx - 9, my, hx - 1, my, 0);
       // A ring of wall, with turrets, cannons, a tesla, ballistae and repair stations inside it.
       const [x0, y0, x1, y1] = [hx - 6, hy - 6, hx + HUB_SIZE + 5, hy + HUB_SIZE + 5];
       line('wall', x0, y0, x1, y0, 0);
@@ -161,7 +163,7 @@ export function createDemoWorld(scene = 0): World {
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
   s.ship.blueprints = ['express_belt', 'tesla'];
-  s.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999, log: 9999, dowel: 9999, peg: 9999, rope: 9999, truss: 9999, stake: 9999 };
+  s.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999, log: 9999, dowel: 9999, peg: 9999, rope: 9999, truss: 9999, stake: 9999, iron_ingot: 9999, iron_rod: 9999, rivet: 9999 };
   const hub = w.hub!;
   const hx = hub.x;
   const hy = hub.y;

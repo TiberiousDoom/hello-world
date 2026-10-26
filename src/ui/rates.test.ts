@@ -23,7 +23,7 @@ describe('Rates', () => {
     for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) w.state.resources[w.idx(x + dx, y + dy)] = w.state.trees[w.idx(x + dx, y + dy)] = 0;
     const f = w.place('furnace', x, y, 0);
     if (typeof f === 'string') throw new Error(f);
-    w.setRecipe(f.id, 'iron_plate');
+    w.setRecipe(f.id, 'iron_ingot');
     expect(buildingRates(w, f)?.now).toBe('Waiting for iron ore');
     // Feed it by hand for a while: it works, and reports a rate.
     for (let t = 0; t < 30; t += TICK) {
@@ -31,7 +31,7 @@ describe('Rates', () => {
       w.tick();
     }
     const r = buildingRates(w, f)!;
-    expect(r.max).toMatch(/iron plate\/min, using .* iron ore\/min/);
+    expect(r.max).toMatch(/iron ingot\/min, using .* iron ore\/min/);
     expect(r.now).toMatch(/\/min lately · /);
   });
 });

@@ -79,8 +79,9 @@ export type { ResearchState };
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  * v27 (D-112) adds fog of war; older saves have seen what their buildings and engineers can see.
+ * v28 (D-113): furnaces smelt iron ingots; workshops making gears or wire become machine shops.
  */
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 28;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -347,10 +348,33 @@ export class World {
     if (state.version === 24) World.migrateV24(state);
     if (state.version === 25) World.migrateV25(state);
     if (state.version === 26) World.migrateV26(state);
+    if (state.version === 27) World.migrateV27(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v27 to v28 (D-113): furnaces smelt iron ore into ingots, and plates come from the Blacksmith; gears and
+   * wire move from the workshop to the Machine Shop, the same size, so a workshop making them becomes one in
+   * place. A game already past Industry gets the two shops' researches, so what it built still makes sense.
+   */
+  private static migrateV27(state: GameState): void {
+    let shops = false;
+    for (const b of state.buildings) {
+      if (b.type === 'furnace' && b.recipe === 'iron_plate') b.recipe = 'iron_ingot';
+      if (b.type === 'workshop' && (b.recipe === 'gear' || b.recipe === 'wire')) {
+        b.type = 'machine_shop';
+        shops = true;
+      }
+    }
+    const done = state.researched;
+    const grant = (id: string) => done.includes(id) || done.push(id);
+    const past = (ids: string[]) => ids.some((id) => done.includes(id));
+    if (shops || past(['assembly', 'repair', 'ordnance'])) ['blacksmith', 'machine_shop'].forEach(grant);
+    else if (past(['logistics', 'defense', 'distribution', 'plating'])) grant('blacksmith');
+    state.version = 28;
   }
 
   /** v26 to v27 (D-112): fog of war. What the buildings and engineers can see now counts as explored. */
@@ -1249,7 +1273,9 @@ export class World {
       case 'furnace':
       case 'workshop':
       case 'assembler':
-      case 'sawmill': {
+      case 'sawmill':
+      case 'blacksmith':
+      case 'machine_shop': {
         if (!target.recipe) {
           const r = this.recipesFor(target.type).find((r) => r.inputs[item]);
           if (!r) return false;
@@ -1514,6 +1540,8 @@ export class World {
         case 'workshop':
         case 'assembler':
         case 'sawmill':
+        case 'blacksmith':
+        case 'machine_shop':
           this.tickMachine(b, dt);
           break;
         case 'hub':

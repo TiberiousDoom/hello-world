@@ -171,6 +171,14 @@ function extractorOutput(w: World): TileTarget | null {
   return { tx: o.x, ty: o.y, size: 1 };
 }
 
+/** The tile in front of the first furnace's arrow, where the first blacksmith goes (D-113). */
+function furnaceOutput(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'furnace');
+  if (!b) return null;
+  const o = w.outputTile(b);
+  return { tx: o.x, ty: o.y, size: 1 };
+}
+
 function furnaceTarget(w: World): TileTarget | null {
   const b = w.state.buildings.find((b) => b.type === 'furnace');
   return b ? { tx: b.x, ty: b.y, size: 2 } : null;
@@ -387,7 +395,7 @@ export const LESSONS: Lesson[] = [
           c.ui.tool === 'extractor'
             ? 'Now tap the iron ore to place the extractor over it. Its arrow shows the side ore comes out of; turn it with Rotate (or the mouse wheel) first.' +
               confirmHint(c)
-            : 'An extractor mines for you, and iron ore never runs out. Pick the Extractor.',
+            : 'An extractor mines for you, and faster over a bigger patch. A patch runs out in the end, so look further out for more. Pick the Extractor.',
       },
       {
         target: (c) => toolThen(c, 'furnace', { tiles: extractorOutput(c.world), shape: 'circle' }),
@@ -396,7 +404,7 @@ export const LESSONS: Lesson[] = [
           c.ui.tool === 'furnace'
             ? "Place the furnace touching the extractor's arrow, so the ore goes straight in. A building's output passes straight into a building in front of it." +
               confirmHint(c)
-            : 'Ore needs smelting into plates. Pick the Furnace.',
+            : 'Ore needs smelting into ingots. Pick the Furnace.',
       },
       {
         // Once the furnace is selected, point at its Collect button.
@@ -404,32 +412,32 @@ export const LESSONS: Lesson[] = [
           document.querySelector('#info:not([hidden]) [data-action="collect"]')
             ? { el: '#info [data-action="collect"]' }
             : { tiles: furnaceTarget(c.world), shape: 'circle' },
-        done: (c) => (c.world.delivered.iron_plate ?? 0) > (c.start.delivered.iron_plate ?? 0),
-        text: () => 'Plates pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub. Soon belts will do this for you.',
+        done: (c) => (c.world.delivered.iron_ingot ?? 0) > (c.start.delivered.iron_ingot ?? 0),
+        text: () => 'Iron ingots pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub.',
       },
       {
         target: (c) =>
           document.querySelector('#info:not([hidden]) [data-action="research"]')
             ? { el: '#info [data-action="research"]' }
             : { tiles: hubTarget(c.world), shape: 'circle' },
-        done: (c) => c.world.state.researched.includes('logistics') || c.world.state.research.active === 'logistics',
+        done: (c) => c.world.state.researched.includes('blacksmith') || c.world.state.research.active === 'blacksmith',
         text: () =>
-          `Select the hub, open Research and start Logistics. It unlocks belts, and uses ${RESEARCH_BY_ID.logistics.cost.iron_plate} iron plates from stock: keep bringing plates from the furnace until it's done.`,
+          `Select the hub, open Research and start Blacksmith. It uses ${RESEARCH_BY_ID.blacksmith.cost.iron_ingot} iron ingots and ${RESEARCH_BY_ID.blacksmith.cost.stone} stone from stock: keep bringing ingots from the furnace until it's done.`,
       },
       {
-        target: (c) => toolThen(c, 'belt'),
-        done: (c) => built(c, 'belt', 3),
+        target: (c) => toolThen(c, 'blacksmith', { tiles: furnaceOutput(c.world), shape: 'circle' }),
+        done: (c) => built(c, 'blacksmith'),
         text: (c) =>
-          !c.world.isUnlocked('belt')
-            ? 'Logistics is researching. Keep collecting plates for it; this step goes on once belts are unlocked.'
-            : c.ui.tool === 'belt'
-              ? "Drag from the furnace's arrow toward the hub to lay a line of belts. Each belt points the way you dragged. " +
-                'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
-              : 'Belts carry items to the hub on their own. Pick the Belt.',
+          !c.world.isUnlocked('blacksmith')
+            ? 'Blacksmith is researching. Keep collecting ingots for it; this step goes on once it is done.'
+            : c.ui.tool === 'blacksmith'
+              ? "Place the blacksmith touching the furnace's arrow, so the ingots go straight in." + confirmHint(c)
+              : 'A blacksmith hammers ingots into iron plates. Pick the Blacksmith.',
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
-        text: () => 'Now ore turns into plates on its own, and belts carry them home. Everything else builds on it.',
+        text: () =>
+          'Now ore becomes ingots, and ingots become plates. Select the blacksmith to make rods or rivets instead. Lay rollers to bring the plates home: they pay for belts (Logistics) and turrets (Advanced Defense).',
       },
     ],
   },
@@ -450,10 +458,10 @@ export const LESSONS: Lesson[] = [
           document.querySelector('#info:not([hidden]) [data-action="research"]')
             ? { el: '#info [data-action="research"]' }
             : { tiles: hubTarget(c.world), shape: 'circle' },
-        // Before Industry (D-093), the defence to research is Basic Defense: palisades and spike pits (D-107).
-        done: (c) => c.world.state.researched.includes(c.world.state.researched.includes('industry') ? 'defense' : 'palisades'),
+        // Before plates (Blacksmith, D-113), the defence to research is Basic Defense: palisades and spike pits (D-107).
+        done: (c) => c.world.state.researched.includes(c.world.state.researched.includes('blacksmith') ? 'defense' : 'palisades'),
         text: (c) =>
-          c.world.state.researched.includes('industry')
+          c.world.state.researched.includes('blacksmith')
             ? 'Select the hub, open Research and start Advanced Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.'
             : 'Select the hub, open Research and start Basic Defense: palisades to keep bugs off your buildings, and spike pits that hurt and slow them as they cross. Your hub has a gun of its own meanwhile.',
       },
