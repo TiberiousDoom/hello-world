@@ -31,6 +31,7 @@ import { planSteps, tunnelExitSpot } from '../ui/plan';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
+import { buzz } from './haptics';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
 
 type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine';
@@ -240,6 +241,8 @@ export class Input {
     this.stopMining();
     const tap = () => {
       const r = this.cb.issue({ kind: 'mine', x: t.x, y: t.y });
+      // A tick for each tap, a longer buzz when the ore comes loose (#84).
+      if (typeof r === 'object' && r) buzz(r.item ? 30 : 8);
       if (r === 'full') {
         this.stopMining();
         this.cb.onNotice('Your inventory is full. Walk back to the hub to drop it off.');
@@ -315,7 +318,7 @@ export class Input {
         this.pressTimer = null;
         if (this.pointers.size !== 1 || this.mode !== 'pending' || !this.cb.ping(t.x, t.y)) return;
         this.mode = 'none'; // lifting the finger doesn't walk there too
-        navigator.vibrate?.(15);
+        buzz(15);
       }, LONG_PRESS);
       return;
     }
@@ -327,7 +330,7 @@ export class Input {
       if (this.mode === 'move') this.abandonMove();
       this.mode = 'none'; // lifting the finger does nothing more
       this.pick(t);
-      navigator.vibrate?.(15);
+      buzz(15);
     }, LONG_PRESS);
   }
 

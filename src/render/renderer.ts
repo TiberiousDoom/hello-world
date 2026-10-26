@@ -263,14 +263,6 @@ export class Renderer {
     // (A cleared territory taken over by a newer nest is drawn as that nest.)
     for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
 
-    this.drawLayer(this.canopy, stamp, view, (lx0, ly0, lx1, ly1) => {
-      // One tile more each way: canopies spill over their neighbours.
-      const cx0 = Math.max(0, lx0 - 1);
-      const cy0 = Math.max(0, ly0 - 1);
-      this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
-      this.frostTrees(lx0, ly0, lx1, ly1);
-    });
-
     if (ui) this.drawPlayers(world, now, z);
 
     for (const e of s.enemies) {
@@ -304,6 +296,17 @@ export class Renderer {
       const full = e.maxHp * grown;
       if (e.hp < full - 0.5) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / full, '#e0445a');
     }
+
+    // Engineers and bugs walk under the trees (#95); a faint engineer shows through so it isn't lost.
+    this.drawLayer(this.canopy, stamp, view, (lx0, ly0, lx1, ly1) => {
+      // One tile more each way: canopies spill over their neighbours.
+      const cx0 = Math.max(0, lx0 - 1);
+      const cy0 = Math.max(0, ly0 - 1);
+      this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
+      this.frostTrees(lx0, ly0, lx1, ly1);
+    });
+
+    if (ui) this.drawUnderCanopy(world);
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);
@@ -676,7 +679,8 @@ export class Renderer {
     if (this.season === 'winter' && pick < 21 && sprite('terrain/ground_winter')) return;
     const jx = ((h >>> 8) % 40) / 100 - 0.2;
     const jy = ((h >>> 16) % 40) / 100 - 0.2;
-    this.drawSprite(key, x + jx, y + jy, 1, (((h >>> 24) % 4) * Math.PI) / 2);
+    // Plants stand upright (#94); only pebbles turn.
+    this.drawSprite(key, x + jx, y + jy, 1, key === 'terrain/pebbles' ? (((h >>> 24) % 4) * Math.PI) / 2 : 0);
   }
 
   /** A soft shadow where the clearing meets the forest. */
@@ -1612,6 +1616,35 @@ export class Renderer {
       }
       if (bitten) ctx.filter = 'none';
       if (p.hp < PLAYER.hp) bar(ctx, d.x - 0.35, d.y - 0.75, 0.7, p.hp / PLAYER.hp, '#7bd88f');
+    }
+  }
+
+  /** Engineers under a tree's canopy, drawn again faintly over it. */
+  private drawUnderCanopy(world: World): void {
+    const ctx = this.ctx;
+    const t = world.state.time;
+    for (const p of world.state.players) {
+      const d = this.players.get(p.id);
+      if (!d || p.downUntil != null) continue;
+      const tx = Math.floor(d.x);
+      const ty = Math.floor(d.y);
+      let under = false;
+      for (let y = ty - 1; y <= ty + 1 && !under; y++) {
+        for (let x = tx - 1; x <= tx + 1; x++) {
+          if (world.inBounds(x, y) && world.state.trees[world.idx(x, y)] === TREE && Math.abs(x + 0.5 - d.x) < 1 && Math.abs(y + 0.5 - d.y) < 1) {
+            under = true;
+            break;
+          }
+        }
+      }
+      if (!under) continue;
+      ctx.globalAlpha = 0.45;
+      const at: [number, number, number, number] = [d.x - 0.5, d.y - 0.5, 1, d.angle];
+      if (!this.drawFrame('units/engineer_idle', t * 2.5, ...at) && !this.drawSprite('units/engineer', ...at)) {
+        ctx.fillStyle = '#ffcc33';
+        dot(ctx, d.x, d.y, 0.3);
+      }
+      ctx.globalAlpha = 1;
     }
   }
 

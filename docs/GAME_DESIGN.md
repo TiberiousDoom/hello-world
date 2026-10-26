@@ -144,6 +144,8 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 
 Wood is the one resource that runs out, for a while (D-044). The ship's hull doesn't use it, but later supply runs carry planks.
 
+- **Engineers and bugs walk under the trees** (#95): the canopy is drawn over them. An engineer under a tree
+  shows through faintly, so it isn't lost.
 - **Trees block building.** Every building, belts included, needs tree-free ground. Underground belts
   can still pass under trees.
 - A **Lumber Camp** (2×2) must have at least one tree or stump within **4 tiles** of its centre. Every
@@ -544,7 +546,7 @@ one research tree, one supply ship.
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
 | Select | Click a building | Tap a building |
 | Walk (your engineer) | Click empty ground with no tool, or WASD / arrow keys | Tap empty ground with no tool |
-| Mine by hand | Click bare ore or stone with no tool (hold to keep mining) | Tap it with no tool (hold to keep mining) |
+| Mine by hand | Click bare ore or stone with no tool (hold to keep mining) | Tap it with no tool (hold to keep mining); the phone ticks on each tap and buzzes when the ore comes loose (#84) |
 | Lay belts, walls or palisades | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Drag a building into place | Press and drag, then click it (or ✓ or Enter) | Press and drag, then ✓ |
 | Pan | Right or middle drag | Drag with no tool, or two fingers |
@@ -602,7 +604,8 @@ strings and light percussion, with a roomy reverb.
   (1.5 s crossfade); after a season piece, the game tracks carry on.
 - Every track is brought to the same average loudness, so the playlist doesn't jump in volume.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
-- Menu → Music sets the volume (saved per device). Zero mutes it. Sound effects have their own slider ([Sound effects](#sound-effects)).
+- Menu → Music sets the volume (saved per device). Zero mutes it. The slider follows the ear: its low end is
+  very quiet, and even at full the music sits under the sound effects (#97). Sound effects have their own slider ([Sound effects](#sound-effects)).
 - The tunes live in `audio/compose/` (`menu-theme.mjs`, `tracks.mjs`, and the instruments in `lib.mjs`).
   `node audio/compose/render.mjs` renders every track to `public/music/` (22 kHz, 16-bit mono WAV);
   name tracks to render only those. The single-file build has no music.
