@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.45.3 · 2026-10-26 · Taps that land
+### Fixed
+- **Research starts with one tap:** in a busy factory the research list redrew so often that a tap could miss its button and need a second try. The list now updates its numbers in place (#86).
+- **Turn buildings away from belts:** a building placed beside belts lines itself up with them, but turning it now overrides that. The first turn starts from the facing you see, and the building then keeps yours (#85).
+- **Belts meet the hub's corners:** a belt running into one of the hub's corners now carries on under its wall, instead of stopping short of it (#78).
+
 ## 0.45.2 · 2026-10-26 · Notes brought up to date
 ### New
 - Nothing new in the game this time: the project's notes are brought up to date, drawn belt corners, ends and joins are planned, and your latest feedback is in the plans: an early, mid and late game with wooden defences first and upgrades for every defence, bugs that don't give up in the middle of a chase, and seasons that fade in.

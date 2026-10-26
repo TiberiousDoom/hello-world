@@ -130,6 +130,16 @@ interface Effect {
   angle?: number;
 }
 
+/** Whether the tile a belt runs into is one of the hub's corner tiles (#78). */
+function hubCornerAhead(world: World, b: Building): boolean {
+  const hub = world.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
+  if (hub?.type !== 'hub') return false;
+  const [w, h] = world.footprintOf(hub);
+  const rx = b.x + DX[b.dir] - hub.x;
+  const ry = b.y + DY[b.dir] - hub.y;
+  return (rx === 0 || rx === w - 1) && (ry === 0 || ry === h - 1);
+}
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private dpr = 1;
@@ -241,6 +251,7 @@ export class Renderer {
     const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
     belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
+    for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b);
     for (const b of s.buildings) {
       if (isBelt(b.type)) continue;
       const [fw, fh] = world.footprintOf(b);
@@ -318,8 +329,8 @@ export class Renderer {
     // Express belt over a belt: outline the whole line a tap would upgrade.
     const hovered = ui.hover && ui.tool === 'express_belt' ? world.buildingAt(ui.hover.x, ui.hover.y) : undefined;
     if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
-    else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, z);
-    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover, ui.dir, z);
+    else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, ui.dirSet, z);
+    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover, ui.dir, z, { keepDir: ui.dirSet });
     if (ui.pings.length) this.drawPings(ui, now, z);
   }
 
@@ -407,14 +418,14 @@ export class Renderer {
   }
 
   /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
-  private drawPlan(world: World, plan: Plan, dir: Dir, z: number): void {
+  private drawPlan(world: World, plan: Plan, dir: Dir, keepDir: boolean, z: number): void {
     const single = plan.tiles.length === 1;
-    const steps = planSteps(world, plan, dir);
+    const steps = planSteps(world, plan, dir, keepDir);
     let entrance: Spot | null = null;
     for (const s of steps) {
       if (s.status === 'occupied' && !s.over) continue;
       if (s.over) continue; // passed under (#65)
-      this.drawGhost(world, s.tool, s.tile, s.dir, z, { ok: s.status === null, range: single, dashed: true, replaceBelt: single, exit: s.exit });
+      this.drawGhost(world, s.tool, s.tile, s.dir, z, { ok: s.status === null, range: single, dashed: true, replaceBelt: single, exit: s.exit, keepDir });
       if (s.tool === 'tunnel' && !s.exit) entrance = s.tile;
       else if (s.exit && entrance) linkLine(this.ctx, entrance, s.tile, z);
     }
@@ -981,7 +992,7 @@ export class Renderer {
     const feeder = look.fed ? world.buildingAt(b.x + DX[look.from], b.y + DY[look.from]) : undefined;
     if (feeder && !isBelt(feeder.type)) sides.push(look.from);
     const front = world.buildingAt(b.x + DX[b.dir], b.y + DY[b.dir]);
-    if (look.joined && front && !isBelt(front.type)) sides.push(b.dir);
+    if (look.joined && front && !isBelt(front.type) && !hubCornerAhead(world, b)) sides.push(b.dir);
     const ctx = this.ctx;
     for (const d of sides) {
       const ex = b.x + 0.5 + DX[d] * 0.5;
@@ -997,6 +1008,25 @@ export class Renderer {
       ctx.fillStyle = '#8a96a8';
       for (const s of [-0.24, 0.24]) dot(ctx, ex + DY[d] * s, ey + DX[d] * s, 0.025);
     }
+  }
+
+  /**
+   * A belt feeding one of the hub's corner tiles carries on into that tile, drawn before the hub: the
+   * hub's corners are cut off, so the belt shows in the gap and seems to run under its wall (#78).
+   */
+  private drawUnderHub(b: Building): void {
+    const x = b.x + DX[b.dir];
+    const y = b.y + DY[b.dir];
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, 1, 1);
+    ctx.clip();
+    if (!this.drawSprite(`buildings/${b.type}`, x, y, 1, (b.dir * Math.PI) / 2)) {
+      ctx.fillStyle = BELT_SURFACE;
+      ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.restore();
   }
 
   /** A faint dotted line between paired tunnels, where the belt runs underground. */
@@ -1262,7 +1292,7 @@ export class Renderer {
     spot: Spot,
     dir: Dir,
     z: number,
-    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean } = {},
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean; keepDir?: boolean } = {},
   ): void {
     const ctx = this.ctx;
     let { x, y } = spot;
@@ -1279,7 +1309,7 @@ export class Renderer {
     }
     // Big buildings centre on the hovered tile; dropped onto a belt, a building faces the way it runs.
     const replaceBelt = opts.replaceBelt ?? true;
-    ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt));
+    ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt, opts.keepDir));
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
     const turret = !!TURRETS[tool];

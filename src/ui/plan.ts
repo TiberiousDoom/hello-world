@@ -24,7 +24,7 @@ export interface PlanStep {
  * tiles before it, so a line longer than the stock allows shows where it runs out. An underground
  * crossing that can't be paid for stops the line there (#65).
  */
-export function planSteps(world: World, plan: Plan, dir: Dir): PlanStep[] {
+export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false): PlanStep[] {
   const single = plan.tiles.length === 1; // only a single placement may go over a belt
   const dirs = planDirs(plan, dir);
   const steps: PlanStep[] = plan.tiles.map((tile, i) => ({ tile, tool: plan.tool, dir: dirs[i], status: null }));
@@ -39,7 +39,7 @@ export function planSteps(world: World, plan: Plan, dir: Dir): PlanStep[] {
   steps.forEach((s, i) => {
     if (stopped) return void (s.status = 'cost');
     if (s.over) return void (s.status = 'occupied');
-    const at = placementAt(world, s.tool, s.tile, s.dir, single);
+    const at = placementAt(world, s.tool, s.tile, s.dir, single, keepDir);
     const err = world.checkPlace(s.tool, at.x, at.y, at.dir, single);
     if (err && err !== 'cost') return void (s.status = err);
     // An entrance is paid for together with its exit: both, or the line stops here.
@@ -88,8 +88,8 @@ function tunnelUnder(world: World, steps: PlanStep[]): void {
 }
 
 /** Whether each planned tile can be built (see planSteps). */
-export function planStatus(world: World, plan: Plan, dir: Dir): (PlaceError | null)[] {
-  return planSteps(world, plan, dir).map((s) => s.status);
+export function planStatus(world: World, plan: Plan, dir: Dir, keepDir = false): (PlaceError | null)[] {
+  return planSteps(world, plan, dir, keepDir).map((s) => s.status);
 }
 
 /**
@@ -140,7 +140,7 @@ export class PlanBar {
     const show = visible && !!this.ui.plan;
     this.el.hidden = !show;
     if (!show || !plan) return;
-    const status = planStatus(world, plan, this.ui.dir);
+    const status = planStatus(world, plan, this.ui.dir, this.ui.dirSet);
     const ok = status.filter((s) => s === null).length;
     this.count.textContent = plan.tiles.length > 1 ? `${ok} of ${plan.tiles.length}` : '';
     this.count.hidden = plan.tiles.length < 2;

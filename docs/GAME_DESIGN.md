@@ -135,6 +135,10 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   with them. Among the facings and positions that cover the aimed tile, it picks the one where its output
   runs onto a belt (best), and a belt runs into it (better still if it then faces the way that belt runs,
   carrying the flow straight on). The player's own facing wins a tie. The preview shows the result.
+  Turning the building (Rotate, R or the mouse wheel) overrides this until another tool is picked: the
+  first turn starts from the facing the preview showed, and from then on the building keeps the
+  player's facing, sliding only to line up. A turned building dropped onto a belt keeps its facing too
+  (#85, D-088).
 
 ## Wood
 

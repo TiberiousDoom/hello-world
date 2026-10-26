@@ -3,7 +3,7 @@ import { RESEARCH } from '../sim/data';
 import { World } from '../sim/world';
 import { MAX_PLAYERS } from '../net/protocol';
 import { HOME_OFFSET } from '../sim/player';
-import { PLAYER_COLORS, placementAt } from './state';
+import { PLAYER_COLORS, createUIState, placementAt, turnTool } from './state';
 
 /** A clear world with everything researched and plenty of stock. */
 function clearWorld(): World {
@@ -55,6 +55,34 @@ describe('Buildings line up with belts while aiming', () => {
     const y = w.hub!.y - 10;
     for (let i = 0; i < 4; i++) w.place('belt', x0, y + i, 1); // running south
     expect(placementAt(w, 'furnace', { x: x0, y: y + 1 }, 0, true).dir).toBe(1);
+  });
+});
+
+describe('The player can turn a building away from the belts (#85)', () => {
+  it('the first turn starts from the facing shown, and from then on the player\'s facing wins', () => {
+    const w = clearWorld();
+    const x0 = w.hub!.x - 20;
+    const y = w.hub!.y - 10;
+    for (let i = 0; i < 4; i++) w.place('belt', x0 + i, y, 0); // running east, ending at x0 + 3
+    const ui = createUIState();
+    ui.tool = 'furnace';
+    ui.dir = 3;
+    ui.hover = { x: x0 + 4, y };
+    expect(placementAt(w, 'furnace', ui.hover, ui.dir, true, ui.dirSet).dir).toBe(0); // lined up: east
+    turnTool(w, ui, 1);
+    expect(ui.dir).toBe(1); // one turn on from the east it showed, not from its old north
+    expect(ui.dirSet).toBe(true);
+    expect(placementAt(w, 'furnace', ui.hover, ui.dir, true, ui.dirSet).dir).toBe(1);
+    turnTool(w, ui, 1);
+    expect(placementAt(w, 'furnace', ui.hover, ui.dir, true, ui.dirSet).dir).toBe(2);
+  });
+
+  it('a turned building dropped onto a belt keeps the player\'s facing', () => {
+    const w = clearWorld();
+    const x0 = w.hub!.x - 20;
+    const y = w.hub!.y - 10;
+    for (let i = 0; i < 4; i++) w.place('belt', x0, y + i, 1); // running south
+    expect(placementAt(w, 'furnace', { x: x0, y: y + 1 }, 0, true, true).dir).toBe(0);
   });
 });
 

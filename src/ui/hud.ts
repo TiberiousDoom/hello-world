@@ -31,7 +31,7 @@ import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World, canCollect } from '../sim/world';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
-import { Tool, UIState } from './state';
+import { Tool, UIState, turnTool } from './state';
 
 const TOOLBAR: BuildingType[] = [
   'belt',
@@ -118,6 +118,40 @@ function buildingIcon(t: BuildingType, cls = ''): string {
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+/** Whether two trees have the same elements in the same places (text and attributes may differ). */
+function sameShape(a: Node, b: Node): boolean {
+  if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName || a.childNodes.length !== b.childNodes.length) return false;
+  for (let i = 0; i < a.childNodes.length; i++) if (!sameShape(a.childNodes[i], b.childNodes[i])) return false;
+  return true;
+}
+
+/** Copies text and attributes from `b` onto `a`, which has the same shape. */
+function patchNodes(a: Node, b: Node): void {
+  if (a.nodeType === Node.TEXT_NODE) {
+    if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue;
+    return;
+  }
+  if (a instanceof Element && b instanceof Element) {
+    for (const { name } of [...a.attributes]) if (!b.hasAttribute(name)) a.removeAttribute(name);
+    for (const { name, value } of [...b.attributes]) if (a.getAttribute(name) !== value) a.setAttribute(name, value);
+  }
+  for (let i = 0; i < a.childNodes.length; i++) patchNodes(a.childNodes[i], b.childNodes[i]);
+}
+
+/**
+ * Sets `el`'s contents to `html`, keeping its elements when only numbers, text or attributes changed. A
+ * list that redraws while stock changes would otherwise swap a button out between a finger touching it
+ * and the click, and the tap would be lost (#86).
+ */
+function setHtml(el: HTMLElement, html: string): void {
+  const next = document.createElement('div');
+  next.innerHTML = html;
+  const old = el.childNodes;
+  const fresh = next.childNodes;
+  if (old.length === fresh.length && [...old].every((n, i) => sameShape(n, fresh[i]))) [...old].forEach((n, i) => patchNodes(n, fresh[i]));
+  else el.replaceChildren(...fresh);
+}
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -369,6 +403,7 @@ export class Hud {
   }
 
   setTool(tool: Tool): void {
+    if (tool !== this.ui.tool) this.ui.dirSet = false; // a new tool lines up with belts again (#85)
     this.ui.tool = tool;
     this.ui.plan = null;
     if (tool) this.ui.selected = null;
@@ -383,7 +418,7 @@ export class Hud {
 
   private rotate(): void {
     if (this.ui.plan) this.actions.rotatePlan();
-    else if (this.ui.tool) this.ui.dir = ((this.ui.dir + 1) % 4) as UIState['dir'];
+    else if (this.ui.tool) turnTool(this.actions.getWorld(), this.ui, 1);
     else if (this.ui.selected != null) this.actions.issue({ kind: 'rotate', id: this.ui.selected });
     this.refresh();
   }
@@ -747,9 +782,9 @@ export class Hud {
         <div><b>${esc(bp.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br><span class="muted">${esc(bp.description)}</span></div>
         <div>${state}</div></div>`;
     });
-    $('research-body').innerHTML = `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}
+    setHtml($('research-body'), `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}
       <h3>From the colony</h3>
-      <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`;
+      <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`);
   }
 
   private openLessons(): void {

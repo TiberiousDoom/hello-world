@@ -36,6 +36,18 @@ test('picking a tool shows no panel; placed buildings do, and the hub holds Rese
   await expect(page.locator('#research')).toBeVisible();
   await expect(page.locator('#research-body')).toContainText('Basic Defense');
 
+  // While stock changes (a busy factory), the list updates in place: the button a finger is on stays the
+  // same element, so the tap lands (#86).
+  const start = page.locator('#research-body [data-research="defense"]');
+  const before = await start.elementHandle();
+  await page.evaluate(() => {
+    const inv = window.game.world.state.inventory;
+    inv.iron_plate = (inv.iron_plate ?? 0) + 7;
+    inv.stone = (inv.stone ?? 0) + 3;
+  });
+  await page.waitForTimeout(400); // the list redraws every 150 ms while it's open
+  expect(await before!.evaluate((b) => b.isConnected)).toBe(true);
+
   // Close sits at the top right, and stays there when the list scrolls.
   const close = page.locator('#research [data-close]');
   const card = (await page.locator('#research .card').boundingBox())!;
