@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.47.1 · 2026-10-26 · Long legs
+### New
+- **Runners are longer:** they're drawn as long centipedes now, about three times as long, with a body that snakes along behind them as they run.
+- **Splitters sort:** feed a splitter two belts carrying two different items, and each item stays on its own side. One belt, or one kind of item, is still split in turn.
+
 ## 0.47.0 · 2026-10-26 · The Wood Age begins
 ### New
 - **Start with wood:** a new game begins with nothing to build. Tap a tree to chop it: eight taps fell it for two logs, and it leaves a stump that grows back.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
-import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
+import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { createDemoWorld } from './demo';
 import { emptySlots, held, heldOf, isDown } from './player';
@@ -1327,6 +1327,39 @@ describe('Two-lane belts and splitter filters (#61, #62)', () => {
     expect(items(bottom)).toEqual(['wire', 'wire']); // right side, facing east
     expect(items(top)).toEqual(['gear', 'gear', 'plank']);
     expect(w.splitterLeft(placed(w.place('splitter', 40, 40, 2)))).toBe(1); // facing west, lane 1 (south) is on its left
+  });
+
+  it('a splitter fed two kinds of item, one on each lane, keeps them apart; one kind alone still alternates (#92)', () => {
+    const w = emptyWorld();
+    const sp = placed(w.place('splitter', 20, 20, 0)); // lane 0 at (20,20), lane 1 at (20,21)
+    const top = placed(w.place('belt', 21, 20, 0));
+    const bottom = placed(w.place('belt', 21, 21, 0));
+    const feed = (item: ItemId, y: number) => {
+      expect(w.insert(sp, item, 19, y)).toBe(true);
+      for (let i = 0; i < 10; i++) w.tick();
+    };
+    // Only gears, from one lane: they take turns.
+    for (let i = 0; i < 4; i++) feed('gear', 20);
+    const items = (b: Building) => b.belt.map((it) => it.item);
+    expect(items(top).length).toBe(2);
+    expect(items(bottom).length).toBe(2);
+    top.belt = [];
+    bottom.belt = [];
+    // Gears on lane 0 and wire on lane 1: each goes straight through.
+    for (let i = 0; i < 3; i++) {
+      feed('gear', 20);
+      feed('wire', 21);
+    }
+    expect(items(top).every((it) => it === 'gear')).toBe(true);
+    expect(items(bottom).every((it) => it === 'wire')).toBe(true);
+    expect(items(top).length + items(bottom).length).toBe(6);
+    // Once the wire stops coming, the gears take turns again.
+    top.belt = [];
+    bottom.belt = [];
+    for (let t = 0; t < SPLITTER_SORT_WINDOW + 1; t += TICK) w.tick();
+    for (let i = 0; i < 4; i++) feed('gear', 20);
+    expect(items(top).length).toBe(2);
+    expect(items(bottom).length).toBe(2);
   });
 
   it('v17 saves put belt items on the right lane', () => {

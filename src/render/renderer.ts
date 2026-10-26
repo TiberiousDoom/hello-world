@@ -151,7 +151,7 @@ export class Renderer {
   private aims = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
   /** Last known enemy positions and headings, to face sprites and place death puffs. */
-  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number; movedAt: number }>();
+  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number; movedAt: number; trail: [number, number][] }>();
   private effects: Effect[] = [];
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
@@ -285,7 +285,9 @@ export class Renderer {
       if (grown < 1) ctx.filter = `saturate(${Math.round(55 + 45 * grown)}%) brightness(${Math.round(80 + 20 * grown)}%)`;
       const x = ex - size / 2;
       const y = ey - size / 2;
-      const drawn = biting
+      const drawn = e.type === 'runner' && track
+        ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
+        : biting
         ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
         : this.drawFrame(`enemies/${e.type}_walk`, step, x, y, size, angle);
       if (!drawn && !this.drawSprite(`enemies/${e.type}${frame}`, x, y, size, angle)) {
@@ -1390,6 +1392,15 @@ export class Renderer {
       let angle = prev?.angle ?? 0;
       let walked = prev?.walked ?? 0;
       let movedAt = prev?.movedAt ?? s.time;
+      // Where it has been, for the runner's body to follow (#96).
+      const trail = prev?.trail ?? [[e.x, e.y]];
+      if (e.type === 'runner') {
+        const [lx, ly] = trail[trail.length - 1];
+        if (Math.hypot(e.x - lx, e.y - ly) > 0.04) {
+          trail.push([e.x, e.y]);
+          if (trail.length > 80) trail.shift();
+        }
+      }
       if (prev) {
         const dx = e.x - prev.x;
         const dy = e.y - prev.y;
@@ -1399,7 +1410,7 @@ export class Renderer {
         }
         walked += Math.hypot(dx, dy);
       }
-      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked, movedAt });
+      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked, movedAt, trail });
     }
     // Trees cut by a Lumber Camp: a burst of leaves.
     for (const f of world.felled) {
@@ -1618,6 +1629,103 @@ export class Renderer {
       if (bitten) ctx.filter = 'none';
       if (p.hp < PLAYER.hp) bar(ctx, d.x - 0.35, d.y - 0.75, 0.7, p.hp / PLAYER.hp, '#7bd88f');
     }
+  }
+
+  /**
+   * A runner (#96): a long, many-legged body, three times its sprite's length, that follows the way it
+   * came and sways from side to side as it goes. Its head is where the bug is; only the drawing is long.
+   */
+  private drawRunner(track: { angle: number; walked: number; trail: [number, number][] }, hx: number, hy: number, size: number, id: number, now: number, biting: boolean): boolean {
+    const ctx = this.ctx;
+    const SEGS = 11;
+    const gap = (size * 2.4) / SEGS;
+    // Points along the trail, back from the head, one every `gap`; past its end, straight on behind.
+    const pts: [number, number][] = [[hx, hy]];
+    let [px, py] = [hx, hy];
+    let need = gap;
+    for (let i = track.trail.length - 1; i >= 0 && pts.length <= SEGS; i--) {
+      const [tx, ty] = track.trail[i];
+      let d = Math.hypot(tx - px, ty - py);
+      while (d >= need && pts.length <= SEGS) {
+        px += ((tx - px) * need) / d;
+        py += ((ty - py) * need) / d;
+        pts.push([px, py]);
+        d -= need;
+        need = gap;
+      }
+      need -= d;
+      [px, py] = [tx, ty];
+    }
+    while (pts.length <= SEGS) {
+      const [lx, ly] = pts[pts.length - 1];
+      pts.push([lx - Math.cos(track.angle) * gap, ly - Math.sin(track.angle) * gap]);
+    }
+    // The sway: a wave running down the body as it walks (slowly while it stands, faster when biting).
+    const phase = track.walked * 7 + (biting ? now / 60 : now / 400) + id;
+    const sway = pts.map(([x, y], i) => {
+      const [nx, ny] = pts[Math.min(i + 1, SEGS)];
+      const [bx, by] = pts[Math.max(i - 1, 0)];
+      const a = Math.atan2(by - ny, bx - nx);
+      const off = Math.sin(phase - i * 0.75) * size * 0.1 * Math.min(1, i / 3);
+      return { x: x - Math.sin(a) * off, y: y + Math.cos(a) * off, a };
+    });
+    ctx.lineCap = 'round';
+    // Legs, a pair per segment, stepping in turn.
+    ctx.strokeStyle = '#2b3140';
+    ctx.lineWidth = size * 0.035;
+    ctx.beginPath();
+    for (let i = 1; i <= SEGS; i++) {
+      const { x, y, a } = sway[i];
+      const step = Math.sin(phase * 1.6 + i * 1.3) * 0.35;
+      const len = size * 0.2;
+      for (const side of [1, -1]) {
+        const la = a + side * (Math.PI / 2 + step * side);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(la) * len, y + Math.sin(la) * len);
+      }
+    }
+    ctx.stroke();
+    // The body, tail first, tapering toward the tail.
+    for (let i = SEGS; i >= 1; i--) {
+      const { x, y } = sway[i];
+      const r = size * (0.12 - 0.05 * (i / SEGS));
+      ctx.fillStyle = '#20242e';
+      ctx.strokeStyle = '#0f1a2e';
+      ctx.lineWidth = size * 0.03;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(169,192,238,0.55)';
+      ctx.beginPath();
+      ctx.arc(x - r * 0.25, y - r * 0.35, r * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // The head, its feelers and its orange eyes.
+    const { x, y } = sway[0];
+    const a = Math.atan2(sway[0].y - sway[1].y, sway[0].x - sway[1].x);
+    const [fx, fy] = [Math.cos(a), Math.sin(a)];
+    ctx.strokeStyle = '#3b4152';
+    ctx.lineWidth = size * 0.03;
+    ctx.beginPath();
+    for (const side of [1, -1]) {
+      ctx.moveTo(x + fx * size * 0.1, y + fy * size * 0.1);
+      ctx.quadraticCurveTo(x + fx * size * 0.3 - fy * side * size * 0.1, y + fy * size * 0.3 + fx * side * size * 0.1, x + fx * size * 0.38 - fy * side * size * 0.22, y + fy * size * 0.38 + fx * side * size * 0.22);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#2a2f3c';
+    ctx.strokeStyle = '#0f1a2e';
+    ctx.beginPath();
+    ctx.ellipse(x, y, size * 0.16, size * 0.13, a, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ff7a3d';
+    for (const side of [1, -1]) {
+      ctx.beginPath();
+      ctx.arc(x + fx * size * 0.08 - fy * side * size * 0.06, y + fy * size * 0.08 + fx * side * size * 0.06, size * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return true;
   }
 
   /** Engineers under a tree's canopy, drawn again faintly over it. */

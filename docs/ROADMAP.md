@@ -64,7 +64,7 @@ quality and business work don't get left until the end.
 33. ✅ **Bugs that don't give up mid-chase** (0.46.1, D-091): no fixed leash; a bug chases while something is within 20 tiles of it (28 at night), then walks home.
 34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
 35. ⬜ **Playtest batch 6, decided** (D-094 to D-102): trees that regrow about 3 times (#102); ponds and the Water Wheel with the Iron Age (#102); ore drawn as patches, 1200 a tile, richer under bigger extractors (#91); all ore 20+ tiles from the hub (#89); an 8×8 hub and a staked-out shipyard site (#98, with the Wood Age shipyard step); fog of war after the Wood Age (#43); nests merging and growing with the nest plan (#90, #53).
-36. ⬜ **Playtest batch 6, ideas to build** (D-101, D-102): sun, moon, moving shadows and critter sounds with gradual seasons (#101); splitters that sort two kinds of item (#92); belts that go underground across obstacles (#93); a long snaking runner (#96); example factories on the main menu (#99).
+36. ⬜ **Playtest batch 6, ideas to build** (D-101, D-102): sun, moon, moving shadows and critter sounds with gradual seasons (#101); ✅ splitters that sort two kinds of item (#92, 0.47.1); belts that go underground across obstacles (#93); ✅ a long snaking runner (#96, 0.47.1); example factories on the main menu (#99).
 37. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---

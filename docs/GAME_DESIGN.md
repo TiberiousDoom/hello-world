@@ -108,6 +108,9 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
   belt, and send them out of the front of both in turn, skipping a blocked one. Items keep their lane.
 - **Splitter filter (#62):** select a splitter, pick an item and **← Left** or **Right →**. That item
   goes out of that side only, and everything else out of the other. With **Off**, the sides take turns.
+- **Two kinds stay apart (#92, D-104):** with no filter, when both belts into a splitter carry an item
+  (each within the last 5 s) and the two are different, each item goes straight out of its own side.
+  When one belt stops, or both carry the same item, the sides take turns again.
 - **Dropping a splitter onto a belt (#63):** it faces along the belt, and its second half goes on the
   side of the belt your pointer or finger is nearer (the other side if that one is blocked). Dropped
   between two parallel belts, it replaces both.
@@ -347,6 +350,9 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 | Crawler | 18 | 1.1 | 8/s |
 | Runner | 10 | 2.2 | 5/s |
 | Brute | 110 | 0.55 | 30/s |
+
+The runner is drawn as a long centipede, about three times its old length, whose body follows the way it
+came and sways as it goes (#96). Only the drawing is long: it is hit, and bites, at its head.
 
 ### Turrets
 
