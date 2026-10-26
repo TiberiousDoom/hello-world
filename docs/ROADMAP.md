@@ -60,10 +60,10 @@ quality and business work don't get left until the end.
 29. ✅ **Playtest batch 6, bugs** (0.45.3): research starts with one tap (#86); turning a building overrides lining up with belts (#85, D-088); belts run under the hub's cut corners (#78).
 30. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
 31. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
-32. ⬜ **Three eras and defence tiers** (#88, D-087): early, mid and late game, each later one opened by a keystone research; wooden defences first (Ballista, Palisade), then Turret and Wall, then Cannon and Tesla; then Tiers 1 to 4 for each defence, paid from the engineer's inventory (after #87). See Gameplay → Next.
+32. ⬜ **The research tree in four ages** ([RESEARCH_TREE.md](RESEARCH_TREE.md), D-089): Wood, Iron, Steam and Electric Ages, built age by age. First the engineer's inventory (#87), then the Wood Age: rollers, the Workshop and Carpentry, wooden defences, the 5×5 shipyard with a top-down ship and a side view, and smelting moved to Industry. See Gameplay → Next.
 33. ⬜ **Bugs that don't give up mid-chase** (owner's note): see Nests.
 34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
-35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); a Storage Unit, iron ingots and a Blacksmith, and a player inventory (#87, Q-22); fog of war (#43, Q-20).
+35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); fog of war (#43, Q-20).
 36. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
@@ -143,11 +143,14 @@ In this order:
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
 - ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
 - ⬜ Difficulty settings for Standard (nest density and toughness)
-- ⬜ **Three eras (#88, D-087):** the game splits into early, mid and late eras; each later era opens with a keystone research that needs several of the era before, and the research menu groups researches by era. Today four researches are open from the start (Logistics, Basic Defense, Forestry, Masonry)
-- ⬜ **Defences by era (D-087):** early, Basic Defense gives the Ballista and the Palisade; mid, the Turret and the Wall; late, the Cannon and the Tesla (moved from a colony blueprint to research)
-- ⬜ **Defence tiers (D-087):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, so it comes after the inventory (#87, Q-22). What each tier improves and costs is still to decide
+- ⬜ **The research tree in four ages (#88, D-089, [RESEARCH_TREE.md](RESEARCH_TREE.md)):** each age with its own material, power and weapons; a keystone that needs the age's top defence; rollers before powered belts; smelting at Industry; fuel for furnaces; the ship built in one stage per age and launched in the Electric Age, with supply runs after it. Built age by age:
+  - ⬜ **The engineer's inventory (#87):** 12 slots of 10, filled by Collect and by picking items off belts; a Storage Unit (1×2, 6 slots of 50) comes with Metal Logistics, iron ingots and plates from the Blacksmith
+  - ⬜ **Wood Age:** rollers, Workshop and Carpentry (dowels, stakes, pegs, rope, trusses), palisade and spike pit, trebuchet and ballista, the 5×5 shipyard (top-down ship, side view on tap), smelting moved to Industry
+  - ⬜ **Iron Age:** wells and pumps, powered belts, Blacksmith and Machine Shop, fuel, hydraulic turret and cannon, brick and reinforced walls
+  - ⬜ **Steam Age:** boilers, steel beams and bearings, Turret Mk.2, mortar and artillery, the hull
+  - ⬜ **Electric Age:** power, circuits, drones, tesla, shield pylon, arc fence, launch and supply runs
+- ⬜ **Defence tiers (D-089):** every defence upgrades from Tier 1 to Tier 4 with materials from the engineer's inventory, chitin among them (replaces Chitin Plating). What each tier improves and costs is still to decide
 - ❓ **Ore further from the hub (#89, Q-21):** no ore within 20 tiles of the hub. Today a starter patch of each ore sits 8–12 tiles out so the start from nothing (D-062) is a short walk; moving it out makes the first minutes longer
-- ❓ **Storage and a player inventory (#87, Q-22):** a 1×2 Storage Unit (6 slots of 50); Iron Ingot from the furnace (1 ore), and a 2×2 Blacksmith that makes iron plates from it; an Inventory button opening 12 slots of 10 for the engineer, filled by Collect and by selecting a belt, splitter or underground belt with items on it, and emptied first by Drop off. It would replace what the engineer carries today (items trailing behind, D-067) and change every early recipe
 - ❓ **Fog of war (#43, Q-20):** the map hidden until the engineer or buildings clear it, slowly coming back. What it hides, how far things see, whether it changes play (then it's in the rules and must stay deterministic) and whether co-op shares it are still to decide
 - ✅ Enemy nests on the map that players can clear (D-038)
 
