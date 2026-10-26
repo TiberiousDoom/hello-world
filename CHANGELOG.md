@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.51.0 · 2026-10-26 · A bigger hub
+### New
+- **The hub is 8×8** (it was 5×5), with more sides for rollers and belts to come in.
+- Saved games keep their factory: the hub grows in place about its centre. Anything built right against its old edge where the bigger hub now stands is refunded into stock.
+
 ## 0.50.0 · 2026-10-26 · Hold the line
 ### New
 - **Spike pits:** a trap bugs walk over. They take damage and slow to half speed while they cross, and the pit wears down as it works. Refill it with stakes.

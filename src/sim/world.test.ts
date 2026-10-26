@@ -79,7 +79,7 @@ describe('Map', () => {
     for (const seed of [1, 2, 3]) {
       const w = World.create(seed);
       const hub = w.hub!;
-      const c = hub.x + 2;
+      const c = hub.x + Math.floor(HUB_SIZE / 2);
       expect(w.state.nests.length).toBeGreaterThan(40);
       for (const n of w.state.nests) {
         const nx = Math.max(n.x, Math.min(c, n.x + NESTS.cell - 1));
@@ -215,12 +215,12 @@ describe('Production', () => {
     expect(w.isUnlocked('shipyard')).toBe(true);
   });
 
-  it('hub ports take the chosen item out of stock and face away from the 5×5 hub', () => {
+  it('hub ports take the chosen item out of stock and face away from the hub', () => {
     const w = emptyWorld();
     const hub = w.hub!;
-    const port = placed(w.place('port', hub.x + 5, hub.y + 2, 1));
+    const port = placed(w.place('port', hub.x + HUB_SIZE, hub.y + 2, 1));
     expect(port.dir).toBe(0);
-    placed(w.place('belt', hub.x + 6, hub.y + 2, 0));
+    placed(w.place('belt', hub.x + HUB_SIZE + 1, hub.y + 2, 0));
     w.setFilter(port.id, 'gear');
     const gears = w.state.inventory.gear!;
     run(w, 3);
@@ -1283,7 +1283,7 @@ describe('The player character (#40)', () => {
     const w = emptyWorld();
     const p = w.state.players[0];
     const hub = w.hub!;
-    expect([p.x, p.y]).toEqual([hub.x + 2.5, hub.y + 5.5]);
+    expect([p.x, p.y]).toEqual([hub.x + HUB_SIZE / 2 + 0.5, hub.y + HUB_SIZE + 0.5]);
     stand(w, 20, 20);
     for (let y = 15; y <= 25; y++) placed(w.place('wall', 23, y, 0));
     placed(w.place('belt', 22, 20, 0)); // belts can be walked over
@@ -1420,15 +1420,42 @@ describe('The player character (#40)', () => {
     expect(p.path).toEqual([]);
   });
 
+  it('v24 saves grow the 5×5 hub to 8×8 about its centre, refunding what is in the way (D-108)', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const [hx, hy] = [hub.x, hub.y];
+    const keep = placed(w.place('belt', hx + HUB_SIZE + 1, hy, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 24;
+    // As saved before: a 5×5 hub a tile in from the 8×8 one, a belt just right of it, an engineer inside.
+    const oh = old.buildings.find((b: Building) => b.type === 'hub');
+    [oh.x, oh.y] = [hx + 1, hy + 1];
+    const inWay = { ...old.buildings.find((b: Building) => b.id === keep.id), id: 999, x: hx + 6, y: hy + 1 };
+    old.buildings.push(inWay);
+    old.inventory = {};
+    old.players[0].x = hx + 3;
+    old.players[0].y = hy + 3;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect([loaded.hub!.x, loaded.hub!.y]).toEqual([hx, hy]);
+    expect(loaded.byId.has(999)).toBe(false);
+    expect(loaded.byId.has(keep.id)).toBe(true);
+    expect(loaded.state.inventory).toEqual(BUILDINGS.belt.cost);
+    expect(loaded.state.players[0].y).toBeGreaterThan(hy + HUB_SIZE);
+  });
+
   it('v16 saves get a character just below the hub', () => {
     const w = World.create(5);
     const old = JSON.parse(w.toJSON());
     old.version = 16;
     old.players = [{ id: 0 }];
+    const hub = old.buildings.find((b: Building) => b.type === 'hub');
+    [hub.x, hub.y] = [hub.x + 1, hub.y + 1]; // where a 5×5 hub stood (D-108)
     const loaded = World.fromJSON(JSON.stringify(old));
     expect(loaded.state.version).toBe(SAVE_VERSION);
     const p = loaded.state.players[0];
-    expect([p.x, p.y]).toEqual([loaded.hub!.x + 2.5, loaded.hub!.y + 5.5]);
+    expect(p.y).toBeGreaterThan(loaded.hub!.y + HUB_SIZE);
+    expect(p.y).toBeLessThan(loaded.hub!.y + HUB_SIZE + 2);
+    expect(Math.abs(p.x - (loaded.hub!.x + HUB_SIZE / 2))).toBeLessThan(2);
     expect(p.slots).toEqual(emptySlots());
     expect(p.autoDrop).toBe(true);
   });
@@ -1626,7 +1653,7 @@ describe('Threat (D-065)', () => {
     expect(w.events.some((e) => e.startsWith('Threat level 1'))).toBe(true);
   });
 
-  it('makes newly bred bugs tougher, and more often runners, without growing the nest', () => {
+  it('makes newly bred bugs tougher, and more often runners or brutes, without growing the nest', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 0);
     n.brood = { crawler: 40, runner: 0, brute: 0 };
@@ -1638,9 +1665,9 @@ describe('Threat (D-065)', () => {
     }
     const bugs = w.state.enemies.filter((e) => e.nest === n.id);
     expect(bugs.length).toBe(40);
-    const runners = bugs.filter((e) => e.type === 'runner').length;
-    expect(runners).toBeGreaterThan(8);
-    expect(runners).toBeLessThan(32);
+    const worse = bugs.filter((e) => e.type !== 'crawler').length; // runners, or brutes where the nest has them
+    expect(worse).toBeGreaterThan(8);
+    expect(worse).toBeLessThan(32);
     const crawler = bugs.find((e) => e.type === 'crawler')!;
     expect(crawler.maxHp).toBe(Math.round(18 * nestComposition(hubDistance(w, n)).hpMult * 1.9)); // +15% a level
     run(w, NESTS.breedEvery[1] * 2);
@@ -1747,7 +1774,7 @@ describe('Bugs notice the engineer (D-074)', () => {
     run(w, PLAYER.downFor);
     expect(isDown(p)).toBe(false);
     expect(p.hp).toBe(PLAYER.hp);
-    expect(Math.abs(p.x - (w.hub!.x + 2.5))).toBeLessThan(1);
+    expect(Math.abs(p.x - (w.hub!.x + HUB_SIZE / 2 + 0.5))).toBeLessThan(1);
   });
 
   it('health comes back a while after the last bite', () => {

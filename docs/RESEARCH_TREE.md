@@ -103,7 +103,7 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
      spike pits, 30 planks and 10 rope, after Basic Logistics and Workshops); Ballistae went into Basic
      Defense 2 (trebuchet and ballista), which Industry now needs; turrets are Advanced Defense until the
      Iron Age's hydraulic turret.
-  5. The 5×5 shipyard and the scaffolding stage.
+  5. 🚧 The 5×5 shipyard and the scaffolding stage. The 8×8 hub (D-098) is done (0.51.0, D-108).
 
 ## Iron Age
 

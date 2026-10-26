@@ -20,8 +20,8 @@ for (const [path, url] of Object.entries(files)) {
 const PX_PER_TILE = 128;
 /** Sprites bigger than one tile: [width, height] in tiles, as drawn facing east. */
 const TILES: Record<string, [number, number]> = {
-  'buildings/hub': [5, 5],
-  'buildings/hub_damaged': [5, 5],
+  'buildings/hub': [8, 8],
+  'buildings/hub_damaged': [8, 8],
   'nests/warren': [2, 2],
   'nests/hive': [2, 2],
   'nests/den': [2, 2],

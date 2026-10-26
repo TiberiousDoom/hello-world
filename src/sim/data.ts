@@ -109,7 +109,7 @@ export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 export const CRATE_SIZE = 50;
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
-  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [5, 5], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
+  hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [8, 8], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
   belt: { name: 'Belt', short: '', color: '#3a3f4b', hp: 30, cost: { iron_plate: 1 }, blocking: false, description: 'Moves items. Drag to lay a line.' },
   express_belt: {
     name: 'Express Belt',
@@ -442,7 +442,7 @@ export function cargoFor(run: number): ItemCounts {
 export const START_INVENTORY: ItemCounts = {};
 
 export const MAP_SIZE = 256;
-export const HUB_SIZE = 5;
+export const HUB_SIZE = 8; // 5 before D-108
 
 /** A building's width and height on the map when facing `dir` (sideways turns swap them). */
 export function footprint(t: BuildingType, dir: Dir = 0): [number, number] {

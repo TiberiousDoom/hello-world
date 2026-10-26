@@ -76,7 +76,7 @@ export type { ResearchState };
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  */
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -327,10 +327,45 @@ export class World {
     if (state.version === 21) World.migrateV21(state);
     if (state.version === 22) World.migrateV22(state);
     if (state.version === 23) World.migrateV23(state);
+    if (state.version === 24) World.migrateV24(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v24 to v25 (D-108): the hub grows from 5×5 to 8×8 about its old centre (a tile more to the left and
+   * up, two more to the right and down). Buildings in the way are refunded, trees there cleared, and an
+   * engineer standing there steps out below.
+   */
+  private static migrateV24(state: GameState): void {
+    const hub = state.buildings.find((b) => b.id === state.hubId);
+    if (hub) {
+      hub.x -= 1;
+      hub.y -= 1;
+      const [hx, hy] = [hub.x, hub.y];
+      const overlaps = (b: Building) => {
+        const [fw, fh] = footprint(b.type, b.dir);
+        return b.x < hx + HUB_SIZE && b.x + fw > hx && b.y < hy + HUB_SIZE && b.y + fh > hy;
+      };
+      state.buildings = state.buildings.filter((b) => {
+        if (b === hub || !overlaps(b)) return true;
+        for (const [k, n] of Object.entries(BUILDINGS[b.type].cost)) state.inventory[k as ItemId] = (state.inventory[k as ItemId] ?? 0) + n!;
+        return false;
+      });
+      for (let y = hy; y < hy + HUB_SIZE; y++) {
+        for (let x = hx; x < hx + HUB_SIZE; x++) {
+          const i = y * state.width + x;
+          state.trees[i] = NO_TREE;
+          delete state.regrow[i];
+        }
+      }
+      for (const p of state.players) {
+        if (p.x >= hx && p.x < hx + HUB_SIZE && p.y >= hy && p.y < hy + HUB_SIZE) [p.x, p.y, p.path] = [hx + HUB_SIZE / 2 + 0.5, hy + HUB_SIZE + 0.5, []];
+      }
+    }
+    state.version = 25;
   }
 
   /**

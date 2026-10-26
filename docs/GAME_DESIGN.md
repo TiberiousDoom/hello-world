@@ -23,7 +23,7 @@ How the game works on `master` today. Balance numbers live in
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
-- The **5×5 hub** sits in the centre.
+- The **8×8 hub** sits in the centre (5×5 before D-108).
 - **Bug territories:** the map is divided into 10×10 cells. About 18% of the cells whose nearest tile is
   at least 30 tiles from the hub's centre hold a nest (roughly 100 per map). See [Bugs](#bugs).
 - Hub stock is shown just above the hub, as part of the map, **only while the hub is selected or the
@@ -89,7 +89,7 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 - Bigger buildings centre on the tile you pick.
 - Building costs are paid from hub stock. Demolishing a building refunds its
   cost, scaled by the HP it has left.
-- **Hub:** 5×5, 1,000 HP. Accepts any item from any side. **Select it to open Research.**
+- **Hub:** 8×8 (D-108), 1,000 HP. Accepts any item from any side. **Select it to open Research.**
   It has a **built-in gun**: 9 damage, 1.2 shots/s, range 8 from its centre, and no ammo needed.
 
 ## Logistics rules
@@ -682,7 +682,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v24**). v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
+- Save files are versioned (currently **v25**). v25 (D-108) grows the hub from 5×5 to 8×8 about its old
+  centre, refunding buildings in the way. v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
   Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved
   the attack-path timers and a player list (co-op groundwork, D-058). v11 added colony blueprints: a game
   that had delivered runs loads with an offer of both blueprints to pick from.
