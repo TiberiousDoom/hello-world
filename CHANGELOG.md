@@ -6,6 +6,7 @@ what's **New** and what's **Fixed**.
 ## 0.46.2 · 2026-10-26 · Under the trees
 ### New
 - **Under the trees:** your engineer and the bugs now walk under the trees instead of over them. Your engineer shows through the leaves faintly, so you don't lose them.
+- **Plans:** the Wood Age is decided: chopping trees by hand, wooden rollers, a storage crate, spike pits, a long-range trebuchet and a bigger shipyard. Nothing changes in the game yet.
 - **Mining you can feel:** on phones, each tap of mining by hand gives a small tick, and a longer buzz when the ore comes loose.
 ### Fixed
 - Grass tufts, flowers and mushrooms stand upright instead of lying sideways or upside down.
