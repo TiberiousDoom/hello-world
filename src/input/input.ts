@@ -31,7 +31,7 @@ import { planSteps, tunnelExitSpot } from '../ui/plan';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs } from '../ui/state';
+import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
 
 type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine';
 
@@ -138,7 +138,7 @@ export class Input {
     if (turns && this.ui.plan && isBeltPath(this.ui.plan)) {
       if (turns % 2) this.rotatePlan(); // a belt line can only be reversed
     } else if (turns) {
-      this.ui.dir = ((((this.ui.dir + turns) % 4) + 4) % 4) as Dir;
+      turnTool(this.cb.getWorld(), this.ui, turns);
       this.cb.onChange();
     }
   }
@@ -342,6 +342,7 @@ export class Input {
     if (!b || b.type === 'hub') return;
     this.ui.tool = b.type;
     this.ui.dir = b.dir;
+    this.ui.dirSet = false;
     this.ui.plan = null;
     this.ui.selected = null;
     this.cb.onChange();
@@ -384,7 +385,7 @@ export class Input {
   private onPlan(t: Tile): boolean {
     const plan = this.ui.plan;
     if (!plan || plan.tiles.length !== 1 || LINE_TOOLS.includes(plan.tool)) return false;
-    const at = placementAt(this.cb.getWorld(), plan.tool, plan.tiles[0], this.ui.dir, true);
+    const at = placementAt(this.cb.getWorld(), plan.tool, plan.tiles[0], this.ui.dir, true, this.ui.dirSet);
     const [w, h] = footprint(plan.tool as BuildingType, at.dir);
     return t.x >= at.x && t.x < at.x + w && t.y >= at.y && t.y < at.y + h;
   }
@@ -468,7 +469,7 @@ export class Input {
     const plan = this.ui.plan;
     if (!plan) return;
     const dirs = planDirs(plan, this.ui.dir);
-    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir);
+    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir, this.ui.dirSet);
     this.reportedError = false;
     this.ui.plan = null; // building an underground entrance may put up its exit's blueprint (#64)
     this.ui.dir = dirs[dirs.length - 1];
@@ -490,7 +491,7 @@ export class Input {
     const plan = this.ui.plan;
     if (!plan) return;
     if (isBeltPath(plan)) plan.tiles.reverse();
-    else this.ui.dir = ((this.ui.dir + 1) % 4) as Dir;
+    else turnTool(this.cb.getWorld(), this.ui, 1);
     this.syncDir();
     this.cb.onChange();
   }
@@ -562,7 +563,7 @@ export class Input {
       }
       return;
     }
-    const at = placementAt(world, tool, t, dir, replaceBelt);
+    const at = placementAt(world, tool, t, dir, replaceBelt, this.ui.dirSet);
     // In co-op the result comes later, so judge it now from the world as it is (the host's game decides).
     const entrance = tool === 'tunnel' ? world.findTunnelEntrance(at.x, at.y, at.dir) : undefined;
     const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt }) ?? world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt) ?? { ...at, link: entrance?.id ?? null };

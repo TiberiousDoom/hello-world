@@ -18,6 +18,8 @@ export interface Plan {
 export interface UIState {
   tool: Tool;
   dir: Dir;
+  /** The player has turned the building being placed: their facing wins over lining up with belts (#85). */
+  dirSet: boolean;
   hover: Spot | null;
   selected: number | null;
   speed: number; // 0 = paused
@@ -44,7 +46,7 @@ export interface Ping {
 export const PING_MS = 5000;
 
 export function createUIState(): UIState {
-  return { tool: null, dir: 0, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [] };
+  return { tool: null, dir: 0, dirSet: false, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [] };
 }
 
 /**
@@ -138,11 +140,11 @@ function beltFit(world: World, type: BuildingType, x: number, y: number, dir: Di
  * covering tile `t`, where the building best joins the belts around it. The
  * player's own facing wins ties, then the usual spot centred on the tile.
  */
-function alignToBelts(world: World, type: BuildingType, t: { x: number; y: number }, dir: Dir): { x: number; y: number; dir: Dir } | null {
+function alignToBelts(world: World, type: BuildingType, t: { x: number; y: number }, dir: Dir, keepDir: boolean): { x: number; y: number; dir: Dir } | null {
   let best: { x: number; y: number; dir: Dir } | null = null;
   let bestScore = 0;
   let bestRank = Infinity;
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < (keepDir ? 1 : 4); k++) {
     const d = ((dir + k) % 4) as Dir;
     const [w, h] = footprint(type, d);
     const centred = anchorAt(type, t, d);
@@ -175,15 +177,31 @@ export interface Spot {
  * Where a building goes when the player taps tile `t` with it: its top-left
  * and facing. Tapped onto a belt (when allowed), it faces the way the belt runs.
  * A single placement beside belts lines up with them (output onto a belt, a
- * belt running in); `replaceBelt` marks a single placement, not a drag.
+ * belt running in); `replaceBelt` marks a single placement, not a drag. Once the player has turned the
+ * building (`keepDir`), it keeps their facing and only slides to line up (#85).
  */
-export function placementAt(world: World, type: BuildingType, t: Spot, dir: Dir, replaceBelt: boolean): { x: number; y: number; dir: Dir } {
+export function placementAt(world: World, type: BuildingType, t: Spot, dir: Dir, replaceBelt: boolean, keepDir = false): { x: number; y: number; dir: Dir } {
   const belt = replaceBelt ? world.beltToReplace(type, t.x, t.y) : undefined;
   if (belt && type === 'splitter') return splitterOnBelt(world, t, belt.dir);
-  if (belt && type !== 'port') dir = belt.dir;
-  else if (replaceBelt && ALIGNS.includes(type)) {
-    const aligned = alignToBelts(world, type, t, dir);
+  if (belt && type !== 'port') {
+    if (!keepDir) dir = belt.dir;
+  } else if (replaceBelt && ALIGNS.includes(type)) {
+    const aligned = alignToBelts(world, type, t, dir, keepDir);
     if (aligned) return aligned;
   }
   return { ...anchorAt(type, t, dir), dir };
+}
+
+/**
+ * Turns the building being placed by `turns` quarter turns. The first turn starts from the facing the
+ * player sees (which lining up with belts may have chosen), and from then on their facing wins (#85).
+ */
+export function turnTool(world: World, ui: UIState, turns: number): void {
+  const plan = ui.plan;
+  const spot = plan ? (plan.tiles.length === 1 ? plan.tiles[0] : null) : ui.hover;
+  const tool = plan ? plan.tool : ui.tool;
+  let from = ui.dir;
+  if (!ui.dirSet && spot && tool && tool !== 'demolish') from = placementAt(world, tool, spot, ui.dir, true).dir;
+  ui.dir = ((((from + turns) % 4) + 4) % 4) as Dir;
+  ui.dirSet = true;
 }
