@@ -27,6 +27,7 @@ import {
   ROLLER,
   MAP_SIZE,
   NESTS,
+  ORE,
   OUTPUT_BUFFER,
   PORT_PERIOD,
   RECIPES,
@@ -172,6 +173,10 @@ export interface GameState {
   nextSpread: number;
   /** Where the shipyard goes: a 5×5 site staked out at the start (D-109). Its top-left tile. */
   shipSite?: { x: number; y: number };
+  /** Ore taken from each ore tile so far (D-096); at ORE.perTile it's bare ground. */
+  oreMined?: Record<number, number>;
+  /** Times each tile's tree has been cut (D-094); past LUMBER.regrowths the stump doesn't grow back. */
+  cuts?: Record<number, number>;
 }
 
 export interface PathTimers {
@@ -1266,6 +1271,7 @@ export class World {
       item = ore;
       for (let k = 0; k < yields; k++) give(p, ore);
       if (tree) this.fell(tile);
+      else this.takeOre(tile);
     }
     p.mining = m;
     const tap: HandTap = { x, y, ore, item, age: 0 };
@@ -1537,14 +1543,41 @@ export class World {
     }
   }
 
-  /** A tree comes down, by a lumber camp or by hand: a stump that grows back in time. */
+  /**
+   * A tree comes down, by a lumber camp or by hand: a stump that grows back in time, LUMBER.regrowths
+   * times; after that the ground stays clear (D-094).
+   */
   private fell(i: number): void {
     const s = this.state;
-    s.trees[i] = STUMP;
+    const cuts = (s.cuts ??= {});
     this.layout++;
+    this.felled.push({ x: i % s.width, y: Math.floor(i / s.width), age: 0 });
+    cuts[i] = (cuts[i] ?? 0) + 1;
+    if (cuts[i] > LUMBER.regrowths) {
+      s.trees[i] = NO_TREE;
+      delete cuts[i];
+      return;
+    }
+    s.trees[i] = STUMP;
     // Seasons change how fast stumps grow back (#42): the season when it's cut sets its time.
     s.regrow[i] = s.time + (LUMBER.regrow + (this.random() * 2 - 1) * LUMBER.regrowSpread) / clockAt(s.time).season.regrow;
-    this.felled.push({ x: i % s.width, y: Math.floor(i / s.width), age: 0 });
+  }
+
+  /** One ore taken from an ore tile (D-096): used up, the tile is bare ground. */
+  private takeOre(i: number): void {
+    const s = this.state;
+    const mined = (s.oreMined ??= {});
+    mined[i] = (mined[i] ?? 0) + 1;
+    if (mined[i] < ORE.perTile) return;
+    delete mined[i];
+    s.resources[i] = 0;
+    this.layout++;
+  }
+
+  /** Ore left in one tile (D-096). */
+  oreLeft(x: number, y: number): number {
+    const i = this.idx(x, y);
+    return this.state.resources[i] ? ORE.perTile - (this.state.oreMined?.[i] ?? 0) : 0;
   }
 
   /** Cuts the nearest tree in reach into logs, one tree every LUMBER.period seconds. */
@@ -1778,14 +1811,28 @@ export class World {
     if (!this.healed.some((h) => h.age < 0.45 && h.x === hx && h.y === hy)) this.healed.push({ x: hx, y: hy, age: 0, by: b.id });
   }
 
+  /**
+   * An extractor mines its ore: one from each tile of it under its footprint every EXTRACTOR_PERIOD, so
+   * up to 4 (D-096). Each tile runs out in time; with none left, it stands idle.
+   */
   private tickExtractor(b: Building, dt: number): void {
     const item = b.recipe as ItemId | null; // the ore it was placed over
     if (item && b.outputs.length < OUTPUT_BUFFER) {
-      b.progress = Math.max(b.progress, 0) + dt;
-      if (b.progress >= EXTRACTOR_PERIOD) {
-        b.progress = 0;
-        b.outputs.push(item);
-        this.noteMade(b, 1);
+      const [fw, fh] = this.footprintOf(b);
+      const tiles: number[] = [];
+      for (let y = b.y; y < b.y + fh; y++) for (let x = b.x; x < b.x + fw; x++) if (this.resourceAt(x, y) === item) tiles.push(this.idx(x, y));
+      if (!tiles.length) {
+        b.progress = -1; // used up
+      } else {
+        b.progress = Math.max(b.progress, 0) + dt;
+        if (b.progress >= EXTRACTOR_PERIOD) {
+          b.progress = 0;
+          for (const i of tiles) {
+            b.outputs.push(item);
+            this.takeOre(i);
+          }
+          this.noteMade(b, tiles.length);
+        }
       }
     }
     this.pushOutput(b);

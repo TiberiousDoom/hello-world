@@ -288,8 +288,15 @@ export const HAND_MINING = {
   holdRate: 4, // taps per second while a finger or mouse button is held down
 };
 
+/**
+ * Ore tiles (D-096, D-097): each holds `perTile` ore, then it's bare ground. No ore lies closer than
+ * `minDistance` tiles to the hub's edge.
+ */
+export const ORE = { perTile: 1200, minDistance: 20 };
+
 /** Trees and the Lumber Camp (D-044). Unlike ore, wood runs out until the stumps grow back. */
 export const LUMBER = {
+  regrowths: 3, // a tree's stump grows back this many times; cut again after that, the ground stays clear (D-094)
   range: 4, // tiles from the camp's centre to a tree's centre
   period: 3, // seconds to cut one tree
   logsPerTree: 2,

@@ -3,7 +3,7 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { FOREST, NESTS } from './data';
+import { FOREST, NESTS, ORE } from './data';
 import { hypot } from './math';
 import { Nest, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
@@ -61,14 +61,18 @@ export function generateResources(w: World, hubCx: number, hubCy: number, hubRad
     const cut = [...values].sort((a, b) => b - a)[Math.floor(values.length * share)];
     for (let i = 0; i < values.length; i++) if (values[i] > cut && !res[i]) res[i] = kind;
   }
-  // Clear the hub's surroundings, then put one patch of each ore within easy reach.
-  const clear = hubRadius + 4;
+  // Clear the hub's surroundings, then put one patch of each ore within reach: no ore closer than
+  // ORE.minDistance tiles to the hub's edge (D-097).
+  const clear = hubRadius + ORE.minDistance;
   for (let y = hubCy - clear; y <= hubCy + clear; y++) for (let x = hubCx - clear; x <= hubCx + clear; x++) if (w.inBounds(x, y)) res[w.idx(x, y)] = 0;
   const base = w.random() * Math.PI * 2;
   [1, 2, 3].forEach((kind, i) => {
     const a = base + (i * Math.PI * 2) / 3;
-    const d = hubRadius + 8 + w.random() * 4;
-    blob(w, Math.round(hubCx + Math.cos(a) * d), Math.round(hubCy + Math.sin(a) * d), kind, 2.6);
+    // Out to a square around the hub, not a circle, so a patch on a diagonal is as far from its edge.
+    const d = hubRadius + ORE.minDistance + 4 + w.random() * 4; // the patch's middle, beyond its radius
+    const [ux, uy] = [Math.cos(a), Math.sin(a)];
+    const m = Math.max(Math.abs(ux), Math.abs(uy));
+    blob(w, Math.round(hubCx + (ux / m) * d), Math.round(hubCy + (uy / m) * d), kind, 2.6);
   });
 }
 

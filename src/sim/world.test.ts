@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ORE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -53,15 +53,22 @@ function addNest(w: World, x: number, y: number, bugs = 3): Nest {
 }
 
 describe('Map', () => {
-  it('is 256×256, with a 5×5 hub in the middle and every ore within reach of it', () => {
-    const w = World.create(42);
+  it.each([42, 1, 2, 3, 7])('is 256×256, with the hub in the middle, no ore within 20 tiles of it, and every ore not far beyond (D-097), seed %i', (seed) => {
+    const w = World.create(seed);
     expect(w.state.width).toBe(MAP_SIZE);
     const hub = w.hub!;
     expect(w.footprintOf(hub)).toEqual([HUB_SIZE, HUB_SIZE]);
-    for (let dy = 0; dy < 5; dy++) for (let dx = 0; dx < 5; dx++) expect(w.buildingAt(hub.x + dx, hub.y + dy)).toBe(hub);
+    for (let dy = 0; dy < HUB_SIZE; dy++) for (let dx = 0; dx < HUB_SIZE; dx++) expect(w.buildingAt(hub.x + dx, hub.y + dy)).toBe(hub);
     const near = new Set<number>();
-    const c = hub.x + 2;
-    for (let y = c - 18; y <= c + 18; y++) for (let x = c - 18; x <= c + 18; x++) if (w.state.resources[w.idx(x, y)]) near.add(w.state.resources[w.idx(x, y)]);
+    const edge = (x: number, y: number) => Math.max(hub.x - x, x - (hub.x + HUB_SIZE - 1), hub.y - y, y - (hub.y + HUB_SIZE - 1), 0);
+    for (let y = hub.y - 40; y <= hub.y + HUB_SIZE + 40; y++) {
+      for (let x = hub.x - 40; x <= hub.x + HUB_SIZE + 40; x++) {
+        const r = w.state.resources[w.idx(x, y)];
+        if (!r) continue;
+        expect(edge(x, y)).toBeGreaterThanOrEqual(ORE.minDistance);
+        if (edge(x, y) <= ORE.minDistance + 12) near.add(r);
+      }
+    }
     expect(near).toEqual(new Set([1, 2, 3]));
     // Ore spread across the map as well.
     expect(w.state.resources.filter((r) => r).length).toBeGreaterThan(MAP_SIZE * MAP_SIZE * 0.08);
@@ -756,6 +763,53 @@ describe('Wooden parts (D-105)', () => {
     }
     expect(Object.keys(BUILDINGS.workshop.cost).every((k) => wood.has(k))).toBe(true);
     expect(w.isUnlocked('workshop')).toBe(false);
+  });
+});
+
+describe('Ore that runs out, and trees that stop growing back (D-094, D-096)', () => {
+  it('an ore tile is bare ground once its 1200 ore are taken, by hand or by an extractor', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 30, w.hub!.y];
+    ore(w, x, y, 1);
+    expect(w.oreLeft(x, y)).toBe(ORE.perTile);
+    w.state.oreMined = { [w.idx(x, y)]: ORE.perTile - 1 };
+    stand(w, x + 1, y);
+    for (let i = 0; i < HAND_MINING.taps; i++) w.mineByHand(x, y);
+    expect(heldOf(w.state.players[0], 'iron_ore')).toBe(1);
+    expect(w.resourceAt(x, y)).toBeNull();
+    expect(w.oreLeft(x, y)).toBe(0);
+  });
+
+  it('an extractor makes one ore per ore tile under it each cycle, up to 4, and stops when they run out', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 30, w.hub!.y];
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) ore(w, x + dx, y + dy, 1, 1); // three of its four tiles
+    const ex = placed(w.place('extractor', x, y, 0));
+    for (let t = 0; t < EXTRACTOR_PERIOD + 0.05; t += TICK) w.tick();
+    expect(ex.outputs).toEqual(['iron_ore', 'iron_ore', 'iron_ore']); // nothing in front takes them
+    // Nearly used up: one ore left in each tile.
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) w.state.oreMined![w.idx(x + dx, y + dy)] = ORE.perTile - 1;
+    for (let t = 0; t < EXTRACTOR_PERIOD * 3; t += TICK) {
+      ex.outputs = [];
+      w.tick();
+    }
+    expect(w.resourceAt(x, y)).toBeNull();
+    expect(ex.progress).toBe(-1); // nothing left to mine
+  });
+
+  it('a stump grows back 3 times; the tree cut after that leaves clear ground', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 30, w.hub!.y];
+    const i = w.idx(x, y);
+    stand(w, x + 1, y);
+    for (let cut = 1; cut <= LUMBER.regrowths + 1; cut++) {
+      w.state.trees[i] = TREE;
+      for (let k = 0; k < HAND_MINING.taps; k++) w.mineByHand(x, y);
+      w.state.players[0].slots = emptySlots();
+      expect(w.treeAt(x, y)).toBe(cut <= LUMBER.regrowths ? STUMP : NO_TREE);
+    }
+    expect(w.state.regrow[i]).toBeGreaterThan(0); // the last stump's timer, from the cut before
+    expect(w.state.cuts?.[i]).toBeUndefined();
   });
 });
 

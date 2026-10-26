@@ -17,9 +17,12 @@ How the game works on `master` today. Balance numbers live in
 
 - A **256×256** tile grid, generated procedurally from a seed (the same seed gives the same map; D-038).
 - **Ore fields** come from layered value noise: irregular patches of iron (about 5% of the map),
-  copper and stone (about 3.5% each). A starter patch of each ore is placed 10–15 tiles from the hub,
-  and the ground right around the hub is kept clear.
-- Resource tiles never run out.
+  copper and stone (about 3.5% each). **No ore lies within 20 tiles of the hub's edge** (D-097); a starter
+  patch of each ore sits just beyond that, about 21 to 28 tiles out, so the first trips to mine by hand are
+  a real walk.
+- **Ore runs out (D-096):** each ore tile holds **1,200 ore**; mining by hand and extractors both take
+  from it, and once it's used up the tile is bare ground. Touching tiles of one ore are drawn as one
+  patch, on a shared bed of earth.
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
@@ -122,6 +125,9 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
   width, the tile left of centre as seen facing out). A small port with an arrow shows the spot.
   Machines accept input on any tile of any side, and buffer up to 3 crafts' worth of each input.
 - **Extractors** need ore under at least one tile of their base, and mine whichever ore covers most of it.
+  Every 1.5 s an extractor takes **one ore from each tile of that ore under it**: 1 to 4 a cycle, so one
+  set squarely on a patch makes 4 times as much (D-096). Its panel shows how much ore is left under it;
+  used up, it stands idle.
 - **Splitters** (1×2, #34) span two belts side by side. They accept items from directly behind either
   belt, and send them out of the front of both in turn, skipping a blocked one. Items keep their lane.
 - **Splitter filter (#62):** select a splitter, pick an item and **← Left** or **Right →**. That item
@@ -163,7 +169,7 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 
 ## Wood
 
-Wood is the one resource that runs out, for a while (D-044). The ship's hull doesn't use it, but later supply runs carry planks.
+Wood runs out for a while (D-044), and for good after a while (D-094). The ship's hull doesn't use it, but later supply runs carry planks.
 
 - **Engineers and bugs walk under the trees** (#95): the canopy is drawn over them. An engineer under a tree
   shows through faintly, so it isn't lost.
@@ -178,7 +184,8 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 - A cut tree leaves a **stump**, which grows back into a tree after **2 to 4 minutes** (3 on average,
   at random, so a grove grows back gradually and a camp's logs come steadily, #50). Stumps don't block
   building: building over one clears it for good. So a camp can clear land, or keep cutting the same
-  woods as they regrow.
+  woods as they regrow, but only so long: **a tree grows back 3 times**, and when it's cut a fourth time
+  the ground stays clear (D-094). Forests thin out over a long game, so camps move outward.
 - The **Sawmill** (2×2 machine) turns 1 log into 2 planks.
 - The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
   like walls. Walls and palisades join up with their neighbours, with their own corners and ends.

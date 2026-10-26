@@ -9,7 +9,7 @@ describe('Rates', () => {
     expect(Math.round(beltPerMinute('express_belt'))).toBe(1059);
     const plate = RECIPES.find((r) => r.output === 'iron_plate')!;
     expect(recipePerMinute(plate).output).toBeCloseTo((plate.count * 60) / plate.time);
-    expect(rateSummary('extractor')).toBe('40 ore/min');
+    expect(rateSummary('extractor')).toBe('40 ore/min per ore tile under it, up to 160'); // D-096
     expect(rateSummary('turret')).toMatch(/^3 shots\/s, 45 iron plate\/min while firing$/);
   });
 

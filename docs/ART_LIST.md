@@ -88,6 +88,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Rope (a coil of rope) | 32×32 (+64×64) | P2 | Placeholder (`items/rope`) |
 | Truss (a small triangular wooden frame) | 32×32 (+64×64) | P2 | Placeholder (`items/truss`) |
 
+Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tiles read as one patch (D-096).
+
 ## Buildings
 
 | Asset | Tiles | Notes | Frames | Priority | Status |

@@ -727,6 +727,12 @@ export class Hud {
       if (b.type === 'extractor') {
         const ore = b.recipe as ItemId | null;
         stats += `<br>Mining ${ore ? swatch(ore) + ITEMS[ore].name : 'nothing'}`;
+        // How much is left under it, and from how many tiles (D-096).
+        const [fw, fh] = world.footprintOf(b);
+        let left = 0;
+        let tiles = 0;
+        for (let y = b.y; y < b.y + fh; y++) for (let x = b.x; x < b.x + fw; x++) if (ore && world.resourceAt(x, y) === ore) [left, tiles] = [left + world.oreLeft(x, y), tiles + 1];
+        if (ore) stats += tiles ? `<br>${left} ore left in ${tiles} tile${tiles === 1 ? '' : 's'}: ${tiles} a cycle` : '<br>Used up: no ore left under it';
       }
       if (b.type === 'lumber_camp') {
         const [fw, fh] = world.footprintOf(b);

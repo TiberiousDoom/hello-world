@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.52.0 · 2026-10-26 · Deposits
+### New
+- **Ore runs out:** every ore tile holds 1,200 ore. Mining by hand and extractors use it up, and then it's bare ground.
+- **Bigger yields:** an extractor takes one ore from each ore tile under it every cycle, so one placed squarely on a patch makes up to 4 times as much. Its panel shows how much ore is left.
+- **Ore looks like deposits:** touching ore tiles share one bed of earth, so each patch reads as one deposit.
+- **Ore further out:** no ore lies within 20 tiles of the hub. The first trips to mine by hand are a real walk.
+- **Forests thin out:** a tree grows back 3 times; cut it a fourth time and the ground stays clear.
+
 ## 0.51.0 · 2026-10-26 · The shipyard and a bigger hub
 ### New
 - **The hub is 8×8** (it was 5×5), with more sides for rollers and belts to come in.

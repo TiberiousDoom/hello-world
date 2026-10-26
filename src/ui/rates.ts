@@ -48,7 +48,7 @@ export function rateSummary(type: BuildingType): string {
   if (type === 'roller') return `${fmt(ROLLER.speed)} tiles/s, ${fmt(BELT_SPEED)} when packed; up to ${fmt(beltPerMinute(type))} items/min`;
   if (isBelt(type)) return `${beltSpeed(type)} tiles/s, up to ${fmt(beltPerMinute(type))} items/min`;
   if (type === 'tunnel' || type === 'splitter') return `up to ${fmt(beltPerMinute('belt'))} items/min, like a belt`;
-  if (type === 'extractor') return `${fmt(60 / EXTRACTOR_PERIOD)} ore/min`;
+  if (type === 'extractor') return `${fmt(60 / EXTRACTOR_PERIOD)} ore/min per ore tile under it, up to ${fmt(240 / EXTRACTOR_PERIOD)}`;
   if (type === 'lumber_camp') return `up to ${fmt((LUMBER.logsPerTree * 60) / LUMBER.period)} logs/min while trees last`;
   if (isMachine(type)) {
     return RECIPES.filter((r) => r.machine === type)
@@ -67,7 +67,11 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
   if (b.type === 'extractor') {
     const ore = b.recipe as ItemId | null;
     if (!ore) return { max: rateSummary(b.type), now: 'Not on ore' };
-    return { max: `${fmt(60 / EXTRACTOR_PERIOD)} ${name(ore)}/min`, now: nowLine(world, b, b.outputs.length >= OUTPUT_BUFFER ? 'Output full: nothing is taking it' : 'Mining') };
+    const [fw, fh] = world.footprintOf(b);
+    let tiles = 0;
+    for (let y = b.y; y < b.y + fh; y++) for (let x = b.x; x < b.x + fw; x++) if (world.resourceAt(x, y) === ore) tiles++;
+    const status = !tiles ? 'Used up' : b.outputs.length >= OUTPUT_BUFFER ? 'Output full: nothing is taking it' : 'Mining';
+    return { max: `${fmt((60 * tiles) / EXTRACTOR_PERIOD)} ${name(ore)}/min`, now: nowLine(world, b, status) };
   }
   if (b.type === 'lumber_camp') {
     const [fw, fh] = world.footprintOf(b);
