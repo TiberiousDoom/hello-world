@@ -113,7 +113,14 @@ export interface Building {
   outLanes?: Lane[];
   /** Splitters: which side the filtered item goes out of; everything else takes the other (#62). */
   side?: 'left' | 'right';
+  /** Splitters: the last item each of its two lanes took in, and when, to keep two kinds apart (#92). */
+  fed?: ({ item: ItemId; at: number } | null)[];
+  /** Splitters: the lane (0 or 1, see splitterLanes) the buffered item came in through (#92). */
+  inFrom?: number;
 }
+
+/** A splitter whose two lanes both took in an item this recently, of different kinds, keeps them apart (#92). */
+export const SPLITTER_SORT_WINDOW = 5;
 
 export interface Enemy {
   id: number;
@@ -1075,10 +1082,13 @@ export class World {
         return insertShip(this, item);
       case 'splitter': {
         // Only from directly behind one of its two lanes.
-        if (!this.splitterLanes(target).some((l) => l.x - DX[target.dir] === fromX && l.y - DY[target.dir] === fromY)) return false;
+        const k = this.splitterLanes(target).findIndex((l) => l.x - DX[target.dir] === fromX && l.y - DY[target.dir] === fromY);
+        if (k < 0) return false;
         if (target.outputs.length) return false;
         target.outputs.push(item);
         target.outLanes = [lane ?? RIGHT];
+        target.inFrom = k;
+        (target.fed ??= [null, null])[k] = { item, at: this.state.time };
         return true;
       }
       case 'tunnel': {
@@ -1559,6 +1569,13 @@ export class World {
     });
   }
 
+  /** Whether a splitter is being fed two different kinds of item, one on each lane (#92). */
+  private sortsKinds(b: Building): boolean {
+    const [a, c] = b.fed ?? [];
+    const recent = (f: { at: number } | null | undefined) => !!f && this.state.time - f.at <= SPLITTER_SORT_WINDOW;
+    return recent(a) && recent(c) && a!.item !== c!.item;
+  }
+
   /** Which of a splitter's two lanes (see splitterLanes) is on its left, looking the way it faces. */
   splitterLeft(b: Building): 0 | 1 {
     const left = (b.dir + 3) % 4;
@@ -1568,8 +1585,9 @@ export class World {
 
   /**
    * Sends the buffered item on, keeping the belt lane it came in on (#61). With a filter, that item
-   * goes out of its chosen side and everything else out of the other (#62); without one, the two sides
-   * take turns, and a blocked side is skipped.
+   * goes out of its chosen side and everything else out of the other (#62). Without one, when both lanes
+   * are being fed two different kinds of item, each goes straight through on its own side (#92);
+   * otherwise the two sides take turns, and a blocked side is skipped.
    */
   private tickSplitter(b: Building): void {
     if (!b.outputs.length) return;
@@ -1581,7 +1599,8 @@ export class World {
       const leftSide = (item === b.filter) === ((b.side ?? 'left') === 'left');
       const left = this.splitterLeft(b);
       order = [leftSide ? left : 1 - left];
-    } else order = [b.rr % 2, (b.rr + 1) % 2];
+    } else if (b.inFrom != null && this.sortsKinds(b)) order = [b.inFrom];
+    else order = [b.rr % 2, (b.rr + 1) % 2];
     for (const k of order) {
       const l = lanes[k];
       const target = this.buildingAt(l.outX, l.outY);
