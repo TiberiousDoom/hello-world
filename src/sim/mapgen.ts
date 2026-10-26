@@ -3,7 +3,7 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { FOREST, NESTS, ORE } from './data';
+import { FOREST, NESTS, ORE, PONDS } from './data';
 import { hypot } from './math';
 import { Nest, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
@@ -86,6 +86,51 @@ function blob(w: World, cx: number, cy: number, kind: number, r: number): void {
   }
 }
 
+/** A mulberry32 generator from `seed`, for map features added to saves made before them. */
+export function seeded(seed: number): () => number {
+  let state = seed | 0;
+  return () => {
+    let t = (state = (state + 0x6d2b79f5) | 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Ponds (D-095): PONDS.count small, ragged lakes, none closer than PONDS.minDist tiles to the hub's centre
+ * (counting their own size). `free` says which tiles may hold water. Returns the water tiles' indices, in
+ * order; the caller clears ore and trees off them.
+ */
+export function generatePonds(
+  width: number,
+  height: number,
+  hubCx: number,
+  hubCy: number,
+  random: () => number,
+  free: (x: number, y: number) => boolean,
+): number[] {
+  const water = new Set<number>();
+  const [rMin, rMax] = PONDS.radius;
+  for (let n = 0, tries = 0; n < PONDS.count && tries < PONDS.count * 20; tries++) {
+    const r = rMin + random() * (rMax - rMin);
+    const cx = Math.floor(r + 2 + random() * (width - 2 * r - 4));
+    const cy = Math.floor(r + 2 + random() * (height - 2 * r - 4));
+    if (hypot(cx - hubCx, cy - hubCy) < PONDS.minDist + r + 1) continue;
+    n++;
+    // Two overlapping blobs, so ponds aren't all round.
+    const [ox, oy] = [(random() - 0.5) * r, (random() - 0.5) * r];
+    for (let y = Math.floor(cy - r * 1.6); y <= cy + r * 1.6; y++) {
+      for (let x = Math.floor(cx - r * 1.6); x <= cx + r * 1.6; x++) {
+        if (x < 0 || y < 0 || x >= width || y >= height || !free(x, y)) continue;
+        const d = Math.min(hypot(x - cx, y - cy), hypot(x - cx - ox, y - cy - oy) * 1.2);
+        if (d <= r + (random() - 0.5) * 0.8) water.add(y * width + x);
+      }
+    }
+  }
+  return [...water].sort((a, b) => a - b);
+}
+
 /**
  * Fills the tree layer (D-044): forest where noise is highest, never on ore,
  * buildings or the hub's clearing, plus one small grove just outside the
@@ -95,7 +140,7 @@ export function generateTrees(w: World, hubCx: number, hubCy: number): void {
   const { width, height } = w.state;
   const trees = w.state.trees;
   const free = (x: number, y: number) =>
-    w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && hypot(x - hubCx, y - hubCy) >= FOREST.clear;
+    w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && !w.isWater(x, y) && hypot(x - hubCx, y - hubCy) >= FOREST.clear;
   const noise = new ValueNoise(64, () => w.random());
   const values = new Float32Array(width * height);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) values[y * width + x] = noise.fbm(x / FOREST.scale, y / FOREST.scale);

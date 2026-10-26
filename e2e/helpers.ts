@@ -3,7 +3,7 @@
 
 import { Locator, Page, TestInfo, expect, test as base } from '@playwright/test';
 
-export const ALL_LESSONS = ['essentials', 'rollers', 'workshop', 'industry', 'defense', 'logistics', 'breach', 'shipyard'];
+export const ALL_LESSONS = ['essentials', 'rollers', 'workshop', 'industry', 'defense', 'logistics', 'power', 'breach', 'shipyard'];
 
 /** Fails any test whose page throws an uncaught error. */
 export const test = base.extend<{ pageErrors: string[] }>({
@@ -46,12 +46,12 @@ export async function newGame(page: Page, opts: { lessonsSeen?: string[]; tipsOf
   if (!opts.fresh) await stock(page);
 }
 
-/** Some hub stock, and Forestry, Industry (extractors, furnaces), Blacksmith and Logistics (belts, splitters, underground belts). */
+/** Some hub stock, and Forestry, Industry (extractors, furnaces), Blacksmith, Hydraulics and Metal Logistics (belts, splitters, underground belts). */
 export async function stock(page: Page): Promise<void> {
   await page.evaluate(() => {
     const s = window.game.world.state;
     Object.assign(s.inventory, { iron_plate: 100, brick: 24, copper_ingot: 16, stone: 40, iron_ore: 20, log: 40, plank: 20 });
-    for (const id of ['forestry', 'industry', 'blacksmith', 'logistics']) if (!s.researched.includes(id)) s.researched.push(id);
+    for (const id of ['forestry', 'industry', 'blacksmith', 'hydraulics', 'logistics']) if (!s.researched.includes(id)) s.researched.push(id);
   });
 }
 

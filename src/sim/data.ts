@@ -97,6 +97,9 @@ export type BuildingType =
   | 'sawmill'
   | 'blacksmith'
   | 'machine_shop'
+  | 'shaft'
+  | 'well'
+  | 'water_wheel'
   | 'palisade'
   | 'roller'
   | 'crate'
@@ -173,6 +176,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
   blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
   machine_shop: { name: 'Machine Shop', short: 'MS', color: '#4f6a86', hp: 140, size: [2, 2], cost: { iron_plate: 10, rivet: 10, brick: 4 }, blocking: true, description: 'Makes gears from iron plates and wire from copper ingots.' },
+  // Water power (D-095, D-113, D-115): sources turn drive shafts, which power belts.
+  shaft: { name: 'Drive Shaft', short: '', color: '#7d8794', hp: 30, cost: { iron_rod: 1 }, blocking: false, description: 'Carries power from a well or water wheel to belts and anything touching it. Drag to lay a line.' },
+  well: { name: 'Well', short: 'WE', color: '#4f7fa8', hp: 150, size: [2, 2], cost: { brick: 10, iron_plate: 6, iron_rod: 4 }, blocking: true, description: 'Draws groundwater anywhere to turn the drive shafts touching it. A little power.' },
+  water_wheel: { name: 'Water Wheel', short: 'WW', color: '#3f74b0', hp: 160, size: [3, 1], cost: { plank: 20, iron_rod: 10, rivet: 20 }, blocking: true, description: 'Place with its front tile in a pond and the other two on land. Four times the power of a well.' },
   palisade: { name: 'Palisade', short: '', color: '#8a6234', hp: 160, cost: { plank: 2 }, blocking: true, description: 'A cheap wooden wall. Weaker than stone.' },
   roller: {
     name: 'Wooden Roller',
@@ -355,6 +362,20 @@ export const EXPRESS_BELT_SPEED = 3; // a colony blueprint (D-049)
  * a roller packed with this many items is being pushed, and moves them at belt speed.
  */
 export const ROLLER = { speed: BELT_SPEED / 3, packed: 2 };
+
+/**
+ * Water power (D-113, D-115). Sources give power; each belt on a network uses `belt`. A network short of
+ * power slows its belts evenly, down to roller speed with none at all.
+ */
+export const POWER = {
+  sources: { well: 8, water_wheel: 32 } as Partial<Record<BuildingType, number>>,
+  belt: 0.2,
+};
+/** What carries power: shafts and sources to anything touching them, belts to belts beside them. */
+export const CONDUCTS: BuildingType[] = ['shaft', 'well', 'water_wheel', 'belt', 'splitter', 'tunnel'];
+
+/** Ponds (D-095): small lakes, none closer than `minDist` tiles to the hub's centre. */
+export const PONDS = { count: 16, minDist: 30, radius: [2.2, 4.2] as [number, number] };
 /** Belts of any kind, rollers included: they carry items the same way. */
 export const isBelt = (t: BuildingType): boolean => t === 'belt' || t === 'express_belt' || t === 'roller';
 export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EXPRESS_BELT_SPEED : t === 'roller' ? ROLLER.speed : BELT_SPEED);
@@ -399,7 +420,9 @@ export const RESEARCH: Research[] = [
   { id: 'blacksmith', name: 'Blacksmith', cost: { iron_ingot: 50, stone: 30 }, time: 45, requires: ['industry'], unlocks: ['blacksmith'], description: 'Blacksmiths hammer iron ingots into plates and rods, and rods into rivets.' },
   { id: 'charcoal', name: 'Charcoal', cost: { log: 40, iron_plate: 20 }, time: 45, requires: ['blacksmith'], unlocks: [], description: 'Furnaces can burn logs into charcoal, a fuel that lasts three times as long as a log.' },
   { id: 'machine_shop', name: 'Machine Shop', cost: { iron_plate: 80, rivet: 40, copper_ingot: 20 }, time: 60, requires: ['blacksmith'], unlocks: ['machine_shop'], description: 'Machine shops make gears from iron plates and wire from copper ingots.' },
-  { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: ['blacksmith'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
+  { id: 'hydraulics', name: 'Hydraulics', cost: { iron_plate: 80, iron_rod: 40, brick: 20 }, time: 45, requires: ['blacksmith'], unlocks: ['well', 'water_wheel', 'shaft'], description: 'Wells and water wheels turn drive shafts, which power belts.' },
+  // The id stays 'logistics' so saves keep it (D-115).
+  { id: 'logistics', name: 'Metal Logistics', cost: { iron_plate: 60, iron_rod: 40, brick: 20 }, time: 45, requires: ['hydraulics'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Powered belts, splitters and underground belts. A belt without power rolls only at roller speed.' },
   { id: 'defense', name: 'Advanced Defense', cost: { iron_plate: 20 }, time: 30, requires: ['blacksmith'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
   // The Wood Age's defences (D-089, D-107). Ids kept from before, so saves keep them.
   { id: 'palisades', name: 'Basic Defense', cost: { plank: 30, rope: 10 }, time: 30, requires: ['rollers', 'workshop'], unlocks: ['palisade', 'spike_pit'], description: 'Palisades, cheap wooden walls, and spike pits, traps bugs walk over.' },

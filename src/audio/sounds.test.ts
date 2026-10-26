@@ -23,6 +23,8 @@ class FakeSfx {
 
 function setup() {
   const w = World.create(1);
+  w.freePower = true; // power has tests of its own (D-115)
+  w.clearWater();
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id).filter((r) => r !== 'masonry');
   s.resources.fill(0);

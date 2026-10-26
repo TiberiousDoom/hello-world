@@ -238,7 +238,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     const w = window.game.world;
     w.state.inventory.iron_plate = 20;
     w.state.research.active = 'logistics';
-    w.state.research.paid.logistics = { iron_plate: 999 }; // finish it now
+    w.state.research.paid.logistics = { iron_plate: 999, iron_rod: 999, brick: 999 }; // finish it now
   });
   await expect(step).toHaveText(/^Splitters/);
   await page.click('.tip-next');

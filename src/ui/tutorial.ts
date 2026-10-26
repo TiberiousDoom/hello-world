@@ -10,7 +10,7 @@
 import { shipyard } from '../sim/ship';
 import { heldOf } from '../sim/player';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
-import { BREACH, BUILDINGS, BuildingType, CRATE_SIZE, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
+import { BREACH, BUILDINGS, BuildingType, CRATE_SIZE, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, POWER, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
 import { TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -478,6 +478,26 @@ export const LESSONS: Lesson[] = [
         target: () => ({ el: '[data-tool="splitter"]' }),
         text: () =>
           'Splitters span two belt lanes. They take items from behind either lane and send them out of both lanes in turn. Use them to branch a line, for example plates to both the hub and a turret.',
+      },
+    ],
+  },
+  {
+    id: 'power',
+    title: 'Water power',
+    // Hydraulics is done, and nothing gives power yet (D-115).
+    trigger: (w) => w.isUnlocked('well') && count(w, 'well') === 0 && count(w, 'water_wheel') === 0,
+    steps: [
+      {
+        target: () => ({ el: '[data-tool="well"]' }),
+        text: () =>
+          'Belts need power now: without it they roll only at roller speed. A Well works anywhere and turns the drive shafts touching it. ' +
+          'A Water Wheel gives four times as much, but its front tile has to sit in a pond.',
+      },
+      {
+        target: () => ({ el: '[data-tool="shaft"]' }),
+        text: () =>
+          `Lay Drive Shafts from a well to your belts: everything a shaft touches shares its power, and belts pass it along their line. ` +
+          `A well powers about ${Math.floor(POWER.sources.well! / POWER.belt)} belts. Select a belt to see how its network is doing.`,
       },
     ],
   },

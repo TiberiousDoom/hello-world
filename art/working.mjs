@@ -134,6 +134,16 @@ const MACHINES = {
     svg = swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'machine shop light');
     return svg;
   },
+  well(svg, i) {
+    // The crank turns a quarter of the way round over the loop, and back to the start: four-fold symmetric.
+    return swap(svg, '<g id="wCrank" transform="rotate(0 64 64)">', `<g id="wCrank" transform="rotate(${22.5 * i} 64 64)">`, 'well crank');
+  },
+  water_wheel(svg, i) {
+    // Eight paddles: an eighth of a turn over the loop. Spray flies off the paddles in the water.
+    svg = swap(svg, 'translate(160 32) rotate(0)', `translate(160 32) rotate(${11.25 * i})`, 'water wheel');
+    const spray = [[[150, 58], [168, 60]], [[154, 60], [172, 58]], [[148, 60], [164, 58]], [[156, 58], [170, 60]]][i];
+    return swap(svg, '<g fill="#d6f0ff" opacity="0"><circle cx="150" cy="56" r="2" /></g>', dots('#d6f0ff', spray, 2), 'water wheel spray');
+  },
   sawmill(svg, i) {
     svg = swap(svg, 'translate(64 64) rotate(4)', `translate(64 64) rotate(${4 + 5.625 * i})`, 'sawmill saw');
     // The log feeds into the blade.

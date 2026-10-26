@@ -160,6 +160,7 @@ export const DEMO_SCENES: DemoScene[] = [
 export function createDemoWorld(scene = 0): World {
   const def = DEMO_SCENES[scene % DEMO_SCENES.length];
   const w = World.create(def.seed);
+  w.freePower = true; // the menu shows belts at full speed without laying shafts to every one
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
   s.ship.blueprints = ['express_belt', 'tesla'];

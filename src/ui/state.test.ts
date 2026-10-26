@@ -8,6 +8,8 @@ import { PLAYER_COLORS, createUIState, placementAt, turnTool } from './state';
 /** A clear world with everything researched and plenty of stock. */
 function clearWorld(): World {
   const w = World.create(1);
+  w.freePower = true; // power has tests of its own (D-115)
+  w.clearWater();
   w.state.researched = RESEARCH.map((r) => r.id);
   w.state.resources.fill(0);
   w.state.trees.fill(0);
