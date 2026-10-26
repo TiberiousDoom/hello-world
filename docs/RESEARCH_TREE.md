@@ -96,7 +96,9 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
   2. ✅ Wooden parts (0.48.0, D-105): dowels (sawmill), pegs and rope (workshop), trusses (workshop, after
      Carpentry); the Workshop costs wood and keeps making gears and wire until the Machine Shop. Industry
      now costs 100 planks, 50 trusses and 50 stone, and needs Carpentry (Basic Defense 2 joins in step 4).
-  3. Rollers and the crate.
+  3. ✅ Rollers and the crate (0.49.0, D-106): rollers roll at a third of belt speed, and at belt speed
+     while packed (2 or more items on a tile); one lane, drawn narrower than belts. The crate holds 50 of
+     one item, sends them out of its front, and takes Collect and Drop off.
   4. The spike pit and the trebuchet.
   5. The 5×5 shipyard and the scaffolding stage.
 
@@ -176,7 +178,7 @@ About fifteen, added age by age with the age that uses them:
 Age by age, each playtested before the next:
 
 1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
-2. 🚧 **Wood Age** (decided, D-093; steps 1 and 2 done in 0.47.0 and 0.48.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
+2. 🚧 **Wood Age** (decided, D-093; steps 1 to 3 done in 0.47.0 to 0.49.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
 3. **Iron Age:** water power, powered belts, the Blacksmith and Machine Shop, fuel, hydraulic defences.

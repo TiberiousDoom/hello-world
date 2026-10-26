@@ -86,7 +86,9 @@ export type BuildingType =
   | 'shipyard'
   | 'lumber_camp'
   | 'sawmill'
-  | 'palisade';
+  | 'palisade'
+  | 'roller'
+  | 'crate';
 
 export interface BuildingDef {
   name: string;
@@ -101,6 +103,8 @@ export interface BuildingDef {
 }
 
 export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
+/** How many items a storage crate holds, all of one kind (D-093). */
+export const CRATE_SIZE = 50;
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [5, 5], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
@@ -155,6 +159,16 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   },
   sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
   palisade: { name: 'Palisade', short: '', color: '#8a6234', hp: 160, cost: { plank: 2 }, blocking: true, description: 'A cheap wooden wall. Weaker than stone.' },
+  roller: {
+    name: 'Wooden Roller',
+    short: '',
+    color: '#8a6234',
+    hp: 20,
+    cost: { plank: 1, dowel: 1 },
+    blocking: false,
+    description: 'Carries items in single file, slowly; a busy line packs up and goes faster. Drag to lay a line.',
+  },
+  crate: { name: 'Storage Crate', short: 'CR', color: '#9a6a3a', hp: 60, cost: { plank: 6, peg: 4 }, blocking: true, description: `Holds up to ${CRATE_SIZE} of one item. Rollers fill it, and a roller leaving its front takes items out.` },
   shipyard: {
     name: 'Shipyard',
     short: 'SHIP',
@@ -262,9 +276,14 @@ export const FOREST = {
 export const BELT_SPEED = 1.5; // tiles per second
 export const EXPRESS_BELT_SPEED = 3; // a colony blueprint (D-049)
 
-/** Belts of either speed: they carry items the same way. */
-export const isBelt = (t: BuildingType): boolean => t === 'belt' || t === 'express_belt';
-export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EXPRESS_BELT_SPEED : BELT_SPEED);
+/**
+ * Wooden rollers (D-093, D-106): one lane, no power. Items roll on their own at a third of belt speed;
+ * a roller packed with this many items is being pushed, and moves them at belt speed.
+ */
+export const ROLLER = { speed: BELT_SPEED / 3, packed: 2 };
+/** Belts of any kind, rollers included: they carry items the same way. */
+export const isBelt = (t: BuildingType): boolean => t === 'belt' || t === 'express_belt' || t === 'roller';
+export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EXPRESS_BELT_SPEED : t === 'roller' ? ROLLER.speed : BELT_SPEED);
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
 export const OUTPUT_BUFFER = 3;
 
@@ -308,6 +327,7 @@ export const RESEARCH: Research[] = [
   { id: 'ballistae', name: 'Ballistae', cost: { plank: 20, iron_plate: 10 }, time: 45, requires: ['palisades', 'defense'], unlocks: ['ballista'], description: 'Long-range towers that fire wooden stakes.' },
   { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
   { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: ['industry'], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
+  { id: 'rollers', name: 'Basic Logistics', cost: { log: 20, plank: 20, dowel: 50 }, time: 45, requires: ['forestry'], unlocks: ['roller', 'crate'], description: 'Wooden rollers carry items in single file without power, and storage crates hold 50 of one item.' },
   { id: 'workshop', name: 'Workshops', cost: { plank: 40, log: 20 }, time: 45, requires: ['forestry'], unlocks: ['workshop'], description: 'Workshops make pegs from dowels and rope from logs, and later gears and wire.' },
   { id: 'carpentry', name: 'Carpentry', cost: { plank: 60, peg: 40, rope: 20 }, time: 60, requires: ['workshop'], unlocks: [], description: 'Workshops can make trusses from planks, pegs and rope.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },

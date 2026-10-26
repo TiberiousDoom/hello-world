@@ -12,6 +12,8 @@ export function outputsTo(world: World, n: Building, x: number, y: number): bool
   switch (n.type) {
     case 'belt':
     case 'express_belt':
+    case 'roller':
+    case 'crate':
     case 'extractor':
     case 'lumber_camp':
     case 'furnace':
@@ -41,6 +43,8 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
   switch (b.type) {
     case 'belt':
     case 'express_belt':
+    case 'roller':
+    case 'crate':
       return !front;
     case 'tunnel':
       return !front && !world.isTunnelExit(b);

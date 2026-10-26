@@ -3,7 +3,7 @@
 
 import { Locator, Page, TestInfo, expect, test as base } from '@playwright/test';
 
-export const ALL_LESSONS = ['essentials', 'workshop', 'industry', 'defense', 'logistics', 'breach', 'shipyard'];
+export const ALL_LESSONS = ['essentials', 'rollers', 'workshop', 'industry', 'defense', 'logistics', 'breach', 'shipyard'];
 
 /** Fails any test whose page throws an uncaught error. */
 export const test = base.extend<{ pageErrors: string[] }>({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPEED, BREACH, BUILDINGS, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ROLLER, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -16,7 +16,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999 };
+  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, dowel: 999, peg: 999 };
   return w;
 }
 
@@ -756,6 +756,55 @@ describe('Wooden parts (D-105)', () => {
     }
     expect(Object.keys(BUILDINGS.workshop.cost).every((k) => wood.has(k))).toBe(true);
     expect(w.isUnlocked('workshop')).toBe(false);
+  });
+});
+
+describe('Rollers and crates (D-106)', () => {
+  it('a roller line carries items in single file, slowly, and at belt speed once it is packed', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const y = hub.y + 2;
+    const start = hub.x - 10;
+    for (let x = start; x < hub.x; x++) placed(w.place('roller', x, y, 0));
+    const first = w.buildingAt(start, y)!;
+    // One item, from either side lane of a belt, rolls down the middle at a third of belt speed.
+    expect(w.insert(first, 'log', start - 1, y, LEFT)).toBe(true);
+    expect(first.belt[0].lane).toBe(RIGHT);
+    run(w, 1);
+    expect(first.belt[0].pos).toBeCloseTo(ROLLER.speed, 1);
+    // A fed line packs up and moves faster: items keep arriving at the hub well above the slow rate.
+    const before = w.state.inventory.plank ?? 0;
+    for (let t = 0; t < 30; t += TICK) {
+      w.insert(first, 'plank', start - 1, y);
+      w.tick();
+    }
+    const slow = (30 * ROLLER.speed) / BELT_SPACING;
+    expect((w.state.inventory.plank ?? 0) - before).toBeGreaterThan(slow * 1.3);
+  });
+
+  it('a crate holds up to 50 of one item, sends them out of its front, and can be collected from', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const crate = placed(w.place('crate', hub.x - 12, hub.y + 2, 0));
+    for (let i = 0; i < CRATE_SIZE; i++) expect(w.insert(crate, 'plank', crate.x - 1, crate.y)).toBe(true);
+    expect(w.insert(crate, 'plank', crate.x - 1, crate.y)).toBe(false); // full
+    crate.outputs.pop();
+    expect(w.insert(crate, 'log', crate.x - 1, crate.y)).toBe(false); // one kind only
+    expect(w.insert(crate, 'plank', crate.x + 1, crate.y)).toBe(false); // not from the tile it feeds
+    // A roller leaving its front takes items out.
+    const out = placed(w.place('roller', crate.x + 1, crate.y, 0));
+    run(w, 1);
+    expect(out.belt.length).toBeGreaterThan(0);
+    // The engineer collects what fits.
+    stand(w, crate.x - 1, crate.y);
+    expect(w.collect(crate.id)).toBeGreaterThan(0);
+    expect(heldOf(w.state.players[0], 'plank')).toBeGreaterThan(0);
+  });
+
+  it('Basic Logistics comes after Forestry and is paid in wood', () => {
+    expect(RESEARCH_BY_ID.rollers.requires).toEqual(['forestry']);
+    expect(RESEARCH_BY_ID.rollers.unlocks).toEqual(['roller', 'crate']);
+    for (const t of ['roller', 'crate'] as const) for (const k of Object.keys(BUILDINGS[t].cost)) expect(['plank', 'dowel', 'peg', 'log']).toContain(k);
   });
 });
 

@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.49.0 · 2026-10-26 · Rolling along
+### New
+- **Wooden rollers:** research **Basic Logistics** (logs, planks and dowels) right after Forestry, and lay rollers like belts. Items roll slowly in single file on their own; a busy line packs up and moves at belt speed, so it keeps up with what you put on it.
+- **Storage crates** hold 50 of one item. Rollers fill them, a roller leaving the front takes items out, and your engineer can Collect from them or Drop off into them.
+- **A Rollers lesson** shows how to lay a line and what crates are for.
+
 ## 0.48.0 · 2026-10-26 · Wooden parts
 ### New
 - **Wooden parts:** sawmills can saw planks into **dowels**, and workshops make **pegs** from dowels and **rope** from logs. Research **Carpentry** and workshops make **trusses** from planks, pegs and rope.

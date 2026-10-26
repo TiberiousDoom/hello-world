@@ -26,7 +26,7 @@
 // The character (#40): with nothing in hand, tapping or clicking empty ground walks there, and the
 // character walks over by itself to mine or fetch things. WASD or the arrow keys walk it directly.
 
-import { BuildingType, DX, DY, Dir, HAND_MINING, TUNNEL_RANGE, footprint } from '../sim/data';
+import { BuildingType, DX, DY, Dir, HAND_MINING, TUNNEL_RANGE, footprint, isBelt } from '../sim/data';
 import { planSteps, tunnelExitSpot } from '../ui/plan';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, TREE, World } from '../sim/world';
@@ -70,7 +70,7 @@ const TAP_SLOP = 8; // px a pointer may move and still count as a tap
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 const LONG_PRESS = 450; // ms a finger rests on a building to pick it
 /** Tools drawn out as lines by dragging; everything else is dragged into place. */
-const LINE_TOOLS: readonly string[] = ['belt', 'express_belt', 'wall', 'palisade'];
+const LINE_TOOLS: readonly string[] = ['belt', 'express_belt', 'roller', 'wall', 'palisade'];
 
 export class Input {
   private pointers = new Map<number, { x: number; y: number }>();
@@ -542,8 +542,8 @@ export class Input {
         dir = dy > 0 ? 1 : 3;
         y += Math.sign(dy);
       }
-      if (this.ui.tool === 'belt' || this.ui.tool === 'express_belt') {
-        // Dragging belts points each one at the next.
+      if (this.ui.tool && this.ui.tool !== 'demolish' && isBelt(this.ui.tool)) {
+        // Dragging belts (or rollers) points each one at the next.
         if (this.lastPlaced) this.cb.issue({ kind: 'turn', ...this.lastPlaced, dir });
         if (this.ui.dir !== dir) {
           this.ui.dir = dir;
