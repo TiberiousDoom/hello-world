@@ -16,6 +16,8 @@ function placed(r: Building | string): Building {
 /** A quiet world (no bugs) with everything researched and plenty of stock. */
 function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   const w = World.create(21, mode);
+  w.freePower = true; // power has tests of its own (D-115)
+  w.clearWater();
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
   s.resources.fill(0);

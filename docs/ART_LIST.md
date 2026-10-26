@@ -91,6 +91,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Iron rod (three long round bars) | 32×32 (+64×64) | P2 | Placeholder (`items/iron_rod`) |
 | Rivet (two domed rivets) | 32×32 (+64×64) | P2 | Placeholder (`items/rivet`) |
 
+Ponds (D-115) are drawn in code: a muddy shore, water, deeper water away from the edge, and glints close up.
+
 Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tiles read as one patch (D-096).
 
 ## Buildings
@@ -110,6 +112,9 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Furnace | 2×2 (128×128) | Idle and working, facing east. Working: flames, embers, smoke from the chimney | 1 + 4 | P1 | Upgraded; working strip `furnace_working_4f` |
 | Workshop | 2×2 (128×128) | Idle and working, facing east. Working: the gears turn, the lamp blinks | 1 + 4 | P2 | Upgraded; working strip `workshop_working_4f` |
 | Blacksmith (D-113): a forge of glowing coals, an anvil with an ingot on it, a hammer, a stack of ingots | 2×2 (128×128) | Idle and working, facing east. Working: the hammer swings and strikes, sparks fly, the coals breathe | 1 + 4 | P2 | Placeholder; working strip `blacksmith_working_4f` |
+| Drive shaft (D-115): a steel rod with a coupling, running east–west | 1×1 | Laid in lines; turned to run along them | 1 | P2 | Placeholder (`buildings/shaft`) |
+| Well (D-115): a round stone well with water inside and a crank across it | 2×2 (128×128) | Always working: the crank turns | 1 + 4 | P2 | Placeholder; working strip `well_working_4f` |
+| Water wheel (D-115): a wooden gearbox on land with a shaft out to a paddle wheel at its front, in the water | 3×1 (192×64), facing east | Always working: the wheel turns, spray flies | 1 + 4 | P2 | Placeholder; working strip `water_wheel_working_4f` |
 | Machine Shop (D-113): a lathe and two gears on a steel floor | 2×2 (128×128) | Idle and working, facing east. Working: the lathe's chuck spins, the gears turn, the light blinks | 1 + 4 | P2 | Placeholder; working strip `machine_shop_working_4f` |
 | Assembler | 3×3 (192×192) | Idle and working, facing east. Working: the arm nods and welds, the gear turns, the lights take turns | 1 + 4 | P2 | Upgraded; working strip `assembler_working_4f` |
 | Splitter | 1×2 (64×128), facing east | A box straddling two belt lanes, an arrow on each: two lanes in, two out (#34) | 1 | P2 | Upgraded |

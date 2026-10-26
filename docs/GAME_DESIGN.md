@@ -26,6 +26,9 @@ How the game works on `master` today. Balance numbers live in
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
+- **Ponds (D-095, D-115):** about 16 small, ragged lakes, none within 30 tiles of the hub's centre, with no
+  ore or trees on them. Nothing is built on water except a Water Wheel's front tile; engineers walk round
+  ponds, and bugs wade through them slowly (a pond costs them 4 times a dry tile).
 - The **8×8 hub** sits in the centre (5×5 before D-108).
 - **Fog of war (D-099, D-112):** the map is hidden under the dark of the forest until something sees it,
   in 4×4-tile cells with a soft edge. The hub sees 36 tiles from its middle (past the starter ore), your
@@ -78,7 +81,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 
 | Building | Size | Cost | HP | Unlocked by |
 |---|---|---|---|---|
-| Belt | 1×1 | 1 iron plate | 30 | Logistics |
+| Belt | 1×1 | 1 iron plate | 30 | Metal Logistics |
 | Extractor | 2×2 | 4 stone, 4 iron ore | 80 | Industry |
 | Furnace | 2×2 | 6 stone | 120 | Industry |
 | Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Advanced Defense |
@@ -89,8 +92,11 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Blacksmith | 2×2 | 10 stone, 6 iron ingots | 140 | Blacksmith |
 | Machine Shop | 2×2 | 10 iron plates, 10 rivets, 4 bricks | 140 | Machine Shop |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
-| Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Logistics |
-| Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Logistics |
+| Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Metal Logistics |
+| Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Metal Logistics |
+| Drive Shaft | 1×1 | 1 iron rod | 30 | Hydraulics |
+| Well | 2×2 | 10 bricks, 6 iron plates, 4 iron rods | 150 | Hydraulics |
+| Water Wheel | 3×1, front tile in a pond | 20 planks, 10 iron rods, 20 rivets | 160 | Hydraulics |
 | Assembler | 3×3 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
 | Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
@@ -123,7 +129,15 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 - **Storage crate** (1×1, D-106): holds up to **50 of one item**. Rollers or belts fill it from any side
   but its front; it sends its items out of its front onto a roller or belt there. **Collect** takes what
   fits in the engineer's inventory, and **Drop off** puts items in.
-- **Belts** move 1.5 tiles/s and have **two lanes** side by side (#61, D-069), each holding about 3
+- **Water power (D-113, D-115):** belts need power. A **Well** (anywhere) gives **8** power and a
+  **Water Wheel** (its front tile in a pond, the other two on land) gives **32**; each belt uses **0.2**, so a
+  well runs 40 belts and a wheel 160. Power travels through **drive shafts** (laid in lines like belts) and
+  anything touching them: every shaft, source, belt, splitter and underground belt that touches another
+  is on the same network, and an underground pair carries it across. A network with less power than its
+  belts use slows them all evenly; a belt with no power at all rolls at **roller speed** (0.5 tiles/s).
+  Selecting a belt, shaft or source shows its network's power and use. Rollers and express belts need no
+  power.
+- **Belts** move 1.5 tiles/s when powered and have **two lanes** side by side (#61, D-069), each holding about 3
   items per tile, so a belt line carries up to about **530 items a minute** (an express belt about
   1,060). A belt accepts items from any side except the tile it points into. An item reaching the end
   of a belt carries straight on onto the next one, at an even speed (#49).
@@ -237,7 +251,8 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Blacksmith | 50 iron ingots, 30 stone | 45 s | Industry | Blacksmith (plates, rods, rivets) |
 | Machine Shop | 80 iron plates, 40 rivets, 20 copper | 60 s | Blacksmith | Machine Shop (gears, wire) |
 | Charcoal | 40 logs, 20 iron plates | 45 s | Blacksmith | The charcoal recipe (a fuel that lasts three times as long as a log) |
-| Logistics | 10 iron plates | 20 s | Blacksmith | Belt, Splitter, Underground Belt |
+| Hydraulics | 80 iron plates, 40 iron rods, 20 bricks | 45 s | Blacksmith | Well, Water Wheel, Drive Shaft |
+| Metal Logistics | 60 iron plates, 40 iron rods, 20 bricks | 45 s | Hydraulics | Belt, Splitter, Underground Belt |
 | Advanced Defense | 20 iron plates | 30 s | Blacksmith | Turret |
 | Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
 | Basic Defense 2 | 100 logs, 100 planks, 200 rope, 50 trusses | 120 s | Basic Defense, Carpentry | Trebuchet, Ballista |
@@ -343,7 +358,7 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 7. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand, after Basic Defense 2) to unlock the **extractor** and
    the **furnace**, which smelts iron ore into **ingots**.
 8. **The Iron Age's shops (D-113):** research **Blacksmith** (50 ingots, 30 stone) for the Blacksmith, which
-   hammers ingots into **plates** (or rods, and rods into rivets). Plates pay for **Logistics** (belts) and
+   hammers ingots into **plates** (or rods, and rods into rivets). Plates pay for **Hydraulics**, then **Metal Logistics** (powered belts), and
    **Advanced Defense** (turrets). The **Machine Shop** (after Blacksmith) makes gears and wire.
 
 ## Bugs
@@ -597,7 +612,8 @@ one research tree, one supply ship.
   | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
   | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect an ingot and bring it back (and what the fuel bar means) → research Blacksmith → place a blacksmith in front of the furnace's arrow → what it makes, and what plates pay for |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Blacksmith is done |
-  | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
+  | Splitters and tunnels | The splitter is unlocked (Metal Logistics) | What splitters do |
+  | Water power | Hydraulics is researched, before any well or water wheel is built | Wells and water wheels → drive shafts, and how many belts a well runs |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it on its staked-out site → stages and the side view → cargo and launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
@@ -744,7 +760,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v29**). v29 (D-114) fills the fuel store of every furnace and blacksmith, and gives a game
+- Save files are versioned (currently **v30**). v30 (D-115) adds ponds away from what's built, gives a game with Logistics
+  Hydraulics, and puts stock in the hub for the wells and shafts its belts now need. v29 (D-114) fills the fuel store of every furnace and blacksmith, and gives a game
   already making or holding charcoal the Charcoal research. v28 (D-113) switches furnaces making plates to iron ingots, turns workshops
   making gears or wire into machine shops in place, and gives a game past Industry the Blacksmith (and the Machine Shop, if it
   made gears or wire or researched what needs them). v27 (D-112) adds fog of war, with what the buildings and engineers see already explored. v26 (D-109) stakes out a site for the shipyard, refunds

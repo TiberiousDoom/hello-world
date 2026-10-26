@@ -51,10 +51,12 @@ import {
   isMachine,
   FUEL,
   burnsFuel,
+  POWER,
+  CONDUCTS,
 } from './data';
 import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
-import { generateNests, generateResources, generateTrees } from './mapgen';
+import { generateNests, generatePonds, generateResources, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
 import { newFog, revealBuilding, tickFog } from './fog';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
@@ -83,8 +85,9 @@ export type { ResearchState };
  * v27 (D-112) adds fog of war; older saves have seen what their buildings and engineers can see.
  * v28 (D-113): furnaces smelt iron ingots; workshops making gears or wire become machine shops.
  * v29 (D-114): furnaces and blacksmiths burn fuel; old ones start with a full store.
+ * v30 (D-115) adds ponds, and powered belts: old games get Hydraulics with Logistics, and stock for wells.
  */
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -188,6 +191,14 @@ export interface GameState {
   cuts?: Record<number, number>;
   /** Fog of war (D-112): 1 for each FOG.cell-sized cell anyone has seen, row by row. */
   explored: number[];
+  /** Ponds (D-095, D-115): the indices of water tiles, in order. */
+  water: number[];
+}
+
+/** One power network (D-115): what its sources give and its belts use. */
+export interface PowerNet {
+  supply: number;
+  demand: number;
 }
 
 export interface PathTimers {
@@ -220,7 +231,7 @@ export interface Shot {
 
 /** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
 export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
-export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site' | 'unmovable';
+export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site' | 'unmovable' | 'water' | 'needs-water';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
@@ -276,10 +287,17 @@ export class World {
   private watchedSince = new Map<number, number>();
   /** Items delivered to the hub this session (not saved); lets the tutorial notice a first delivery. */
   delivered: ItemCounts = {};
+  /** Water tiles (D-115), from `state.water`. */
+  private wet: Uint8Array;
+  /** Power networks (D-115), worked out from the buildings whenever they change (`layout`): each conductor's network. */
+  private nets = new Map<number, PowerNet>();
+  private netsAt = -1;
 
   constructor(state: GameState) {
     this.state = state;
     this.tiles = new Int32Array(state.width * state.height);
+    this.wet = new Uint8Array(state.width * state.height);
+    for (const i of state.water ?? []) this.wet[i] = 1;
     this.flow = new Float64Array(state.width * state.height);
     this.shipFlow = new Float64Array(state.width * state.height);
     for (const b of state.buildings) this.index(b, false);
@@ -314,6 +332,7 @@ export class World {
       players: [],
       nextSpread: NESTS.spreadEvery,
       explored: [],
+      water: [],
     };
     state.explored = newFog(state);
     const world = new World(state);
@@ -321,6 +340,7 @@ export class World {
     const hy = hx;
     const centre = hx + Math.floor(HUB_SIZE / 2);
     generateResources(world, centre, centre, HUB_SIZE / 2);
+    world.addWater(generatePonds(size, size, centre, centre, () => world.random(), () => true));
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
     state.players = [newPlayer(world, 0)];
@@ -335,6 +355,7 @@ export class World {
 
   static fromJSON(json: string): World {
     const state = JSON.parse(json) as GameState;
+    const before = state.version;
     if (state.version === 8) World.migrateV8(state);
     if (state.version === 9) World.migrateV9(state);
     if (state.version === 10) World.migrateV10(state);
@@ -356,10 +377,41 @@ export class World {
     if (state.version === 26) World.migrateV26(state);
     if (state.version === 27) World.migrateV27(state);
     if (state.version === 28) World.migrateV28(state);
+    if (state.version === 29) World.migrateV29(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
+    if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
     world.rebuildPaths();
     return world;
+  }
+
+  /** Ponds for a game saved before them (D-115), away from its buildings, from a generator of its own. */
+  private addPonds(): void {
+    const hub = this.hub;
+    if (!hub) return;
+    const c = hub.x + Math.floor(HUB_SIZE / 2);
+    const cy = hub.y + Math.floor(HUB_SIZE / 2);
+    const site = this.state.shipSite;
+    const free = (x: number, y: number) =>
+      !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
+    this.addWater(generatePonds(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x5eed), free));
+  }
+
+  /**
+   * v29 to v30 (D-115): ponds, and belts that need power. A game with Logistics gets Hydraulics, which it
+   * now needs, and enough stock for wells and shafts to keep its belts at full speed.
+   */
+  private static migrateV29(state: GameState): void {
+    state.water = [];
+    if (state.researched.includes('logistics') && !state.researched.includes('hydraulics')) state.researched.push('hydraulics');
+    const belts = state.buildings.filter((b) => b.type === 'belt').length;
+    if (belts) {
+      const wells = Math.ceil((belts * POWER.belt) / POWER.sources.well!);
+      const inv = state.inventory;
+      for (const [k, n] of Object.entries(BUILDINGS.well.cost)) inv[k as ItemId] = (inv[k as ItemId] ?? 0) + n! * wells;
+      inv.iron_rod = (inv.iron_rod ?? 0) + 10 * wells; // shafts to reach the belts
+    }
+    state.version = 30;
   }
 
   /**
@@ -709,6 +761,101 @@ export class World {
     return RESOURCE_ITEMS[this.state.resources[this.idx(x, y)]];
   }
 
+  isWater(x: number, y: number): boolean {
+    return this.inBounds(x, y) && this.wet[this.idx(x, y)] === 1;
+  }
+
+  /** Removes every pond (test worlds that want plain ground). */
+  clearWater(): void {
+    this.wet.fill(0);
+    this.state.water = [];
+  }
+
+  /** Makes water tiles, clearing ore and trees off them (map generation and migration only). */
+  private addWater(tiles: number[]): void {
+    for (const i of tiles) {
+      this.wet[i] = 1;
+      this.state.resources[i] = 0;
+      this.state.trees[i] = NO_TREE;
+      delete this.state.regrow[i];
+    }
+    this.state.water = [...new Set([...(this.state.water ?? []), ...tiles])].sort((a, b) => a - b);
+  }
+
+  /** The tile of a water wheel's footprint that must be in the water: its front (D-095). */
+  wheelFront(x: number, y: number, dir: Dir): { x: number; y: number } {
+    const [w, h] = footprint('water_wheel', dir);
+    return { x: DX[dir] > 0 ? x + w - 1 : x, y: DY[dir] > 0 ? y + h - 1 : y };
+  }
+
+  // ------------------------------------------------------------ power (D-115)
+
+  /** The power network a building is on, if it carries power at all. */
+  powerNet(b: Building): PowerNet | undefined {
+    this.refreshPower();
+    return this.nets.get(b.id);
+  }
+
+  /**
+   * Every belt runs at full speed, as if powered (not saved): for unit tests of other rules, and the main
+   * menu's demo, neither of which is a co-op game.
+   */
+  freePower = false;
+
+  /** How much of what it needs a belt gets: 1 is full speed, 0 rolls at roller speed. */
+  powered(b: Building): number {
+    if (this.freePower) return 1;
+    const n = this.powerNet(b);
+    if (!n || n.supply <= 0) return 0;
+    return n.demand <= 0 ? 1 : Math.min(1, n.supply / n.demand);
+  }
+
+  /** How fast items move on a belt-like building, in tiles a second. Powered belts slow without power (D-115). */
+  speedOf(b: Building): number {
+    if (b.type === 'belt') return ROLLER.speed + (BELT_SPEED - ROLLER.speed) * this.powered(b);
+    return beltSpeed(b.type);
+  }
+
+  /**
+   * Works out the power networks: every conductor (shafts, sources, belts, splitters and underground belts)
+   * connects to the conductors it touches, and an underground pair to its other end.
+   */
+  private refreshPower(): void {
+    if (this.netsAt === this.layout) return;
+    this.netsAt = this.layout;
+    this.nets.clear();
+    for (const start of this.state.buildings) {
+      if (!CONDUCTS.includes(start.type) || this.nets.has(start.id)) continue;
+      const net: PowerNet = { supply: 0, demand: 0 };
+      const queue = [start];
+      this.nets.set(start.id, net);
+      while (queue.length) {
+        const b = queue.pop()!;
+        net.supply += POWER.sources[b.type] ?? 0;
+        if (b.type === 'belt') net.demand += POWER.belt;
+        const next: Building[] = [];
+        const [fw, fh] = this.footprintOf(b);
+        for (let dy = 0; dy < fh; dy++) {
+          for (let dx = 0; dx < fw; dx++) {
+            for (let d = 0; d < 4; d++) {
+              const n = this.buildingAt(b.x + dx + DX[d], b.y + dy + DY[d]);
+              if (n && n !== b && CONDUCTS.includes(n.type)) next.push(n);
+            }
+          }
+        }
+        if (b.type === 'tunnel' && b.link != null) {
+          const other = this.byId.get(b.link);
+          if (other) next.push(other);
+        }
+        for (const n of next) {
+          if (this.nets.has(n.id)) continue;
+          this.nets.set(n.id, net);
+          queue.push(n);
+        }
+      }
+    }
+  }
+
   treeAt(x: number, y: number): number {
     return this.inBounds(x, y) ? this.state.trees[this.idx(x, y)] : NO_TREE;
   }
@@ -1044,6 +1191,17 @@ export class World {
         if (b && b !== moving && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
         if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
         if (moundAt(this, x + dx, y + dy)) return 'nest';
+        if (type !== 'water_wheel' && this.isWater(x + dx, y + dy)) return 'water';
+      }
+    }
+    if (type === 'water_wheel') {
+      // Its front tile in a pond, the other two on land (D-095).
+      const f = this.wheelFront(x, y, dir);
+      for (let dy = 0; dy < h; dy++) {
+        for (let dx = 0; dx < w; dx++) {
+          const front = x + dx === f.x && y + dy === f.y;
+          if (front !== this.isWater(x + dx, y + dy)) return front ? 'needs-water' : 'water';
+        }
       }
     }
     if (type === 'shipyard' && shipyard(this)) return 'unique';
@@ -1770,7 +1928,7 @@ export class World {
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
     // A roller rolls items slowly on its own, and at belt speed while it's packed: pushed (D-106).
-    const speed = b.type === 'tunnel' ? BELT_SPEED : b.type === 'roller' && items.length >= ROLLER.packed ? BELT_SPEED : beltSpeed(b.type);
+    const speed = b.type === 'tunnel' ? BELT_SPEED : b.type === 'roller' && items.length >= ROLLER.packed ? BELT_SPEED : this.speedOf(b);
     const over = this.advanceItems(items, dt, 1, speed);
     for (const lane of [LEFT, RIGHT]) {
       const i = items.findIndex((it) => it.lane === lane);
@@ -2092,7 +2250,7 @@ export class World {
   /** Cost for a bug to step onto a tile; blocking buildings must be chewed through. */
   private enterCost(i: number): number {
     const id = this.tiles[i];
-    if (!id) return 1;
+    if (!id) return this.wet[i] ? 4 : 1; // bugs wade through ponds, slowly (D-115)
     const b = this.byId.get(id)!;
     if (!BUILDINGS[b.type].blocking) return 1;
     return 1 + BUILDINGS[b.type].hp / 25;

@@ -167,9 +167,9 @@ export function playerOf(w: World, id = 0): Player {
   return w.state.players.find((p) => p.id === id) ?? w.state.players[0];
 }
 
-/** Whether the character can't stand on tile (x, y): off the map, a solid building or a nest's mound. */
+/** Whether the character can't stand on tile (x, y): off the map, a pond, a solid building or a nest's mound. */
 export function blocked(w: World, x: number, y: number): boolean {
-  if (!w.inBounds(x, y)) return true;
+  if (!w.inBounds(x, y) || w.isWater(x, y)) return true;
   const b = w.buildingAt(x, y);
   return (!!b && BUILDINGS[b.type].blocking) || !!moundAt(w, x, y);
 }

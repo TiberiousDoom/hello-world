@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 128"><defs>
+            <filter id="wSh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="2.5" dy="4" stdDeviation="2.5" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+            <pattern id="wStone" width="20" height="14" patternUnits="userSpaceOnUse"><rect width="20" height="14" fill="#8a8478" /><path d="M0 0.75 H20 M0 7.75 H20 M5 0 V7 M15 7 V14" stroke="#5a554c" stroke-width="1.4" /></pattern>
+            <radialGradient id="wWater" cx="50%" cy="45%"><stop offset="0" stop-color="#7fc4ec" /><stop offset="1" stop-color="#1f5a86" /></radialGradient>
+            <linearGradient id="wSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c5ced8" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+          </defs><svg x="0" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden">
+          <g filter="url(#wSh)"><circle cx="64" cy="64" r="54" fill="url(#wStone)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <circle cx="64" cy="64" r="34" fill="#2a2f38" stroke="#0f1a2e" stroke-width="3" />
+          <circle cx="64" cy="64" r="28" fill="url(#wWater)" />
+          <path d="M50 56 q8 -4 16 0 M62 72 q8 -4 16 0" stroke="#d6f0ff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7" />
+          <rect x="14" y="58" width="100" height="12" rx="3" fill="url(#wSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="wCrank" transform="rotate(0 64 64)"><rect x="58" y="34" width="12" height="60" rx="4" fill="#7a5230" stroke="#0f1a2e" stroke-width="2.5" /><circle cx="64" cy="64" r="8" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" /></g>
+          <g fill="#5d6670" stroke="#0f1a2e" stroke-width="2"><rect x="4" y="54" width="12" height="20" rx="2" /><rect x="112" y="54" width="12" height="20" rx="2" /><rect x="54" y="4" width="20" height="12" rx="2" /><rect x="54" y="112" width="20" height="12" rx="2" /></g>
+        </svg><svg x="128" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden">
+          <g filter="url(#wSh)"><circle cx="64" cy="64" r="54" fill="url(#wStone)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <circle cx="64" cy="64" r="34" fill="#2a2f38" stroke="#0f1a2e" stroke-width="3" />
+          <circle cx="64" cy="64" r="28" fill="url(#wWater)" />
+          <path d="M50 56 q8 -4 16 0 M62 72 q8 -4 16 0" stroke="#d6f0ff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7" />
+          <rect x="14" y="58" width="100" height="12" rx="3" fill="url(#wSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="wCrank" transform="rotate(22.5 64 64)"><rect x="58" y="34" width="12" height="60" rx="4" fill="#7a5230" stroke="#0f1a2e" stroke-width="2.5" /><circle cx="64" cy="64" r="8" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" /></g>
+          <g fill="#5d6670" stroke="#0f1a2e" stroke-width="2"><rect x="4" y="54" width="12" height="20" rx="2" /><rect x="112" y="54" width="12" height="20" rx="2" /><rect x="54" y="4" width="20" height="12" rx="2" /><rect x="54" y="112" width="20" height="12" rx="2" /></g>
+        </svg><svg x="256" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden">
+          <g filter="url(#wSh)"><circle cx="64" cy="64" r="54" fill="url(#wStone)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <circle cx="64" cy="64" r="34" fill="#2a2f38" stroke="#0f1a2e" stroke-width="3" />
+          <circle cx="64" cy="64" r="28" fill="url(#wWater)" />
+          <path d="M50 56 q8 -4 16 0 M62 72 q8 -4 16 0" stroke="#d6f0ff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7" />
+          <rect x="14" y="58" width="100" height="12" rx="3" fill="url(#wSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="wCrank" transform="rotate(45 64 64)"><rect x="58" y="34" width="12" height="60" rx="4" fill="#7a5230" stroke="#0f1a2e" stroke-width="2.5" /><circle cx="64" cy="64" r="8" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" /></g>
+          <g fill="#5d6670" stroke="#0f1a2e" stroke-width="2"><rect x="4" y="54" width="12" height="20" rx="2" /><rect x="112" y="54" width="12" height="20" rx="2" /><rect x="54" y="4" width="20" height="12" rx="2" /><rect x="54" y="112" width="20" height="12" rx="2" /></g>
+        </svg><svg x="384" y="0" width="128" height="128" viewBox="0 0 128 128" overflow="hidden">
+          <g filter="url(#wSh)"><circle cx="64" cy="64" r="54" fill="url(#wStone)" stroke="#0f1a2e" stroke-width="4" /></g>
+          <circle cx="64" cy="64" r="34" fill="#2a2f38" stroke="#0f1a2e" stroke-width="3" />
+          <circle cx="64" cy="64" r="28" fill="url(#wWater)" />
+          <path d="M50 56 q8 -4 16 0 M62 72 q8 -4 16 0" stroke="#d6f0ff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7" />
+          <rect x="14" y="58" width="100" height="12" rx="3" fill="url(#wSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="wCrank" transform="rotate(67.5 64 64)"><rect x="58" y="34" width="12" height="60" rx="4" fill="#7a5230" stroke="#0f1a2e" stroke-width="2.5" /><circle cx="64" cy="64" r="8" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" /></g>
+          <g fill="#5d6670" stroke="#0f1a2e" stroke-width="2"><rect x="4" y="54" width="12" height="20" rx="2" /><rect x="112" y="54" width="12" height="20" rx="2" /><rect x="54" y="4" width="20" height="12" rx="2" /><rect x="54" y="112" width="20" height="12" rx="2" /></g>
+        </svg></svg>

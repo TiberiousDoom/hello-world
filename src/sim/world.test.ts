@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, ORE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, ORE, POWER, PONDS, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
-import { emptySlots, held, heldOf, isDown } from './player';
+import { blocked, emptySlots, held, heldOf, isDown } from './player';
 import { applyCommand } from './commands';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
 function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   const w = World.create(1, mode);
+  w.freePower = true; // belts at full speed: power has tests of its own (D-115)
+  w.clearWater();
   w.state.researched = RESEARCH.map((r) => r.id);
   w.state.resources.fill(0);
   w.state.trees.fill(0);
@@ -1305,7 +1307,7 @@ describe('Starting from nothing (#38)', () => {
     old.research.paid = { logistics: { iron_plate: 5 } };
     const loaded = World.fromJSON(JSON.stringify(old));
     expect(loaded.state.version).toBe(SAVE_VERSION);
-    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'forestry', 'industry', 'logistics']); // Industry from v23 (D-093), Blacksmith from v28 (D-113)
+    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'forestry', 'hydraulics', 'industry', 'logistics']); // Industry from v23 (D-093), Blacksmith from v28 (D-113), Hydraulics from v30 (D-115)
     expect(loaded.state.research.active).toBe(null);
     expect(loaded.state.research.paid).toEqual({});
     expect(loaded.isUnlocked('belt')).toBe(true);
@@ -1494,7 +1496,7 @@ describe('The player character (#40)', () => {
     old.version = 22;
     old.researched = ['logistics'];
     const loaded = World.fromJSON(JSON.stringify(old));
-    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'forestry', 'industry', 'logistics']);
+    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'forestry', 'hydraulics', 'industry', 'logistics']);
     expect(loaded.isUnlocked('furnace') && loaded.isUnlocked('extractor') && loaded.isUnlocked('lumber_camp')).toBe(true);
   });
 
@@ -1543,7 +1545,7 @@ describe('The player character (#40)', () => {
     expect([loaded.hub!.x, loaded.hub!.y]).toEqual([hx, hy]);
     expect(loaded.byId.has(999)).toBe(false);
     expect(loaded.byId.has(keep.id)).toBe(true);
-    expect(loaded.state.inventory).toEqual(BUILDINGS.belt.cost);
+    expect(loaded.state.inventory.iron_plate).toBe(BUILDINGS.belt.cost.iron_plate! + BUILDINGS.well.cost.iron_plate!); // and a well for its belt (D-115)
     expect(loaded.state.players[0].y).toBeGreaterThan(hy + HUB_SIZE);
   });
 
@@ -2052,5 +2054,100 @@ describe('Fuel (D-114)', () => {
     expect(loaded.state.researched).toContain('charcoal');
     old.buildings.find((b: { id: number }) => b.id === fu.id).recipe = 'iron_ingot';
     expect(World.fromJSON(JSON.stringify(old)).state.researched).not.toContain('charcoal');
+  });
+});
+
+describe('Ponds and water power (D-115)', () => {
+  it('a new map has ponds, none near the hub, with no ore or trees on them; nothing is built on water, and engineers go round', () => {
+    const w = World.create(4);
+    expect(w.state.water.length).toBeGreaterThan(50);
+    const hub = w.hub!;
+    const [cx, cy] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
+    for (const i of w.state.water) {
+      const [x, y] = [i % w.state.width, Math.floor(i / w.state.width)];
+      expect(Math.hypot(x - cx, y - cy)).toBeGreaterThanOrEqual(PONDS.minDist);
+      expect(w.state.resources[i]).toBe(0);
+      expect(w.state.trees[i]).toBe(NO_TREE);
+    }
+    const i = w.state.water[0];
+    const [x, y] = [i % w.state.width, Math.floor(i / w.state.width)];
+    w.state.researched = RESEARCH.map((r) => r.id);
+    w.state.inventory = { brick: 99, iron_plate: 99, iron_rod: 99 };
+    expect(w.place('well', x, y, 0)).toBe('water');
+    expect(blocked(w, x, y)).toBe(true);
+  });
+
+  it('a water wheel goes with its front tile in a pond and the other two on land', () => {
+    const w = emptyWorld();
+    w.state.water = [];
+    const pond = [w.idx(32, 20), w.idx(33, 20), w.idx(32, 21), w.idx(33, 21)];
+    (w as unknown as { addWater(t: number[]): void }).addWater(pond);
+    expect(w.place('water_wheel', 28, 20, 0)).toBe('needs-water'); // all on land
+    expect(w.place('water_wheel', 31, 20, 0)).toBe('water'); // two tiles in the water
+    expect(placed(w.place('water_wheel', 30, 20, 0)).type).toBe('water_wheel'); // front (east) tile at 32
+    expect(w.wheelFront(32, 18, 1)).toEqual({ x: 32, y: 20 }); // facing south, its bottom tile
+    expect(placed(w.place('water_wheel', 33, 18, 1)).type).toBe('water_wheel');
+  });
+
+  it('belts without power roll at roller speed; a well and a shaft power the whole line', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    const line = [20, 21, 22, 23, 24].map((x) => placed(w.place('belt', x, 30, 0)));
+    expect(w.speedOf(line[0])).toBeCloseTo(ROLLER.speed);
+    placed(w.place('well', 20, 26, 0));
+    expect(w.speedOf(line[0])).toBeCloseTo(ROLLER.speed); // not touching
+    placed(w.place('shaft', 20, 28, 1));
+    placed(w.place('shaft', 20, 29, 1));
+    for (const b of line) expect(w.speedOf(b)).toBeCloseTo(BELT_SPEED);
+    expect(w.powerNet(line[4])).toEqual({ supply: POWER.sources.well, demand: 5 * POWER.belt });
+    // Items really move faster.
+    line[0].belt.push({ item: 'gear', pos: 0, lane: RIGHT });
+    run(w, 0.5);
+    expect(line[0].belt[0].pos).toBeGreaterThan(BELT_SPEED * 0.5 - 0.1); // not ROLLER.speed * 0.5
+  });
+
+  it('a network short of power slows its belts evenly; a pair of underground belts carries power across', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    placed(w.place('well', 10, 10, 0));
+    const n = Math.round((2 * POWER.sources.well!) / POWER.belt); // twice what a well can power
+    const line: Building[] = [];
+    for (let i = 0; i < n; i++) line.push(placed(w.place('belt', 12 + (i % 60), 10 + Math.floor(i / 60) * 4, 0)));
+    for (let r = 0; r < Math.ceil(n / 60); r++) for (let y = 11 + r * 4; y < 14 + r * 4; y++) placed(w.place('shaft', 12, y, 1));
+    expect(w.powered(line[0])).toBeCloseTo(0.5);
+    expect(w.speedOf(line[n - 1])).toBeCloseTo(ROLLER.speed + (BELT_SPEED - ROLLER.speed) * 0.5);
+    // Underground: power crosses with the items.
+    const v = emptyWorld();
+    v.freePower = false;
+    placed(v.place('well', 10, 20, 0));
+    placed(v.place('tunnel', 12, 20, 0));
+    placed(v.place('tunnel', 16, 20, 0));
+    const far = placed(v.place('belt', 17, 20, 0));
+    expect(v.powered(far)).toBe(1);
+  });
+
+  it('v29 saves get ponds away from their buildings, Hydraulics with Logistics, and stock for wells', () => {
+    const w = emptyWorld();
+    for (let x = 20; x < 30; x++) placed(w.place('belt', x, 30, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 29;
+    delete old.water;
+    old.researched = ['forestry', 'industry', 'blacksmith', 'logistics'];
+    old.inventory = {};
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.water.length).toBeGreaterThan(50);
+    for (const i of loaded.state.water) expect(loaded.tiles[i]).toBe(0);
+    expect(loaded.state.researched).toContain('hydraulics');
+    expect(loaded.state.inventory.brick).toBe(BUILDINGS.well.cost.brick);
+    expect(loaded.state.inventory.iron_rod).toBeGreaterThanOrEqual(10);
+    // The same save loads with the same ponds.
+    expect(World.fromJSON(JSON.stringify(old)).state.water).toEqual(loaded.state.water);
+  });
+
+  it('Hydraulics comes after the Blacksmith, and Metal Logistics (belts) after Hydraulics', () => {
+    expect(RESEARCH_BY_ID.hydraulics.requires).toEqual(['blacksmith']);
+    expect(RESEARCH_BY_ID.hydraulics.unlocks.sort()).toEqual(['shaft', 'water_wheel', 'well']);
+    expect(RESEARCH_BY_ID.logistics.requires).toEqual(['hydraulics']);
+    expect(RESEARCH_BY_ID.logistics.name).toBe('Metal Logistics');
   });
 });

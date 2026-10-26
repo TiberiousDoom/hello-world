@@ -643,6 +643,52 @@ export class Renderer {
     ctx.restore();
   }
 
+  /**
+   * Ponds (D-115): a muddy shore, then the water, each a disc per tile so the edges come out round, with
+   * a few glints when close up.
+   */
+  private drawPonds(world: World, x0: number, y0: number, x1: number, y1: number, glints: boolean): void {
+    const ctx = this.ctx;
+    const tiles: [number, number][] = [];
+    for (const i of world.state.water) {
+      const x = i % world.state.width;
+      const y = (i - x) / world.state.width;
+      if (x >= x0 - 1 && x <= x1 && y >= y0 - 1 && y <= y1) tiles.push([x, y]);
+    }
+    if (!tiles.length) return;
+    for (const [fill, r] of [
+      ['#6d6040', 0.95],
+      ['#3a86bb', 0.74],
+    ] as const) {
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      for (const [x, y] of tiles) {
+        ctx.moveTo(x + 0.5 + r, y + 0.5);
+        ctx.arc(x + 0.5, y + 0.5, r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+    // Deeper water away from the shore.
+    ctx.fillStyle = '#3079ad';
+    for (const [x, y] of tiles) {
+      if (world.isWater(x - 1, y) && world.isWater(x + 1, y) && world.isWater(x, y - 1) && world.isWater(x, y + 1)) ctx.fillRect(x - 0.02, y - 0.02, 1.04, 1.04);
+    }
+    if (!glints) return;
+    ctx.strokeStyle = 'rgba(220,240,255,0.55)';
+    ctx.lineWidth = 0.05;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const [x, y] of tiles) {
+      const h = hash(x, y);
+      if (h % 3) continue;
+      const gx = x + 0.25 + (h % 7) / 14;
+      const gy = y + 0.3 + (h % 5) / 10;
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx + 0.25, gy);
+    }
+    ctx.stroke();
+  }
+
   /** Forest floor beyond the map, the grass, ore, stumps and decoration, and the shadow at the map's edge. */
   private paintGround(world: World, x0: number, y0: number, x1: number, y1: number): void {
     const s = world.state;
@@ -651,6 +697,7 @@ export class Renderer {
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     this.drawGround(s.width, s.height);
     const decorate = this.camera.zoom >= 14;
+    this.drawPonds(world, x0, y0, x1, y1, decorate);
     // Ore patches first (#91, D-096): touching tiles of one ore share one bed of earth, so a patch reads
     // as one deposit, with its rocks on top.
     for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
@@ -665,7 +712,7 @@ export class Renderer {
         const r = s.resources[i];
         if (r) this.drawNode(r, x, y);
         else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
-        else if (decorate && !world.tiles[i] && !s.trees[i]) this.drawDecoration(x, y);
+        else if (decorate && !world.tiles[i] && !s.trees[i] && !world.isWater(x, y)) this.drawDecoration(x, y);
       }
     }
     this.drawMapEdge(s.width, s.height);
@@ -1182,7 +1229,7 @@ export class Renderer {
   private beltPhaseOf(b: Building): number {
     let p = this.beltPhase.get(b.id) ?? 0;
     const blocked = b.belt.length > 0 && b.belt[0].pos >= 1;
-    if (!blocked) p = (p + beltSpeed(b.type) * this.frameDt) % 0.25;
+    if (!blocked) p = (p + (this.world ? this.world.speedOf(b) : beltSpeed(b.type)) * this.frameDt) % 0.25; // slower without power (D-115)
     this.beltPhase.set(b.id, p);
     return p;
   }
@@ -1370,7 +1417,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1378,6 +1425,8 @@ export class Renderer {
     // Working machines run their animation (D-082), on game time so it stops when the game pauses.
     const working =
       ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3 && !outOfFuel(b)) ||
+      b.type === 'well' ||
+      b.type === 'water_wheel' ||
       (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6));
     const key = this.spriteKey(world, b);
     const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * 8 + b.id) : undefined;
@@ -1390,10 +1439,10 @@ export class Renderer {
       }
     }
     // A splitter's sprite shows both its outputs; other big buildings mark their one output.
-    if (big && directional && b.type !== 'splitter') this.drawOutputPort(world, b, z);
+    if (big && directional && b.type !== 'splitter' && b.type !== 'water_wheel') this.drawOutputPort(world, b, z);
 
     // Working machines glow and pulse.
-    if (working && b.type !== 'repair') {
+    if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
         b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' ? '255,120,50' : '120,190,255';

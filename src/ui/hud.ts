@@ -49,6 +49,9 @@ const TOOLBAR: BuildingType[] = [
   'splitter',
   'tunnel',
   'port',
+  'shaft',
+  'well',
+  'water_wheel',
   'extractor',
   'lumber_camp',
   'furnace',
@@ -69,11 +72,13 @@ const TOOLBAR: BuildingType[] = [
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['well', 'wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
 const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'spike_pit', 'trebuchet', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
+
+const fmtPower = (n: number) => String(Math.round(n * 10) / 10);
 
 const PLACE_ERRORS: Record<PlaceError, string> = {
   bounds: 'Outside the map.',
@@ -88,6 +93,8 @@ const PLACE_ERRORS: Record<PlaceError, string> = {
   unique: 'You can only have one shipyard.',
   site: 'The shipyard goes on the site staked out for it.',
   unmovable: "That can't be moved.",
+  water: 'Not on water.',
+  'needs-water': 'Its front tile must be in a pond, and the other two on land.',
 };
 
 export interface HudActions {
@@ -795,6 +802,20 @@ export class Hud {
       }
       if (b.type === 'spike_pit') stats += `<br>Spikes ${Math.ceil(b.ammo)} / ${SPIKES.maxCharge} s of wear ${swatch('stake')}Stakes refill it`;
       if (b.type === 'repair') stats += `<br>Stored repairs ${Math.floor(b.ammo)} / ${REPAIR.maxCharge} HP`;
+      // Power (D-115): what the building's network gives and uses.
+      const net = world.powerNet(b);
+      if (net && (b.type !== 'splitter' && b.type !== 'tunnel')) {
+        const p = world.powered(b);
+        const use = `${fmtPower(net.supply)} power, belts use ${fmtPower(net.demand)}`;
+        stats +=
+          b.type === 'belt'
+            ? p >= 1
+              ? `<br>Powered (${use})`
+              : p > 0
+                ? `<br>Short of power: ${Math.round(p * 100)}% (${use}). Belts slow down`
+                : '<br><b>No power:</b> it rolls only at roller speed. Lay drive shafts from a well or water wheel'
+            : `<br>Network: ${use}`;
+      }
       if (burnsFuel(b.type)) {
         const fuels = Object.entries(FUEL.burns)
           .map(([k, s]) => `${swatch(k as ItemId)}${ITEMS[k as ItemId].name.toLowerCase()} ${s} s`)

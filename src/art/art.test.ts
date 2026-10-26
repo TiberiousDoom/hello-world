@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripFrames } from './index';
+import { stripFrames, tilesOf } from './index';
 
 // Animation strips (D-082): square frames side by side, the count in the name.
 const sources = import.meta.glob<string>('./**/*_*f.svg', { query: '?raw', import: 'default', eager: true });
@@ -16,9 +16,11 @@ describe('Animation strips', () => {
     const strips = Object.entries(sources).filter(([path]) => stripFrames(path.replace(/\.svg$/, '')) > 0);
     expect(strips.length).toBeGreaterThan(20);
     for (const [path, svg] of strips) {
-      const n = stripFrames(path.replace(/\.svg$/, ''));
+      const key = path.replace(/^\.\//, '').replace(/\.svg$/, '');
+      const n = stripFrames(key);
+      const [tw, th] = tilesOf(key.replace(/_\d+f$/, '')); // a frame is as many tiles as the sprite (the water wheel is 3×1)
       const [, w, h] = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg) ?? [];
-      expect(Number(w), path).toBe(n * Number(h));
+      expect(Number(w), path).toBe((n * Number(h) * tw) / th);
     }
   });
 

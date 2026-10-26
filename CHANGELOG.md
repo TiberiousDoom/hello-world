@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.57.0 · 2026-10-26 · Water power
+### New
+- **Ponds:** small lakes now dot the map, at least 30 tiles from the hub. Nothing is built on water, your engineer walks round, and bugs wade through slowly.
+- **Hydraulics** (after Blacksmith): the **Well** works anywhere, the **Water Wheel** sits with its front in a pond and gives four times as much, and **Drive Shafts** carry their power.
+- **Belts need power:** Logistics is now **Metal Logistics**, after Hydraulics. A belt touching a shaft, a well, a wheel or another powered belt shares its network's power. A well runs about 40 belts; short of power, belts slow down, and with none they roll only at roller speed. Select a belt to see how its network is doing.
+- A **Water power** lesson explains it all once Hydraulics is done.
+- Saved games get ponds away from what's built, and games with belts get Hydraulics and enough materials in the hub for the wells and shafts their belts need.
+
 ## 0.56.0 · 2026-10-26 · Fuel
 ### New
 - **Furnaces and blacksmiths burn fuel:** logs (8 s each) or charcoal (24 s each), fed by roller, belt or by hand. They burn only while working and stop when the fuel runs out. An orange bar on each shows how much is left, and a flashing mark shows one that has run dry.

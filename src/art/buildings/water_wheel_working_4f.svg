@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 64"><defs>
+            <filter id="vSh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="2" dy="3" stdDeviation="2" flood-color="#0a1322" flood-opacity="0.5" /></filter>
+            <linearGradient id="vWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b98a50" /><stop offset="1" stop-color="#6b4426" /></linearGradient>
+            <linearGradient id="vSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c5ced8" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+          </defs><svg x="0" y="0" width="192" height="64" viewBox="0 0 192 64" overflow="hidden">
+          <g filter="url(#vSh)"><rect x="4" y="6" width="112" height="52" rx="6" fill="url(#vWood)" stroke="#0f1a2e" stroke-width="3.5" /></g>
+          <path d="M10 18 H110 M10 32 H110 M10 46 H110" stroke="#4a2e18" stroke-width="1.5" opacity="0.6" />
+          <rect x="20" y="18" width="34" height="28" rx="4" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="37" cy="32" r="9" fill="#f2c14e" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="54" y="27" width="96" height="10" fill="url(#vSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="vWheel" transform="translate(160 32) rotate(0)">
+            <circle r="28" fill="none" stroke="#6b4426" stroke-width="6" />
+            <g stroke="#0f1a2e" stroke-width="2" fill="url(#vWood)">
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(0)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(45)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(90)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(135)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(180)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(225)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(270)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(315)" />
+            </g>
+            <path d="M-20 0 H20 M0 -20 V20 M-14 -14 L14 14 M-14 14 L14 -14" stroke="#4a2e18" stroke-width="3" />
+            <circle r="6" fill="#5d6670" stroke="#0f1a2e" stroke-width="2" />
+          </g>
+          <g fill="#d6f0ff"><circle cx="150" cy="58" r="2" /><circle cx="168" cy="60" r="2" /></g>
+        </svg><svg x="192" y="0" width="192" height="64" viewBox="0 0 192 64" overflow="hidden">
+          <g filter="url(#vSh)"><rect x="4" y="6" width="112" height="52" rx="6" fill="url(#vWood)" stroke="#0f1a2e" stroke-width="3.5" /></g>
+          <path d="M10 18 H110 M10 32 H110 M10 46 H110" stroke="#4a2e18" stroke-width="1.5" opacity="0.6" />
+          <rect x="20" y="18" width="34" height="28" rx="4" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="37" cy="32" r="9" fill="#f2c14e" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="54" y="27" width="96" height="10" fill="url(#vSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="vWheel" transform="translate(160 32) rotate(11.25)">
+            <circle r="28" fill="none" stroke="#6b4426" stroke-width="6" />
+            <g stroke="#0f1a2e" stroke-width="2" fill="url(#vWood)">
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(0)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(45)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(90)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(135)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(180)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(225)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(270)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(315)" />
+            </g>
+            <path d="M-20 0 H20 M0 -20 V20 M-14 -14 L14 14 M-14 14 L14 -14" stroke="#4a2e18" stroke-width="3" />
+            <circle r="6" fill="#5d6670" stroke="#0f1a2e" stroke-width="2" />
+          </g>
+          <g fill="#d6f0ff"><circle cx="154" cy="60" r="2" /><circle cx="172" cy="58" r="2" /></g>
+        </svg><svg x="384" y="0" width="192" height="64" viewBox="0 0 192 64" overflow="hidden">
+          <g filter="url(#vSh)"><rect x="4" y="6" width="112" height="52" rx="6" fill="url(#vWood)" stroke="#0f1a2e" stroke-width="3.5" /></g>
+          <path d="M10 18 H110 M10 32 H110 M10 46 H110" stroke="#4a2e18" stroke-width="1.5" opacity="0.6" />
+          <rect x="20" y="18" width="34" height="28" rx="4" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="37" cy="32" r="9" fill="#f2c14e" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="54" y="27" width="96" height="10" fill="url(#vSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="vWheel" transform="translate(160 32) rotate(22.5)">
+            <circle r="28" fill="none" stroke="#6b4426" stroke-width="6" />
+            <g stroke="#0f1a2e" stroke-width="2" fill="url(#vWood)">
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(0)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(45)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(90)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(135)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(180)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(225)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(270)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(315)" />
+            </g>
+            <path d="M-20 0 H20 M0 -20 V20 M-14 -14 L14 14 M-14 14 L14 -14" stroke="#4a2e18" stroke-width="3" />
+            <circle r="6" fill="#5d6670" stroke="#0f1a2e" stroke-width="2" />
+          </g>
+          <g fill="#d6f0ff"><circle cx="148" cy="60" r="2" /><circle cx="164" cy="58" r="2" /></g>
+        </svg><svg x="576" y="0" width="192" height="64" viewBox="0 0 192 64" overflow="hidden">
+          <g filter="url(#vSh)"><rect x="4" y="6" width="112" height="52" rx="6" fill="url(#vWood)" stroke="#0f1a2e" stroke-width="3.5" /></g>
+          <path d="M10 18 H110 M10 32 H110 M10 46 H110" stroke="#4a2e18" stroke-width="1.5" opacity="0.6" />
+          <rect x="20" y="18" width="34" height="28" rx="4" fill="#5d6670" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="37" cy="32" r="9" fill="#f2c14e" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="54" y="27" width="96" height="10" fill="url(#vSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+          <g id="vWheel" transform="translate(160 32) rotate(33.75)">
+            <circle r="28" fill="none" stroke="#6b4426" stroke-width="6" />
+            <g stroke="#0f1a2e" stroke-width="2" fill="url(#vWood)">
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(0)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(45)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(90)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(135)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(180)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(225)" />
+              <rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(270)" /><rect x="-4" y="-31" width="8" height="14" rx="1" transform="rotate(315)" />
+            </g>
+            <path d="M-20 0 H20 M0 -20 V20 M-14 -14 L14 14 M-14 14 L14 -14" stroke="#4a2e18" stroke-width="3" />
+            <circle r="6" fill="#5d6670" stroke="#0f1a2e" stroke-width="2" />
+          </g>
+          <g fill="#d6f0ff"><circle cx="156" cy="58" r="2" /><circle cx="170" cy="60" r="2" /></g>
+        </svg></svg>

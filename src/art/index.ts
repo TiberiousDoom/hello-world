@@ -34,6 +34,8 @@ const TILES: Record<string, [number, number]> = {
   'buildings/furnace': [2, 2],
   'buildings/workshop': [2, 2],
   'buildings/blacksmith': [2, 2],
+  'buildings/well': [2, 2],
+  'buildings/water_wheel': [3, 1],
   'buildings/machine_shop': [2, 2],
   'buildings/assembler': [3, 3],
   'buildings/splitter': [1, 2],
@@ -69,7 +71,7 @@ export function stripFrames(key: string): number {
 }
 
 /** Tiles a sprite or one frame covers: a machine's working strip is the size of the machine. */
-function tilesOf(key: string): [number, number] {
+export function tilesOf(key: string): [number, number] {
   return TILES[key] ?? TILES[key.replace(/_working$/, '')] ?? [1, 1];
 }
 
