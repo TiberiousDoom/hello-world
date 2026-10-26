@@ -63,8 +63,9 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 | Belt | 1×1 | 1 iron plate | 30 | Logistics |
 | Extractor | 2×2 | 4 stone, 4 iron ore | 80 | Industry |
 | Furnace | 2×2 | 6 stone | 120 | Industry |
-| Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Basic Defense |
-| Ballista | 1×1 | 8 planks, 4 iron plates | 140 | Ballistae |
+| Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Advanced Defense |
+| Ballista | 1×1 | 10 planks, 4 rope | 140 | Basic Defense 2 |
+| Trebuchet | 2×2 | 40 planks, 10 rope, 8 trusses | 220 | Basic Defense 2 |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
 | Workshop | 2×2 | 10 planks, 6 logs | 120 | Workshops |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
@@ -78,7 +79,8 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 | Shipyard | 3×3 | 30 bricks, 30 iron plates, 20 planks | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
 | Sawmill | 2×2 | 14 logs | 100 | Forestry |
-| Palisade | 1×1 | 2 planks | 160 | Palisades |
+| Palisade | 1×1 | 2 planks | 160 | Basic Defense |
+| Spike Pit | 1×1 | 10 stakes, 2 planks | 60 | Basic Defense |
 | Wooden Roller | 1×1 | 1 plank, 1 dowel | 20 | Basic Logistics |
 | Storage Crate | 1×1 | 6 planks, 4 pegs | 60 | Basic Logistics |
 
@@ -182,7 +184,7 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
   like walls. Walls and palisades join up with their neighbours, with their own corners and ends.
 - Selecting a camp shows its reach, and how many trees and regrowing stumps it has.
 - **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
-  **Ballista** (researched after Palisades and Basic Defense). **Repair stations** burn planks as well as
+  **Ballista**, and refill **spike pits** (both from the Wood Age's defences, D-107). **Repair stations** burn planks as well as
   iron plates. The **Workshop**, **Repair Station** and **Shipyard** cost a few planks, so Workshops
   research needs Forestry. Its wooden parts are in [Wooden parts](#items-and-recipes) (D-105). A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
   2 iron plates and 1 charcoal. Steel is cargo for the fourth supply run on, and the material for upgrades
@@ -196,7 +198,7 @@ Industry for extractors and furnaces. Everything is researched, except colony bl
 from supply runs. **Select the hub** and press **Research** to open the list.
 
 - **Start** a research, and it draws its items from hub stock at a steady pace over its research
-  time. For example, Basic Defense takes 20 iron plates over 30 s.
+  time. For example, Advanced Defense takes 20 iron plates over 30 s.
 - If the hub runs out of an item it needs, the research **stalls** until more arrives.
 - Only one research is active at a time. **Switching** keeps what's already been put in, and
   **Pause** stops drawing. The hub's panel shows the active research and its progress.
@@ -206,19 +208,19 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Forestry | 15 logs | 20 s | — | Lumber Camp, Sawmill |
 | Workshops | 40 planks, 20 logs | 45 s | Forestry | Workshop (pegs, rope; gears and wire from metal) |
 | Carpentry | 60 planks, 40 pegs, 20 rope | 60 s | Workshops | The truss recipe |
-| Industry | 100 planks, 50 trusses, 50 stone | 90 s | Carpentry | Extractor, Furnace |
+| Industry | 100 planks, 50 trusses, 50 stone | 90 s | Carpentry, Basic Defense 2 | Extractor, Furnace |
 | Logistics | 10 iron plates | 20 s | Industry | Belt, Splitter, Underground Belt |
-| Basic Defense | 20 iron plates | 30 s | Industry | Turret |
-| Palisades | 12 planks | 30 s | Forestry | Palisade |
+| Advanced Defense | 20 iron plates | 30 s | Industry | Turret |
+| Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
+| Basic Defense 2 | 100 logs, 100 planks, 200 rope, 50 trusses | 120 s | Basic Defense, Carpentry | Trebuchet, Ballista |
 | Basic Logistics | 20 logs, 20 planks, 50 dowels | 45 s | Forestry | Wooden Roller, Storage Crate |
-| Ballistae | 20 planks, 10 iron plates | 45 s | Palisades, Basic Defense | Ballista |
-| Chitin Plating | 10 chitin, 20 iron plates | 45 s | Basic Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
+| Chitin Plating | 10 chitin, 20 iron plates | 45 s | Advanced Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
 | Masonry | 12 bricks | 30 s | Industry | Wall |
-| Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
+| Distribution | 25 iron plates, 10 copper | 60 s | Advanced Defense | Hub Port |
 | Assembly | 30 gears, 30 wire | 120 s | Workshops, Industry | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
 | Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
-| Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Basic Defense | Cannon |
+| Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Advanced Defense | Cannon |
 
 The hub starts empty.
 
@@ -299,7 +301,9 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    and storage crates, so the sawmill's planks roll to the hub on their own.
 5. **Wooden parts (D-105):** research **Workshops** for the Workshop (rope from logs, pegs from dowels
    sawn at the sawmill), then **Carpentry** for trusses.
-6. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand) to unlock the **extractor** and
+6. **Defences (D-107):** **Basic Defense** (palisades, spike pits), then **Basic Defense 2** (the
+   trebuchet, which throws stone, and the ballista).
+7. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand, after Basic Defense 2) to unlock the **extractor** and
    the **furnace**, then **Logistics** (10 iron plates) for belts. From there, belts do the carrying.
 
 ## Bugs
@@ -384,10 +388,18 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 |---|---|---|---|---|---|---|
 | Turret | iron plate | 4 | 40 | 5 | 3/s | 5 |
 | Ballista | stake | 1 | 20 | 6.5 | 0.8/s | 14 |
+| Trebuchet (2×2) | stone | 1 | 12 | 24, nothing closer than 6 | 0.25/s | 40, splash radius 2 |
 | Cannon | gear | 3 | 24 | 6.5 | 0.7/s | 30, splash radius 1.3 |
 | Tesla Turret | copper wire | 2 | 30 | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
 
-Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it.
+Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
+**trebuchet** (D-107) can't hit anything within 6 tiles, so it needs other defences close in.
+
+**Spike pits** (1×1, D-107) are traps bugs walk over: they don't block, and bugs don't go for them. A
+bug on a pit takes **15 damage a second** and moves at **half speed**. A pit holds **60 seconds** of
+wear (one second per bug standing on it); a stake puts back 6. Arrives full; refill it with stakes by
+roller or belt, or by hand.
+
 There are three ways to get ammo to a turret:
 
 1. **From production:** branch a line with a splitter. Best for steady supply.
@@ -533,7 +545,7 @@ one research tree, one supply ship.
   | Rollers | Basic Logistics is researched, before any roller is laid | Pick the Wooden Roller → lay 3 → how rollers move, and the Storage Crate |
   | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
   | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → research Logistics → lay 3 belts |
-  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Palisades from the hub (Basic Defense once Industry is done) |
+  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Industry is done |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it → stages → cargo and launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
@@ -670,7 +682,7 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v23**). v23 (D-093) gives a game saved before the Wood Age
+- Save files are versioned (currently **v24**). v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
   Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved
   the attack-path timers and a player list (co-op groundwork, D-058). v11 added colony blueprints: a game
   that had delivered runs loads with an offer of both blueprints to pick from.

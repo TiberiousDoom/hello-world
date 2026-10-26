@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.50.0 · 2026-10-26 · Hold the line
+### New
+- **Spike pits:** a trap bugs walk over. They take damage and slow to half speed while they cross, and the pit wears down as it works. Refill it with stakes.
+- **Trebuchets:** a 2×2 siege engine that hurls stone up to 24 tiles, hitting every bug where it lands. It can't hit anything within 6 tiles, so guard it with palisades and spike pits.
+- **Basic Defense** (palisades and spike pits) and **Basic Defense 2** (trebuchets and ballistae) are the Wood Age's defences, paid in wood and rope. Industry now needs Basic Defense 2: hold your ground before the furnaces.
+- Turrets are now under **Advanced Defense**, and ballistae are built from planks and rope.
+- Saved games that had Ballistae get Basic Defense 2.
+
 ## 0.49.0 · 2026-10-26 · Rolling along
 ### New
 - **Wooden rollers:** research **Basic Logistics** (logs, planks and dowels) right after Forestry, and lay rollers like belts. Items roll slowly in single file on their own; a busy line packs up and moves at belt speed, so it keeps up with what you put on it.

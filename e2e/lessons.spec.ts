@@ -129,7 +129,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await page.evaluate(() => {
     const w = window.game.world;
     w.state.inventory = { plank: 999, stone: 999, truss: 999 };
-    w.state.researched.push('workshop', 'carpentry');
+    w.state.researched.push('workshop', 'carpentry', 'defense2');
     w.researchNow('industry');
     w.state.inventory = { stone: 10, iron_ore: 4 };
   });
@@ -224,7 +224,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await page.click('.tip-next');
   await expect(page.locator('#tutorial')).toBeHidden();
 
-  // Bugs: the first time a nest is provoked. It waits for Basic Defense, researched from the hub.
+  // Bugs: the first time a nest is provoked. It waits for Advanced Defense (turrets), researched from the hub once Industry is done.
   await page.evaluate(() => {
     const w = window.game.world;
     w.state.nests[0].angryUntil = w.state.time + 600;

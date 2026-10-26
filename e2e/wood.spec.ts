@@ -129,3 +129,31 @@ test('rollers: Basic Logistics starts its lesson, and three rollers carry a log 
   }, row[0]);
   await expect.poll(() => page.evaluate(() => window.game.world.state.inventory.log ?? 0), { timeout: 15000 }).toBe(before + 1);
 });
+
+test('wooden defences: a spike pit and a trebuchet go up, and their panels show what they hold (D-107)', async ({ page }, info) => {
+  await newGame(page, { fresh: true });
+  await calm(page);
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.inventory = { plank: 999, stake: 999, rope: 999, truss: 99 };
+    w.state.researched.push('forestry', 'rollers', 'workshop', 'carpentry', 'palisades', 'defense2');
+  });
+  const spot = await page.evaluate(() => {
+    const w = window.game.world;
+    for (let d = 8; d < 40; d++) for (let dy = -d; dy <= d; dy++) if (!w.checkPlace('trebuchet', w.hub.x - d, w.hub.y + dy, 0) && !w.checkPlace('spike_pit', w.hub.x - d - 2, w.hub.y + dy, 0)) return [w.hub.x - d, w.hub.y + dy] as [number, number];
+    return null;
+  });
+  expect(spot).not.toBeNull();
+  await page.click('[data-tool="trebuchet"]');
+  await buildTile(page, info, ...spot!);
+  await page.click('[data-tool="spike_pit"]');
+  await buildTile(page, info, spot![0] - 2, spot![1]);
+  await page.click('[data-tool="spike_pit"]'); // put the tool down
+  const ids = await page.evaluate(([x, y]) => [window.game.world.buildingAt(x, y).id, window.game.world.buildingAt(x - 2, y).id], spot!);
+  await page.evaluate((id) => (window.game.ui.selected = id), ids[0]);
+  await expect(page.locator('#info')).toContainText('Trebuchet');
+  await expect(page.locator('#info')).toContainText('Ammo 12 / 12');
+  await page.evaluate((id) => (window.game.ui.selected = id), ids[1]);
+  await expect(page.locator('#info')).toContainText('Spike Pit');
+  await expect(page.locator('#info')).toContainText('Spikes 60 / 60');
+});

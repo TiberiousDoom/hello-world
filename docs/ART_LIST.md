@@ -95,6 +95,8 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Hub | 5×5 (320×320) | Centrepiece, with a damaged variant drawn below half health (`buildings/hub_damaged`) | 1 (+idle loop) | P1 | Upgraded |
 | Wooden roller (D-106): a narrow wooden frame with rollers across | 1×1 | Drawn in code in play (frame, turning rollers, corners as an L); the sprite is the toolbar icon | 1 | P2 | Placeholder (`buildings/roller`) |
 | Storage crate (D-106): a wooden crate, its front marked | 1×1 | | 1 | P2 | Placeholder (`buildings/crate`) |
+| Spike pit (D-107): a dug pit bristling with sharpened stakes | 1×1 | A charge bar shows its wear | 1 | P2 | Placeholder (`buildings/spike_pit`) |
+| Trebuchet (D-107): a wooden frame, and its throwing arm with a counterweight and sling | 2×2 | Base and arm (`_base`, `_barrel`), the arm turning to aim like a turret's barrel | 1 | P2 | Placeholder (`buildings/trebuchet_base`, `buildings/trebuchet_barrel`) |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Upgraded |
 | Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). To become a sprite of the rails and bed, with the chevrons still moving over it in code | 8 | P3 | Code; Reference sprite `pieces/belt_corner`, planned (ROADMAP) |
 | Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code; Reference sprites `pieces/belt_end`, `belt_flange`, planned (ROADMAP) |

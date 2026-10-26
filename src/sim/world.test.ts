@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ROLLER, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -16,7 +16,7 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, dowel: 999, peg: 999 };
+  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, dowel: 999, peg: 999, rope: 999, truss: 999, stake: 999 };
   return w;
 }
 
@@ -207,9 +207,9 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(false); // smelting comes with Industry (D-093)
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999 };
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999, dowel: 999 };
     expect(w.researchNow('workshop')).toBe('requires'); // workshops need Forestry
-    for (const id of ['forestry', 'workshop', 'carpentry', 'industry', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('extractor') && w.isUnlocked('furnace')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
@@ -748,10 +748,10 @@ describe('Wooden parts (D-105)', () => {
     const w = World.create(3);
     expect(RESEARCH_BY_ID.workshop.requires).toEqual(['forestry']);
     expect(RESEARCH_BY_ID.carpentry.requires).toEqual(['workshop']);
-    expect(RESEARCH_BY_ID.industry.requires).toEqual(['carpentry']);
+    expect(RESEARCH_BY_ID.industry.requires).toEqual(['carpentry', 'defense2']); // hold your ground first (D-107)
     // A research never costs something its needs can't make (D-089): before Industry, only wood and stone.
     const wood = new Set(['log', 'plank', 'stake', 'dowel', 'peg', 'rope', 'truss', 'stone']);
-    for (const id of ['forestry', 'workshop', 'carpentry', 'industry', 'palisades']) {
+    for (const id of ['forestry', 'rollers', 'workshop', 'carpentry', 'palisades', 'defense2', 'industry']) {
       for (const item of Object.keys(RESEARCH_BY_ID[id].cost)) expect(wood.has(item), `${id} costs ${item}`).toBe(true);
     }
     expect(Object.keys(BUILDINGS.workshop.cost).every((k) => wood.has(k))).toBe(true);
@@ -805,6 +805,92 @@ describe('Rollers and crates (D-106)', () => {
     expect(RESEARCH_BY_ID.rollers.requires).toEqual(['forestry']);
     expect(RESEARCH_BY_ID.rollers.unlocks).toEqual(['roller', 'crate']);
     for (const t of ['roller', 'crate'] as const) for (const k of Object.keys(BUILDINGS[t].cost)) expect(['plank', 'dowel', 'peg', 'log']).toContain(k);
+  });
+});
+
+describe('Wooden defences (D-107)', () => {
+  it('a spike pit hurts and slows bugs that walk over it, wears down, and is refilled with stakes', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const pit = placed(w.place('spike_pit', hub.x - 20, hub.y - 10, 0));
+    expect(pit.ammo).toBe(SPIKES.maxCharge);
+    expect(BUILDINGS.spike_pit.blocking).toBe(false);
+    const n = addNest(w, 0, 0, 0);
+    const e = w.spawnBug('crawler', n, 1);
+    e.hp = e.maxHp = 1000;
+    e.x = pit.x + 0.5;
+    e.y = pit.y + 0.5;
+    run(w, 1);
+    expect(e.hp).toBeLessThan(1000 - SPIKES.dps * 0.8);
+    expect(pit.ammo).toBeLessThan(SPIKES.maxCharge);
+    expect(pit.hp).toBe(BUILDINGS.spike_pit.hp); // walked over, not bitten
+    // Stakes put charge back.
+    pit.ammo = 30;
+    const charge = pit.ammo;
+    expect(w.insert(pit, 'stake', pit.x - 1, pit.y)).toBe(true);
+    expect(pit.ammo).toBe(charge + SPIKES.perStake);
+    expect(w.insert(pit, 'plank', pit.x - 1, pit.y)).toBe(false);
+  });
+
+  it('bugs chasing the factory cross a spike pit slowly and keep going', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    // A pit on the straight way to the hub's west side.
+    const y = hub.y + 2;
+    const pit = placed(w.place('spike_pit', hub.x - 6, y, 0));
+    const n = addNest(w, 0, 0, 0);
+    n.angryUntil = 1e9;
+    const e = w.spawnBug('crawler', n, 1);
+    e.hp = e.maxHp = 1e6;
+    e.x = hub.x - 9.5;
+    e.y = y + 0.5;
+    w.rebuildPaths();
+    let onPit = 0;
+    for (let t = 0; t < 12; t += TICK) {
+      w.tick();
+      if (Math.floor(e.x) === pit.x && Math.floor(e.y) === pit.y) onPit += TICK;
+    }
+    expect(e.x).toBeGreaterThan(pit.x + 1); // past the pit
+    // A tile at half speed takes about twice as long as one at full speed.
+    expect(onPit).toBeGreaterThan(1.5 / ENEMIES.crawler.speed);
+  });
+
+  it('a trebuchet hits a group far away, with splash, and cannot hit anything close', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const t = placed(w.place('trebuchet', hub.x - 40, hub.y - 20, 0));
+    const [cx, cy] = w.centreOf(t);
+    const n = addNest(w, 0, 0, 0);
+    const near = w.spawnBug('crawler', n, 1);
+    near.x = cx + 3;
+    near.y = cy;
+    near.hp = near.maxHp = 1000;
+    w.tick();
+    expect(near.hp).toBe(1000); // inside its blind spot
+    const far = [0, 1].map(() => w.spawnBug('crawler', n, 1));
+    far.forEach((e, i) => Object.assign(e, { x: cx + 20, y: cy + i * 0.8, hp: 1000, maxHp: 1000 }));
+    w.tick();
+    const def = TURRETS.trebuchet!;
+    expect(far.map((e) => e.hp)).toEqual([1000 - def.damage, 1000 - def.damage]); // both, from one stone
+    expect(w.insert(t, 'stone', t.x - 1, t.y)).toBe(true);
+  });
+
+  it('Basic Defense gives palisades and spike pits; Basic Defense 2 the trebuchet and ballista, before Industry', () => {
+    expect(RESEARCH_BY_ID.palisades.name).toBe('Basic Defense');
+    expect(RESEARCH_BY_ID.palisades.unlocks).toEqual(['palisade', 'spike_pit']);
+    expect(RESEARCH_BY_ID.defense2.unlocks).toEqual(['trebuchet', 'ballista']);
+    expect(RESEARCH_BY_ID.industry.requires).toContain('defense2');
+    expect(RESEARCH_BY_ID.ballistae).toBeUndefined();
+  });
+
+  it('v23 saves with Ballistae get Basic Defense 2 instead', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 23;
+    old.researched = ['forestry', 'palisades', 'ballistae'];
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.researched.sort()).toEqual(['defense2', 'forestry', 'palisades']);
+    expect(loaded.isUnlocked('ballista') && loaded.isUnlocked('trebuchet')).toBe(true);
   });
 });
 
