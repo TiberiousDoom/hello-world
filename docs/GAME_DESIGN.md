@@ -228,17 +228,25 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
   second), around walls, machines and nest mounds; belts can be walked over. A ring marks where it's
   going. On a keyboard, **WASD or the arrow keys** walk it directly, and the camera follows. If
   something is built across its way, it stops.
-- **Reach:** it mines and hands things over within **1.5 tiles**. Tapping ore, Collect and Drop off
-  send it over first if it's too far, and it does the job on arriving.
-- **Carrying:** up to **20 items**, which trail behind it. Walking up to the **hub** drops everything
-  off at once. **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands
-  that building whatever it takes of what's carried.
+- **Reach:** it mines and hands things over within **1.5 tiles**. Tapping ore, Collect, Pick up and
+  Drop off send it over first if it's too far, and it does the job on arriving.
+- **Inventory (#87, D-090):** **12 slots**, each holding up to **10** of one item (120 in all). An item
+  goes on a stack of its kind first, then into the first empty slot. Mining by hand, **Collect** and
+  **Pick up** fill it; when it's full, mining stops with a message and Collect leaves what doesn't fit.
+  One of each filled slot trails behind the engineer. The **Inventory** button at the right end of the
+  toolbar (or **I**) opens a small window with the slots, in the place of the building panel.
+- **Pick up:** a selected belt, splitter or underground belt with items on it has **Pick up**: the
+  engineer takes the items off it, front first, as many as fit.
+- **Dropping off:** walking up to the **hub** empties the inventory into it, unless "Drop off at the hub
+  when I walk up to it" is switched off in the Inventory window (each player has their own switch).
+  **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands that building
+  whatever it takes of what's held, slot by slot.
 - **Bugs notice the engineer (D-074).** The engineer has **100 health**. Walking within 3 tiles of a
   calm bug (5 at night) provokes its nest, as a building would. An angry bug (or a raider) within
   **4 tiles** of the engineer goes straight for them, within its leash, and bites as hard as it bites
   buildings. Health comes back at 5 a second once nothing has bitten for 5 s. A health bar shows when
   hurt, with a red flash and a hit sound on each bite.
-- **Knocked out:** at 0 health the engineer drops everything they carry (it's lost) and gets back on
+- **Knocked out:** at 0 health the engineer loses everything in the inventory and gets back on
   their feet below the hub **10 s** later, at full health. Until then they can't walk, mine, collect or
   drop off. Building still works.
 - In co-op each player has their own engineer (see Playing together).
@@ -251,7 +259,7 @@ A new game starts with an empty hub and no belts (#38, D-062). The first minutes
    walks over, and every **8 taps** in a row loosen **1**, which it carries; a ring around the tile
    fills with each tap, with sparks and a pickaxe sound. Holding the finger or mouse button down taps
    **4 times a second**. Tapping another tile, or **3 s** without a tap, starts the count over.
-   Dragging from there pans, as usual. With full hands, mining stops and a message says so.
+   Dragging from there pans, as usual. With a full inventory, mining stops and a message says so.
 2. **Carry it to the hub**, then **build a furnace** (6 stone) and an **extractor** (4 stone, 4 iron
    ore) over iron ore, with the furnace in front of the extractor's arrow: a building's output passes
    straight into a building in front of it.
@@ -539,6 +547,7 @@ one research tree, one supply ship.
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
+| Inventory | I, or the Inventory button | Inventory button (right end of the toolbar) |
 | Pick a building | 1–9 | Toolbar |
 | Build more like a placed building | Middle-click it | Hold a finger still on it (about half a second) |
 | Pause | Space | ❚❚ button |

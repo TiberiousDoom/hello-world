@@ -242,7 +242,7 @@ export class Input {
       const r = this.cb.issue({ kind: 'mine', x: t.x, y: t.y });
       if (r === 'full') {
         this.stopMining();
-        this.cb.onNotice('Your hands are full. Walk back to the hub to drop off what you carry.');
+        this.cb.onNotice('Your inventory is full. Walk back to the hub to drop it off.');
       } else if (r === 'down') {
         this.stopMining();
         this.cb.onNotice('Your engineer is getting back on their feet at the hub.');

@@ -50,7 +50,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
-import { Player, PlayerAction, goAndDo, isDown, moveTo, newPlayer, playerOf, reaches, inReach, sendHome, tickPlayers, walk } from './player';
+import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -70,8 +70,9 @@ export type { ResearchState };
  * v18 (#61, D-069) gives belts two lanes; items already on belts go onto the right lane.
  * v19 (D-065) lets nests breed: each records the bugs it breeds back up to.
  * v20 (D-074) gives the engineer health.
+ * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  */
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -186,7 +187,7 @@ export interface Shot {
   jump?: boolean; // an arc jumping on from one bug to the next, not fired from a turret
 }
 
-/** 'far': the character walks over and mines on arriving. 'full': its hands are full. */
+/** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
 export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
 export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
@@ -310,10 +311,23 @@ export class World {
     if (state.version === 17) World.migrateV17(state);
     if (state.version === 18) World.migrateV18(state);
     if (state.version === 19) World.migrateV19(state);
+    if (state.version === 20) World.migrateV20(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v20 to v21 (#87): what each engineer carried goes into its inventory, which empties at the hub as before. */
+  private static migrateV20(state: GameState): void {
+    for (const p of state.players) {
+      const old = p as Player & { carry?: ItemId[] };
+      p.slots = emptySlots();
+      p.autoDrop = true;
+      for (const item of old.carry ?? []) give(p, item);
+      delete old.carry;
+    }
+    state.version = 21;
   }
 
   /** v19 to v20 (D-074): engineers get health, at full. */
@@ -1109,7 +1123,7 @@ export class World {
       goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
       return 'far';
     }
-    if (p.carry.length >= PLAYER.carry) return 'full';
+    if (!roomFor(p, ore)) return 'full';
     const tile = this.idx(x, y);
     const t = this.state.time;
     const m = p.mining && p.mining.tile === tile && t - p.mining.at <= HAND_MINING.resetAfter ? p.mining : { tile, taps: 0, at: t };
@@ -1119,7 +1133,7 @@ export class World {
     if (m.taps >= HAND_MINING.taps) {
       m.taps = 0;
       item = ore;
-      p.carry.push(ore);
+      give(p, ore);
     }
     p.mining = m;
     const tap: HandTap = { x, y, ore, item, age: 0 };
@@ -1136,8 +1150,8 @@ export class World {
 
   /**
    * The character picks up a building's finished items (#38, #40): before belts, this is how the
-   * first plates get from a furnace to the hub. Out of reach, it walks over first. Returns how many
-   * were picked up now.
+   * first plates get from a furnace to the hub. Out of reach, it walks over first. Items that don't fit in
+   * the inventory stay. Returns how many were picked up now.
    */
   collect(id: number, player = 0): number {
     const b = this.byId.get(id);
@@ -1149,9 +1163,48 @@ export class World {
       goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'collect', id });
       return 0;
     }
-    const n = Math.min(b.outputs.length, PLAYER.carry - p.carry.length);
-    p.carry.push(...b.outputs.splice(0, n));
+    const before = b.outputs.length;
+    b.outputs = b.outputs.filter((item) => !give(p, item));
+    return before - b.outputs.length;
+  }
+
+  /**
+   * The character takes the items off a belt, splitter or underground belt (#87), as many as fit in its
+   * inventory, front first. Out of reach, it walks over first. Returns how many were picked up now.
+   */
+  pickUp(id: number, player = 0): number {
+    const b = this.byId.get(id);
+    if (!b || !(isBelt(b.type) || b.type === 'splitter' || b.type === 'tunnel')) return 0;
+    const p = playerOf(this, player);
+    if (isDown(p)) return 0;
+    if (!reaches(this, p, b)) {
+      const [fw, fh] = this.footprintOf(b);
+      goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'pickup', id });
+      return 0;
+    }
+    let n = 0;
+    b.belt = b.belt.filter((it) => !(give(p, it.item) && ++n));
+    if (b.outputs.length) {
+      const lanes = b.outLanes;
+      const kept: ItemId[] = [];
+      const keptLanes: Lane[] = [];
+      b.outputs.forEach((item, i) => {
+        if (give(p, item)) n++;
+        else {
+          kept.push(item);
+          if (lanes) keptLanes.push(lanes[i]);
+        }
+      });
+      b.outputs = kept;
+      if (lanes) b.outLanes = keptLanes;
+    }
     return n;
+  }
+
+  /** Whether walking up to the hub empties a player's inventory into it (#87). */
+  setAutoDrop(on: boolean, player = 0): boolean {
+    playerOf(this, player).autoDrop = on;
+    return true;
   }
 
   /**
@@ -1170,10 +1223,7 @@ export class World {
     }
     const fx = Math.floor(p.x);
     const fy = Math.floor(p.y);
-    const kept = p.carry.filter((item) => !this.insert(b, item, fx, fy));
-    const n = p.carry.length - kept.length;
-    p.carry = kept;
-    return n;
+    return handOver(p, (item) => this.insert(b, item, fx, fy));
   }
 
   /** An engineer for a co-op player (D-076), standing below the hub. False if they already have one. */
@@ -1215,6 +1265,7 @@ export class World {
   private act(p: Player, a: PlayerAction): void {
     if (a.kind === 'mine') this.mineByHand(a.x, a.y, p.id);
     else if (a.kind === 'collect') this.collect(a.id, p.id);
+    else if (a.kind === 'pickup') this.pickUp(a.id, p.id);
     else this.dropOff(a.id, p.id);
   }
 

@@ -4,7 +4,8 @@ import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } fr
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { createDemoWorld } from './demo';
-import { isDown } from './player';
+import { emptySlots, held, heldOf, isDown } from './player';
+import { applyCommand } from './commands';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
 function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
@@ -862,7 +863,7 @@ describe('Starting from nothing (#38)', () => {
     }
     const last = w.mineByHand(x, y);
     expect(typeof last !== 'string' && last.item).toBe('stone');
-    expect(w.state.players[0].carry).toEqual(['stone']);
+    expect(w.state.players[0].slots[0]).toEqual({ item: 'stone', n: 1 });
     expect(w.state.inventory.stone).toBeUndefined(); // not in the hub until it's carried there
     expect(w.handMiningAt(x, y)).toBe(0);
     expect(w.taps.length).toBe(HAND_MINING.taps);
@@ -902,11 +903,11 @@ describe('Starting from nothing (#38)', () => {
     };
     mine(x, y, 10);
     mine(x, y + 3, 4);
-    expect(w.state.players[0].carry.length).toBe(14);
+    expect(held(w.state.players[0])).toBe(14);
     const hub = w.hub!;
     w.moveTo(hub.x - 1, hub.y + 2); // walking up to the hub drops everything off
     run(w, 8);
-    expect(w.state.players[0].carry).toEqual([]);
+    expect(held(w.state.players[0])).toBe(0);
     expect(w.state.inventory).toEqual({ stone: 10, iron_ore: 4 });
     placed(w.place('extractor', x, y + 3, 0));
     const fu = placed(w.place('furnace', x + 2, y + 3, 0));
@@ -915,7 +916,7 @@ describe('Starting from nothing (#38)', () => {
     expect(fu.outputs.length).toBeGreaterThan(0);
     expect(w.collect(fu.id)).toBe(0); // out of reach: the character goes to fetch them
     run(w, 8);
-    expect(w.state.players[0].carry.length).toBeGreaterThan(0);
+    expect(held(w.state.players[0])).toBeGreaterThan(0);
     expect(w.collect(w.hub!.id)).toBe(0);
     w.moveTo(hub.x - 1, hub.y + 2);
     run(w, 8);
@@ -1076,27 +1077,92 @@ describe('The player character (#40)', () => {
     expect([p.x, p.y]).toEqual(at);
   });
 
-  it('carries at most a handful, drops it all into the hub on walking up, and hands buildings what they take', () => {
+  it('fills its inventory, drops it all into the hub on walking up, and hands buildings what they take', () => {
     const w = emptyWorld();
     w.state.inventory = {};
     const p = w.state.players[0];
     const [x, y] = [w.hub!.x - 10, w.hub!.y];
     ore(w, x, y, 1, 1);
     stand(w, x + 1, y);
-    for (let i = 0; i < (PLAYER.carry + 1) * HAND_MINING.taps; i++) w.mineByHand(x, y);
-    expect(p.carry.length).toBe(PLAYER.carry);
+    const most = PLAYER.slots * PLAYER.stack;
+    for (let i = 0; i < (most + 1) * HAND_MINING.taps; i++) w.mineByHand(x, y);
+    expect(held(p)).toBe(most);
+    expect(p.slots.every((s) => s?.n === PLAYER.stack)).toBe(true);
     expect(w.mineByHand(x, y)).toBe('full');
     w.state.inventory = { stone: 6 };
     const fu = placed(w.place('furnace', x + 3, y + 3, 0));
     expect(w.dropOff(fu.id)).toBe(0); // not in reach yet: walks over, then hands it in
     run(w, 4);
-    const left = p.carry.length;
-    expect(left).toBeLessThan(PLAYER.carry); // the furnace took what it had room for
+    const left = held(p);
+    expect(left).toBeLessThan(most); // the furnace took what it had room for
     expect(left).toBeGreaterThan(0);
     w.moveTo(w.hub!.x - 1, w.hub!.y + 2);
     run(w, 6);
-    expect(p.carry).toEqual([]);
+    expect(held(p)).toBe(0);
     expect(w.state.inventory.iron_ore).toBe(left);
+  });
+
+  it('stacks each item up to a slot of 10, and Collect leaves what does not fit (#87)', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    const [x, y] = [w.hub!.x - 10, w.hub!.y];
+    ore(w, x, y, 3, 1); // stone
+    stand(w, x + 1, y);
+    for (let i = 0; i < 11 * HAND_MINING.taps; i++) w.mineByHand(x, y);
+    expect(p.slots.slice(0, 3)).toEqual([{ item: 'stone', n: 10 }, { item: 'stone', n: 1 }, null]);
+    // Every other slot full of plates: one stack of stone has room for 9 more, and nothing else fits.
+    for (let i = 2; i < PLAYER.slots; i++) p.slots[i] = { item: 'iron_plate', n: PLAYER.stack };
+    const fu = placed(w.place('furnace', x + 2, y + 2, 0));
+    fu.outputs = ['brick', 'stone', 'stone'];
+    stand(w, x + 1, y + 1);
+    expect(w.collect(fu.id)).toBe(2);
+    expect(fu.outputs).toEqual(['brick']);
+    expect(heldOf(p, 'stone')).toBe(13);
+  });
+
+  it('picks items up off a belt, walking over first (#87)', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    const [x, y] = [w.hub!.x - 12, w.hub!.y - 6];
+    const belt = placed(w.place('belt', x, y, 0));
+    belt.belt = [
+      { item: 'iron_ore', pos: 0.8, lane: 1 },
+      { item: 'stone', pos: 0.3, lane: 0 },
+    ];
+    stand(w, x - 6, y);
+    expect(w.pickUp(belt.id)).toBe(0); // out of reach: walks over
+    run(w, 3);
+    expect(belt.belt).toEqual([]);
+    expect([heldOf(p, 'iron_ore'), heldOf(p, 'stone')]).toEqual([1, 1]);
+    expect(w.pickUp(w.hub!.id)).toBe(0); // only belts, splitters and underground belts
+  });
+
+  it('with drop-off at the hub switched off, walking up to the hub keeps the inventory (#87)', () => {
+    const w = emptyWorld();
+    w.state.inventory = {};
+    const p = w.state.players[0];
+    p.slots[0] = { item: 'stone', n: 4 };
+    applyCommand(w, { kind: 'auto-drop', on: false });
+    w.moveTo(w.hub!.x - 1, w.hub!.y + 2);
+    run(w, 8);
+    expect(heldOf(p, 'stone')).toBe(4);
+    expect(w.state.inventory.stone).toBeUndefined();
+    expect(w.dropOff(w.hub!.id)).toBe(4); // a Drop off still puts it in
+    expect(w.state.inventory.stone).toBe(4);
+  });
+
+  it('v20 saves put what the engineer carried into its inventory', () => {
+    const w = World.create(5);
+    const old = JSON.parse(w.toJSON());
+    old.version = 20;
+    delete old.players[0].slots;
+    delete old.players[0].autoDrop;
+    old.players[0].carry = ['stone', 'iron_ore', 'stone'];
+    const p = World.fromJSON(JSON.stringify(old)).state.players[0];
+    expect(p.slots.slice(0, 3)).toEqual([{ item: 'stone', n: 2 }, { item: 'iron_ore', n: 1 }, null]);
+    expect(p.slots.length).toBe(PLAYER.slots);
+    expect(p.autoDrop).toBe(true);
+    expect('carry' in p).toBe(false);
   });
 
   it('stops if something is built across its path', () => {
@@ -1120,7 +1186,8 @@ describe('The player character (#40)', () => {
     expect(loaded.state.version).toBe(SAVE_VERSION);
     const p = loaded.state.players[0];
     expect([p.x, p.y]).toEqual([loaded.hub!.x + 2.5, loaded.hub!.y + 5.5]);
-    expect(p.carry).toEqual([]);
+    expect(p.slots).toEqual(emptySlots());
+    expect(p.autoDrop).toBe(true);
   });
 });
 
@@ -1387,12 +1454,12 @@ describe('Bugs notice the engineer (D-074)', () => {
     Object.assign(bug, { x: 55.5, y: 55.5 });
     stand(w, 57, 55);
     const p = w.state.players[0];
-    p.carry = ['stone', 'stone'];
+    p.slots[0] = { item: 'stone', n: 2 };
     run(w, 3);
     expect(p.hp).toBeLessThan(PLAYER.hp);
     run(w, PLAYER.hp / 8); // a crawler bites 8 a second
     expect(isDown(p)).toBe(true);
-    expect(p.carry).toEqual([]);
+    expect(held(p)).toBe(0);
     expect(w.moveTo(60, 60)).toBe(false);
     ore(w, 60, 60);
     expect(w.mineByHand(60, 60)).toBe('down');

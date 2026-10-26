@@ -1,6 +1,7 @@
 // The player character (#40, D-067). An engineer who walks the map, mines by
-// hand, carries what they mine or collect (it trails behind them), and drops it
-// into the hub just by walking up to it, or into a building on request.
+// hand, keeps what they mine, collect or pick up off belts in an inventory of
+// slots (#87, D-090; a few of it trail behind them), and drops it into the hub
+// just by walking up to it (unless switched off), or into a building on request.
 //
 // The rules hold a list of players from the start, for co-op (D-056). Moves are
 // commands like everything else; paths are found once per command and saved, so
@@ -15,14 +16,26 @@ import { moundAt } from './nests';
 import type { Building, World } from './world';
 
 /** Something the character will do on arriving next to its target. */
-export type PlayerAction = { kind: 'mine'; x: number; y: number } | { kind: 'collect'; id: number } | { kind: 'drop'; id: number };
+export type PlayerAction =
+  | { kind: 'mine'; x: number; y: number }
+  | { kind: 'collect'; id: number }
+  | { kind: 'drop'; id: number }
+  | { kind: 'pickup'; id: number };
+
+/** One inventory slot: up to PLAYER.stack of one item. */
+export interface Slot {
+  item: ItemId;
+  n: number;
+}
 
 export interface Player {
   id: number;
   x: number; // position in tiles (a tile's centre is at +0.5)
   y: number;
-  /** What they carry, oldest first (it trails behind them). */
-  carry: ItemId[];
+  /** The inventory (#87): PLAYER.slots slots, each empty or a stack of one item. */
+  slots: (Slot | null)[];
+  /** Whether walking up to the hub empties the inventory into it (on unless the player switches it off). */
+  autoDrop: boolean;
   /** Tile indices still to walk through, next first. */
   path: number[];
   /** Keyboard walking: the direction held, or null. */
@@ -49,7 +62,57 @@ export function newPlayer(w: World, id: number): Player {
   const hub = w.hub;
   const x = hub ? hub.x + Math.floor(HUB_SIZE / 2) + (HOME_OFFSET[id] ?? 0) + 0.5 : w.state.width / 2;
   const y = hub ? hub.y + HUB_SIZE + 0.5 : w.state.height / 2;
-  return { id, x, y, carry: [], path: [], walk: null, pending: null, mining: null, hp: PLAYER.hp };
+  return { id, x, y, slots: emptySlots(), autoDrop: true, path: [], walk: null, pending: null, mining: null, hp: PLAYER.hp };
+}
+
+export function emptySlots(): (Slot | null)[] {
+  return Array.from({ length: PLAYER.slots }, () => null);
+}
+
+/** How many items a player holds in all. */
+export function held(p: Player): number {
+  return p.slots.reduce((n, s) => n + (s?.n ?? 0), 0);
+}
+
+/** How many of `item` a player holds. */
+export function heldOf(p: Player, item: ItemId): number {
+  return p.slots.reduce((n, s) => n + (s?.item === item ? s.n : 0), 0);
+}
+
+/** How many more of `item` fit: room on stacks of it, then empty slots. */
+export function roomFor(p: Player, item: ItemId): number {
+  return p.slots.reduce((n, s) => n + (!s ? PLAYER.stack : s.item === item ? PLAYER.stack - s.n : 0), 0);
+}
+
+/** Puts one `item` in the inventory, on a stack of it first, then in the first empty slot. False if it's full. */
+export function give(p: Player, item: ItemId): boolean {
+  const stack = p.slots.find((s) => s?.item === item && s.n < PLAYER.stack);
+  if (stack) {
+    stack.n++;
+    return true;
+  }
+  const i = p.slots.indexOf(null);
+  if (i < 0) return false;
+  p.slots[i] = { item, n: 1 };
+  return true;
+}
+
+/**
+ * Hands everything a player holds to `put`, one item at a time, slot by slot; what it refuses stays.
+ * Returns how many went.
+ */
+export function handOver(p: Player, put: (item: ItemId) => boolean): number {
+  let n = 0;
+  p.slots = p.slots.map((s) => {
+    if (!s) return null;
+    let left = s.n;
+    while (left > 0 && put(s.item)) {
+      left--;
+      n++;
+    }
+    return left ? { item: s.item, n: left } : null;
+  });
+  return n;
 }
 
 /**
@@ -58,9 +121,9 @@ export function newPlayer(w: World, id: number): Player {
  */
 export function sendHome(w: World, p: Player): void {
   const hub = w.hub;
-  if (hub) for (const item of p.carry) w.insert(hub, item, hub.x - 1, hub.y);
+  if (hub) handOver(p, (item) => w.insert(hub, item, hub.x - 1, hub.y));
   const home = newPlayer(w, p.id);
-  Object.assign(p, { x: home.x, y: home.y, carry: [], path: [], walk: null, pending: null, mining: null });
+  Object.assign(p, { x: home.x, y: home.y, slots: emptySlots(), path: [], walk: null, pending: null, mining: null });
 }
 
 /** Whether a player is knocked out (D-074): it can't walk or work until it's back up. */
@@ -68,14 +131,14 @@ export function isDown(p: Player): boolean {
   return p.downUntil != null;
 }
 
-/** A bug bites the engineer; at no health it's knocked out and drops everything it carries. */
+/** A bug bites the engineer; at no health it's knocked out and loses everything in its inventory. */
 export function hurtPlayer(w: World, p: Player, amount: number): void {
   if (isDown(p)) return;
   p.hp -= amount;
   p.hurtAt = w.state.time;
   if (p.hp > 0) return;
   p.hp = 0;
-  p.carry = [];
+  p.slots = emptySlots();
   p.path = [];
   p.pending = null;
   p.walk = null;
@@ -83,7 +146,7 @@ export function hurtPlayer(w: World, p: Player, amount: number): void {
   p.downUntil = w.state.time + PLAYER.downFor;
   w.playerEvents.push({
     player: p.id,
-    mine: `Your engineer was knocked out and dropped what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`,
+    mine: `Your engineer was knocked out and lost what they carried. Back on their feet at the hub in ${PLAYER.downFor} s.`,
     others: `Player ${p.id + 1}'s engineer was knocked out.`,
   });
 }
@@ -202,9 +265,8 @@ export function tickPlayers(w: World, dt: number, act: (p: Player, a: PlayerActi
       act(p, a);
     }
     const hub = w.hub;
-    if (hub && p.carry.length && inReach(p.x, p.y, hub.x, hub.y, HUB_SIZE, HUB_SIZE)) {
-      for (const item of p.carry) w.insert(hub, item, hub.x - 1, hub.y);
-      p.carry = [];
+    if (hub && p.autoDrop && held(p) && inReach(p.x, p.y, hub.x, hub.y, HUB_SIZE, HUB_SIZE)) {
+      handOver(p, (item) => w.insert(hub, item, hub.x - 1, hub.y));
     }
   }
 }

@@ -1570,19 +1570,20 @@ export class Renderer {
         ctx.arc(ex, ey, 0.25 + 0.05 * Math.sin(now / 150), 0, Math.PI * 2);
         ctx.stroke();
       }
-      // Carried items follow in a line along the way it came.
+      // What it carries follows in a line along the way it came: one of each filled inventory slot.
+      const carried = p.slots.filter((s) => s !== null).map((s) => s!.item);
       let gap = 0.55;
       let k = 0;
-      for (let i = d.trail.length - 1; i > 0 && k < p.carry.length; i--) {
+      for (let i = d.trail.length - 1; i > 0 && k < carried.length; i--) {
         const [ax, ay] = d.trail[i];
         const [bx, by] = d.trail[i - 1];
         gap -= Math.hypot(ax - bx, ay - by);
         if (gap > 0) continue;
-        this.drawItem(p.carry[p.carry.length - 1 - k], bx, by, 0.36);
+        this.drawItem(carried[carried.length - 1 - k], bx, by, 0.36);
         gap = 0.32;
         k++;
       }
-      for (; k < p.carry.length; k++) this.drawItem(p.carry[p.carry.length - 1 - k], d.x - 0.3 - 0.1 * k, d.y + 0.3, 0.3); // no room on the trail yet
+      for (; k < carried.length; k++) this.drawItem(carried[carried.length - 1 - k], d.x - 0.3 - 0.1 * k, d.y + 0.3, 0.3); // no room on the trail yet
       // In co-op, a ring in each player's colour tells the engineers apart.
       if (world.state.players.length > 1) {
         ctx.strokeStyle = PLAYER_COLORS[p.id % PLAYER_COLORS.length];

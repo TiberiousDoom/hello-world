@@ -22,6 +22,8 @@ import {
   isMachine,
   CLOCK,
   NESTS,
+  PLAYER,
+  isBelt,
 } from '../sim/data';
 import { clockAt } from '../sim/clock';
 import { threatAt } from '../sim/nests';
@@ -29,6 +31,7 @@ import { artUrl, icon } from '../art';
 import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World, canCollect } from '../sim/world';
+import { Player, held } from '../sim/player';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
 import { Tool, UIState, turnTool } from './state';
@@ -210,6 +213,8 @@ export class Hud {
   private lastUpdate = 0;
   private toolbarKey = '';
   private infoKey = '';
+  /** The engineer's inventory window (#87) is open. It shares its place with the building panel. */
+  private packOpen = false;
   private statsHtml = '';
   private invHtml = '';
   /** Where the mouse is, or a finger while it's down: the stock panel fades out of its way. */
@@ -336,9 +341,18 @@ export class Hud {
     $('toolbar').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-tool]');
       if (!btn) return;
-      const tool = btn.dataset.tool as Tool | 'rotate';
-      if (tool === 'rotate') this.rotate();
+      const tool = btn.dataset.tool as Tool | 'rotate' | 'pack';
+      if (tool === 'pack') this.togglePack();
+      else if (tool === 'rotate') this.rotate();
       else this.setTool(this.ui.tool === tool ? null : tool);
+    });
+
+    $('pack').addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[data-pack="close"]')) this.togglePack();
+    });
+    $('pack').addEventListener('change', (e) => {
+      const box = e.target as HTMLInputElement;
+      if (box.dataset.pack === 'auto') this.actions.issue({ kind: 'auto-drop', on: box.checked });
     });
 
     $('info').addEventListener('click', (e) => {
@@ -370,6 +384,9 @@ export class Hud {
         case 'drop':
           if (id != null) this.actions.issue({ kind: 'drop', id });
           break;
+        case 'pickup':
+          if (id != null) this.actions.issue({ kind: 'pickup', id });
+          break;
         case 'research':
           this.openResearch();
           break;
@@ -389,6 +406,10 @@ export class Hud {
         this.setSpeed(this.ui.speed === 0 ? 1 : 0);
         return;
       }
+      if (e.key === 'i' || e.key === 'I') {
+        this.togglePack();
+        return;
+      }
       const n = Number(e.key);
       if (n >= 1 && n <= 9) {
         const tools = this.unlockedTools();
@@ -400,6 +421,13 @@ export class Hud {
   private unlockedTools(): BuildingType[] {
     const world = this.actions.getWorld();
     return TOOLBAR.filter((t) => world.isUnlocked(t));
+  }
+
+  /** Opens or closes the engineer's inventory, which takes the building panel's place. */
+  private togglePack(): void {
+    this.packOpen = !this.packOpen;
+    if (this.packOpen) this.ui.selected = null;
+    this.refresh();
   }
 
   setTool(tool: Tool): void {
@@ -488,7 +516,9 @@ export class Hud {
     if (inv !== this.invHtml) $('inventory').innerHTML = this.invHtml = inv;
 
     this.updateToolbar(world);
+    if (this.ui.selected != null) this.packOpen = false; // a building's panel takes the place
     this.updateInfo(world);
+    this.updatePack(world);
 
     if (s.gameOver && $('gameover').hidden && $('newgame').hidden) $('gameover').hidden = false;
     // A supply run delivered. The first one in a game gets its own screen, and pauses the game.
@@ -544,7 +574,8 @@ export class Hud {
   private updateToolbar(world: World): void {
     const tools = this.unlockedTools();
     const inv = world.state.inventory;
-    const key = [tools.join(), this.ui.tool, this.ui.dir, ...tools.map((t) => world.canAfford(BUILDINGS[t].cost))].join('|');
+    const me = this.me(world);
+    const key = [tools.join(), this.ui.tool, this.ui.dir, this.packOpen, me ? held(me) : 0, ...tools.map((t) => world.canAfford(BUILDINGS[t].cost))].join('|');
     if (key === this.toolbarKey) return;
     this.toolbarKey = key;
     const buttons = tools.map((t, i) => {
@@ -558,8 +589,39 @@ export class Hud {
     buttons.push(
       `<button class="tool util" data-tool="rotate" title="Rotate (R)"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
       `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (X)"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
+      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (I)"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
     );
-    $('toolbar').innerHTML = buttons.join('');
+    // In place, so a tap isn't lost when a count changes under the finger (#86).
+    setHtml($('toolbar'), buttons.join(''));
+  }
+
+  /** This player's engineer. */
+  private me(world: World): Player | undefined {
+    return world.state.players.find((p) => p.id === this.ui.player);
+  }
+
+  /** The engineer's inventory (#87): its slots, how full it is, and whether the hub empties it. */
+  private updatePack(world: World): void {
+    const panel = $('pack');
+    const me = this.me(world);
+    panel.hidden = !this.packOpen || !me;
+    if (panel.hidden || !me) return;
+    const slots = me.slots
+      .map((s) =>
+        s
+          ? `<div class="slot" title="${esc(ITEMS[s.item].name)}">${swatch(s.item)}<span class="slot-n">${s.n}</span></div>`
+          : '<div class="slot empty"></div>',
+      )
+      .join('');
+    setHtml(
+      panel,
+      `<div class="info-head"><span>${ico('collect')}Inventory</span><button data-pack="close" aria-label="Close inventory">${ico('close')}</button></div>
+      <p class="small muted">${held(me)} of ${PLAYER.slots * PLAYER.stack}: ${PLAYER.slots} slots of ${PLAYER.stack}. Mining, Collect and Pick up fill it; Drop off empties it into a building.</p>
+      <div class="slots">${slots}</div>
+      <label class="pack-auto"><input type="checkbox" data-pack="auto" ${me.autoDrop ? 'checked' : ''}> Drop off at the hub when I walk up to it</label>`,
+    );
+    const box = panel.querySelector<HTMLInputElement>('[data-pack="auto"]');
+    if (box && box.checked !== me.autoDrop) box.checked = me.autoDrop;
   }
 
   /** The panel for the selected building. Only placed buildings get one, not the tool in hand. */
@@ -613,6 +675,9 @@ export class Hud {
         }
         // Before belts, finished items are carried to the hub by hand (#38).
         // Your character fetches what it has made, or hands it what you carry (#38, #40).
+        if (isBelt(b!.type) || b!.type === 'splitter' || b!.type === 'tunnel') {
+          actions += `<div class="row"><button data-action="pickup" title="Your engineer takes the items off it (#87)">${ico('collect')}<span class="pickup-label">Pick up</span></button></div>`;
+        }
         const takes = TAKES_ITEMS.includes(b!.type);
         if (canCollect(b!.type) || takes) {
           actions += '<div class="row">';
@@ -665,12 +730,21 @@ export class Hud {
         }
       }
       if (b.outputs.length) stats += `<br>Output buffer ${b.outputs.map(swatch).join('')}`;
-      const carried = world.state.players.find((p) => p.id === this.ui.player)?.carry.length ?? 0;
+      const me = world.state.players.find((p) => p.id === this.ui.player);
+      const carried = me ? held(me) : 0;
       const drop = panel.querySelector<HTMLButtonElement>('[data-action="drop"]');
       if (drop) {
         drop.disabled = !carried;
         const label = carried ? `Drop off ${carried}` : 'Drop off';
         const span = drop.querySelector('.drop-label')!;
+        if (span.textContent !== label) span.textContent = label;
+      }
+      const pickup = panel.querySelector<HTMLButtonElement>('[data-action="pickup"]');
+      if (pickup) {
+        const n = b.belt.length + (b.type === 'splitter' || b.type === 'tunnel' ? b.outputs.length : 0);
+        pickup.disabled = !n;
+        const label = n ? `Pick up ${n}` : 'Pick up';
+        const span = pickup.querySelector('.pickup-label')!;
         if (span.textContent !== label) span.textContent = label;
       }
       const collect = panel.querySelector<HTMLButtonElement>('[data-action="collect"]');

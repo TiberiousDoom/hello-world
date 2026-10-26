@@ -6,6 +6,7 @@ import { TICK, World } from '../sim/world';
 import { Coop } from './coop';
 import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, validCommand } from './lockstep';
 import { pack, unpack } from './pack';
+import { held } from '../sim/player';
 import { roomStatus } from './client';
 import { HEARTBEAT, MAX_PLAYERS } from './protocol';
 
@@ -218,6 +219,9 @@ describe('Co-op lockstep', () => {
     expect(validCommand({ kind: 'place', type: 'belt', x: 3, y: 4, dir: 1, replaceBelt: false })).toBe(true);
     expect(validCommand({ kind: 'research', id: 'logistics' })).toBe(true);
     expect(validCommand({ kind: 'filter', id: 4, item: null })).toBe(true);
+    expect(validCommand({ kind: 'pickup', id: 4 })).toBe(true);
+    expect(validCommand({ kind: 'auto-drop', on: false })).toBe(true);
+    expect(validCommand({ kind: 'auto-drop', on: 'no' })).toBe(false);
     expect(validCommand({ kind: 'checkpoint' })).toBe(false);
     expect(validCommand({ kind: 'add-player', id: 2 })).toBe(false);
     expect(validCommand({ kind: 'place', type: 'castle', x: 3, y: 4, dir: 1 })).toBe(false);
@@ -269,12 +273,12 @@ describe('A co-op room', () => {
     const away = hw.state.players[1];
     const home = { x: away.x, y: away.y };
     away.x += 6;
-    away.carry = ['iron_ore', 'iron_ore'];
+    away.slots[0] = { item: 'iron_ore', n: 2 };
     const ore = hw.state.inventory.iron_ore ?? 0;
     guest.leave();
     await until(() => host.players.length === 1);
     for (let i = 0; i <= INPUT_DELAY; i++) host.host!.tick();
-    expect([away.x, away.y, away.carry.length]).toEqual([home.x, home.y, 0]);
+    expect([away.x, away.y, held(away)]).toEqual([home.x, home.y, 0]);
     expect(hw.state.inventory.iron_ore).toBe(ore + 2);
 
     // A player joining under way gets a copy of the game, and the free slot's engineer.

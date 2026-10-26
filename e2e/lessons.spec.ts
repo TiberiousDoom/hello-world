@@ -43,7 +43,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   const minedStone = () =>
     page.evaluate(() => {
       const w = window.game.world;
-      return w.state.players[0].carry.filter((i: string) => i === 'stone').length + (w.state.inventory.stone ?? 0);
+      return w.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0) + (w.state.inventory.stone ?? 0);
     });
   for (let i = 0; i < 30 && (await minedStone()) === 0; i++) await tap(page, info, ...here);
   expect(await minedStone()).toBe(1);
@@ -105,7 +105,7 @@ test('the Essentials and Bugs lessons run, then can be replayed and switched off
   const plates = () =>
     page.evaluate(() => {
       const w = window.game.world;
-      return w.state.players[0].carry.filter((i: string) => i === 'iron_plate').length + (w.state.inventory.iron_plate ?? 0);
+      return w.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'iron_plate' ? s.n : 0), 0) + (w.state.inventory.iron_plate ?? 0);
     });
   await expect.poll(plates, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));

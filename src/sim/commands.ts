@@ -28,6 +28,8 @@ export type Command =
   | { kind: 'mine'; x: number; y: number }
   | { kind: 'collect'; id: number }
   | { kind: 'drop'; id: number }
+  | { kind: 'pickup'; id: number }
+  | { kind: 'auto-drop'; on: boolean }
   | { kind: 'move'; x: number; y: number }
   | { kind: 'walk'; dx: number; dy: number }
   // An engineer for a player joining a co-op game (D-076), and sending it home when they leave (D-079).
@@ -53,6 +55,8 @@ export interface CommandResults {
   mine: HandTap | MineError;
   collect: number;
   drop: number;
+  pickup: number;
+  'auto-drop': boolean;
   move: boolean;
   walk: void;
   'add-player': boolean;
@@ -101,6 +105,10 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.collect(c.id, player);
     case 'drop':
       return w.dropOff(c.id, player);
+    case 'pickup':
+      return w.pickUp(c.id, player);
+    case 'auto-drop':
+      return w.setAutoDrop(c.on, player);
     case 'move':
       return w.moveTo(c.x, c.y, player);
     case 'walk':
