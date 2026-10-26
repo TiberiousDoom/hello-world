@@ -83,6 +83,10 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Stake (a bundle of two sharpened stakes) | 32×32 (+64×64) | P2 | Upgraded |
 | Charcoal | 32×32 (+64×64) | P2 | Upgraded |
 | Steel (an ingot, cooler and brighter than iron plate) | 32×32 (+64×64) | P2 | Upgraded |
+| Dowel (three round wooden rods, D-105) | 32×32 (+64×64) | P2 | Placeholder (`items/dowel`) |
+| Peg (two tapered wooden pegs) | 32×32 (+64×64) | P2 | Placeholder (`items/peg`) |
+| Rope (a coil of rope) | 32×32 (+64×64) | P2 | Placeholder (`items/rope`) |
+| Truss (a small triangular wooden frame) | 32×32 (+64×64) | P2 | Placeholder (`items/truss`) |
 
 ## Buildings
 

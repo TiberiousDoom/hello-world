@@ -126,7 +126,8 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   // Industry starts the Smelting lesson. With stone and ore in stock, its first step is done.
   await page.evaluate(() => {
     const w = window.game.world;
-    w.state.inventory = { plank: 999, stone: 999 };
+    w.state.inventory = { plank: 999, stone: 999, truss: 999 };
+    w.state.researched.push('workshop', 'carpentry');
     w.researchNow('industry');
     w.state.inventory = { stone: 10, iron_ore: 4 };
   });

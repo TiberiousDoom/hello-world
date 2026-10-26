@@ -1038,6 +1038,7 @@ export class World {
   setRecipe(id: number, recipeId: string | null): void {
     const b = this.byId.get(id);
     if (!b || !isMachine(b.type) || b.recipe === recipeId) return;
+    if (recipeId != null && !this.recipesFor(b.type).some((r) => r.id === recipeId)) return; // another machine's, or not researched
     b.recipe = recipeId;
     b.inputs = {};
     b.progress = -1;
@@ -1055,9 +1056,9 @@ export class World {
     if (b?.type === 'splitter') b.side = side;
   }
 
-  /** Recipes a machine can use. */
+  /** Recipes a machine can use: its own, once any research they need is done (D-105). */
   recipesFor(type: BuildingType) {
-    return RECIPES.filter((r) => r.machine === type);
+    return RECIPES.filter((r) => r.machine === type && (!r.requires || this.state.researched.includes(r.requires)));
   }
 
   // ------------------------------------------------------------ item flow
@@ -1113,7 +1114,7 @@ export class World {
       case 'assembler':
       case 'sawmill': {
         if (!target.recipe) {
-          const r = RECIPES.find((r) => r.machine === target.type && r.inputs[item]);
+          const r = this.recipesFor(target.type).find((r) => r.inputs[item]);
           if (!r) return false;
           target.recipe = r.id;
         }
