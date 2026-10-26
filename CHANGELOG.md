@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.45.4 · 2026-10-26 · Four ages planned
+### New
+- Nothing new in the game this time: the plan for a new research tree is written up. The game will grow through a Wood, Iron, Steam and Electric Age, each with its own materials, power and weapons, starting from nothing but wood. The ship will be built a stage at a time across all four, and a playtested Wood Age comes first.
+
 ## 0.45.3 · 2026-10-26 · Taps that land
 ### Fixed
 - **Research starts with one tap:** in a busy factory the research list redrew so often that a tap could miss its button and need a second try. The list now updates its numbers in place (#86).
