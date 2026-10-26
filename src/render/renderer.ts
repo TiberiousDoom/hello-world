@@ -35,7 +35,7 @@ import {
 import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching, shipyard } from '../sim/ship';
-import { clockAt, darkness } from '../sim/clock';
+import { clockAt, darkness, seasonTurn } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { BeltLook, beltLook } from './belts';
@@ -80,6 +80,28 @@ const SEASON_ART: Record<Season['id'], { ground: string; round: string; pine: st
     pine: 'terrain/tree_pine_winter',
     over: ['terrain/tree_round_winter_frost', 'terrain/tree_pine_winter_snow'],
   },
+};
+/**
+ * Shadows (D-101): how tall each kind of building stands, in tiles, for the shadow it casts. Flat ones
+ * (belts, rollers, tunnels, spike pits) cast none; anything not listed stands SHADOW.height.
+ */
+const SHADOW = { height: 0.45, tree: 0.9, sun: 0.24, moon: 0.1 };
+const HEIGHTS: Partial<Record<BuildingType, number>> = {
+  hub: 1.1,
+  shipyard: 0.8,
+  belt: 0,
+  express_belt: 0,
+  roller: 0,
+  tunnel: 0.15,
+  spike_pit: 0,
+  splitter: 0.2,
+  crate: 0.35,
+  wall: 0.5,
+  palisade: 0.6,
+  turret: 0.55,
+  ballista: 0.5,
+  trebuchet: 0.9,
+  tesla: 0.9,
 };
 /** Night (#42): how dark it gets, and lights that keep the factory readable. */
 const NIGHT = { color: '8,14,40', alpha: 0.58 };
@@ -161,6 +183,11 @@ export class Renderer {
   private seenTaps = new WeakSet<object>();
   /** The season being drawn (#42), and the night overlay's canvas. */
   private season: Season['id'] = 'spring';
+  /** The season coming next, and how far the land has turned towards it (D-111). */
+  private next: Season['id'] = 'summer';
+  private shift = 0;
+  /** Where shadows fall this frame: the offset per tile of height, and how dark they are (D-101). */
+  private sun = { dx: 0, dy: 0, alpha: 0 };
   private night = document.createElement('canvas');
   /** Each character as drawn: eased toward its position between ticks, its heading, how far it has walked, and where it has been (for the trail of carried items). */
   private players = new Map<number, { x: number; y: number; angle: number; walked: number; trail: [number, number][]; at: number }>();
@@ -236,8 +263,14 @@ export class Renderer {
     this.trackEffects(world, now);
 
     // Ground, decorations and resources (cached). Beyond the map's edge is forest.
-    this.season = clockAt(world.state.time).season.id;
-    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}`;
+    const turn = seasonTurn(world.state.time);
+    this.season = turn.season;
+    this.next = turn.next;
+    // The cached layers are repainted in 16 steps while one season gives way to the next.
+    this.shift = Math.floor(turn.shift * 16) / 16;
+    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}|${this.shift}`;
+    this.sun = sunAt(world.state.time);
+    const sun = this.sun;
     const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
     this.drawLayer(this.ground, stamp, view, (lx0, ly0, lx1, ly1) => this.paintGround(world, lx0, ly0, lx1, ly1));
 
@@ -258,11 +291,13 @@ export class Renderer {
     const looks = belts.map((b) => beltLook(world, b));
     belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
     for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b);
-    for (const b of s.buildings) {
-      if (isBelt(b.type)) continue;
+    const standing = s.buildings.filter((b) => {
+      if (isBelt(b.type)) return false;
       const [fw, fh] = world.footprintOf(b);
-      if (visible(b.x, b.y, Math.max(fw, fh))) this.drawBuilding(world, b, now, z);
-    }
+      return visible(b.x - 2, b.y - 2, Math.max(fw, fh) + 4);
+    });
+    this.drawShadows(world, standing);
+    for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
 
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
@@ -306,10 +341,13 @@ export class Renderer {
     }
 
     // Engineers and bugs walk under the trees (#95); a faint engineer shows through so it isn't lost.
-    this.drawLayer(this.canopy, stamp, view, (lx0, ly0, lx1, ly1) => {
+    // The trees' shadows turn with the sun, so the canopy is repainted as it moves.
+    const sunKey = z < 12 ? '' : `${sun.dx.toFixed(2)},${sun.dy.toFixed(2)},${sun.alpha.toFixed(2)}`;
+    this.drawLayer(this.canopy, `${stamp}|${sunKey}`, view, (lx0, ly0, lx1, ly1) => {
       // One tile more each way: canopies spill over their neighbours.
       const cx0 = Math.max(0, lx0 - 1);
       const cy0 = Math.max(0, ly0 - 1);
+      if (z >= 12) this.drawTreeShadows(world, Math.max(0, lx0 - 2), Math.max(0, ly0 - 2), Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1));
       this.drawTrees(world, cx0, cy0, Math.min(s.width - 1, lx1), Math.min(s.height - 1, ly1), z);
       this.frostTrees(lx0, ly0, lx1, ly1);
     });
@@ -621,11 +659,26 @@ export class Renderer {
       }
     }
     this.drawMapEdge(s.width, s.height);
-    const tint = SEASON_TINT[this.season];
-    if (tint) {
+    for (const [season, alpha] of [
+      [this.season, 1 - this.shift],
+      [this.next, this.shift],
+    ] as const) {
+      const tint = SEASON_TINT[season];
+      if (!tint || alpha <= 0) continue;
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = tint;
       ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     }
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * Which season's look one tree or plant shows while the land turns (D-111): each changes at its own
+   * moment, from `h` in [0, 1). Coming out of winter, flowers return in the first half and leaves in the second.
+   */
+  private lookOf(h: number, leaves: boolean): Season['id'] {
+    const at = this.season === 'winter' ? (leaves ? 0.5 + h / 2 : h / 2) : h;
+    return this.shift > at ? this.next : this.season;
   }
 
   /**
@@ -681,12 +734,22 @@ export class Renderer {
 
   private drawGround(w: number, h: number): void {
     const ctx = this.ctx;
-    const img = sprite(SEASON_ART[this.season].ground) ?? sprite('terrain/ground');
-    // A pattern belongs to the context it was made in, and the ground is painted rarely, so make it each time.
-    const pattern = img ? ctx.createPattern(img, 'repeat') : null;
-    pattern?.setTransform(new DOMMatrix().scale(1 / img!.width));
-    ctx.fillStyle = pattern ?? '#2e4d33';
-    ctx.fillRect(0, 0, w, h);
+    // The season's ground, with the next one's fading in over it at the season's end (D-111).
+    for (const [season, alpha] of [
+      [this.season, 1],
+      [this.next, this.shift],
+    ] as const) {
+      if (alpha <= 0) continue;
+      const img = sprite(SEASON_ART[season].ground) ?? sprite('terrain/ground');
+      if (!img && alpha < 1) continue;
+      // A pattern belongs to the context it was made in, and the ground is painted rarely, so make it each time.
+      const pattern = img ? ctx.createPattern(img, 'repeat') : null;
+      pattern?.setTransform(new DOMMatrix().scale(1 / img!.width));
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = pattern ?? '#2e4d33';
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** Grass tufts, flowers, mushrooms and pebbles on some empty tiles, the same every time. */
@@ -696,7 +759,7 @@ export class Renderer {
     const key = pick < 14 ? 'terrain/tuft' : pick < 18 ? 'terrain/flowers' : pick < 21 ? 'terrain/flowers_blue' : pick < 23 ? 'terrain/pebbles' : pick < 24 ? 'terrain/mushrooms' : '';
     if (!key) return;
     // Under the snow, only pebbles and mushrooms show (D-082).
-    if (this.season === 'winter' && pick < 21 && sprite('terrain/ground_winter')) return;
+    if (pick < 21 && this.lookOf(((h >>> 4) % 1000) / 1000, false) === 'winter' && sprite('terrain/ground_winter')) return;
     const jx = ((h >>> 8) % 40) / 100 - 0.2;
     const jy = ((h >>> 16) % 40) / 100 - 0.2;
     // Plants stand upright (#94); only pebbles turn.
@@ -774,9 +837,11 @@ export class Renderer {
         const hv = hash(x + 5000, y + 5000);
         const kind = hv % 10;
         // Each season has its own trees (#42, D-082); a few broadleaf trees are already turning in summer.
-        const art = SEASON_ART[this.season];
+        // At a season's end, trees change over one by one (D-111).
+        const season = this.lookOf((hash(x + 9000, y) % 1000) / 1000, true);
+        const art = SEASON_ART[season];
         const pine = kind >= 5 && kind < 9;
-        const key = this.season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : art.round;
+        const key = season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : art.round;
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const jx = ((hv >>> 12) % 20) / 100 - 0.1;
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
@@ -791,9 +856,67 @@ export class Renderer {
     }
   }
 
+  /**
+   * Shadows of buildings (D-101): each footprint swept along the sun's direction by its height, in one
+   * path so overlapping shadows don't darken each other.
+   */
+  private drawShadows(world: World, buildings: Building[]): void {
+    const { dx, dy, alpha } = this.sun;
+    if (alpha <= 0.005) return;
+    const ctx = this.ctx;
+    ctx.beginPath();
+    for (const b of buildings) {
+      const h = HEIGHTS[b.type] ?? SHADOW.height;
+      if (!h) continue;
+      const [fw, fh] = world.footprintOf(b);
+      const m = 0.08; // the art sits a little inside its tiles
+      const [x0, y0, x1, y1] = [b.x + m, b.y + m, b.x + fw - m, b.y + fh - m];
+      const ox = dx * h;
+      const oy = dy * h;
+      // The outline with its corners cut (the hub's are cut deep), and the same carried along by the sun.
+      const c = b.type === 'hub' ? fw * 0.15 : 0.12;
+      const base: [number, number][] = [
+        [x0 + c, y0], [x1 - c, y0], [x1, y0 + c], [x1, y1 - c],
+        [x1 - c, y1], [x0 + c, y1], [x0, y1 - c], [x0, y0 + c],
+      ];
+      const hull = convexHull([...base, ...base.map(([x, y]): [number, number] => [x + ox, y + oy])]);
+      ctx.moveTo(hull[0][0], hull[0][1]);
+      for (let i = 1; i < hull.length; i++) ctx.lineTo(hull[i][0], hull[i][1]);
+      ctx.closePath();
+    }
+    ctx.fillStyle = `rgba(10,16,30,${alpha})`;
+    ctx.fill('nonzero');
+  }
+
+  /** Trees' shadows (D-101): a soft blot cast away from the sun, painted into the canopy under the trees. */
+  private drawTreeShadows(world: World, x0: number, y0: number, x1: number, y1: number): void {
+    const { dx, dy, alpha } = this.sun;
+    if (alpha <= 0.005) return;
+    const trees = world.state.trees;
+    const ctx = this.ctx;
+    const len = Math.hypot(dx, dy) * SHADOW.tree;
+    const angle = Math.atan2(dy, dx);
+    ctx.beginPath();
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        if (trees[world.idx(x, y)] !== TREE) continue;
+        const hv = hash(x + 5000, y + 5000);
+        const size = 1.35 + ((hv >>> 8) % 30) / 100;
+        const r = size * 0.36;
+        const cx = x + 0.5 + dx * SHADOW.tree * 0.6;
+        const cy = y + 0.5 + dy * SHADOW.tree * 0.6;
+        ctx.moveTo(cx + Math.cos(angle) * (r + len / 2), cy + Math.sin(angle) * (r + len / 2));
+        ctx.ellipse(cx, cy, r + len / 2, r, angle, 0, Math.PI * 2);
+      }
+    }
+    ctx.fillStyle = `rgba(10,16,30,${alpha})`;
+    ctx.fill('nonzero');
+  }
+
   /** Winter frost on the trees drawn into a cached canopy (only where trees were painted), until their winter art loads. */
   private frostTrees(x0: number, y0: number, x1: number, y1: number): void {
-    if (this.season !== 'winter' || sprite('terrain/tree_round_winter')) return;
+    const wintry = this.shift < 0.5 ? this.season : this.next;
+    if (wintry !== 'winter' || sprite('terrain/tree_round_winter')) return;
     const ctx = this.ctx;
     ctx.save();
     ctx.globalCompositeOperation = 'source-atop';
@@ -2032,4 +2155,38 @@ function arrowHead(ctx: CanvasRenderingContext2D, x: number, y: number, dir: Dir
   ctx.lineTo(x - fx * s + fy * s, y - fy * s - fx * s);
   ctx.closePath();
   ctx.fill();
+}
+
+/**
+ * Where shadows fall (D-101). The sun rises on the right (east), crosses the south and sets on the left,
+ * so shadows swing from left to right through the day, short at noon and long near dusk and dawn. At
+ * night the moon does the same, fainter; each fades out as the light changes over.
+ */
+function sunAt(time: number): { dx: number; dy: number; alpha: number } {
+  const c = clockAt(time);
+  const dark = darkness(time);
+  const a = Math.PI * c.part;
+  const high = Math.sin(a);
+  const len = 0.35 + 1.1 * (1 - high);
+  const alpha = c.night ? SHADOW.moon * dark : SHADOW.sun * (1 - dark);
+  // Away from the light: west in the morning, east in the evening, and a little north (up) all day.
+  return { dx: Math.cos(a) * -len, dy: -0.35 * high * len - 0.1, alpha };
+}
+
+/** The convex hull of a few points (Andrew's monotone chain), in order around it. */
+function convexHull(points: [number, number][]): [number, number][] {
+  const p = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower: [number, number][] = [];
+  for (const q of p) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop();
+    lower.push(q);
+  }
+  const upper: [number, number][] = [];
+  for (let i = p.length - 1; i >= 0; i--) {
+    const q = p[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop();
+    upper.push(q);
+  }
+  return lower.slice(0, -1).concat(upper.slice(0, -1));
 }

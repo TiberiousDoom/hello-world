@@ -1,5 +1,6 @@
 import { Music } from './audio/music';
 import { Sfx } from './audio/sfx';
+import { Critters } from './audio/critters';
 import { SoundWatcher } from './audio/sounds';
 import { Input } from './input/input';
 import { Camera } from './render/camera';
@@ -7,7 +8,7 @@ import { Renderer } from './render/renderer';
 import { loadArt } from './art';
 import { HUB_SIZE } from './sim/data';
 import { Command, ResultOf, applyCommand } from './sim/commands';
-import { createDemoWorld, sustainDemo } from './sim/demo';
+import { DEMO_SCENES, createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
 import { LoggedCommand, Session } from './sim/session';
 import { OldSaveError, PlaceError, TICK, World } from './sim/world';
@@ -113,8 +114,29 @@ let session: Session | null = null;
 let saveKey = SAVE_KEY;
 /** The slot a hosted co-op game will save to: your factory's if you host it, else the co-op slot. */
 let hostSaveKey = COOP_SAVE_KEY;
-/** The factory running behind the main menu. */
-let demo = createDemoWorld();
+/** The factory running behind the main menu: one example scene after another (#99). */
+let demoScene = 0;
+let demo = createDemoWorld(demoScene);
+/** When the current scene began (page clock, ms); after DEMO_SCENE_MS the next one fades in. */
+let demoSince = performance.now();
+const DEMO_SCENE_MS = 40000;
+let demoSwapping = false;
+const showDemoCaption = () => (document.getElementById('demo-caption')!.textContent = DEMO_SCENES[demoScene % DEMO_SCENES.length].name);
+/** Fades to the next example factory and back. */
+function nextDemoScene(): void {
+  if (demoSwapping) return;
+  demoSwapping = true;
+  document.getElementById('demo-fade')!.classList.add('on');
+  setTimeout(() => {
+    demoScene = (demoScene + 1) % DEMO_SCENES.length;
+    demo = createDemoWorld(demoScene);
+    demoSince = performance.now();
+    showDemoCaption();
+    document.getElementById('demo-fade')!.classList.remove('on');
+    demoSwapping = false;
+  }, 650);
+}
+showDemoCaption();
 let inMenu = true;
 const active = () => (inMenu || !game ? demo : game);
 
@@ -156,6 +178,7 @@ const camera = new Camera();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas, camera);
 renderer.maxDpr = profile.batterySaver ? 1 : 2;
+camera.zoom = window.innerWidth < 600 ? 22 : 30; // the main menu's view of its example factory
 
 function centreOnHub(world: World): void {
   const hub = world.hub;
@@ -205,8 +228,10 @@ function showMainMenu(): void {
   }
   inMenu = true;
   document.body.classList.add('in-menu');
-  demo = createDemoWorld();
-  camera.zoom = window.innerWidth < 600 ? 26 : 38;
+  demo = createDemoWorld(demoScene);
+  demoSince = performance.now();
+  showDemoCaption();
+  camera.zoom = window.innerWidth < 600 ? 22 : 30;
   if (tutorial.active) tutorial.abort();
   hud.closeModals();
   refreshMainMenu();
@@ -363,6 +388,7 @@ volume.addEventListener('change', saveProfile);
 
 const sfx = new Sfx(profile.sfxVolume);
 const sounds = new SoundWatcher(sfx, camera);
+const critters = new Critters(sfx);
 const sfxVolume = document.getElementById('sfx-volume') as HTMLInputElement;
 sfxVolume.value = String(Math.round(profile.sfxVolume * 100));
 sfxVolume.addEventListener('input', () => {
@@ -593,6 +619,7 @@ function frame(now: number): void {
     if (ticks === MAX_TICKS_PER_FRAME) acc = 0;
     if (!inMenu && coop.host) coop.host.flush(ui.speed, now);
   }
+  if (inMenu && now - demoSince > DEMO_SCENE_MS) nextDemoScene();
   if (inMenu) {
     // Drift slowly around the demo factory.
     const hub = world.hub!;
@@ -620,6 +647,7 @@ function frame(now: number): void {
     hud.update(world, now);
     hud.placeStock(world, camera);
     sounds.update(world, ui.speed > 0);
+    critters.update(world.state.time, ui.speed > 0, now);
     tutorial.check();
   } else {
     sfx.setHum(0); // no factory noise on the main menu

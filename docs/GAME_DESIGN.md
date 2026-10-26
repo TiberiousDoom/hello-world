@@ -253,6 +253,15 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare frosted trees and snowy pines; grass and flowers are under the snow |
 
   A stump's regrowth time is set by the season it's cut in.
+- **Seasons fade in (D-111):** over the last day of each season the land turns to the next one's look.
+  Trees change one by one, each at its own moment; the ground and the light cross-fade; snow covers the
+  grass and flowers bit by bit. Coming out of winter, flowers come back in the first half of that day and
+  leaves in the second. Only the look changes: the rules (tree regrowth) change on the day the season does.
+- **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
+  right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
+  and short at midday, and right in the evening, growing long towards dusk. At night the moon casts
+  fainter ones the same way; each fades out as the light changes over at dusk and dawn. Belts, rollers
+  and spike pits are flat and cast none.
 - A message marks nightfall, each morning and each new season, and the top bar shows the season, the
   day and a sun or moon (its tooltip says how long until morning or nightfall).
 - Each new season plays its own short piece of music (see [Music](#music)).
@@ -547,7 +556,12 @@ one research tree, one supply ship.
 
 ## Onboarding
 
-- The game opens on a **main menu**, with a small factory (and a calm bug territory) running behind it.
+- The game opens on a **main menu**, with example factories running behind it, one after another every
+  40 seconds with a fade between them (#99, D-111): **Industry** (iron, copper, stone and wood lines into
+  the hub, with turrets), **The Wood Age** (lumber camps, a sawmill, a workshop, rollers through a crate,
+  palisades, spike pits, a trebuchet and ballistae) and **Holding the line** (a walled ring of turrets,
+  cannons, a tesla, ballistae and repair stations). Each has a calm bug territory in view, and its name in
+  the corner.
   It offers **Continue** (when a save exists, showing its mode and time played),
   **New game** (choose the mode) and **How to play**.
 
@@ -697,6 +711,10 @@ strings and light percussion, with a roomy reverb.
 - Sounds on screen play at full volume, and fade to silence a little beyond its edges, panned left or
   right by where they happen. A provoked nest is a warning, so it's always heard, quietly if far away.
 - Busy fights are kept tidy: each sound has a shortest gap between plays, and at most 24 play at once.
+- **Critters (D-101, D-111):** heard from all over, quietly, now and then: birds in the morning and less
+  at midday, crickets and katydids in the evening and early night, cicadas at dusk, frogs at night. Fewest
+  in early spring, most in summer, fading through fall to almost none in winter (a few birds). They're
+  quiet while the game is paused. The timing is in `src/audio/critters.ts`.
 - Nothing plays on the main menu except button clicks. Menu → Sound effects sets the volume (saved per
   device, default 60%); zero mutes it.
 

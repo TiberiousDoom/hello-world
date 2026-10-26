@@ -1646,3 +1646,31 @@ button.quiet {
   color: inherit;
   font-weight: 600;
 }
+
+/* The example factories behind the main menu (#99): a fade between them, and the current one's name. */
+#demo-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  background: #0f1a2e;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+#demo-fade.on {
+  opacity: 1;
+}
+body:not(.in-menu) #demo-fade {
+  display: none;
+}
+#demo-caption {
+  position: absolute;
+  right: max(24px, 4vw);
+  bottom: calc(20px + var(--safe-bottom));
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.8;
+}

@@ -3,7 +3,7 @@ import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRA
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
-import { createDemoWorld } from './demo';
+import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
 import { emptySlots, held, heldOf, isDown } from './player';
 import { applyCommand } from './commands';
 
@@ -1120,6 +1120,18 @@ describe('Colony blueprints', () => {
 });
 
 describe('Demo world', () => {
+  it.each(DEMO_SCENES.map((s, i) => [s.name, i] as const))('scene "%s" delivers to the hub and keeps its bugs calm (#99)', (_, i) => {
+    const w = createDemoWorld(i);
+    expect(w.state.buildings.length).toBeGreaterThan(15);
+    const before = Object.values(w.delivered).reduce((a, n) => a + n!, 0);
+    for (let t = 0; t < 40; t += TICK) {
+      w.tick();
+      sustainDemo(w);
+    }
+    expect(Object.values(w.delivered).reduce((a, n) => a + n!, 0)).toBeGreaterThan(before + 10);
+    expect(w.state.nests.every((n) => !isAngry(w, n))).toBe(true);
+  });
+
   it('lays out a working factory that delivers to the hub, with calm bugs nearby', () => {
     const w = createDemoWorld();
     const inv = { ...w.state.inventory };
