@@ -102,6 +102,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Hub | 8×8 (512×512; 5×5 before D-108, the same art scaled up) | Centrepiece, with a damaged variant drawn below half health (`buildings/hub_damaged`) | 1 (+idle loop) | P1 | Upgraded |
 | Wooden roller (D-106): a narrow wooden frame with rollers across | 1×1 | Drawn in code in play (frame, turning rollers, corners as an L); the sprite is the toolbar icon | 1 | P2 | Placeholder (`buildings/roller`) |
 | Storage crate (D-106): a wooden crate, its front marked | 1×1 | | 1 | P2 | Placeholder (`buildings/crate`) |
+| Storage Unit (D-116): a steel cabinet of six compartments, its front marked | 1×2 (64×128), facing east | Sends out of its top tile's front | 1 | P2 | Placeholder (`buildings/storage`) |
 | Ship scaffolding (D-109): a wooden lattice around the pad, seen from above | 5×5 | The ship's first stage on the map (`buildings/ship_scaffold`); the shipyard and the other ship stages are drawn at 5×5 too (3×3 before D-109) | 1 | P2 | Placeholder |
 | Spike pit (D-107): a dug pit bristling with sharpened stakes | 1×1 | A charge bar shows its wear | 1 | P2 | Placeholder (`buildings/spike_pit`) |
 | Trebuchet (D-107): a wooden frame, and its throwing arm with a counterweight and sling | 2×2 | Base and arm (`_base`, `_barrel`), the arm turning to aim like a turret's barrel | 1 | P2 | Placeholder (`buildings/trebuchet_base`, `buildings/trebuchet_barrel`) |

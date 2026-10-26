@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.58.0 · 2026-10-26 · The Storage Unit
+### New
+- **Storage Unit** (Metal Logistics): a 1×2 store with 6 stacks of up to 50 items, mixed. Belts fill it from the back and sides, and a belt leaving its front takes items out in the order they came. Your engineer can Collect from it and Drop off into it.
+
 ## 0.57.0 · 2026-10-26 · Water power
 ### New
 - **Ponds:** small lakes now dot the map, at least 30 tiles from the hub. Nothing is built on water, your engineer walks round, and bugs wade through slowly.

@@ -100,6 +100,7 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   spike_pit: 0,
   splitter: 0.2,
   crate: 0.35,
+  storage: 0.5,
   wall: 0.5,
   palisade: 0.6,
   turret: 0.55,
