@@ -8,6 +8,7 @@
 // thing being explained.
 
 import { shipyard } from '../sim/ship';
+import { heldOf } from '../sim/player';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
 import { BREACH, BUILDINGS, BuildingType, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RESEARCH_BY_ID, SHIP } from '../sim/data';
 import { TREE, World } from '../sim/world';
@@ -143,9 +144,10 @@ function stocked(c: StepContext, item: ItemId): number {
   return (c.world.state.inventory[item] ?? 0) + spent;
 }
 
-/** How much of an item has been mined by hand: in the hub (or spent), or still carried. */
+/** How much of an item has been mined by hand: in the hub (or spent), or still in the engineer's inventory. */
 function mined(c: StepContext, item: ItemId): number {
-  return stocked(c, item) + (engineer(c)?.carry.filter((i) => i === item).length ?? 0);
+  const p = engineer(c);
+  return stocked(c, item) + (p ? heldOf(p, item) : 0);
 }
 
 /** This player's engineer. */

@@ -317,6 +317,65 @@ body.in-menu #toasts {
   border-radius: 12px;
   padding: 10px 12px;
 }
+/* The engineer's inventory (#87): in the building panel's place, which it never shares the screen with. */
+#pack {
+  position: fixed;
+  right: 8px;
+  bottom: calc(112px + var(--safe-bottom));
+  width: 300px;
+  max-width: calc(100% - 16px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+#pack .slots {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+}
+#pack .slot {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  display: grid;
+  place-items: center;
+}
+#pack .slot.empty {
+  border-style: dashed;
+  background: none;
+}
+#pack .slot .item-icon,
+#pack .slot .swatch {
+  width: 60%;
+  height: 60%;
+}
+#pack .slot-n {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
+}
+#pack .pack-auto {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+/* Always at the right end of the toolbar, even while it scrolls. */
+.tool.pack-btn {
+  position: sticky;
+  right: 0;
+  margin-left: auto;
+}
+.tool.pack-btn:not(.active) {
+  background: var(--panel);
+}
 #info p {
   margin: 4px 0 6px;
   color: var(--muted);
@@ -1241,7 +1300,8 @@ button.quiet {
 /* ------------------------------------------------------------ phone */
 
 @media (max-width: 600px) {
-  #info {
+  #info,
+  #pack {
     left: 8px;
     right: 8px;
     width: auto;
@@ -1543,4 +1603,9 @@ button.quiet {
   margin-left: 6px;
   color: #ff9a3c;
   font-weight: 600;
+}
+#pack .info-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

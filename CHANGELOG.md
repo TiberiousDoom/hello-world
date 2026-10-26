@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.46.0 · 2026-10-26 · Pockets
+### New
+- **An inventory for your engineer:** 12 slots that each hold 10 of one item, 120 in all, up from 20. Open it with the Inventory button at the bottom right of the toolbar (or I). Mining by hand, Collect and Pick up fill it.
+- **Pick up off belts:** select a belt, splitter or underground belt with items on it and press Pick up. Your engineer walks over and takes them.
+- **Keep what you carry:** walking up to the hub still drops everything off, but you can switch that off in the Inventory window. Drop off on any building still hands it what it takes.
+### Fixed
+- The toolbar no longer misses a tap while its numbers change.
+
 ## 0.45.4 · 2026-10-26 · Four ages planned
 ### New
 - Nothing new in the game this time: the plan for a new research tree is written up. The game will grow through a Wood, Iron, Steam and Electric Age, each with its own materials, power and weapons, starting from nothing but wood. The ship will be built a stage at a time across all four, and a playtested Wood Age comes first.

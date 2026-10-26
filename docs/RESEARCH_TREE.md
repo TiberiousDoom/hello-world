@@ -121,7 +121,7 @@ About fifteen, added age by age with the age that uses them:
 
 Age by age, each playtested before the next:
 
-1. **The engineer's inventory** (#87), which defence upgrades need.
+1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
 2. **Wood Age:** rollers, the Workshop and Carpentry, the wooden defences, the 5×5 shipyard with its
    top-down ship and side view, and smelting moved to Industry. Today's later researches stay as they are
    behind Industry until their age is built.

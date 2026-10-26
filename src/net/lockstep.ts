@@ -83,6 +83,8 @@ const GUEST_KINDS: Record<string, string[]> = {
   mine: ['x', 'y'],
   collect: ['id'],
   drop: ['id'],
+  pickup: ['id'],
+  'auto-drop': [],
   move: ['x', 'y'],
   walk: ['dx', 'dy'],
 };
@@ -103,6 +105,7 @@ export function validCommand(c: unknown): c is Command {
   if (o.kind === 'recipe' && o.recipe !== null && !(typeof o.recipe === 'string' && Object.hasOwn(RECIPE_BY_ID, o.recipe))) return false;
   if (o.kind === 'filter' && o.item !== null && !(typeof o.item === 'string' && Object.hasOwn(ITEMS, o.item))) return false;
   if (o.kind === 'splitter-side' && o.side !== 'left' && o.side !== 'right') return false;
+  if (o.kind === 'auto-drop' && typeof o.on !== 'boolean') return false;
   return true;
 }
 

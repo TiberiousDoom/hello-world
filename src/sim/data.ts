@@ -211,7 +211,8 @@ export const CLOCK = {
 export const PLAYER = {
   speed: 4, // tiles per second
   reach: 1.5, // tiles from the character to the edge of what it mines or hands things to
-  carry: 20, // items it can carry
+  slots: 12, // inventory slots (#87, D-090)
+  stack: 10, // items of one kind a slot holds
   searchLimit: 20000, // tiles searched for a path before heading for the nearest spot found
   hp: 100, // health; bugs bite the engineer as hard as they bite buildings
   notice: 4, // an angry bug this close goes for the engineer instead of buildings
