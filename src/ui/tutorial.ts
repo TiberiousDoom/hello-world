@@ -10,7 +10,7 @@
 import { shipyard } from '../sim/ship';
 import { heldOf } from '../sim/player';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
-import { BREACH, BUILDINGS, BuildingType, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RESEARCH_BY_ID, SHIP } from '../sim/data';
+import { BREACH, BUILDINGS, BuildingType, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
 import { TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -206,6 +206,12 @@ function campOutput(w: World): TileTarget | null {
   return { tx: o.x, ty: o.y, size: 1 };
 }
 
+/** The first Workshop the player built. */
+function workshopTarget(w: World): TileTarget | null {
+  const b = w.state.buildings.find((b) => b.type === 'workshop');
+  return b ? { tx: b.x, ty: b.y, size: 2 } : null;
+}
+
 /** The first Lumber Camp the player built. */
 function campTarget(w: World): TileTarget | null {
   const b = w.state.buildings.find((b) => b.type === 'lumber_camp');
@@ -305,7 +311,34 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         text: () =>
-          'That is the whole loop: gather, make, deliver. Planks pay for Palisades, cheap wooden walls, and for Industry, which brings extractors and furnaces for ore. Select the hub any time to open Research.',
+          'That is the whole loop: gather, make, deliver. Planks pay for Palisades, cheap wooden walls, and for Workshops, whose wooden parts lead to Industry: extractors and furnaces for ore. Select the hub any time to open Research.',
+      },
+    ],
+  },
+  {
+    id: 'workshop',
+    title: 'Wooden parts',
+    // Workshops are researched, in a game still in the Wood Age (D-105).
+    trigger: (w) => w.isUnlocked('workshop') && count(w, 'workshop') === 0 && !w.state.researched.includes('industry'),
+    steps: [
+      {
+        target: (c) => toolThen(c, 'workshop'),
+        done: (c) => built(c, 'workshop'),
+        text: (c) =>
+          c.ui.tool === 'workshop'
+            ? 'Place it where belts or your engineer can bring it logs and dowels.' + confirmHint(c)
+            : 'Workshops make wooden parts. Pick the Workshop.',
+      },
+      {
+        target: (c) => ({ tiles: workshopTarget(c.world), shape: 'circle' }),
+        text: () =>
+          `Feed it logs and it makes rope; feed it dowels and it makes pegs. Dowels come from a sawmill: select one and pick Dowel. ` +
+          `Pegs and rope pay for Carpentry, which lets the workshop make trusses from ${RECIPE_BY_ID.truss.inputs.plank} planks, ${RECIPE_BY_ID.truss.inputs.peg} pegs and ${RECIPE_BY_ID.truss.inputs.rope} rope.`,
+      },
+      {
+        target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
+        text: () =>
+          `Planks, trusses and stone pay for Industry: ${RESEARCH_BY_ID.industry.cost.plank} planks, ${RESEARCH_BY_ID.industry.cost.truss} trusses and ${RESEARCH_BY_ID.industry.cost.stone} stone. It brings extractors and furnaces, and the metal age.`,
       },
     ],
   },

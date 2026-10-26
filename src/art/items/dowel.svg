@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="iDowel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0d29e" /><stop offset="1" stop-color="#b8844c" /></linearGradient>
+      </defs><g>
+        <g stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round">
+          <rect x="8" y="16" width="48" height="8" rx="4" fill="url(#iDowel)" />
+          <rect x="8" y="28" width="48" height="8" rx="4" fill="url(#iDowel)" />
+          <rect x="8" y="40" width="48" height="8" rx="4" fill="url(#iDowel)" />
+        </g>
+        <g fill="#e8c48c" stroke="#7a4a22" stroke-width="1"><ellipse cx="54" cy="20" rx="2" ry="3" /><ellipse cx="54" cy="32" rx="2" ry="3" /><ellipse cx="54" cy="44" rx="2" ry="3" /></g>
+        <path d="M12 18.5 H48 M12 30.5 H48 M12 42.5 H48" stroke="#fff0d2" stroke-width="1.4" stroke-linecap="round" opacity="0.8" />
+      </g>
+      </svg>

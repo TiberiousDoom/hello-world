@@ -44,12 +44,17 @@ How the game works on `master` today. Balance numbers live in
 | Log ×2 | Lumber Camp | 1 tree in reach | 3 s |
 | Plank ×2 | Sawmill | 1 log | 1.5 s |
 | Stake ×3 | Sawmill | 1 plank | 1.5 s |
+| Dowel ×4 | Sawmill | 1 plank | 1.5 s |
+| Peg ×2 | Workshop | 1 dowel | 1.5 s |
+| Rope | Workshop | 2 logs | 3 s |
+| Truss | Workshop (after Carpentry) | 3 planks + 2 pegs + 1 rope | 4 s |
 | Charcoal | Furnace | 2 logs | 2.5 s |
 | Steel | Furnace | 2 iron plates + 1 charcoal | 3 s |
 | Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
-picks one in its info panel. Changing the recipe discards inputs it has already received.
+picks one in its info panel. A recipe that needs a research (the truss needs Carpentry) isn't offered,
+or picked, until it's done. Changing the recipe discards inputs it has already received.
 
 ## Buildings
 
@@ -61,7 +66,7 @@ picks one in its info panel. Changing the recipe discards inputs it has already 
 | Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Basic Defense |
 | Ballista | 1×1 | 8 planks, 4 iron plates | 140 | Ballistae |
 | Wall | 1×1 | 3 bricks | 400 | Masonry |
-| Workshop | 2×2 | 6 iron plates, 4 copper ingots, 4 planks | 120 | Workshops |
+| Workshop | 2×2 | 10 planks, 6 logs | 120 | Workshops |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Logistics |
@@ -168,7 +173,7 @@ Wood is the one resource that runs out, for a while (D-044). The ship's hull doe
 - **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
   **Ballista** (researched after Palisades and Basic Defense). **Repair stations** burn planks as well as
   iron plates. The **Workshop**, **Repair Station** and **Shipyard** cost a few planks, so Workshops
-  research needs Industry, which needs Forestry. A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
+  research needs Forestry. Its wooden parts are in [Wooden parts](#items-and-recipes) (D-105). A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
   2 iron plates and 1 charcoal. Steel is cargo for the fourth supply run on, and the material for upgrades
   to come.
 - Still to come: forest that matters to bugs ([ROADMAP.md](ROADMAP.md)).
@@ -188,16 +193,17 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Research | Items | Time | Needs | Unlocks |
 |---|---|---|---|---|
 | Forestry | 15 logs | 20 s | — | Lumber Camp, Sawmill |
-| Industry | 40 planks, 30 stone | 60 s | Forestry | Extractor, Furnace |
+| Workshops | 40 planks, 20 logs | 45 s | Forestry | Workshop (pegs, rope; gears and wire from metal) |
+| Carpentry | 60 planks, 40 pegs, 20 rope | 60 s | Workshops | The truss recipe |
+| Industry | 100 planks, 50 trusses, 50 stone | 90 s | Carpentry | Extractor, Furnace |
 | Logistics | 10 iron plates | 20 s | Industry | Belt, Splitter, Underground Belt |
 | Basic Defense | 20 iron plates | 30 s | Industry | Turret |
 | Palisades | 12 planks | 30 s | Forestry | Palisade |
 | Ballistae | 20 planks, 10 iron plates | 45 s | Palisades, Basic Defense | Ballista |
 | Chitin Plating | 10 chitin, 20 iron plates | 45 s | Basic Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
 | Masonry | 12 bricks | 30 s | Industry | Wall |
-| Workshops | 30 iron plates, 10 copper | 60 s | Industry | Workshop |
 | Distribution | 25 iron plates, 10 copper | 60 s | Basic Defense | Hub Port |
-| Assembly | 30 gears, 30 wire | 120 s | Workshops | Assembler |
+| Assembly | 30 gears, 30 wire | 120 s | Workshops, Industry | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Workshops, Masonry | Repair Station |
 | Shipyard | 60 iron plates, 30 gears, 30 wire, 5 motors | 150 s | Assembly | Shipyard |
 | Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Basic Defense | Cannon |
@@ -277,8 +283,10 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 3. **Collect by hand.** Select a machine, extractor or lumber camp and press **Collect**: the engineer
    fetches its finished items (up to 3), to carry to the hub. A building's output passes straight into a
    building in front of it, so a sawmill at a camp's arrow saws its logs.
-4. **Research Industry** (40 planks, 30 stone mined by hand) to unlock the **extractor** and the
-   **furnace**, then **Logistics** (10 iron plates) for belts. From there, belts do the carrying.
+4. **Wooden parts (D-105):** research **Workshops** for the Workshop (rope from logs, pegs from dowels
+   sawn at the sawmill), then **Carpentry** for trusses.
+5. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand) to unlock the **extractor** and
+   the **furnace**, then **Logistics** (10 iron plates) for belts. From there, belts do the carrying.
 
 ## Bugs
 
@@ -503,11 +511,12 @@ one research tree, one supply ship.
   It offers **Continue** (when a save exists, showing its mode and time played),
   **New game** (choose the mode) and **How to play**.
 
-- **Tutorial lessons** (six) start by themselves the first time each one is useful:
+- **Tutorial lessons** (seven) start by themselves the first time each one is useful:
 
   | Lesson | Starts when | Steps |
   |---|---|---|
-  | Essentials | Nothing is built yet but the hub | The hub → your engineer → chop 23 logs by hand → walk back to the hub → research Forestry → place a Lumber Camp beside the nearest trees → bring logs for the Sawmill and place it at the camp's arrow → Collect planks and bring them back → hub stock → the loop, and what planks are for (Palisades, Industry) |
+  | Essentials | Nothing is built yet but the hub | The hub → your engineer → chop 23 logs by hand → walk back to the hub → research Forestry → place a Lumber Camp beside the nearest trees → bring logs for the Sawmill and place it at the camp's arrow → Collect planks and bring them back → hub stock → the loop, and what planks are for (Palisades, Workshops) |
+  | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
   | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → research Logistics → lay 3 belts |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Palisades from the hub (Basic Defense once Industry is done) |
   | Splitters and tunnels | The splitter is unlocked (Logistics) | What splitters do |

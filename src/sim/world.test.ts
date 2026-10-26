@@ -113,15 +113,15 @@ describe('Buildings', () => {
 
   it('charges and refunds costs, and rejects bad placements', () => {
     const w = emptyWorld();
-    const before = w.state.inventory.iron_plate!;
+    const before = w.state.inventory.plank!;
     const b = placed(w.place('workshop', 20, 20, 0));
-    expect(w.state.inventory.iron_plate).toBe(before - BUILDINGS.workshop.cost.iron_plate!);
+    expect(w.state.inventory.plank).toBe(before - BUILDINGS.workshop.cost.plank!);
     expect(w.place('belt', 21, 21, 0)).toBe('occupied'); // inside the workshop
     expect(w.place('extractor', 30, 30, 0)).toBe('needs-resource');
     expect(w.place('workshop', MAP_SIZE - 1, 10, 0)).toBe('bounds');
     expect(w.place('port', 60, 60, 0)).toBe('needs-hub');
     w.demolish(b.id);
-    expect(w.state.inventory.iron_plate).toBe(before);
+    expect(w.state.inventory.plank).toBe(before);
   });
 
   it('turn in place only when their new footprint is free', () => {
@@ -207,9 +207,9 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(false); // smelting comes with Industry (D-093)
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999 };
-    expect(w.researchNow('workshop')).toBe('requires'); // workshops need Industry, which needs Forestry
-    for (const id of ['forestry', 'industry', 'defense', 'workshop', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999 };
+    expect(w.researchNow('workshop')).toBe('requires'); // workshops need Forestry
+    for (const id of ['forestry', 'workshop', 'carpentry', 'industry', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('extractor') && w.isUnlocked('furnace')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
@@ -713,6 +713,49 @@ describe('Wood', () => {
     e.state.inventory.plank = 2;
     placed(e.place('palisade', x, e.hub!.y, 0));
     expect(e.state.inventory.plank).toBe(0);
+  });
+});
+
+describe('Wooden parts (D-105)', () => {
+  it('a sawmill saws planks into dowels; a workshop makes pegs and rope, and trusses after Carpentry', () => {
+    const w = emptyWorld();
+    w.state.researched = ['forestry', 'workshop'];
+    const hub = w.hub!;
+    const saw = placed(w.place('sawmill', hub.x - 20, hub.y - 10, 0));
+    w.setRecipe(saw.id, 'dowel');
+    expect(saw.recipe).toBe('dowel');
+    w.insert(saw, 'plank', saw.x - 1, saw.y);
+    const ws = placed(w.place('workshop', hub.x - 20, hub.y - 4, 0));
+    // Logs into a new workshop make rope; trusses aren't open yet.
+    for (let i = 0; i < 2; i++) expect(w.insert(ws, 'log', ws.x - 1, ws.y)).toBe(true);
+    expect(ws.recipe).toBe('rope');
+    expect(w.recipesFor('workshop').map((r) => r.id)).not.toContain('truss');
+    w.setRecipe(ws.id, 'truss');
+    expect(ws.recipe).toBe('rope'); // not researched: refused
+    run(w, 3.5);
+    expect(saw.outputs).toEqual(['dowel', 'dowel', 'dowel', 'dowel']);
+    expect(ws.outputs).toEqual(['rope']);
+    // Carpentry opens trusses: 3 planks, 2 pegs and a rope.
+    w.state.researched.push('carpentry');
+    w.setRecipe(ws.id, 'truss');
+    ws.outputs = [];
+    for (const [item, n] of [['plank', 3], ['peg', 2], ['rope', 1]] as [ItemId, number][]) for (let i = 0; i < n; i++) expect(w.insert(ws, item, ws.x - 1, ws.y)).toBe(true);
+    run(w, 4.5);
+    expect(ws.outputs).toEqual(['truss']);
+  });
+
+  it('the Wood Age leads to Industry: Workshops, then Carpentry, then Industry, all paid in wood and stone', () => {
+    const w = World.create(3);
+    expect(RESEARCH_BY_ID.workshop.requires).toEqual(['forestry']);
+    expect(RESEARCH_BY_ID.carpentry.requires).toEqual(['workshop']);
+    expect(RESEARCH_BY_ID.industry.requires).toEqual(['carpentry']);
+    // A research never costs something its needs can't make (D-089): before Industry, only wood and stone.
+    const wood = new Set(['log', 'plank', 'stake', 'dowel', 'peg', 'rope', 'truss', 'stone']);
+    for (const id of ['forestry', 'workshop', 'carpentry', 'industry', 'palisades']) {
+      for (const item of Object.keys(RESEARCH_BY_ID[id].cost)) expect(wood.has(item), `${id} costs ${item}`).toBe(true);
+    }
+    expect(Object.keys(BUILDINGS.workshop.cost).every((k) => wood.has(k))).toBe(true);
+    expect(w.isUnlocked('workshop')).toBe(false);
   });
 });
 

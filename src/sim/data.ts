@@ -18,6 +18,11 @@ export const ITEMS = {
   log: { name: 'Log', color: '#8a5a32' },
   plank: { name: 'Plank', color: '#d9a866' },
   stake: { name: 'Stake', color: '#b98a50' },
+  // Wooden parts (D-089, D-105).
+  dowel: { name: 'Dowel', color: '#d8b07a' },
+  peg: { name: 'Peg', color: '#a8743e' },
+  rope: { name: 'Rope', color: '#c2a46b' },
+  truss: { name: 'Truss', color: '#b07a3c' },
   charcoal: { name: 'Charcoal', color: '#3b3a3f' },
   steel: { name: 'Steel', color: '#8fa3b8' },
   chitin: { name: 'Chitin', color: '#7a8a3c' },
@@ -38,16 +43,23 @@ export interface Recipe {
   output: ItemId;
   count: number;
   time: number; // seconds
+  /** A research that has to be done before a machine can use it. */
+  requires?: string;
 }
 
 export const RECIPES: Recipe[] = [
   { id: 'iron_plate', machine: 'furnace', inputs: { iron_ore: 1 }, output: 'iron_plate', count: 1, time: 1.6 },
   { id: 'copper_ingot', machine: 'furnace', inputs: { copper_ore: 1 }, output: 'copper_ingot', count: 1, time: 1.6 },
   { id: 'brick', machine: 'furnace', inputs: { stone: 2 }, output: 'brick', count: 1, time: 2 },
+  // The workshop's wooden parts come first, so a log or plank fed to a new one starts them (D-105).
+  { id: 'peg', machine: 'workshop', inputs: { dowel: 1 }, output: 'peg', count: 2, time: 1.5 },
+  { id: 'rope', machine: 'workshop', inputs: { log: 2 }, output: 'rope', count: 1, time: 3 },
+  { id: 'truss', machine: 'workshop', inputs: { plank: 3, peg: 2, rope: 1 }, output: 'truss', count: 1, time: 4, requires: 'carpentry' },
   { id: 'gear', machine: 'workshop', inputs: { iron_plate: 2 }, output: 'gear', count: 1, time: 2 },
   { id: 'wire', machine: 'workshop', inputs: { copper_ingot: 1 }, output: 'wire', count: 2, time: 1.5 },
   { id: 'plank', machine: 'sawmill', inputs: { log: 1 }, output: 'plank', count: 2, time: 1.5 },
   { id: 'stake', machine: 'sawmill', inputs: { plank: 1 }, output: 'stake', count: 3, time: 1.5 },
+  { id: 'dowel', machine: 'sawmill', inputs: { plank: 1 }, output: 'dowel', count: 4, time: 1.5 },
   { id: 'charcoal', machine: 'furnace', inputs: { log: 2 }, output: 'charcoal', count: 1, time: 2.5 },
   { id: 'steel', machine: 'furnace', inputs: { iron_plate: 2, charcoal: 1 }, output: 'steel', count: 1, time: 3 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
@@ -106,7 +118,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
   extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { stone: 4, iron_ore: 4 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
   furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { stone: 6 }, blocking: true, description: 'Smelts ore into plates, ingots and bricks.' },
-  workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [2, 2], cost: { iron_plate: 6, copper_ingot: 4, plank: 4 }, blocking: true, description: 'Makes gears and wire.' },
+  workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [2, 2], cost: { plank: 10, log: 6 }, blocking: true, description: 'Makes pegs and rope, trusses after Carpentry, and gears and wire from metal.' },
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [3, 3], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
@@ -288,17 +300,18 @@ export interface Research {
 
 export const RESEARCH: Research[] = [
   { id: 'forestry', name: 'Forestry', cost: { log: 15 }, time: 20, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
-  // The Iron Age's keystone (D-089, D-093). Its full cost (trusses, Basic Defense 2) comes with the Wood Age's later steps.
-  { id: 'industry', name: 'Industry', cost: { plank: 40, stone: 30 }, time: 60, requires: ['forestry'], unlocks: ['extractor', 'furnace'], description: 'Extractors and furnaces: ore, smelted into plates, ingots and bricks.' },
+  // The Iron Age's keystone (D-089, D-093). It needs Basic Defense 2 too once the Wood Age's defences are built.
+  { id: 'industry', name: 'Industry', cost: { plank: 100, truss: 50, stone: 50 }, time: 90, requires: ['carpentry'], unlocks: ['extractor', 'furnace'], description: 'Extractors and furnaces: ore, smelted into plates, ingots and bricks.' },
   { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: ['industry'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
   { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: ['industry'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
   { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
   { id: 'ballistae', name: 'Ballistae', cost: { plank: 20, iron_plate: 10 }, time: 45, requires: ['palisades', 'defense'], unlocks: ['ballista'], description: 'Long-range towers that fire wooden stakes.' },
   { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
   { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: ['industry'], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
-  { id: 'workshop', name: 'Workshops', cost: { iron_plate: 30, copper_ingot: 10 }, time: 60, requires: ['industry'], unlocks: ['workshop'], description: 'Make gears and wire.' },
+  { id: 'workshop', name: 'Workshops', cost: { plank: 40, log: 20 }, time: 45, requires: ['forestry'], unlocks: ['workshop'], description: 'Workshops make pegs from dowels and rope from logs, and later gears and wire.' },
+  { id: 'carpentry', name: 'Carpentry', cost: { plank: 60, peg: 40, rope: 20 }, time: 60, requires: ['workshop'], unlocks: [], description: 'Workshops can make trusses from planks, pegs and rope.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
-  { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
+  { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['workshop', 'industry'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['workshop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'shipyard', name: 'Shipyard', cost: { iron_plate: 60, gear: 30, wire: 30, motor: 5 }, time: 150, requires: ['assembly'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
   { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },

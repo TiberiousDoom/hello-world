@@ -20,16 +20,18 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await expect(page.locator('#tutorial .tip-text')).toContainText('0 of 23');
   await settled(page.locator('#tutorial .spot'));
   await cameraSettled(page);
+  // The tree the lesson's spotlight is on (as nearestTrees finds it), so the lesson card keeps clear of it.
   const tree = await page.evaluate(() => {
     const w = window.game.world;
+    const cx = w.hub.x + 5 / 2;
+    const cy = w.hub.y + 5 / 2;
     let best: [number, number] = [0, 0];
     let bestD = Infinity;
-    for (let y = 0; y < w.state.height; y++)
-      for (let x = 0; x < w.state.width; x++) {
-        if (w.treeAt(x, y) !== 1) continue;
-        const d = Math.abs(x - w.hub.x) + Math.abs(y - w.hub.y);
-        if (d < bestD) [bestD, best] = [d, [x, y]];
-      }
+    w.state.trees.forEach((t: number, i: number) => {
+      if (t !== 1) return;
+      const d = Math.hypot((i % w.state.width) - cx, Math.floor(i / w.state.width) - cy);
+      if (d < bestD) [bestD, best] = [d, [i % w.state.width, Math.floor(i / w.state.width)]];
+    });
     return best;
   });
   const logs = () =>
@@ -126,7 +128,8 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   // Industry starts the Smelting lesson. With stone and ore in stock, its first step is done.
   await page.evaluate(() => {
     const w = window.game.world;
-    w.state.inventory = { plank: 999, stone: 999 };
+    w.state.inventory = { plank: 999, stone: 999, truss: 999 };
+    w.state.researched.push('workshop', 'carpentry');
     w.researchNow('industry');
     w.state.inventory = { stone: 10, iron_ore: 4 };
   });

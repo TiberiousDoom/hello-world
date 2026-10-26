@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.48.0 · 2026-10-26 · Wooden parts
+### New
+- **Wooden parts:** sawmills can saw planks into **dowels**, and workshops make **pegs** from dowels and **rope** from logs. Research **Carpentry** and workshops make **trusses** from planks, pegs and rope.
+- **Workshops come sooner:** they're researched with planks and logs now, right after Forestry, and built from wood.
+- **Industry costs more:** 100 planks, 50 trusses and 50 stone, after Carpentry. The Wood Age now has a real goal before the furnaces.
+- **A Wooden parts lesson** shows what the workshop makes and what Industry needs.
+
 ## 0.47.1 · 2026-10-26 · Long legs
 ### New
 - **Runners are longer:** they're drawn as long centipedes now, about three times as long, with a body that snakes along behind them as they run.

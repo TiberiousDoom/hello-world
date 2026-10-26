@@ -1,4 +1,4 @@
-import { build, calm, cameraSettled, expect, newGame, test, uncoveredTile } from './helpers';
+import { ALL_LESSONS, build, buildTile, calm, cameraSettled, expect, newGame, settled, stepLabel, test, uncoveredTile } from './helpers';
 
 test('wood: trees blocking building, a lumber camp cutting trees, and a sawmill', async ({ page }, info) => {
   await newGame(page, { fresh: true });
@@ -62,4 +62,40 @@ test('wood: trees blocking building, a lumber camp cutting trees, and a sawmill'
   await page.evaluate((id) => (window.game.ui.selected = id), camp.id);
   await expect(page.locator('#info')).toContainText('Lumber Camp');
   await expect(page.locator('#info')).toContainText(/\d+ trees? in reach, \d+ stumps? growing back/);
+});
+
+test('wooden parts: Workshops starts its lesson, a workshop goes up, and it makes rope from logs (D-105)', async ({ page }, info) => {
+  await newGame(page, { fresh: true, lessonsSeen: ALL_LESSONS.filter((l) => l !== 'workshop') });
+  await calm(page);
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.inventory = { log: 999, plank: 999 };
+    w.researchNow('forestry');
+    w.researchNow('workshop');
+  });
+  await expect(stepLabel(page)).toHaveText(/^Wooden parts · 1 of 3/);
+  await page.click('[data-tool="workshop"]');
+  await settled(page.locator('#tutorial .tip'));
+  // Open ground near the hub.
+  const spot = await page.evaluate(() => {
+    const w = window.game.world;
+    for (let d = 8; d < 40; d++) for (let dy = -d; dy <= d; dy++) if (!w.checkPlace('workshop', w.hub.x - d, w.hub.y + dy, 0)) return [w.hub.x - d, w.hub.y + dy] as [number, number];
+    return null;
+  });
+  expect(spot).not.toBeNull();
+  await buildTile(page, info, ...spot!);
+  await expect(stepLabel(page)).toHaveText(/^Wooden parts · 2 of 3/);
+  await page.click('.tip-next');
+  await expect(stepLabel(page)).toHaveText(/^Wooden parts · 3 of 3/);
+  await page.click('.tip-next');
+  await expect(page.locator('#tutorial')).toBeHidden();
+  // Logs in make rope.
+  const ropes = await page.evaluate(() => {
+    const w = window.game.world;
+    const b = w.state.buildings.find((b: { type: string }) => b.type === 'workshop');
+    w.insert(b, 'log', b.x - 1, b.y);
+    w.insert(b, 'log', b.x - 1, b.y);
+    return b.recipe;
+  });
+  expect(ropes).toBe('rope');
 });
