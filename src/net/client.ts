@@ -70,7 +70,7 @@ function socket(relay: string, code: string, role: Role, version: string, key: s
 
 /** What goes over the channel: a guest's join, data and goodbye, and the host's replies to one guest. */
 type ChannelMessage =
-  | { k: 'join'; from: string; version: string }
+  | { k: 'join'; from: string; version: string; key: string }
   | { k: 'data'; from: string; raw: string }
   | { k: 'leave'; from: string }
   | { k: 'to'; to: string; message: RelayMessage }
@@ -125,7 +125,7 @@ function localRoom(code: string, role: Role, version: string, key: string): Rela
       if (m.message.t === 'refused' || m.message.t === 'closed') close();
     } else if (m.k === 'close' && m.to === id) close();
   };
-  post({ k: 'join', from: id, version });
+  post({ k: 'join', from: id, version, key });
   setTimeout(() => {
     if (welcomed || closed) return;
     link.onMessage({ t: 'refused', reason: 'no-room' });
@@ -156,7 +156,7 @@ function localHost(code: string, version: string, key: string, link: RelayLink, 
   if (!room) room = openLocalRoom(code, { key, version });
   const r = room;
   // The host's old link, if it's still in the room (D-085): told, closed, and out of the room.
-  const old = retire(r.peers);
+  const old = retire(r.peers.filter((p) => p.role === 'host'));
   if (old) r.peers.splice(r.peers.indexOf(old), 1);
   r.host = { key, version };
   if (r.timer) clearTimeout(r.timer);
@@ -195,9 +195,15 @@ function openLocalRoom(code: string, host: RoomHost): LocalRoom {
   channel.onmessage = (e: MessageEvent<ChannelMessage>) => {
     const m = e.data;
     if (m.k === 'join') {
-      const result = admit(room.peers, 'guest', m.version, '', room.host);
+      const result = admit(room.peers, 'guest', m.version, m.key, room.host);
       if ('refuse' in result) return post({ k: 'to', to: m.from, message: { t: 'refused', reason: result.refuse, hostVersion: result.hostVersion } });
-      const peer: Peer = { slot: result.slot, role: 'guest', version: m.version, send: (message) => post({ k: 'to', to: m.from, message }), close: () => post({ k: 'close', to: m.from }) };
+      // The guest's old link, if it's still in the room (#100): told, closed, and out of the room.
+      const old = retire(room.peers.filter((p) => p.role === 'guest'), result.slot);
+      if (old) {
+        room.peers.splice(room.peers.indexOf(old), 1);
+        for (const [id, p] of guests) if (p === old) guests.delete(id);
+      }
+      const peer: Peer = { slot: result.slot, role: 'guest', version: m.version, key: m.key, send: (message) => post({ k: 'to', to: m.from, message }), close: () => post({ k: 'close', to: m.from }) };
       welcome(room.peers, peer);
       room.peers.push(peer);
       guests.set(m.from, peer);

@@ -123,7 +123,8 @@ export class Coop {
   joinRoom(input: string): string | null {
     const code = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!validCode(code)) return 'A room code is 6 letters and digits.';
-    this.open('guest', code);
+    // A key of its own, so that reconnecting takes back this player's slot (#100).
+    this.open('guest', code, [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join(''));
     return null;
   }
 
@@ -197,7 +198,7 @@ export class Coop {
 
   /** Connects to the room (again, when reconnecting), keeping whatever game is under way. */
   private attach(): void {
-    const link = connect(this.relay, this.code, this.role!, this.version, this.role === 'host' ? this.key : '');
+    const link = connect(this.relay, this.code, this.role!, this.version, this.key);
     this.link = link;
     this.heardAt = Date.now();
     this.beatAt = 0;
@@ -270,6 +271,8 @@ export class Coop {
         if (this.phase !== 'playing') this.phase = 'lobby';
         return this.onChange();
       case 'joined':
+        // A slot already here is a player back on a new connection (#100): no new player, but a fresh copy.
+        const back = this.players.includes(m.slot);
         this.players = [...new Set([...this.players, m.slot])].sort((a, b) => a - b);
         if (m.slot === 0 && this.guest) {
           this.hostAway = false;
@@ -279,7 +282,7 @@ export class Coop {
           this.onNotice('The host is back.');
         }
         if (this.host && this.phase === 'playing') {
-          this.onNotice(`Player ${m.slot + 1} joined.`);
+          if (!back) this.onNotice(`Player ${m.slot + 1} joined.`);
           void this.sendCopy(m.slot, true);
         }
         return this.onChange();

@@ -1454,8 +1454,13 @@ button.quiet {
     display: none;
   }
 }
+/* Labels in a column of their own, so every slider is the same length (#97). */
+.toggle.volume {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+}
 .toggle.volume input {
-  flex: 1;
+  width: 100%;
   accent-color: var(--sky);
 }
 

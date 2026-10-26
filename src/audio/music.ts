@@ -31,6 +31,14 @@ interface Playing {
   next: boolean; // the following track has already been started
 }
 
+/**
+ * The slider's 0–1 as a gain: squared, so the low end is really quiet (ears hear loudness in steps of ratio,
+ * not of amount), and scaled down so the music sits under the sound effects (#97).
+ */
+export function musicGain(v: number): number {
+  return 0.45 * v * v;
+}
+
 export class Music {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -64,7 +72,7 @@ export class Music {
   /** 0–1. Zero mutes (and stops downloading tracks). */
   setVolume(v: number): void {
     this.volume = v;
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1);
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(musicGain(v), this.ctx.currentTime, 0.1);
     if (v > 0 && this.started && !this.current) this.playNext(MOOD_FADE);
   }
 
@@ -95,7 +103,7 @@ export class Music {
     this.ctx = audioContext();
     if (!this.ctx) return;
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.volume;
+    this.master.gain.value = musicGain(this.volume);
     this.master.connect(this.ctx.destination);
   }
 

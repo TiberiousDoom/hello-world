@@ -3,6 +3,17 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.46.2 · 2026-10-26 · Under the trees
+### New
+- **Under the trees:** your engineer and the bugs now walk under the trees instead of over them. Your engineer shows through the leaves faintly, so you don't lose them.
+- **Plans:** the Wood Age is decided: chopping trees by hand, wooden rollers, a storage crate, spike pits, a long-range trebuchet and a bigger shipyard. Nothing changes in the game yet.
+- **Mining you can feel:** on phones, each tap of mining by hand gives a small tick, and a longer buzz when the ore comes loose.
+### Fixed
+- Grass tufts, flowers and mushrooms stand upright instead of lying sideways or upside down.
+- The music is quieter: its slider's low end is very soft now, and at full it sits under the sound effects.
+- The Music and Sound effects sliders are the same length.
+- **No more strangers in co-op:** when a friend's phone slept and woke, they came back as a new player, which looked like someone joining without the code. Now they get their own engineer back.
+
 ## 0.46.1 · 2026-10-26 · Off the leash
 ### New
 - **Bugs don't stop mid-chase any more:** an angry bug keeps after you, or your buildings, as long as something is within 20 tiles of it (28 at night), however far from its nest that takes it. With nothing left that close, it gives up and walks home.

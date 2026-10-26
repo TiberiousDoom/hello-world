@@ -58,9 +58,9 @@ quality and business work don't get left until the end.
 27. ✅ **Animated art** (0.43.0, D-082): working machines, bug walks and bites, the engineer's states, sprite effects, seasonal ground and trees.
 28. ✅ **Dedicated server** (0.44.0, D-083 to D-086; one-button join and its status on Play together in 0.45.0): rooms of up to 10, and a server that hosts one room around the clock on a spare computer, paused while empty, saved every minute, updated from `master` when nobody is playing, and back in its room within seconds after an internet drop (D-085) ([server/README.md](../server/README.md)).
 29. ✅ **Playtest batch 6, bugs** (0.45.3): research starts with one tap (#86); turning a building overrides lining up with belts (#85, D-088); belts run under the hub's cut corners (#78).
-30. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
+30. 🚧 **Playtest batch 6, small ideas:** ✅ a short vibration on each tap when mining by hand (#84, 0.46.2); ✅ upright grass (#94), engineers and bugs under the trees (#95), quieter music and sliders of one length (#97) (0.46.2); ⬜ move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
 31. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
-32. 🚧 **The research tree in four ages** ([RESEARCH_TREE.md](RESEARCH_TREE.md), D-089): Wood, Iron, Steam and Electric Ages, built age by age. The engineer's inventory is done (0.46.0, D-090); next the Wood Age: rollers, the Workshop and Carpentry, wooden defences, the 5×5 shipyard with a top-down ship and a side view, and smelting moved to Industry. See Gameplay → Next.
+32. 🚧 **The research tree in four ages** ([RESEARCH_TREE.md](RESEARCH_TREE.md), D-089): Wood, Iron, Steam and Electric Ages, built age by age. The engineer's inventory is done (0.46.0, D-090); next the Wood Age, decided (D-093), built in five steps: the start (chopping, Forestry paid in logs, smelting at Industry, a wood lesson), wooden parts, rollers and the crate, the spike pit and trebuchet, the 5×5 shipyard. See Gameplay → Next.
 33. ✅ **Bugs that don't give up mid-chase** (0.46.1, D-091): no fixed leash; a bug chases while something is within 20 tiles of it (28 at night), then walks home.
 34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
 35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); fog of war (#43, Q-20).
@@ -145,7 +145,7 @@ In this order:
 - ⬜ Difficulty settings for Standard (nest density and toughness)
 - ⬜ **The research tree in four ages (#88, D-089, [RESEARCH_TREE.md](RESEARCH_TREE.md)):** each age with its own material, power and weapons; a keystone that needs the age's top defence; rollers before powered belts; smelting at Industry; fuel for furnaces; the ship built in one stage per age and launched in the Electric Age, with supply runs after it. Built age by age:
   - ✅ **The engineer's inventory (#87, 0.46.0, D-090):** 12 slots of 10, filled by mining, Collect and Pick up off belts; an Inventory button and window; a switch for dropping off at the hub. The Storage Unit (1×2, 6 slots of 50), iron ingots and the Blacksmith come with the Iron Age
-  - ⬜ **Wood Age:** rollers, Workshop and Carpentry (dowels, stakes, pegs, rope, trusses), palisade and spike pit, trebuchet and ballista, the 5×5 shipyard (top-down ship, side view on tap), smelting moved to Industry
+  - ⬜ **Wood Age** (decided, D-093; built in five steps, see RESEARCH_TREE.md): rollers, Workshop and Carpentry (dowels, stakes, pegs, rope, trusses), palisade and spike pit, trebuchet and ballista, the 5×5 shipyard (top-down ship, side view on tap), smelting moved to Industry
   - ⬜ **Iron Age:** wells and pumps, powered belts, Blacksmith and Machine Shop, fuel, hydraulic turret and cannon, brick and reinforced walls
   - ⬜ **Steam Age:** boilers, steel beams and bearings, Turret Mk.2, mortar and artillery, the hull
   - ⬜ **Electric Age:** power, circuits, drones, tesla, shield pylon, arc fence, launch and supply runs
@@ -172,7 +172,7 @@ In this order:
 - ⬜ **Clear a belt line** (owner's note, for later): one action empties every item off a whole belt line (the same line the Express Belt upgrade uses), leaving the belts in place. Where the items go (back into hub stock, or lost) is to be decided (Q-19)
 - ⬜ **Research takes two taps (#86, bug):** a tap or click on a research often does nothing the first time. Likely the list redrawing under the pointer between press and release
 - ⬜ **Belt snapping is too eager (#85, bug):** a building dropped by a belt lines up with it (D-053) even when that isn't wanted, and there's no way to override it. For example: rotating after the snap keeps your facing, or snapping only when dropped onto the belt itself
-- ⬜ **Haptics for mining by hand (#84):** a short vibration on each tap on phones that support it (a long press already vibrates)
+- ✅ **Haptics for mining by hand (#84, 0.46.2):** a short vibration on each tap on phones that support it (a long press already vibrates)
 - ⬜ **Move a placed building (#76, #83):** a Move button in the building's panel, beside Rotate and Demolish, that picks it up as a blueprint (keeping its recipe, filter and contents) to put down elsewhere
 - ⬜ Undo for the last placement or demolish
 - ⬜ Copy and paste for sections of a factory

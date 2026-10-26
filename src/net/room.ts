@@ -9,6 +9,8 @@ export interface Peer {
   slot: number;
   role: Role;
   version: string;
+  /** A guest's own random key (#100), so that when it reconnects it takes back its slot. */
+  key?: string;
   send(message: RelayMessage): void;
   close(code: number, reason: string): void;
 }
@@ -16,14 +18,15 @@ export interface Peer {
 /** Normal closure (1000), and a policy violation (1008) for a refusal or a broken rule. */
 export const CLOSE_NORMAL = 1000;
 export const CLOSE_POLICY = 1008;
-/** A host's old connection, closed because the host came back on a new one (D-085). */
+/** An old connection, closed because its host (D-085) or guest (#100) came back on a new one. */
 export const CLOSE_REPLACED = 4001;
 
 /**
  * Who may join: the host into a new or empty room, a guest only into an open room, on the host's
  * version, while there's a free slot. A room whose host dropped out (`room`, D-081) stays open, and
  * only a host with its key may take it back, even while its old connection still looks open (D-085).
- * Returns the new player's slot, or why not.
+ * A guest back with its key while its old connection still looks open (a phone that slept) takes back
+ * its own slot, instead of coming in as a new player (#100). Returns the new player's slot, or why not.
  */
 export function admit(
   peers: Peer[],
@@ -44,6 +47,8 @@ export function admit(
   const hostVersion = host?.version ?? (peers.length ? room?.version : undefined);
   if (!hostVersion) return { refuse: 'no-room' };
   if (hostVersion !== version) return { refuse: 'version', hostVersion };
+  const old = key ? peers.find((p) => p.role === 'guest' && p.key === key) : undefined;
+  if (old) return { slot: old.slot };
   for (let slot = 1; slot < MAX_PLAYERS; slot++) if (!peers.some((p) => p.slot === slot)) return { slot };
   return { refuse: 'full' };
 }
@@ -104,12 +109,12 @@ export function leave(peers: Peer[], gone: Peer, code = CLOSE_LEAVING): 'wait' |
 }
 
 /**
- * The host is back on a new connection while its old one still looks open (D-085): the old one is told,
- * then closed. Returns it, for the caller to forget before welcoming the new one, so that its closing
- * later isn't taken for the host leaving.
+ * A player is back on a new connection in `slot` (the host's is 0) while its old one still looks open
+ * (D-085, #100): the old one is told, then closed. Returns it, for the caller to forget before welcoming
+ * the new one, so that its closing later isn't taken for the player leaving.
  */
-export function retire(peers: Peer[]): Peer | undefined {
-  const old = peers.find((p) => p.role === 'host');
+export function retire(peers: Peer[], slot = 0): Peer | undefined {
+  const old = peers.find((p) => p.slot === slot);
   if (!old) return undefined;
   old.send({ t: 'closed', reason: 'replaced' });
   old.close(CLOSE_REPLACED, 'replaced');

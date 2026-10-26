@@ -35,18 +35,64 @@ The start. Nothing is smelted yet: furnaces and extractors arrive with Industry.
 
 | Research | Gives | Costs | Needs |
 |---|---|---|---|
-| Forestry | Lumber Camp, Sawmill (planks, dowels, stakes) | 15 logs | — |
-| Basic Logistics | Wooden Roller, storage crate | 20 logs, 20 planks, 50 dowels | Forestry |
+| Forestry | Lumber Camp (about 8 logs), Sawmill (about 10 logs, 4 planks); planks, dowels, stakes | 15 logs, chopped by hand | — |
+| Basic Logistics | Wooden Roller (one lane), storage crate (50 of one item) | 20 logs, 20 planks, 50 dowels | Forestry |
 | Workshops | Workshop (pegs, rope) | 40 planks, 20 logs | Forestry |
 | Carpentry | Truss recipe (planks, pegs, rope) | 60 planks, 40 pegs, 20 rope | Workshops |
 | Basic Defense | Palisade, spike pit | about 30 planks, 10 rope | Basic Logistics, Workshops |
-| Basic Defense 2 | Trebuchet (throws stone), Ballista (fires stakes) | 100 logs, 100 planks, 200 rope, 50 trusses | Basic Defense, Carpentry |
-| Shipyard | Shipyard (5×5) and the ship's scaffolding | *to set* (planks, trusses) | Carpentry |
+| Basic Defense 2 | Trebuchet (throws stone, range about 24), Ballista (fires stakes) | 100 logs, 100 planks, 200 rope, 50 trusses | Basic Defense, Carpentry |
+| Shipyard | Shipyard (5×5) and the ship's scaffolding (about 150 planks, 40 trusses, 60 rope) | *to set* (planks, trusses) | Carpentry |
 
-- **Rollers carry no power.** Items on a roller line are pushed along by the items behind them, so a line
-  only moves while something feeds it.
 - The first defence is cheap, so it's ready before the first raid; the big wooden costs are tier 2.
-- Stone for the trebuchet is mined by hand in the Wood Age, and by extractors later.
+
+### How the Wood Age plays (D-093)
+
+Decided on the Wood Age decisions page. Numbers are first guesses to test.
+
+**The start**
+- **Chopping by hand:** like mining. With no tool in hand, tap a tree; the engineer walks over, and 8 taps
+  fell it for 2 logs. It leaves a stump that grows back, like a lumber camp's.
+- **Forestry (15 logs)** opens both first buildings, paid in wood: the Lumber Camp (about 8 logs) and the
+  Sawmill (about 10 logs and 4 planks).
+- **Stone and ore:** all of them can be mined by hand from the start. Iron and copper ore wait in the hub
+  until Industry; stone is the trebuchet's ammunition and part of Industry's cost.
+- **The first lesson is rewritten around wood:** chop trees, research Forestry, build a lumber camp and a
+  sawmill, lay rollers to the hub. A later lesson covers Industry (furnaces, extractors, plates).
+
+**Rollers**
+- **Slow rolling, faster when pushed:** items roll on their own at a third of belt speed. A well-fed line
+  packs up and then moves at the rate items go on. Rollers carry no power.
+- **One lane**, items in single file. Rollers are drawn **narrower than belts**. Two lanes come with powered
+  belts in the Iron Age.
+- **No splitting or crossing** until the Iron Age (splitters and underground belts come with Metal
+  Logistics). A roller can still feed into the side of another.
+- **The storage crate:** 1×1, holds 50 of one item. Rollers feed it; a roller leaving its front takes items
+  out; Collect and Drop off work on it. The Storage Unit (6 slots of 50) is its Iron Age upgrade.
+
+**Defence**
+- **The hub's gun stays as it is** (8 tiles, no ammunition) until Basic Defense, which is cheap enough to be
+  ready by the first raid on the second night.
+- **The spike pit:** a 1×1 trap bugs walk over (it doesn't block). It hurts and slows bugs on it, wears down
+  as it works, and is refilled with stakes.
+- **The trebuchet:** 2×2, throws stone with splash damage, slow to fire. Range about 24, with a blind spot
+  inside 6 tiles, so it needs other defences close in.
+
+**The ship**
+- **Saved games with a 3×3 shipyard:** it's refunded and the ship's progress kept; the player builds the
+  5×5 yard where it fits, and the ship carries on.
+- **The scaffolding stage** costs about 150 planks, 40 trusses and 60 rope, belted or dropped off into the
+  shipyard, like stages today.
+
+**Building it**
+- **Art:** placeholders in the current style (SVGs), each listed in ART_LIST for final art: the dowel, rope,
+  peg and truss items, rollers and their corners, the crate, the spike pit, the trebuchet, the 5×5 shipyard,
+  the top-down ship and its side view.
+- **Order, each playtested:**
+  1. The start: chopping, Forestry paid in logs, smelting moved to Industry, the new lesson.
+  2. Wooden parts: dowels, pegs, rope, trusses (the Workshop and Carpentry).
+  3. Rollers and the crate.
+  4. The spike pit and the trebuchet.
+  5. The 5×5 shipyard and the scaffolding stage.
 
 ## Iron Age
 
@@ -122,9 +168,9 @@ About fifteen, added age by age with the age that uses them:
 Age by age, each playtested before the next:
 
 1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
-2. **Wood Age:** rollers, the Workshop and Carpentry, the wooden defences, the 5×5 shipyard with its
-   top-down ship and side view, and smelting moved to Industry. Today's later researches stay as they are
-   behind Industry until their age is built.
+2. **Wood Age** (decided, D-093; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
+   wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
+   researches stay as they are behind Industry until their age is built.
 3. **Iron Age:** water power, powered belts, the Blacksmith and Machine Shop, fuel, hydraulic defences.
 4. **Steam Age:** steam, steel parts, gunpowder weapons, the hull.
 5. **Electric Age:** electricity, circuits, drones, electric defences, launch and supply runs.
@@ -136,5 +182,6 @@ researched something in it, and refunds researches that are removed.
 
 - Costs and timings: a balance pass per age (the roadmap's balance script would help).
 - What each defence tier improves, and what it costs.
-- How rollers, power, fuel and pipes look and feel in play; each needs its own design before it's built.
+- How power, fuel and pipes look and feel in play; each needs its own design before it's built (rollers are
+  decided, D-093).
 - Ore distance (Q-21) and fog of war (Q-20) are separate questions.
