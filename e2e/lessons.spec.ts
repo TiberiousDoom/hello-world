@@ -108,12 +108,13 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
 
   // Collect its planks by hand and bring them to the hub.
   await page.click('[data-tool="sawmill"]'); // put the tool down
-  const saw = await page.evaluate(() => {
+  // Selected directly: a tap could land on the lumber camp next to it while the camera glides.
+  await page.evaluate(() => {
     const b = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'sawmill');
     b.outputs = ['plank', 'plank'];
-    return [b.x, b.y] as [number, number];
+    window.game.ui.selected = b.id;
   });
-  await tap(page, info, ...(await uncoveredTile(page, ...saw)));
+  await expect(page.locator('#info')).toContainText('Sawmill');
   await page.click('#info [data-action="collect"]');
   const planks = () =>
     page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'plank' ? s.n : 0), 0));

@@ -3,10 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
-## 0.51.0 · 2026-10-26 · A bigger hub
+## 0.51.0 · 2026-10-26 · The shipyard and a bigger hub
 ### New
 - **The hub is 8×8** (it was 5×5), with more sides for rollers and belts to come in.
 - Saved games keep their factory: the hub grows in place about its centre. Anything built right against its old edge where the bigger hub now stands is refunded into stock.
+- **The shipyard's site:** every new game stakes out a spot for the shipyard near the hub, marked with stakes and rope. The shipyard goes there and nowhere else.
+- **A bigger shipyard:** 5×5, built from wood, and researched in the Wood Age after Carpentry.
+- **Scaffolding first:** the ship now starts with a wooden scaffolding stage (planks, trusses and rope) before the hull.
+- **Side view:** select the shipyard and press Side view to see the ship from the side, each stage filling in as its parts arrive.
+- Saved games get a site staked out near the hub; an old shipyard is refunded so it can be built again on the site, and a ship already under way keeps its progress.
 
 ## 0.50.0 · 2026-10-26 · Hold the line
 ### New

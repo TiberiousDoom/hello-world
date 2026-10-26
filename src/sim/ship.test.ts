@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, ItemId, NESTS, RESEARCH, SHIP, cargoFor } from './data';
+import { BUILDINGS, ItemId, NESTS, RESEARCH, SHIP, SHIP_SITE, cargoFor } from './data';
 import { Nest, cellKey, isAngry, newNest } from './nests';
 import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
@@ -23,12 +23,14 @@ function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999 };
+  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, truss: 999, rope: 999 };
   return w;
 }
 
+/** The shipyard, on a site staked out 20 tiles west of the hub. */
 function yard(w: World): Building {
   const hub = w.hub!;
+  w.state.shipSite = { x: hub.x - 20, y: hub.y };
   return placed(w.place('shipyard', hub.x - 20, hub.y, 0));
 }
 
@@ -62,25 +64,61 @@ function addNest(w: World, x: number, y: number): Nest {
 }
 
 describe('Supply ship', () => {
-  it('the shipyard is researched, takes 3×3 tiles, and only one can be built', () => {
+  it('the shipyard is researched, takes 5×5 tiles on its site only, and only one can be built (D-109)', () => {
     const w = quiet();
     w.state.researched = w.state.researched.filter((r) => r !== 'shipyard');
     expect(w.isUnlocked('shipyard')).toBe(false);
     w.state.researched.push('shipyard');
-    const b = yard(w);
-    for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) expect(w.buildingAt(b.x + dx, b.y + dy)).toBe(b);
+    const site = w.state.shipSite!;
+    expect(w.place('shipyard', site.x + 7, site.y, 0)).toBe('site');
+    const b = placed(w.place('shipyard', site.x, site.y, 0));
+    for (let dy = 0; dy < 5; dy++) for (let dx = 0; dx < 5; dx++) expect(w.buildingAt(b.x + dx, b.y + dy)).toBe(b);
     expect(w.place('shipyard', b.x + 10, b.y, 0)).toBe('unique');
+  });
+
+  it('a new game stakes out a clear 5×5 site for the shipyard within 15 tiles of the hub (D-109)', () => {
+    for (const seed of [1, 2, 3]) {
+      const w = World.create(seed);
+      const site = w.state.shipSite!;
+      expect(site).toBeDefined();
+      const hub = w.hub!;
+      const d = Math.hypot(site.x + 2.5 - (hub.x + 4), site.y + 2.5 - (hub.y + 4));
+      expect(d).toBeGreaterThanOrEqual(SHIP_SITE.minDist);
+      expect(d).toBeLessThanOrEqual(SHIP_SITE.maxDist);
+      for (let y = site.y; y < site.y + 5; y++) for (let x = site.x; x < site.x + 5; x++) expect([w.buildingAt(x, y), w.resourceAt(x, y), w.treeAt(x, y)]).toEqual([undefined, null, 0]);
+    }
+  });
+
+  it('v25 saves: the 3×3 shipyard is refunded, a site is staked out, and a ship under way counts its scaffolding as built', () => {
+    const w = quiet();
+    const hub = w.hub!;
+    const old = JSON.parse(w.toJSON());
+    old.version = 25;
+    delete old.shipSite;
+    old.buildings.push({ ...old.buildings.find((b: Building) => b.id === hub.id), id: 999, type: 'shipyard', x: hub.x - 20, y: hub.y });
+    old.inventory = {};
+    old.ship.stage = 1; // the hull was done; the engine next
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(shipyard(loaded)).toBeUndefined();
+    expect(loaded.state.inventory).toEqual({ brick: 30, iron_plate: 30, plank: 20 });
+    expect(loaded.state.ship.stage).toBe(2); // scaffolding and hull done; the engine next
+    expect(loaded.state.shipSite).toBeDefined();
+    expect(loaded.checkPlace('shipyard', loaded.state.shipSite!.x, loaded.state.shipSite!.y, 0)).toBe('cost');
   });
 
   it('stages take only the parts they still need, in order', () => {
     const w = quiet();
     const b = yard(w);
     const from = [b.x - 1, b.y] as const;
-    expect(w.insert(b, 'motor', ...from)).toBe(false); // the hull comes first
+    expect(w.insert(b, 'iron_plate', ...from)).toBe(false); // the scaffolding comes first (D-109)
+    for (const [item, n] of Object.entries(SHIP.stages[0].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
+    expect(w.state.ship.stage).toBe(1);
+    expect(w.events.some((e) => e.includes('Scaffolding done'))).toBe(true);
+    expect(w.insert(b, 'motor', ...from)).toBe(false); // the hull comes next
     for (let i = 0; i < 150; i++) w.insert(b, 'iron_plate', ...from);
     expect(w.insert(b, 'iron_plate', ...from)).toBe(false); // enough plates
     for (let i = 0; i < 80; i++) w.insert(b, 'brick', ...from);
-    expect(w.state.ship.stage).toBe(1);
+    expect(w.state.ship.stage).toBe(2);
     expect(w.events.some((e) => e.includes('Hull done'))).toBe(true);
     expect(w.insert(b, 'motor', ...from)).toBe(true); // now the engine
   });
@@ -133,7 +171,7 @@ describe('Supply ship', () => {
     run(w, 60);
     const bug = w.state.enemies.find((e) => e.nest === n.id)!;
     const [yx, yy] = w.centreOf(b);
-    expect(Math.hypot(bug.x - yx, bug.y - yy)).toBeLessThan(3);
+    expect(Math.hypot(bug.x - yx, bug.y - yy)).toBeLessThan(BUILDINGS.shipyard.size![0] / 2 + 1.5); // at its edge
     expect(b.hp).toBeLessThan(BUILDINGS.shipyard.hp);
   });
 
@@ -209,16 +247,16 @@ describe('Supply ship', () => {
     for (const escaped of [true, false]) {
       const w = quiet();
       yard(w);
-      for (let i = 0; i < 20; i++) insertShip(w, 'iron_plate');
       const old = JSON.parse(w.toJSON());
       old.version = 9;
-      old.ship = { stage: escaped ? SHIP.stages.length : 0, delivered: old.ship.delivered, launchAt: null, escaped, endless: escaped };
+      // Before the scaffolding (D-109), the ship had one stage fewer and began with the hull.
+      old.ship = { stage: escaped ? SHIP.stages.length - 1 : 0, delivered: { iron_plate: 20 }, launchAt: null, escaped, endless: escaped };
       const loaded = World.fromJSON(JSON.stringify(old));
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
           ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['express_belt', 'tesla'] }
-          : { stage: 0, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
+          : { stage: 1, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
   });
@@ -226,9 +264,9 @@ describe('Supply ship', () => {
   it('demolishing the shipyard yourself keeps the ship in either mode', () => {
     const w = quiet('hardcore');
     const b = yard(w);
-    for (let i = 0; i < 20; i++) insertShip(w, 'iron_plate');
+    for (let i = 0; i < 20; i++) insertShip(w, 'plank');
     w.demolish(b.id);
-    expect(w.state.ship.delivered.iron_plate).toBe(20);
+    expect(w.state.ship.delivered.plank).toBe(20);
   });
 
   it('after each delivery the colony offers two blueprints; the one not picked comes with the next run', () => {

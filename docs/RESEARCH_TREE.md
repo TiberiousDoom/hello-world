@@ -41,7 +41,7 @@ The start. Nothing is smelted yet: furnaces and extractors arrive with Industry.
 | Carpentry | Truss recipe (planks, pegs, rope) | 60 planks, 40 pegs, 20 rope | Workshops |
 | Basic Defense | Palisade, spike pit | about 30 planks, 10 rope | Basic Logistics, Workshops |
 | Basic Defense 2 | Trebuchet (throws stone, range about 24), Ballista (fires stakes) | 100 logs, 100 planks, 200 rope, 50 trusses | Basic Defense, Carpentry |
-| Shipyard | Shipyard (5×5) and the ship's scaffolding (about 150 planks, 40 trusses, 60 rope) | *to set* (planks, trusses) | Carpentry |
+| Shipyard | Shipyard (5×5) and the ship's scaffolding (150 planks, 40 trusses, 60 rope) | 80 planks, 20 trusses, 20 rope | Carpentry |
 
 - The first defence is cheap, so it's ready before the first raid; the big wooden costs are tier 2.
 
@@ -103,7 +103,8 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
      spike pits, 30 planks and 10 rope, after Basic Logistics and Workshops); Ballistae went into Basic
      Defense 2 (trebuchet and ballista), which Industry now needs; turrets are Advanced Defense until the
      Iron Age's hydraulic turret.
-  5. 🚧 The 5×5 shipyard and the scaffolding stage. The 8×8 hub (D-098) is done (0.51.0, D-108).
+  5. ✅ The 5×5 shipyard and the scaffolding stage (0.51.0, D-109), on a site staked out at the start, with
+     the ship top-down on the map and a side view on tap; the 8×8 hub (0.51.0, D-108).
 
 ## Iron Age
 
@@ -181,7 +182,7 @@ About fifteen, added age by age with the age that uses them:
 Age by age, each playtested before the next:
 
 1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
-2. 🚧 **Wood Age** (decided, D-093; steps 1 to 4 done in 0.47.0 to 0.50.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
+2. 🚧 **Wood Age** (decided, D-093; all five steps done in 0.47.0 to 0.51.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
 3. **Iron Age:** water power, powered belts, the Blacksmith and Machine Shop, fuel, hydraulic defences.

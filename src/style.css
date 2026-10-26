@@ -1614,3 +1614,35 @@ button.quiet {
   align-items: center;
   gap: 6px;
 }
+
+/* The ship's side view (D-109). */
+#ship-view .card {
+  max-width: 360px;
+}
+.ship-side {
+  display: block;
+  width: 100%;
+  max-height: 46vh;
+  margin: 4px auto 8px;
+  background: linear-gradient(#1b2a44, #2c3f5e);
+  border-radius: 8px;
+}
+.ship-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ship-stages li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+.ship-stages li.done {
+  color: var(--good);
+}
+.ship-stages li.now {
+  color: inherit;
+  font-weight: 600;
+}

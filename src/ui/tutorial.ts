@@ -79,7 +79,9 @@ function hubTarget(w: World): TileTarget | null {
 
 function shipTarget(w: World): TileTarget | null {
   const b = shipyard(w);
-  return b ? { tx: b.x, ty: b.y, size: 3 } : null;
+  if (b) return { tx: b.x, ty: b.y, size: 5 };
+  const site = w.state.shipSite; // staked out until the yard is built (D-109)
+  return site ? { tx: site.x, ty: site.y, size: 5 } : null;
 }
 
 /** The nest the Bugs lesson is about: an angry one, else the live one nearest any building. */
@@ -475,17 +477,18 @@ export const LESSONS: Lesson[] = [
     trigger: (w) => w.isUnlocked('shipyard') && w.state.ship.runs === 0,
     steps: [
       {
-        target: (c) => toolThen(c, 'shipyard'),
+        target: (c) => toolThen(c, 'shipyard', { tiles: shipTarget(c.world), shape: 'circle' }),
         done: (c) => built(c, 'shipyard'),
         text: (c) =>
           c.ui.tool === 'shipyard'
-            ? `Build it where you can defend it. When it launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles, and they come for the shipyard.`
+            ? `It goes on the site staked out for it near the hub: tap there. Defend it well: when the ship launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles, and they come for the shipyard.` +
+              confirmHint(c)
             : 'You can build a ship to carry supplies to the colony. Pick the Shipyard.',
       },
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
         text: () =>
-          "The ship goes up in four stages: hull, engine, life support and navigation. Belt each stage's parts into the shipyard; select it to see what it still needs.",
+          `The ship goes up in ${SHIP.stages.length} stages: ${SHIP.stages.map((s) => s.name.toLowerCase()).join(', ')}. The scaffolding is wood; the rest comes with later ages. Bring each stage's parts to the shipyard; select it to see what it still needs, and press Side view to see the ship.`,
       },
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),

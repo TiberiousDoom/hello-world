@@ -34,7 +34,7 @@ import {
 } from '../sim/data';
 import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
-import { launching } from '../sim/ship';
+import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
 import { planSteps } from '../ui/plan';
@@ -48,7 +48,7 @@ const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
 /** The shipyard and its ship are drawn 3 tiles square. */
-const SHIP_SIZE = 3;
+const SHIP_SIZE = 5; // the shipyard's footprint (3 before D-109)
 
 // The forest (D-028).
 const FOREST_FLOOR = '#1d3324';
@@ -238,6 +238,9 @@ export class Renderer {
     const stamp = `${world.layout}|${spritesLoaded()}|${this.season}`;
     const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
     this.drawLayer(this.ground, stamp, view, (lx0, ly0, lx1, ly1) => this.paintGround(world, lx0, ly0, lx1, ly1));
+
+    // The shipyard's site, staked out and roped off until the yard is built on it (D-109).
+    if (s.shipSite && !shipyard(world) && visible(s.shipSite.x, s.shipSite.y, SHIP_SIZE)) this.drawShipSite(s.shipSite.x, s.shipSite.y, z);
 
     // Blighted ground around standing nests, under everything built, so danger zones read from the ground's colour.
     for (const n of s.nests) if (!n.destroyed && visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawBlight(n);
@@ -1337,6 +1340,32 @@ export class Renderer {
   }
 
   /** The ship on its pad: finished stages solid, the one being built faint, and engine flames at launch. */
+  /** Stakes at the corners and along the edges of the shipyard's site, roped together (D-109). */
+  private drawShipSite(x: number, y: number, z: number): void {
+    const ctx = this.ctx;
+    const n = SHIP_SIZE;
+    ctx.fillStyle = 'rgba(217,169,58,0.08)';
+    ctx.fillRect(x, y, n, n);
+    ctx.strokeStyle = 'rgba(194,164,107,0.9)';
+    ctx.lineWidth = 2 / z;
+    ctx.setLineDash([6 / z, 4 / z]);
+    ctx.strokeRect(x + 0.15, y + 0.15, n - 0.3, n - 0.3);
+    ctx.setLineDash([]);
+    for (let i = 0; i <= 4; i++) {
+      for (const [sx, sy] of [
+        [x + 0.15 + ((n - 0.3) * i) / 4, y + 0.15],
+        [x + 0.15 + ((n - 0.3) * i) / 4, y + n - 0.15],
+        [x + 0.15, y + 0.15 + ((n - 0.3) * i) / 4],
+        [x + n - 0.15, y + 0.15 + ((n - 0.3) * i) / 4],
+      ]) {
+        ctx.fillStyle = '#0f1a2e';
+        dot(ctx, sx, sy, 0.11);
+        ctx.fillStyle = '#c48f52';
+        dot(ctx, sx, sy, 0.07);
+      }
+    }
+  }
+
   private drawShip(world: World, b: Building, now: number): void {
     const ctx = this.ctx;
     const ship = world.state.ship;
