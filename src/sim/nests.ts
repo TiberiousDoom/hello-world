@@ -16,7 +16,7 @@
 // nest near your buildings sends a raiding party. Bugs notice the engineer:
 // walking close to calm bugs provokes them, and angry ones close by go for it.
 
-import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, PLAYER, RAIDS, chitinFor, moundHp, nestComposition } from './data';
+import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, PLAYER, RAIDS, SPIKES, chitinFor, moundHp, nestComposition } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
@@ -445,6 +445,12 @@ function targetNear(w: World, e: Enemy, reach: number): boolean {
   return buildingNear(w, e.x, e.y, reach);
 }
 
+/** How fast a bug moves now: slower on a working spike pit (D-107). */
+function speedOf(w: World, e: Enemy): number {
+  const b = w.buildingAt(Math.floor(e.x), Math.floor(e.y));
+  return ENEMIES[e.type].speed * (b?.type === 'spike_pit' && b.ammo > 0 ? SPIKES.slow : 1);
+}
+
 /** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
 function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, angers = true): void {
   const def = ENEMIES[e.type];
@@ -454,7 +460,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
   const ty = Math.floor(e.y);
   const here = w.buildingAt(tx, ty);
   const dps = def.dps * strength(w, e);
-  if (here) {
+  if (here && here.type !== 'spike_pit') {
     bite(w, here, n, dps * dt, angers);
     return;
   }
@@ -481,7 +487,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
     bite(w, blocker, n, dps * dt, angers);
     return;
   }
-  const step = Math.min(dist, def.speed * dt);
+  const step = Math.min(dist, speedOf(w, e) * dt);
   if (dist > 0) {
     e.x += ((gx - e.x) / dist) * step;
     e.y += ((gy - e.y) / dist) * step;
@@ -500,7 +506,7 @@ function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolea
     if (angers) n.angryUntil = Math.max(n.angryUntil, w.state.time + NESTS.calmAfter);
     return true;
   }
-  const step = Math.min(dist - def.radius - 0.3, def.speed * dt);
+  const step = Math.min(dist - def.radius - 0.3, speedOf(w, e) * dt);
   const mx = e.x + ((p.x - e.x) / dist) * step;
   const my = e.y + ((p.y - e.y) / dist) * step;
   const blocker = w.buildingAt(Math.floor(mx), Math.floor(my));

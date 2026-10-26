@@ -36,6 +36,7 @@ import {
   RESEARCH_BY_ID,
   RESOURCE_ITEMS,
   SHIP,
+  SPIKES,
   STARTING_BUILDINGS,
   START_INVENTORY,
   TUNNEL_RANGE,
@@ -75,7 +76,7 @@ export type { ResearchState };
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  */
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -325,10 +326,25 @@ export class World {
     if (state.version === 20) World.migrateV20(state);
     if (state.version === 21) World.migrateV21(state);
     if (state.version === 22) World.migrateV22(state);
+    if (state.version === 23) World.migrateV23(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v23 to v24 (D-107): the Ballistae research went into Basic Defense 2, which also gives the trebuchet,
+   * so a game that had Ballistae has Basic Defense 2.
+   */
+  private static migrateV23(state: GameState): void {
+    if (state.researched.includes('ballistae')) {
+      state.researched = state.researched.filter((id) => id !== 'ballistae');
+      if (!state.researched.includes('defense2')) state.researched.push('defense2');
+    }
+    if (state.research.active === 'ballistae') state.research.active = null;
+    delete state.research.paid.ballistae;
+    state.version = 24;
   }
 
   /**
@@ -617,8 +633,13 @@ export class World {
    * Rebuilds both attack-path fields from the world as it is, leaving the saved timers alone.
    * The fields aren't saved, so a loaded game needs them before its first tick.
    */
+  /** What angry bugs go for: every building but spike pits, traps on the way that they walk over (D-107). */
+  private bugTargets(): Building[] {
+    return this.state.buildings.filter((b) => b.type !== 'spike_pit');
+  }
+
   rebuildPaths(): void {
-    this.fillFlow(this.flow, this.state.buildings, FLOW_RANGE);
+    this.fillFlow(this.flow, this.bugTargets(), FLOW_RANGE);
     this.fillFlow(this.shipFlow, this.shipTargets(), this.shipRange());
   }
 
@@ -790,7 +811,7 @@ export class World {
       outputs: [],
       progress: -1,
       // Turrets and repair stations arrive stocked.
-      ammo: TURRETS[type]?.maxShots ?? (type === 'repair' ? REPAIR.maxCharge / 2 : 0),
+      ammo: TURRETS[type]?.maxShots ?? (type === 'repair' ? REPAIR.maxCharge / 2 : type === 'spike_pit' ? SPIKES.maxCharge : 0),
       cooldown: 0,
       link: null,
       rr: 0,
@@ -1135,10 +1156,16 @@ export class World {
         target.inputs[item] = have + 1;
         return true;
       }
+      case 'spike_pit': {
+        if (item !== 'stake' || target.ammo + SPIKES.perStake > SPIKES.maxCharge) return false;
+        target.ammo += SPIKES.perStake;
+        return true;
+      }
       case 'turret':
       case 'ballista':
       case 'cannon':
-      case 'tesla': {
+      case 'tesla':
+      case 'trebuchet': {
         const def = TURRETS[target.type]!;
         if (item !== def.ammoItem || target.ammo + def.shotsPerItem > def.maxShots) return false;
         target.ammo += def.shotsPerItem;
@@ -1387,7 +1414,11 @@ export class World {
         case 'ballista':
         case 'cannon':
         case 'tesla':
+        case 'trebuchet':
           this.tickTurret(b, dt);
+          break;
+        case 'spike_pit':
+          this.tickSpikes(b, dt);
           break;
       }
     }
@@ -1746,9 +1777,10 @@ export class World {
     const [cx, cy] = this.centreOf(b);
     let target: Enemy | undefined;
     let best = def.range * def.range;
+    const min = (def.minRange ?? 0) ** 2; // the trebuchet's blind spot
     for (const e of this.state.enemies) {
       const d = (e.x - cx) ** 2 + (e.y - cy) ** 2;
-      if (d <= best) {
+      if (d <= best && d >= min) {
         best = d;
         target = e;
       }
@@ -1757,6 +1789,8 @@ export class World {
       // With no bugs in reach, a turret shoots a nest's mound (D-065). The hub's gun only defends.
       const mound = hub ? undefined : moundInRange(this, cx, cy, def.range);
       if (!mound) return;
+      const [mx0, my0] = nestCentre(mound);
+      if ((mx0 - cx) ** 2 + (my0 - cy) ** 2 < min) return;
       b.ammo--;
       b.cooldown = 1 / def.rate;
       damageMound(this, mound, def.damage);
@@ -1797,6 +1831,21 @@ export class World {
       this.shots.push({ x1: last.x, y1: last.y, x2: next.x, y2: next.y, splash: 0, age: 0, arc: true, jump: true });
       hit.add(next);
       last = next;
+    }
+  }
+
+  /**
+   * A spike pit (D-107) hurts every bug standing on it, and wears down by the second for each one;
+   * stakes refill it. Bugs on it move slower (see nests.ts).
+   */
+  private tickSpikes(b: Building, dt: number): void {
+    if (b.ammo <= 0) return;
+    for (const e of this.state.enemies) {
+      if (Math.floor(e.x) !== b.x || Math.floor(e.y) !== b.y) continue;
+      e.hp -= SPIKES.dps * dt;
+      onBugHurt(this, e);
+      b.ammo = Math.max(0, b.ammo - dt);
+      if (b.ammo <= 0) return;
     }
   }
 
@@ -1841,7 +1890,7 @@ export class World {
 
   /** Dijkstra from every building tile outwards, up to FLOW_RANGE: angry bugs follow it downhill. */
   computeFlow(): void {
-    this.fillFlow(this.flow, this.state.buildings, FLOW_RANGE);
+    this.fillFlow(this.flow, this.bugTargets(), FLOW_RANGE);
     this.state.paths.dirty = false;
     this.state.paths.at = this.state.time;
   }

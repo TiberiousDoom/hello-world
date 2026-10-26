@@ -15,6 +15,7 @@ import {
   ItemId,
   RECIPE_BY_ID,
   REPAIR,
+  SPIKES,
   RESEARCH,
   SHIP,
   TUNNEL_RANGE,
@@ -58,12 +59,14 @@ const TOOLBAR: BuildingType[] = [
   'repair',
   'wall',
   'palisade',
+  'spike_pit',
+  'trebuchet',
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'furnace', 'workshop', 'assembler', 'sawmill', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'spike_pit', 'trebuchet', 'furnace', 'workshop', 'assembler', 'sawmill', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -757,6 +760,7 @@ export class Hud {
         const span = collect.querySelector('.collect-label')!;
         if (span.textContent !== label) span.textContent = label;
       }
+      if (b.type === 'spike_pit') stats += `<br>Spikes ${Math.ceil(b.ammo)} / ${SPIKES.maxCharge} s of wear ${swatch('stake')}Stakes refill it`;
       if (b.type === 'repair') stats += `<br>Stored repairs ${Math.floor(b.ammo)} / ${REPAIR.maxCharge} HP`;
       if (b.type === 'tunnel') {
         const p = b.link != null ? world.byId.get(b.link) : undefined;

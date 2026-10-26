@@ -88,7 +88,9 @@ export type BuildingType =
   | 'sawmill'
   | 'palisade'
   | 'roller'
-  | 'crate';
+  | 'crate'
+  | 'spike_pit'
+  | 'trebuchet';
 
 export interface BuildingDef {
   name: string;
@@ -140,7 +142,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     short: 'BA',
     color: '#8a6234',
     hp: 140,
-    cost: { plank: 8, iron_plate: 4 },
+    cost: { plank: 10, rope: 4 },
     blocking: true,
     description: 'Slow, long-range bolts. Arrives loaded; refill it with stakes (sawn from planks) by belt.',
   },
@@ -168,6 +170,25 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     blocking: false,
     description: 'Carries items in single file, slowly; a busy line packs up and goes faster. Drag to lay a line.',
   },
+  spike_pit: {
+    name: 'Spike Pit',
+    short: '',
+    color: '#6b4423',
+    hp: 60,
+    cost: { stake: 10, plank: 2 },
+    blocking: false,
+    description: 'A trap bugs walk over: it hurts and slows them, and wears down as it works. Refill it with stakes.',
+  },
+  trebuchet: {
+    name: 'Trebuchet',
+    short: 'TB',
+    color: '#7a5230',
+    hp: 220,
+    size: [2, 2],
+    cost: { plank: 40, rope: 10, truss: 8 },
+    blocking: true,
+    description: 'Hurls stone a long way, hitting every bug where it lands, but it can\'t hit anything close. Arrives loaded; refill it with stone.',
+  },
   crate: { name: 'Storage Crate', short: 'CR', color: '#9a6a3a', hp: 60, cost: { plank: 6, peg: 4 }, blocking: true, description: `Holds up to ${CRATE_SIZE} of one item. Rollers fill it, and a roller leaving its front takes items out.` },
   shipyard: {
     name: 'Shipyard',
@@ -192,6 +213,8 @@ export interface TurretDef {
   rate: number; // shots per second
   damage: number;
   splash: number; // radius in tiles, 0 for single target
+  /** Can't hit anything closer than this (the trebuchet, D-107). */
+  minRange?: number;
   /** Tesla: each shot jumps on to up to this many more bugs, each within `chainRange` tiles of the last. */
   chain?: number;
   chainRange?: number;
@@ -200,9 +223,17 @@ export interface TurretDef {
 export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   turret: { ammoItem: 'iron_plate', shotsPerItem: 4, maxShots: 40, range: 5, rate: 3, damage: 5, splash: 0 },
   ballista: { ammoItem: 'stake', shotsPerItem: 1, maxShots: 20, range: 6.5, rate: 0.8, damage: 14, splash: 0 },
+  // Range and blind spot doubled from the decisions page at the owner's note (D-093).
+  trebuchet: { ammoItem: 'stone', shotsPerItem: 1, maxShots: 12, range: 24, minRange: 6, rate: 0.25, damage: 40, splash: 2 },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
   tesla: { ammoItem: 'wire', shotsPerItem: 2, maxShots: 30, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
+
+/**
+ * The spike pit (D-093, D-107): `charge` is seconds of one bug standing on it. Each bug on it takes `dps`
+ * and moves at `slow` of its speed, and uses up charge; a stake puts back `perStake`.
+ */
+export const SPIKES = { dps: 15, slow: 0.5, maxCharge: 60, perStake: 6 };
 
 /** Repair stations burn iron plates or planks (D-054). */
 export const REPAIR = { range: 3.5, hpPerSecond: 20, hpPerPlate: 40, hpPerPlank: 30, maxCharge: 400 };
@@ -319,12 +350,13 @@ export interface Research {
 
 export const RESEARCH: Research[] = [
   { id: 'forestry', name: 'Forestry', cost: { log: 15 }, time: 20, requires: [], unlocks: ['lumber_camp', 'sawmill'], description: 'Lumber camps cut trees into logs, and sawmills make planks.' },
-  // The Iron Age's keystone (D-089, D-093). It needs Basic Defense 2 too once the Wood Age's defences are built.
-  { id: 'industry', name: 'Industry', cost: { plank: 100, truss: 50, stone: 50 }, time: 90, requires: ['carpentry'], unlocks: ['extractor', 'furnace'], description: 'Extractors and furnaces: ore, smelted into plates, ingots and bricks.' },
+  // The Iron Age's keystone (D-089, D-093): hold your ground with the Wood Age's top defence first.
+  { id: 'industry', name: 'Industry', cost: { plank: 100, truss: 50, stone: 50 }, time: 90, requires: ['carpentry', 'defense2'], unlocks: ['extractor', 'furnace'], description: 'Extractors and furnaces: ore, smelted into plates, ingots and bricks.' },
   { id: 'logistics', name: 'Logistics', cost: { iron_plate: 10 }, time: 20, requires: ['industry'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Belts, splitters and underground belts.' },
-  { id: 'defense', name: 'Basic Defense', cost: { iron_plate: 20 }, time: 30, requires: ['industry'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
-  { id: 'palisades', name: 'Palisades', cost: { plank: 12 }, time: 30, requires: ['forestry'], unlocks: ['palisade'], description: 'Cheap wooden walls.' },
-  { id: 'ballistae', name: 'Ballistae', cost: { plank: 20, iron_plate: 10 }, time: 45, requires: ['palisades', 'defense'], unlocks: ['ballista'], description: 'Long-range towers that fire wooden stakes.' },
+  { id: 'defense', name: 'Advanced Defense', cost: { iron_plate: 20 }, time: 30, requires: ['industry'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
+  // The Wood Age's defences (D-089, D-107). Ids kept from before, so saves keep them.
+  { id: 'palisades', name: 'Basic Defense', cost: { plank: 30, rope: 10 }, time: 30, requires: ['rollers', 'workshop'], unlocks: ['palisade', 'spike_pit'], description: 'Palisades, cheap wooden walls, and spike pits, traps bugs walk over.' },
+  { id: 'defense2', name: 'Basic Defense 2', cost: { log: 100, plank: 100, rope: 200, truss: 50 }, time: 120, requires: ['palisades', 'carpentry'], unlocks: ['trebuchet', 'ballista'], description: 'Trebuchets that hurl stone a long way, and ballistae that fire stakes.' },
   { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
   { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: ['industry'], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
   { id: 'rollers', name: 'Basic Logistics', cost: { log: 20, plank: 20, dowel: 50 }, time: 45, requires: ['forestry'], unlocks: ['roller', 'crate'], description: 'Wooden rollers carry items in single file without power, and storage crates hold 50 of one item.' },
@@ -470,7 +502,7 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
 /** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'ballista', 'tesla', 'wall', 'palisade'] as BuildingType[] };
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'ballista', 'tesla', 'trebuchet', 'wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

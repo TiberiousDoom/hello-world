@@ -99,7 +99,10 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
   3. ✅ Rollers and the crate (0.49.0, D-106): rollers roll at a third of belt speed, and at belt speed
      while packed (2 or more items on a tile); one lane, drawn narrower than belts. The crate holds 50 of
      one item, sends them out of its front, and takes Collect and Drop off.
-  4. The spike pit and the trebuchet.
+  4. ✅ The spike pit and the trebuchet (0.50.0, D-107): Palisades became Basic Defense (palisades and
+     spike pits, 30 planks and 10 rope, after Basic Logistics and Workshops); Ballistae went into Basic
+     Defense 2 (trebuchet and ballista), which Industry now needs; turrets are Advanced Defense until the
+     Iron Age's hydraulic turret.
   5. The 5×5 shipyard and the scaffolding stage.
 
 ## Iron Age
@@ -178,7 +181,7 @@ About fifteen, added age by age with the age that uses them:
 Age by age, each playtested before the next:
 
 1. ✅ **The engineer's inventory** (#87, 0.46.0, D-090), which defence upgrades need.
-2. 🚧 **Wood Age** (decided, D-093; steps 1 to 3 done in 0.47.0 to 0.49.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
+2. 🚧 **Wood Age** (decided, D-093; steps 1 to 4 done in 0.47.0 to 0.50.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
 3. **Iron Age:** water power, powered belts, the Blacksmith and Machine Shop, fuel, hydraulic defences.

@@ -34,7 +34,7 @@ test('picking a tool shows no panel; placed buildings do, and the hub holds Rese
   await expect(page.locator('#info')).toContainText('research available');
   await page.click('#info [data-action="research"]');
   await expect(page.locator('#research')).toBeVisible();
-  await expect(page.locator('#research-body')).toContainText('Basic Defense');
+  await expect(page.locator('#research-body')).toContainText('Advanced Defense');
 
   // While stock changes (a busy factory), the list updates in place: the button a finger is on stays the
   // same element, so the tap lands (#86).

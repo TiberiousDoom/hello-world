@@ -311,7 +311,7 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         text: () =>
-          'That is the whole loop: gather, make, deliver. Planks pay for Palisades, cheap wooden walls, and for Workshops, whose wooden parts lead to Industry: extractors and furnaces for ore. Select the hub any time to open Research.',
+          'That is the whole loop: gather, make, deliver. Planks pay for Basic Logistics (rollers), Basic Defense (palisades and spike pits) and Workshops, whose wooden parts lead to Industry: extractors and furnaces for ore. Select the hub any time to open Research.',
       },
     ],
   },
@@ -448,12 +448,12 @@ export const LESSONS: Lesson[] = [
           document.querySelector('#info:not([hidden]) [data-action="research"]')
             ? { el: '#info [data-action="research"]' }
             : { tiles: hubTarget(c.world), shape: 'circle' },
-        // Before Industry (D-093), the defence to research is Palisades.
+        // Before Industry (D-093), the defence to research is Basic Defense: palisades and spike pits (D-107).
         done: (c) => c.world.state.researched.includes(c.world.state.researched.includes('industry') ? 'defense' : 'palisades'),
         text: (c) =>
           c.world.state.researched.includes('industry')
-            ? 'Select the hub, open Research and start Basic Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.'
-            : 'Select the hub, open Research and start Palisades: cheap wooden walls, paid in planks, to keep bugs off your buildings. Your hub has a gun of its own meanwhile.',
+            ? 'Select the hub, open Research and start Advanced Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.'
+            : 'Select the hub, open Research and start Basic Defense: palisades to keep bugs off your buildings, and spike pits that hurt and slow them as they cross. Your hub has a gun of its own meanwhile.',
       },
     ],
   },

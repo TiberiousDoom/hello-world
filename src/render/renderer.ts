@@ -24,6 +24,7 @@ import {
   LUMBER,
   RECIPE_BY_ID,
   REPAIR,
+  SPIKES,
   RESOURCE_ITEMS,
   TURRETS,
   beltSpeed,
@@ -1172,7 +1173,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'palisade' && b.type !== 'repair' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1218,12 +1219,14 @@ export class Renderer {
     const turret = TURRETS[b.type];
     if (turret) {
       const aim = this.aims.get(b.id) ?? -Math.PI / 2;
-      if (!this.drawSprite(`buildings/${b.type}_barrel`, b.x, b.y, 1, aim)) {
+      const [fw] = world.footprintOf(b); // the trebuchet is 2×2 (D-107)
+      if (!this.drawSprite(`buildings/${b.type}_barrel`, b.x, b.y, fw, aim)) {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        dot(ctx, b.x + 0.5, b.y + 0.5, 0.3);
+        dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);
       }
-      bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
+      bar(ctx, b.x + 0.12, b.y + fw - 0.14, fw - 0.24, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
+    if (b.type === 'spike_pit') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / SPIKES.maxCharge, ITEMS.stake.color);
 
     if (b.type === 'splitter' && b.outputs.length) {
       const [cx, cy] = world.centreOf(b);
@@ -1404,11 +1407,11 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && !turret;
+    const directional = tool !== 'wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
-    if (drawn && turret) this.drawSprite(`buildings/${tool}_barrel`, x, y, 1, -Math.PI / 2);
+    if (drawn && turret) this.drawSprite(`buildings/${tool}_barrel`, x, y, fw, -Math.PI / 2);
     if (!drawn) {
       ctx.fillStyle = BUILDINGS[tool].color;
       ctx.fillRect(x + 0.06, y + 0.06, fw - 0.12, fh - 0.12);
