@@ -79,6 +79,8 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
 | Sawmill | 2×2 | 14 logs | 100 | Forestry |
 | Palisade | 1×1 | 2 planks | 160 | Palisades |
+| Wooden Roller | 1×1 | 1 plank, 1 dowel | 20 | Basic Logistics |
+| Storage Crate | 1×1 | 6 planks, 4 pegs | 60 | Basic Logistics |
 
 - Sizes are width × depth when facing east (the first number runs along the direction the building
   faces). Turning a building sideways swaps them, and a placed building only turns if its new footprint is free.
@@ -90,6 +92,15 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 
 ## Logistics rules
 
+- **Wooden rollers** (D-106, Basic Logistics) come before belts. They have **one lane**: items go in
+  single file down the middle, and are drawn on a narrow wooden frame. Items roll on their own at
+  **0.5 tiles/s** (a third of a belt); a roller holding **2 or more** items is being pushed and moves
+  them at belt speed, so a busy line packs up and keeps up with what goes on it, up to about **265 items a
+  minute**. Rollers are laid, turned and fed like belts, and can join a line from the side. There is no
+  splitting or crossing with rollers: splitters and underground belts come with the Iron Age.
+- **Storage crate** (1×1, D-106): holds up to **50 of one item**. Rollers or belts fill it from any side
+  but its front; it sends its items out of its front onto a roller or belt there. **Collect** takes what
+  fits in the engineer's inventory, and **Drop off** puts items in.
 - **Belts** move 1.5 tiles/s and have **two lanes** side by side (#61, D-069), each holding about 3
   items per tile, so a belt line carries up to about **530 items a minute** (an express belt about
   1,060). A belt accepts items from any side except the tile it points into. An item reaching the end
@@ -199,6 +210,7 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Logistics | 10 iron plates | 20 s | Industry | Belt, Splitter, Underground Belt |
 | Basic Defense | 20 iron plates | 30 s | Industry | Turret |
 | Palisades | 12 planks | 30 s | Forestry | Palisade |
+| Basic Logistics | 20 logs, 20 planks, 50 dowels | 45 s | Forestry | Wooden Roller, Storage Crate |
 | Ballistae | 20 planks, 10 iron plates | 45 s | Palisades, Basic Defense | Ballista |
 | Chitin Plating | 10 chitin, 20 iron plates | 45 s | Basic Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
 | Masonry | 12 bricks | 30 s | Industry | Wall |
@@ -283,9 +295,11 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 3. **Collect by hand.** Select a machine, extractor or lumber camp and press **Collect**: the engineer
    fetches its finished items (up to 3), to carry to the hub. A building's output passes straight into a
    building in front of it, so a sawmill at a camp's arrow saws its logs.
-4. **Wooden parts (D-105):** research **Workshops** for the Workshop (rope from logs, pegs from dowels
+4. **Rollers (D-106):** research **Basic Logistics** (20 logs, 20 planks, 50 dowels) for wooden rollers
+   and storage crates, so the sawmill's planks roll to the hub on their own.
+5. **Wooden parts (D-105):** research **Workshops** for the Workshop (rope from logs, pegs from dowels
    sawn at the sawmill), then **Carpentry** for trusses.
-5. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand) to unlock the **extractor** and
+6. **Research Industry** (100 planks, 50 trusses, 50 stone mined by hand) to unlock the **extractor** and
    the **furnace**, then **Logistics** (10 iron plates) for belts. From there, belts do the carrying.
 
 ## Bugs
@@ -511,11 +525,12 @@ one research tree, one supply ship.
   It offers **Continue** (when a save exists, showing its mode and time played),
   **New game** (choose the mode) and **How to play**.
 
-- **Tutorial lessons** (seven) start by themselves the first time each one is useful:
+- **Tutorial lessons** (eight) start by themselves the first time each one is useful:
 
   | Lesson | Starts when | Steps |
   |---|---|---|
   | Essentials | Nothing is built yet but the hub | The hub → your engineer → chop 23 logs by hand → walk back to the hub → research Forestry → place a Lumber Camp beside the nearest trees → bring logs for the Sawmill and place it at the camp's arrow → Collect planks and bring them back → hub stock → the loop, and what planks are for (Palisades, Workshops) |
+  | Rollers | Basic Logistics is researched, before any roller is laid | Pick the Wooden Roller → lay 3 → how rollers move, and the Storage Crate |
   | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
   | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect a plate and bring it back → research Logistics → lay 3 belts |
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Palisades from the hub (Basic Defense once Industry is done) |

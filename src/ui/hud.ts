@@ -24,6 +24,7 @@ import {
   NESTS,
   PLAYER,
   isBelt,
+  CRATE_SIZE,
 } from '../sim/data';
 import { clockAt } from '../sim/clock';
 import { threatAt } from '../sim/nests';
@@ -37,6 +38,8 @@ import { buildingRates, toolTitle } from './rates';
 import { Tool, UIState, turnTool } from './state';
 
 const TOOLBAR: BuildingType[] = [
+  'roller',
+  'crate',
   'belt',
   'express_belt',
   'splitter',
@@ -60,7 +63,7 @@ const TOOLBAR: BuildingType[] = [
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['wall', 'palisade', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'furnace', 'workshop', 'assembler', 'sawmill', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'furnace', 'workshop', 'assembler', 'sawmill', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -784,7 +787,8 @@ export class Hud {
         stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
       }
       if (b.type === 'shipyard') stats += shipStats(world);
-      if (b.type === 'belt' || b.type === 'express_belt') stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
+      if (isBelt(b.type)) stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
+      if (b.type === 'crate') stats += b.outputs.length ? `<br>Holds ${b.outputs.length} of ${CRATE_SIZE}: ${esc(ITEMS[b.outputs[0]].name)}` : `<br>Empty: holds up to ${CRATE_SIZE} of one item`;
     }
     if (stats !== this.statsHtml) {
       this.statsHtml = stats;

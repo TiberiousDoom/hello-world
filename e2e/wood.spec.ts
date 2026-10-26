@@ -99,3 +99,33 @@ test('wooden parts: Workshops starts its lesson, a workshop goes up, and it make
   });
   expect(ropes).toBe('rope');
 });
+
+test('rollers: Basic Logistics starts its lesson, and three rollers carry a log to the hub (D-106)', async ({ page }, info) => {
+  await newGame(page, { fresh: true, lessonsSeen: ALL_LESSONS.filter((l) => l !== 'rollers') });
+  await calm(page);
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.inventory = { log: 999, plank: 999, dowel: 999, peg: 999 };
+    w.researchNow('forestry');
+    w.researchNow('rollers');
+  });
+  await expect(stepLabel(page)).toHaveText(/^Rollers · 1 of 2/);
+  await page.click('[data-tool="roller"]');
+  await settled(page.locator('#tutorial .tip'));
+  // Three rollers into the hub's west side, one at a time.
+  const row = await page.evaluate(() => {
+    const w = window.game.world;
+    return [3, 2, 1].map((d) => [w.hub.x - d, w.hub.y + 2] as [number, number]);
+  });
+  for (const [x, y] of row) await buildTile(page, info, x, y);
+  await expect(stepLabel(page)).toHaveText(/^Rollers · 2 of 2/);
+  await page.click('.tip-next');
+  await expect(page.locator('#tutorial')).toBeHidden();
+  // A log put on the first roller reaches the hub.
+  const before = await page.evaluate(() => window.game.world.state.inventory.log ?? 0);
+  await page.evaluate(([x, y]) => {
+    const w = window.game.world;
+    w.insert(w.buildingAt(x, y), 'log', x - 1, y);
+  }, row[0]);
+  await expect.poll(() => page.evaluate(() => window.game.world.state.inventory.log ?? 0), { timeout: 15000 }).toBe(before + 1);
+});

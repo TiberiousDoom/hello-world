@@ -10,7 +10,7 @@
 import { shipyard } from '../sim/ship';
 import { heldOf } from '../sim/player';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
-import { BREACH, BUILDINGS, BuildingType, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
+import { BREACH, BUILDINGS, BuildingType, CRATE_SIZE, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
 import { TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -312,6 +312,29 @@ export const LESSONS: Lesson[] = [
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         text: () =>
           'That is the whole loop: gather, make, deliver. Planks pay for Palisades, cheap wooden walls, and for Workshops, whose wooden parts lead to Industry: extractors and furnaces for ore. Select the hub any time to open Research.',
+      },
+    ],
+  },
+  {
+    id: 'rollers',
+    title: 'Rollers',
+    // Basic Logistics is researched, before any roller is laid (D-106).
+    trigger: (w) => w.isUnlocked('roller') && count(w, 'roller') === 0,
+    steps: [
+      {
+        target: (c) => toolThen(c, 'roller'),
+        done: (c) => built(c, 'roller', 3),
+        text: (c) =>
+          c.ui.tool === 'roller'
+            ? "Drag from the sawmill's arrow toward the hub to lay a line of rollers. Each one points the way you dragged. " +
+              'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
+            : 'Rollers carry items without power, so you can stop carrying by hand. Pick the Wooden Roller.',
+      },
+      {
+        target: () => ({ el: '[data-tool="crate"]' }),
+        text: () =>
+          `Items roll slowly in single file; a busy line packs up and goes faster. Rollers can join a line from the side, but there's no splitting or crossing until the Iron Age. ` +
+          `A Storage Crate holds ${CRATE_SIZE} of one item: rollers fill it, and a roller leaving its front takes items out.`,
       },
     ],
   },

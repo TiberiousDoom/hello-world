@@ -837,6 +837,7 @@ export class Renderer {
   // ----------------------------------------------------------- buildings
 
   private drawBelt(b: Building, look: BeltLook, z: number): void {
+    if (b.type === 'roller') return this.drawRoller(b, look, z);
     if (look.curved) return this.drawCurvedBelt(b, look.from, z);
     const ctx = this.ctx;
     const angle = (b.dir * Math.PI) / 2;
@@ -881,6 +882,90 @@ export class Renderer {
     }
     // Two lanes (#61): left and right of the middle, looking the way the belt runs.
     for (const it of b.belt) this.drawItem(it.item, ...this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET)), ITEM_ON_BELT);
+  }
+
+  /**
+   * A wooden roller (D-106): a narrow frame of two rails with wooden rollers across, and its items in
+   * single file down the middle. A corner is drawn as an L, its items turning at the tile's centre.
+   */
+  private drawRoller(b: Building, look: BeltLook, z: number): void {
+    const ctx = this.ctx;
+    const cx = b.x + 0.5;
+    const cy = b.y + 0.5;
+    // The path: from the side items come in, to the middle, then out of the front.
+    const inDir = look.curved ? look.from : ((b.dir + 2) % 4 as Dir);
+    const legs: [Dir, number, number][] = [
+      [((inDir + 2) % 4) as Dir, -0.5, 0], // the entry leg runs toward the middle, against `inDir`
+      [b.dir, 0, 0.5],
+    ];
+    const W = 0.3; // half the frame's width
+    const spin = (this.beltPhaseOf(b) / 0.25) * 0.2; // the rollers seem to turn as items pass
+    for (const [d, u0, u1] of legs) {
+      const dx = DX[d];
+      const dy = DY[d];
+      const at = (u: number, v: number): [number, number] => [cx + dx * u - dy * v, cy + dy * u + dx * v];
+      // The bed, then a roller every fifth of a tile, then the two rails over their ends.
+      ctx.fillStyle = '#3a2a1c';
+      const bed = [at(u0, -W), at(u1, -W), at(u1, W), at(u0, W)];
+      ctx.beginPath();
+      ctx.moveTo(...bed[0]);
+      for (const q of bed.slice(1)) ctx.lineTo(...q);
+      ctx.fill();
+      ctx.lineCap = 'butt';
+      for (let u = u0 + 0.05; u < u1; u += 0.1) {
+        ctx.strokeStyle = '#c9a06a';
+        ctx.lineWidth = 0.07;
+        ctx.beginPath();
+        ctx.moveTo(...at(u, -W + 0.04));
+        ctx.lineTo(...at(u, W - 0.04));
+        ctx.stroke();
+        // A highlight that slides across each roller as it turns.
+        ctx.strokeStyle = 'rgba(255,236,200,0.6)';
+        ctx.lineWidth = 0.02;
+        const h = u - 0.02 + ((spin * 5) % 0.04);
+        ctx.beginPath();
+        ctx.moveTo(...at(h, -W + 0.06));
+        ctx.lineTo(...at(h, W - 0.06));
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#0f1a2e';
+      ctx.lineWidth = 3 / z;
+      for (const v of [-W, W]) {
+        ctx.beginPath();
+        ctx.moveTo(...at(u0, v));
+        ctx.lineTo(...at(u1, v));
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#8a5a32';
+      ctx.lineWidth = 0.06;
+      for (const v of [-W, W]) {
+        ctx.beginPath();
+        ctx.moveTo(...at(u0, v));
+        ctx.lineTo(...at(u1, v));
+        ctx.stroke();
+      }
+    }
+    // An end stop where nothing takes its items.
+    if (!look.joined) {
+      ctx.fillStyle = '#6b4423';
+      const dx = DX[b.dir];
+      const dy = DY[b.dir];
+      const p = [
+        [cx + dx * 0.42 - dy * -W, cy + dy * 0.42 + dx * -W],
+        [cx + dx * 0.5 - dy * -W, cy + dy * 0.5 + dx * -W],
+        [cx + dx * 0.5 - dy * W, cy + dy * 0.5 + dx * W],
+        [cx + dx * 0.42 - dy * W, cy + dy * 0.42 + dx * W],
+      ] as [number, number][];
+      ctx.beginPath();
+      ctx.moveTo(...p[0]);
+      for (const q of p.slice(1)) ctx.lineTo(...q);
+      ctx.fill();
+    }
+    // Items, single file down the middle.
+    for (const it of b.belt) {
+      const [d, u] = it.pos < 0.5 ? [legs[0][0], it.pos - 0.5] : [b.dir, it.pos - 0.5];
+      this.drawItem(it.item, ...this.smooth(it, cx + DX[d] * u, cy + DY[d] * u), ITEM_ON_BELT);
+    }
   }
 
   /**

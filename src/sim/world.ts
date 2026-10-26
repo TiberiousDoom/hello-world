@@ -4,6 +4,7 @@
 import {
   BELT_SPACING,
   BELT_SPEED,
+  CRATE_SIZE,
   BLUEPRINTS,
   BLUEPRINT_BY_ID,
   beltSpeed,
@@ -23,6 +24,7 @@ import {
   ItemCounts,
   ItemId,
   LUMBER,
+  ROLLER,
   MAP_SIZE,
   NESTS,
   OUTPUT_BUFFER,
@@ -1071,7 +1073,8 @@ export class World {
   insert(target: Building, item: ItemId, fromX: number, fromY: number, lane?: Lane): boolean {
     switch (target.type) {
       case 'belt':
-      case 'express_belt': {
+      case 'express_belt':
+      case 'roller': {
         // Don't accept items from the tile this belt feeds into.
         if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
         const to = this.laneFrom(target, fromX, fromY, lane);
@@ -1081,6 +1084,13 @@ export class World {
       }
       case 'shipyard':
         return insertShip(this, item);
+      case 'crate': {
+        // Up to CRATE_SIZE of one kind, from anywhere but the tile in front, where it sends them (D-106).
+        if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
+        if (target.outputs.length >= CRATE_SIZE || (target.outputs.length && target.outputs[0] !== item)) return false;
+        target.outputs.push(item);
+        return true;
+      }
       case 'splitter': {
         // Only from directly behind one of its two lanes.
         const k = this.splitterLanes(target).findIndex((l) => l.x - DX[target.dir] === fromX && l.y - DY[target.dir] === fromY);
@@ -1342,7 +1352,11 @@ export class World {
       switch (b.type) {
         case 'belt':
         case 'express_belt':
+        case 'roller':
           this.tickBelt(b, dt);
+          break;
+        case 'crate':
+          this.pushOutput(b); // a belt or roller leaving its front takes items out
           break;
         case 'splitter':
           this.tickSplitter(b);
@@ -1505,7 +1519,7 @@ export class World {
    * Anything else (a building's output, `lane` not given) goes onto the right lane.
    */
   private laneFrom(target: Building, fromX: number, fromY: number, lane?: Lane): Lane {
-    if (lane == null) return RIGHT;
+    if (lane == null || target.type === 'roller') return RIGHT; // rollers have one lane (D-106)
     const d = target.dir;
     if (fromX === target.x - DX[d] && fromY === target.y - DY[d]) return lane;
     const left = ((d + 3) % 4) as Dir;
@@ -1522,7 +1536,7 @@ export class World {
     if (!n || n === target) return false;
     if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
     if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
-    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port') return false;
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate') return false;
     const o = this.outputTile(n);
     return o.x === target.x && o.y === target.y;
   }
@@ -1530,7 +1544,9 @@ export class World {
   /** Belts, and tunnel exits (which run like one belt tile once items come up). */
   private tickBelt(b: Building, dt: number): void {
     const items = b.belt;
-    const over = this.advanceItems(items, dt, 1, b.type === 'tunnel' ? BELT_SPEED : beltSpeed(b.type));
+    // A roller rolls items slowly on its own, and at belt speed while it's packed: pushed (D-106).
+    const speed = b.type === 'tunnel' ? BELT_SPEED : b.type === 'roller' && items.length >= ROLLER.packed ? BELT_SPEED : beltSpeed(b.type);
+    const over = this.advanceItems(items, dt, 1, speed);
     for (const lane of [LEFT, RIGHT]) {
       const i = items.findIndex((it) => it.lane === lane);
       const front = items[i];
@@ -1946,5 +1962,5 @@ class MinHeap {
 
 /** Buildings whose finished items can be carried to the hub by hand (#38). */
 export function canCollect(t: BuildingType): boolean {
-  return t === 'extractor' || t === 'lumber_camp' || isMachine(t);
+  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || isMachine(t);
 }

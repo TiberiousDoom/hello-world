@@ -19,6 +19,8 @@ import {
   beltSpeed,
   isBelt,
   isMachine,
+  BELT_SPEED,
+  ROLLER,
 } from '../sim/data';
 import type { Building, World } from '../sim/world';
 
@@ -29,6 +31,7 @@ export function fmt(perMinute: number): string {
 
 /** Most items a belt can carry in a minute: its speed over the gap between items. */
 export function beltPerMinute(type: BuildingType): number {
+  if (type === 'roller') return (BELT_SPEED / BELT_SPACING) * 60; // one lane, at belt speed once it's packed (D-106)
   return (beltSpeed(type) / BELT_SPACING) * 60 * 2; // two lanes (#61)
 }
 
@@ -42,6 +45,7 @@ const name = (i: ItemId) => ITEMS[i].name.toLowerCase();
 
 /** One line on what a kind of building can do at most, for toolbar tooltips. */
 export function rateSummary(type: BuildingType): string {
+  if (type === 'roller') return `${fmt(ROLLER.speed)} tiles/s, ${fmt(BELT_SPEED)} when packed; up to ${fmt(beltPerMinute(type))} items/min`;
   if (isBelt(type)) return `${beltSpeed(type)} tiles/s, up to ${fmt(beltPerMinute(type))} items/min`;
   if (type === 'tunnel' || type === 'splitter') return `up to ${fmt(beltPerMinute('belt'))} items/min, like a belt`;
   if (type === 'extractor') return `${fmt(60 / EXTRACTOR_PERIOD)} ore/min`;

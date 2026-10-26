@@ -3,7 +3,7 @@
 // full volume and fade out beyond its edges, so a fight across the map stays quiet.
 
 import { Camera } from '../render/camera';
-import { BUILDINGS, HUB_SIZE, isMachine } from '../sim/data';
+import { BUILDINGS, HUB_SIZE, isBelt, isMachine } from '../sim/data';
 import { isAngry, nestCentre } from '../sim/nests';
 import { Shot, World } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
@@ -61,7 +61,7 @@ export class SoundWatcher {
       if (known) continue;
       this.buildings.set(b.id, { type: b.type, x: b.x, y: b.y });
       const [w, h] = BUILDINGS[b.type].size ?? [1, 1];
-      const sound: Sound = b.type === 'belt' || b.type === 'express_belt' ? 'belt' : w * h >= 4 ? 'place_big' : 'place';
+      const sound: Sound = isBelt(b.type) ? 'belt' : w * h >= 4 ? 'place_big' : 'place';
       this.play(sound, b.x + w / 2, b.y + h / 2);
     }
     if (upgraded) this.play('place', upgraded.x + 0.5, upgraded.y + 0.5);
