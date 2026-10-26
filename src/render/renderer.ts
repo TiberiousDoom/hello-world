@@ -10,6 +10,7 @@ import {
   DY,
   Dir,
   ENEMIES,
+  FOG,
   EnemyType,
   EXTRACTOR_PERIOD,
   HAND_MINING,
@@ -38,6 +39,7 @@ import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
 import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
 import { planSteps } from '../ui/plan';
+import { fogSize } from '../sim/fog';
 import { BeltLook, beltLook } from './belts';
 import { runPiece } from './runs';
 import { Camera } from './camera';
@@ -103,6 +105,8 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   trebuchet: 0.9,
   tesla: 0.9,
 };
+/** Fog of war's colour (D-112): the dark of the forest beyond the map. */
+const FOG_COLOR = [14, 24, 18];
 /** Night (#42): how dark it gets, and lights that keep the factory readable. */
 const NIGHT = { color: '8,14,40', alpha: 0.58 };
 const FOREST_CANOPY = '#1f4a2e';
@@ -189,6 +193,9 @@ export class Renderer {
   /** Where shadows fall this frame: the offset per tile of height, and how dark they are (D-101). */
   private sun = { dx: 0, dy: 0, alpha: 0 };
   private night = document.createElement('canvas');
+  /** Fog of war (D-112): one pixel per fog cell, opaque where unexplored, stretched over the map smoothly. */
+  private fog = document.createElement('canvas');
+  private fogKey = '';
   /** Each character as drawn: eased toward its position between ticks, its heading, how far it has walked, and where it has been (for the trail of carried items). */
   private players = new Map<number, { x: number; y: number; angle: number; walked: number; trail: [number, number][]; at: number }>();
   private world: World | null = null;
@@ -359,6 +366,7 @@ export class Renderer {
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
     this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
+    this.drawFog(world);
     if (ui) this.drawNight(world, x0, y0, x1, y1);
 
     if (!ui) return;
@@ -679,6 +687,38 @@ export class Renderer {
   private lookOf(h: number, leaves: boolean): Season['id'] {
     const at = this.season === 'winter' ? (leaves ? 0.5 + h / 2 : h / 2) : h;
     return this.shift > at ? this.next : this.season;
+  }
+
+  /**
+   * Fog of war (D-112): unexplored ground under a dark cover. The grid is stretched with smoothing, so its
+   * edge is a soft fade a cell wide rather than steps.
+   */
+  private drawFog(world: World): void {
+    const s = world.state;
+    const n = fogSize(s);
+    let seen = 0;
+    for (const v of s.explored) seen += v;
+    if (seen === n * n) return;
+    const key = `${s.seed}|${n}|${seen}`;
+    if (key !== this.fogKey) {
+      this.fogKey = key;
+      const cells = document.createElement('canvas');
+      [cells.width, cells.height] = [n, n];
+      const img = cells.getContext('2d')!.createImageData(n, n);
+      for (let i = 0; i < n * n; i++) {
+        img.data.set(FOG_COLOR, i * 4);
+        img.data[i * 4 + 3] = s.explored[i] ? 0 : 255;
+      }
+      cells.getContext('2d')!.putImageData(img, 0, 0);
+      // A pixel a tile, blurred, so the edge is a soft fade rather than steps.
+      const t = FOG.cell;
+      [this.fog.width, this.fog.height] = [n * t, n * t];
+      const fctx = this.fog.getContext('2d')!;
+      fctx.filter = `blur(${t * 0.6}px)`;
+      fctx.drawImage(cells, 0, 0, n * t, n * t);
+      fctx.filter = 'none';
+    }
+    this.ctx.drawImage(this.fog, 0, 0, n * FOG.cell, n * FOG.cell);
   }
 
   /**

@@ -27,6 +27,12 @@ How the game works on `master` today. Balance numbers live in
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
 - The **8×8 hub** sits in the centre (5×5 before D-108).
+- **Fog of war (D-099, D-112):** the map is hidden under the dark of the forest until something sees it,
+  in 4×4-tile cells with a soft edge. The hub sees 36 tiles from its middle (past the starter ore), your
+  engineer 9 tiles around them as they walk, and every other building 5 tiles past its edge (turrets and
+  other towers their range more). Explored ground stays explored. In co-op it's shared: what one engineer
+  finds, everyone sees. It's only the view: buildings can be placed and turrets fire into it, and bugs
+  walk out of it. Numbers are in `FOG` in `src/sim/data.ts`.
 - **Bug territories:** the map is divided into 10×10 cells. About 18% of the cells whose nearest tile is
   at least 30 tiles from the hub's centre hold a nest (roughly 100 per map). See [Bugs](#bugs).
 - Hub stock is shown just above the hub, as part of the map, **only while the hub is selected or the
@@ -721,7 +727,7 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v26**). v26 (D-109) stakes out a site for the shipyard, refunds
+- Save files are versioned (currently **v27**). v27 (D-112) adds fog of war, with what the buildings and engineers see already explored. v26 (D-109) stakes out a site for the shipyard, refunds
   an old 3×3 shipyard, and counts the new scaffolding stage as built for a ship already under way. v25 (D-108) grows the hub from 5×5 to 8×8 about its old
   centre, refunding buildings in the way. v24 (D-107) turns the Ballistae research into Basic Defense 2. v23 (D-093) gives a game saved before the Wood Age
   Forestry and Industry as researched, since it was played with smelting from the start. v13 added the timer for territories spreading. v12 saved

@@ -54,6 +54,7 @@ import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generateResources, generateTrees } from './mapgen';
 import { hypot } from './math';
+import { newFog, revealBuilding, tickFog } from './fog';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
@@ -77,8 +78,9 @@ export type { ResearchState };
  * v20 (D-074) gives the engineer health.
  * v21 (#87, D-090) turns what the engineer carries into an inventory of slots.
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
+ * v27 (D-112) adds fog of war; older saves have seen what their buildings and engineers can see.
  */
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -177,6 +179,8 @@ export interface GameState {
   oreMined?: Record<number, number>;
   /** Times each tile's tree has been cut (D-094); past LUMBER.regrowths the stump doesn't grow back. */
   cuts?: Record<number, number>;
+  /** Fog of war (D-112): 1 for each FOG.cell-sized cell anyone has seen, row by row. */
+  explored: number[];
 }
 
 export interface PathTimers {
@@ -302,7 +306,9 @@ export class World {
       paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
       players: [],
       nextSpread: NESTS.spreadEvery,
+      explored: [],
     };
+    state.explored = newFog(state);
     const world = new World(state);
     const hx = Math.floor((size - HUB_SIZE) / 2);
     const hy = hx;
@@ -311,6 +317,7 @@ export class World {
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
     state.players = [newPlayer(world, 0)];
+    tickFog(state);
     generateTrees(world, centre, centre);
     state.nests = generateNests(world, centre, centre);
     for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
@@ -339,10 +346,19 @@ export class World {
     if (state.version === 23) World.migrateV23(state);
     if (state.version === 24) World.migrateV24(state);
     if (state.version === 25) World.migrateV25(state);
+    if (state.version === 26) World.migrateV26(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /** v26 to v27 (D-112): fog of war. What the buildings and engineers can see now counts as explored. */
+  private static migrateV26(state: GameState): void {
+    state.explored = newFog(state);
+    for (const b of state.buildings) revealBuilding(state, b, ...footprint(b.type, b.dir));
+    tickFog(state);
+    state.version = 27;
   }
 
   /**
@@ -882,6 +898,7 @@ export class World {
     };
     this.state.buildings.push(b);
     this.index(b);
+    revealBuilding(this.state, b, ...footprint(type, dir));
     return b;
   }
 
@@ -1017,6 +1034,7 @@ export class World {
     [b.x, b.y, b.dir] = [x, y, dir];
     if (b.type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(b.type, dir));
     this.index(b);
+    revealBuilding(this.state, b, ...footprint(b.type, dir));
     return b;
   }
 
@@ -1523,6 +1541,7 @@ export class World {
     tickSpread(this);
     tickBreeding(this, dt);
     tickPlayers(this, dt, (p, a) => this.act(p, a));
+    tickFog(s);
     this.announceClock(s.time - dt, s.time);
     announceThreat(this, s.time - dt, s.time);
     startRaids(this, s.time - dt, s.time);

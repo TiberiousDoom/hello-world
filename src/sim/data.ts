@@ -295,6 +295,17 @@ export const HAND_MINING = {
  */
 export const ORE = { perTile: 1200, minDistance: 20 };
 
+/**
+ * Fog of war (D-099, D-112): the map is hidden in cells of `cell` tiles until something comes within
+ * sight of them. Explored ground stays explored. Only the view: turrets still fire into it.
+ */
+export const FOG = {
+  cell: 4,
+  hub: 36, // tiles the hub sees, from its middle: past the starter ore (ORE.minDistance)
+  player: 9, // tiles an engineer sees
+  building: 5, // tiles any other building sees (towers see their range plus this)
+};
+
 /** Trees and the Lumber Camp (D-044). Unlike ore, wood runs out until the stumps grow back. */
 export const LUMBER = {
   regrowths: 3, // a tree's stump grows back this many times; cut again after that, the ground stays clear (D-094)

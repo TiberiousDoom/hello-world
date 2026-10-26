@@ -174,6 +174,7 @@ export function createDemoWorld(scene = 0): World {
   s.nests = s.nests.filter((n) => Math.abs(n.x + c / 2 - (hx + HUB_SIZE / 2)) > 40 || Math.abs(n.y + c / 2 - (hy + HUB_SIZE / 2)) > 40);
   s.nests.forEach((n, i) => (n.id = i));
   s.enemies = [];
+  s.explored.fill(1); // no fog of war behind the menu
   w.nestCells.clear();
   for (const n of s.nests) w.nestCells.set(cellKey(n.x / c, n.y / c), n);
   const kit: Kit = {
