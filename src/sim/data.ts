@@ -103,6 +103,7 @@ export type BuildingType =
   | 'palisade'
   | 'roller'
   | 'crate'
+  | 'storage'
   | 'spike_pit'
   | 'trebuchet';
 
@@ -121,6 +122,17 @@ export interface BuildingDef {
 export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 /** How many items a storage crate holds, all of one kind (D-093). */
 export const CRATE_SIZE = 50;
+/** The Storage Unit (#87, D-116): six slots of up to 50 of one item each. */
+export const STORAGE = { slots: 6, stack: 50 };
+
+/** Whether a Storage Unit holding `items` has room for one more `item`. */
+export function storageRoom(items: ItemId[], item: ItemId): boolean {
+  const counts = new Map<ItemId, number>([[item, 1]]);
+  for (const it of items) counts.set(it, (counts.get(it) ?? 0) + 1);
+  let slots = 0;
+  for (const n of counts.values()) slots += Math.ceil(n / STORAGE.stack);
+  return slots <= STORAGE.slots;
+}
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   hub: { name: 'Hub', short: 'HUB', color: '#3b6fd6', hp: 1000, size: [8, 8], cost: {}, blocking: true, description: 'Receives items and pays for everything you build. Select it for research. It defends itself with a built-in gun.' },
@@ -210,6 +222,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     description: 'Hurls stone a long way, hitting every bug where it lands, but it can\'t hit anything close. Arrives loaded; refill it with stone.',
   },
   crate: { name: 'Storage Crate', short: 'CR', color: '#9a6a3a', hp: 60, cost: { plank: 6, peg: 4 }, blocking: true, description: `Holds up to ${CRATE_SIZE} of one item. Rollers fill it, and a roller leaving its front takes items out.` },
+  storage: { name: 'Storage Unit', short: 'SU', color: '#5a6a7a', hp: 160, size: [1, 2], cost: { iron_plate: 12, rivet: 8 }, blocking: true, description: `Holds ${STORAGE.slots} stacks of up to ${STORAGE.stack} items, mixed. Belts fill it from the sides and back, and a belt leaving its front takes items out, first in, first out.` },
   shipyard: {
     name: 'Shipyard',
     short: 'SHIP',
@@ -422,7 +435,7 @@ export const RESEARCH: Research[] = [
   { id: 'machine_shop', name: 'Machine Shop', cost: { iron_plate: 80, rivet: 40, copper_ingot: 20 }, time: 60, requires: ['blacksmith'], unlocks: ['machine_shop'], description: 'Machine shops make gears from iron plates and wire from copper ingots.' },
   { id: 'hydraulics', name: 'Hydraulics', cost: { iron_plate: 80, iron_rod: 40, brick: 20 }, time: 45, requires: ['blacksmith'], unlocks: ['well', 'water_wheel', 'shaft'], description: 'Wells and water wheels turn drive shafts, which power belts.' },
   // The id stays 'logistics' so saves keep it (D-115).
-  { id: 'logistics', name: 'Metal Logistics', cost: { iron_plate: 60, iron_rod: 40, brick: 20 }, time: 45, requires: ['hydraulics'], unlocks: ['belt', 'splitter', 'tunnel'], description: 'Powered belts, splitters and underground belts. A belt without power rolls only at roller speed.' },
+  { id: 'logistics', name: 'Metal Logistics', cost: { iron_plate: 60, iron_rod: 40, brick: 20 }, time: 45, requires: ['hydraulics'], unlocks: ['belt', 'splitter', 'tunnel', 'storage'], description: 'Powered belts, splitters, underground belts and the Storage Unit. A belt without power rolls only at roller speed.' },
   { id: 'defense', name: 'Advanced Defense', cost: { iron_plate: 20 }, time: 30, requires: ['blacksmith'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
   // The Wood Age's defences (D-089, D-107). Ids kept from before, so saves keep them.
   { id: 'palisades', name: 'Basic Defense', cost: { plank: 30, rope: 10 }, time: 30, requires: ['rollers', 'workshop'], unlocks: ['palisade', 'spike_pit'], description: 'Palisades, cheap wooden walls, and spike pits, traps bugs walk over.' },

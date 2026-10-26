@@ -109,6 +109,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Spike Pit | 1×1 | 10 stakes, 2 planks | 60 | Basic Defense |
 | Wooden Roller | 1×1 | 1 plank, 1 dowel | 20 | Basic Logistics |
 | Storage Crate | 1×1 | 6 planks, 4 pegs | 60 | Basic Logistics |
+| Storage Unit | 1×2 | 12 iron plates, 8 rivets | 160 | Metal Logistics |
 
 - Sizes are width × depth when facing east (the first number runs along the direction the building
   faces). Turning a building sideways swaps them, and a placed building only turns if its new footprint is free.
@@ -129,6 +130,9 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 - **Storage crate** (1×1, D-106): holds up to **50 of one item**. Rollers or belts fill it from any side
   but its front; it sends its items out of its front onto a roller or belt there. **Collect** takes what
   fits in the engineer's inventory, and **Drop off** puts items in.
+- **Storage Unit** (1×2, #87, D-116): its Iron Age upgrade. It holds **6 stacks of up to 50**, of any mix
+  of items (300 in all), takes them from the back and sides, and sends them out of its front, first in,
+  first out, onto a belt or roller there. Collect and Drop off work as on the crate.
 - **Water power (D-113, D-115):** belts need power. A **Well** (anywhere) gives **8** power and a
   **Water Wheel** (its front tile in a pond, the other two on land) gives **32**; each belt uses **0.2**, so a
   well runs 40 belts and a wheel 160. Power travels through **drive shafts** (laid in lines like belts) and
@@ -252,7 +256,7 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Machine Shop | 80 iron plates, 40 rivets, 20 copper | 60 s | Blacksmith | Machine Shop (gears, wire) |
 | Charcoal | 40 logs, 20 iron plates | 45 s | Blacksmith | The charcoal recipe (a fuel that lasts three times as long as a log) |
 | Hydraulics | 80 iron plates, 40 iron rods, 20 bricks | 45 s | Blacksmith | Well, Water Wheel, Drive Shaft |
-| Metal Logistics | 60 iron plates, 40 iron rods, 20 bricks | 45 s | Hydraulics | Belt, Splitter, Underground Belt |
+| Metal Logistics | 60 iron plates, 40 iron rods, 20 bricks | 45 s | Hydraulics | Belt, Splitter, Underground Belt, Storage Unit |
 | Advanced Defense | 20 iron plates | 30 s | Blacksmith | Turret |
 | Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
 | Basic Defense 2 | 100 logs, 100 planks, 200 rope, 50 trusses | 120 s | Basic Defense, Carpentry | Trebuchet, Ballista |

@@ -51,6 +51,7 @@ import {
   isMachine,
   FUEL,
   burnsFuel,
+  storageRoom,
   POWER,
   CONDUCTS,
 } from './data';
@@ -1421,6 +1422,12 @@ export class World {
         target.outputs.push(item);
         return true;
       }
+      case 'storage': {
+        // Six stacks of 50, mixed, from anywhere but the tiles in front, where it sends them (D-116).
+        if (this.inFront(target, fromX, fromY) || !storageRoom(target.outputs, item)) return false;
+        target.outputs.push(item);
+        return true;
+      }
       case 'splitter': {
         // Only from directly behind one of its two lanes.
         const k = this.splitterLanes(target).findIndex((l) => l.x - DX[target.dir] === fromX && l.y - DY[target.dir] === fromY);
@@ -1682,6 +1689,13 @@ export class World {
     return { x: fromX + DX[dir], y: fromY + DY[dir], fromX, fromY };
   }
 
+  /** Whether tile (x, y) lies just past the edge `b` faces. */
+  private inFront(b: Building, x: number, y: number): boolean {
+    const [w, h] = this.footprintOf(b);
+    const inside = (tx: number, ty: number) => tx >= b.x && ty >= b.y && tx < b.x + w && ty < b.y + h;
+    return !inside(x, y) && inside(x - DX[b.dir], y - DY[b.dir]);
+  }
+
   private pushOutput(b: Building): void {
     if (!b.outputs.length) return;
     const o = this.outputTile(b);
@@ -1705,6 +1719,7 @@ export class World {
           this.tickBelt(b, dt);
           break;
         case 'crate':
+        case 'storage':
           this.pushOutput(b); // a belt or roller leaving its front takes items out
           break;
         case 'splitter':
@@ -1919,7 +1934,7 @@ export class World {
     if (!n || n === target) return false;
     if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
     if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
-    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate') return false;
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && n.type !== 'storage') return false;
     const o = this.outputTile(n);
     return o.x === target.x && o.y === target.y;
   }
@@ -2422,5 +2437,5 @@ export function shipSites(state: GameState): { x: number; y: number }[] {
 }
 
 export function canCollect(t: BuildingType): boolean {
-  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || isMachine(t);
+  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || t === 'storage' || isMachine(t);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, ORE, POWER, PONDS, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, ORE, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2149,5 +2149,36 @@ describe('Ponds and water power (D-115)', () => {
     expect(RESEARCH_BY_ID.hydraulics.unlocks.sort()).toEqual(['shaft', 'water_wheel', 'well']);
     expect(RESEARCH_BY_ID.logistics.requires).toEqual(['hydraulics']);
     expect(RESEARCH_BY_ID.logistics.name).toBe('Metal Logistics');
+  });
+});
+
+describe('The Storage Unit (#87, D-116)', () => {
+  it('holds six stacks of 50, mixed; takes from the back and sides, not its front; sends them out first in, first out', () => {
+    const w = emptyWorld();
+    const su = placed(w.place('storage', 20, 20, 0)); // 1×2 facing east: (20, 20) and (20, 21)
+    expect(w.insert(su, 'gear', 21, 20)).toBe(false); // from the front
+    expect(w.insert(su, 'gear', 21, 21)).toBe(false);
+    expect(w.insert(su, 'gear', 19, 21)).toBe(true); // behind
+    expect(w.insert(su, 'wire', 20, 19)).toBe(true); // the side
+    for (let i = 0; i < 4 * STORAGE.stack - 1; i++) expect(w.insert(su, 'gear', 19, 20)).toBe(true); // four stacks of gears
+    expect(w.insert(su, 'plank', 19, 20)).toBe(true); // the sixth stack
+    expect(w.insert(su, 'log', 19, 20)).toBe(false); // no stack left for a seventh kind
+    expect(w.insert(su, 'plank', 19, 20)).toBe(true); // but planks fit in theirs
+    expect(su.outputs.length).toBe(4 * STORAGE.stack + 3);
+    // A belt leaving its front takes them out, in the order they came.
+    const out = placed(w.place('belt', 21, 20, 0));
+    run(w, 0.2);
+    expect(out.belt[0].item).toBe('gear');
+    expect(su.outputs[0]).toBe('wire');
+  });
+
+  it('comes with Metal Logistics, and the engineer can Collect from it', () => {
+    expect(RESEARCH_BY_ID.logistics.unlocks).toContain('storage');
+    const w = emptyWorld();
+    const su = placed(w.place('storage', 20, 20, 0));
+    su.outputs = ['gear', 'gear', 'wire'];
+    stand(w, 19, 20);
+    expect(w.collect(su.id)).toBe(3);
+    expect(su.outputs).toEqual([]);
   });
 });

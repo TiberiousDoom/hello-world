@@ -156,7 +156,7 @@ The owner's answers, 2026-10-26. Numbers are first guesses to test.
      store, and stop without it; the Charcoal research opens the charcoal recipe.
   3. ✅ Water power (0.57.0, D-115): ponds, wells, the Water Wheel, drive shafts and powered belts;
      Logistics becomes Metal Logistics, after Hydraulics.
-  3b. The Storage Unit (Metal Logistics).
+  3b. ✅ The Storage Unit (0.58.0, D-116): 1×2, six stacks of 50, mixed, first in, first out.
   4. Hydraulic defences: the turret and cannon need power; the brick and reinforced walls.
   5. The launch pad, the ship's Iron Age stage.
 
@@ -217,7 +217,7 @@ Age by age, each playtested before the next:
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
 3. 🚧 **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
-   Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), then the Storage Unit, hydraulic defences, the
+   Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), ✅ the Storage Unit (0.58.0), then hydraulic defences, the
    launch pad.
 4. **Steam Age:** steam, steel parts, gunpowder weapons, the hull.
 5. **Electric Age:** electricity, circuits, drones, electric defences, launch and supply runs.

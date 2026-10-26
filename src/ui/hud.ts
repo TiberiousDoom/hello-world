@@ -26,6 +26,7 @@ import {
   PLAYER,
   isBelt,
   CRATE_SIZE,
+  STORAGE,
   FUEL,
   burnsFuel,
 } from '../sim/data';
@@ -44,6 +45,7 @@ import { Tool, UIState, turnTool } from './state';
 const TOOLBAR: BuildingType[] = [
   'roller',
   'crate',
+  'storage',
   'belt',
   'express_belt',
   'splitter',
@@ -74,7 +76,7 @@ const TOOLBAR: BuildingType[] = [
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['well', 'wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'spike_pit', 'trebuchet', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'spike_pit', 'trebuchet', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -853,6 +855,12 @@ export class Hud {
       if (b.type === 'shipyard') stats += shipStats(world);
       if (isBelt(b.type)) stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
       if (b.type === 'crate') stats += b.outputs.length ? `<br>Holds ${b.outputs.length} of ${CRATE_SIZE}: ${esc(ITEMS[b.outputs[0]].name)}` : `<br>Empty: holds up to ${CRATE_SIZE} of one item`;
+      if (b.type === 'storage') {
+        const counts = new Map<ItemId, number>();
+        for (const it of b.outputs) counts.set(it, (counts.get(it) ?? 0) + 1);
+        const list = [...counts].map(([k, n]) => `${swatch(k)}${n}`).join(' ');
+        stats += b.outputs.length ? `<br>Holds ${b.outputs.length} of ${STORAGE.slots * STORAGE.stack}: ${list}` : `<br>Empty: ${STORAGE.slots} stacks of up to ${STORAGE.stack}`;
+      }
     }
     if (stats !== this.statsHtml) {
       this.statsHtml = stats;
