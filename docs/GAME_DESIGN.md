@@ -202,9 +202,9 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
 - **A day** is 6 minutes of daylight and 3 of night (9 minutes in all). Dusk and dawn each fade over
   30 s. A game starts on the first morning of spring.
 - **Night:** the map darkens to a deep blue, with pools of light around the hub, your engineer,
-  turrets, repair stations and working machines. **Bugs range further:** a provoked nest's bugs chase
-  up to **30 tiles** from home (22 by day), and a building within **5 tiles** of a calm bug provokes
-  its nest (3 by day).
+  turrets, repair stations and working machines. **Bugs range further:** a provoked nest's bugs keep chasing
+  while something is within **28 tiles** of them (20 by day), and a building within **5 tiles** of a calm
+  bug provokes its nest (3 by day).
 - **Seasons**, a 12-day (108-minute) year:
 
   | Season | Days | Tree regrowth | Look |
@@ -243,7 +243,7 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
   whatever it takes of what's held, slot by slot.
 - **Bugs notice the engineer (D-074).** The engineer has **100 health**. Walking within 3 tiles of a
   calm bug (5 at night) provokes its nest, as a building would. An angry bug (or a raider) within
-  **4 tiles** of the engineer goes straight for them, within its leash, and bites as hard as it bites
+  **4 tiles** of the engineer goes straight for them, and bites as hard as it bites
   buildings. Health comes back at 5 a second once nothing has bitten for 5 s. A health bar shows when
   hurt, with a red flash and a hit sound on each bite.
 - **Knocked out:** at 0 health the engineer loses everything in the inventory and gets back on
@@ -281,7 +281,10 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   - one of its bugs is shot (by a turret, a cannon or the hub gun), or a bug of a nest next to it is.
 - A provoked nest's bugs go for the **nearest buildings**, following a path field from every building
   outwards. Belts, splitters and tunnels can be walked over; other buildings block, and bugs chew
-  through whatever they reach. They chase no further than **22 tiles** from their territory's centre; a bug that reaches that edge stops there until its territory calms down.
+  through whatever they reach. There's no fixed leash (D-091): a bug keeps chasing, however far from home,
+  while a building or an engineer is within **20 tiles** of it in a straight line (28 at night). With
+  nothing that close, it gives up and walks home, and sets off again only if something comes within
+  reach. Chasing the engineer, bugs follow them until they get 20 tiles away.
 - A nest **calms down** 30 s after the last provocation (biting a building counts as one), and its bugs
   walk home.
 - Territories show a red dashed outline while you're placing a building, and a pulsing one while
@@ -309,8 +312,9 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - **Night raids (D-065, D-073).** At nightfall, from the **second night** on, a raid comes with a
   **50% chance** (+10% per threat level; **every night in Hardcore**). One calm nest within **40 tiles**
   of any of your buildings, picked at random, sends a party of **2 grown bugs** (+1 per 2 threat levels,
-  up to 6). The rest of the nest stays calm. Raiders go for the nearest buildings with **no leash**, and
-  their biting doesn't wake their nest; shooting them does, as usual. At morning they go home. A
+  up to 6). The rest of the nest stays calm. Raiders go for the nearest buildings however far, and
+  their biting doesn't wake their nest; shooting them does, as usual. At morning they finish what they're
+  fighting: they go home once nothing is within 20 tiles of them. A
   message says which way the raid comes from, with the nest warning sound. Young bugs don't raid.
 - **Neighbours wake (D-065).** Shooting a nest's bugs provokes that nest and every live nest in the 8
   cells around it. Building near a nest still provokes only the nests it's in or next to.
@@ -392,7 +396,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   each run delivered** (up to 96), because a loaded ship is heavier and needs more thrust (D-049). They
   also wake **at least the 3 nearest** live
   nests however far, so there's always a fight. They stay angry for the whole countdown, and their bugs
-  **come for the shipyard**, ignoring their usual 22-tile leash and chewing through anything in the way
+  **come for the shipyard**, however far, and chewing through anything in the way
   (D-048). Before you launch, the shipyard's panel says how many nests it will wake. A banner above the
   toolbar counts down. After lift-off the bugs lose interest, calm down and wander home.
 - If the shipyard is still standing at lift-off, the run is **delivered**. The game goes on. The ship is

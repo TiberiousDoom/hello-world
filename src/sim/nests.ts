@@ -360,7 +360,7 @@ export function tickBugs(w: World, dt: number): void {
   const drawn = new Set(s.ship.launchAt != null ? s.ship.drawn : []);
   // Bugs range further in the dark (#42).
   const night = clockAt(s.time).night;
-  const leash = night ? CLOCK.nightLeash : NESTS.leash;
+  const reach = night ? CLOCK.nightGiveUp : NESTS.giveUp;
   const closeRadius = night ? CLOCK.nightCloseRadius : NESTS.closeRadius;
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
@@ -369,24 +369,34 @@ export function tickBugs(w: World, dt: number): void {
     const [hx, hy] = nestCentre(n);
     const def = ENEMIES[e.type];
     if (e.raid) {
-      if (night) {
-        chase(w, e, n, dt, w.flow, Infinity, false); // a raid: no leash, and the nest stays calm
+      // A raid (the nest stays calm) lasts the night, and after it until nothing is left in reach.
+      if (night || targetNear(w, e, reach)) {
+        chase(w, e, n, dt, w.flow, false);
         continue;
       }
-      delete e.raid; // morning: home they go
+      delete e.raid; // home they go
     }
     if (n.destroyed) {
-      chase(w, e, n, dt, w.flow); // homeless: no leash, no calming down
+      chase(w, e, n, dt, w.flow); // homeless: no giving up, no calming down
       continue;
     }
     if (drawn.has(n.id) && isAngry(w, n)) {
       chase(w, e, n, dt, w.shipFlow);
       continue;
     }
-    if (isAngry(w, n) && hypot(e.x - hx, e.y - hy) <= leash) {
-      chase(w, e, n, dt, w.flow, leash);
-      continue;
-    }
+    // Angry: chase as long as something is in reach of the bug itself, however far from home that
+    // takes it (D-091). With nothing left in reach it gives up and walks home, until something comes
+    // within reach again (walking home only takes it further away, so it doesn't dither at the edge).
+    if (isAngry(w, n)) {
+      if (look) {
+        if (targetNear(w, e, reach)) delete e.home;
+        else e.home = true;
+      }
+      if (!e.home) {
+        chase(w, e, n, dt, w.flow);
+        continue;
+      }
+    } else delete e.home;
     if (look && (buildingNear(w, e.x, e.y, closeRadius) || playerNear(w, e.x, e.y, closeRadius))) {
       provoke(w, n);
       continue;
@@ -423,14 +433,23 @@ export function tickBugs(w: World, dt: number): void {
 }
 
 /**
- * Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached.
- * With a leash, a step that would leave it isn't taken: the bug holds at the edge. Otherwise it would
- * step out, turn for home, step back in and chase again, twitching on the spot every tick.
+ * Whether a bug has something to chase within `reach` tiles, in a straight line: a building or a standing
+ * engineer (D-091). Not by the flow field: its distances include the cost of chewing through walls.
  */
-function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leash = Infinity, angers = true): void {
+function targetNear(w: World, e: Enemy, reach: number): boolean {
+  if (playerNear(w, e.x, e.y, reach)) return true;
+  // A path is never shorter than the straight line, so the flow field settles most cases without a scan.
+  const path = w.flow[w.idx(Math.floor(e.x), Math.floor(e.y))];
+  if (path <= reach) return true;
+  if (path === Infinity) return false; // nothing within attack-path range at all
+  return buildingNear(w, e.x, e.y, reach);
+}
+
+/** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
+function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, angers = true): void {
   const def = ENEMIES[e.type];
   const p = playerNear(w, e.x, e.y, PLAYER.notice);
-  if (p && hunt(w, e, n, p, dt, leash, angers)) return;
+  if (p && hunt(w, e, n, p, dt, angers)) return;
   const tx = Math.floor(e.x);
   const ty = Math.floor(e.y);
   const here = w.buildingAt(tx, ty);
@@ -464,20 +483,16 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, leas
   }
   const step = Math.min(dist, def.speed * dt);
   if (dist > 0) {
-    const mx = e.x + ((gx - e.x) / dist) * step;
-    const my = e.y + ((gy - e.y) / dist) * step;
-    const [hx, hy] = nestCentre(n);
-    if (hypot(mx - hx, my - hy) > leash) return;
-    e.x = mx;
-    e.y = my;
+    e.x += ((gx - e.x) / dist) * step;
+    e.y += ((gy - e.y) / dist) * step;
   }
 }
 
 /**
  * Go straight for an engineer close by (D-074), and bite it once in reach. Returns false when the way is
- * blocked by a building, or the leash won't allow it, so the bug follows its path field instead.
+ * blocked by a building, so the bug follows its path field instead.
  */
-function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, leash: number, angers: boolean): boolean {
+function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolean): boolean {
   const def = ENEMIES[e.type];
   const dist = hypot(p.x - e.x, p.y - e.y);
   if (dist <= def.radius + 0.4) {
@@ -490,8 +505,6 @@ function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, leash: number,
   const my = e.y + ((p.y - e.y) / dist) * step;
   const blocker = w.buildingAt(Math.floor(mx), Math.floor(my));
   if (blocker && BUILDINGS[blocker.type].blocking) return false;
-  const [hx, hy] = nestCentre(n);
-  if (hypot(mx - hx, my - hy) > leash) return false;
   e.x = mx;
   e.y = my;
   return true;

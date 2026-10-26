@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.46.1 · 2026-10-26 · Off the leash
+### New
+- **Bugs don't stop mid-chase any more:** an angry bug keeps after you, or your buildings, as long as something is within 20 tiles of it (28 at night), however far from its nest that takes it. With nothing left that close, it gives up and walks home.
+- **Raids finish what they start:** at dawn, raiders keep fighting until nothing is left in reach, then go home.
+
 ## 0.46.0 · 2026-10-26 · Pockets
 ### New
 - **An inventory for your engineer:** 12 slots that each hold 10 of one item, 120 in all, up from 20. Open it with the Inventory button at the bottom right of the toolbar (or I). Mining by hand, Collect and Pick up fill it.

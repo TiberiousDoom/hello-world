@@ -61,7 +61,7 @@ quality and business work don't get left until the end.
 30. ⬜ **Playtest batch 6, small ideas:** a short vibration on each tap when mining by hand (#84); move a building after it's placed, with a Move button beside Rotate and Demolish in its panel (#76, #83).
 31. ⬜ **Belt pieces as sprites:** draw belt corners, end caps and join flanges from the reference art in `docs/art-upgrade/pieces/` instead of in code. The moving chevrons stay in code, drawn over the corner sprite, so a sprite holds only the rails and the bed. Then the docs and ART_LIST follow.
 32. 🚧 **The research tree in four ages** ([RESEARCH_TREE.md](RESEARCH_TREE.md), D-089): Wood, Iron, Steam and Electric Ages, built age by age. The engineer's inventory is done (0.46.0, D-090); next the Wood Age: rollers, the Workshop and Carpentry, wooden defences, the 5×5 shipyard with a top-down ship and a side view, and smelting moved to Industry. See Gameplay → Next.
-33. ⬜ **Bugs that don't give up mid-chase** (owner's note): see Nests.
+33. ✅ **Bugs that don't give up mid-chase** (0.46.1, D-091): no fixed leash; a bug chases while something is within 20 tiles of it (28 at night), then walks home.
 34. ⬜ **Seasons that fade in** (owner's note): see Art and audio.
 35. ⬜ **Playtest batch 6, ideas to decide first** (see Gameplay → Next and the open questions): ore kept at least 20 tiles from the hub (#89, Q-21); fog of war (#43, Q-20).
 36. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
@@ -128,7 +128,7 @@ In this order:
 - ⬜ **Phase 4, themed kinds and queens:** crawler warrens, runner hives and brute dens by distance, each with its own burrow art (drawn, and shown by brood since 0.40.0); rare queen nests near the map edge
 - ⬜ **Phase 5, Hardcore nests:** harder numbers, destroy only by building over the mound and a ring, faster breeding while being built over; the Hardcore look
 - ✅ **Night raids** (0.38.0, D-073): from the second night, some nights a nest near your buildings sends a small party with no leash until morning; every night in Hardcore
-- ⬜ **A looser leash** (owner's note): today a provoked bug chases at most 22 tiles from its territory's centre (30 at night) and then turns back, even in the middle of a chase or a raid, which pulls you out of the game. Instead, a bug keeps going while it has a target, and gives up and goes home only when no building or engineer is within a set distance of it
+- ✅ **A looser leash** (0.46.1, D-091): no fixed leash; an angry bug chases while a building or an engineer is within 20 tiles of it (28 at night), and gives up and walks home when nothing is. Raiders finish their fight at morning
 
 ### Next (M4)
 - ✅ Faster belts: the Express Belt, a colony blueprint (D-049, D-050)
