@@ -107,7 +107,7 @@ export const isBig = (type: BuildingType): boolean => {
 };
 
 /** Buildings that send items out of one side, and so can line up with a belt. */
-const ALIGNS: BuildingType[] = ['extractor', 'lumber_camp', 'furnace', 'workshop', 'assembler', 'sawmill', 'splitter'];
+const ALIGNS: BuildingType[] = ['extractor', 'lumber_camp', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'splitter'];
 
 /**
  * How well a building at (x, y) facing `dir` joins the belts around it: 2 if

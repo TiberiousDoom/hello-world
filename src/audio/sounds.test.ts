@@ -116,7 +116,7 @@ describe('Sound effects', () => {
     expect(sfx.hum).toBe(0);
     for (let i = 0; i < 3; i++) {
       const f = placed(w.place('furnace', hub.x - 6, hub.y - 6 + i * 3, 0));
-      f.recipe = 'iron_plate';
+      f.recipe = 'iron_ingot';
       f.inputs = { iron_ore: 3 };
     }
     w.tick(TICK);
@@ -127,7 +127,7 @@ describe('Sound effects', () => {
     // Far off screen: silent.
     const far = setup();
     const f = placed(far.w.place('furnace', 10, 10, 0));
-    f.recipe = 'iron_plate';
+    f.recipe = 'iron_ingot';
     f.inputs = { iron_ore: 3 };
     far.w.tick(TICK);
     far.watcher.update(far.w);

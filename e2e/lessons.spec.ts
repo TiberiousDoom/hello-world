@@ -181,63 +181,70 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await buildTile(page, info, ...out);
   await expect(step).toContainText('4 of');
 
-  // Collect its plates by hand.
+  // Collect its ingots by hand (D-113).
   await page.click('[data-tool="furnace"]'); // put the tool down
   const furnace = await page.evaluate(() => {
     const f = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'furnace');
-    f.outputs = ['iron_plate', 'iron_plate'];
+    f.outputs = ['iron_ingot', 'iron_ingot'];
     return [f.x, f.y] as [number, number];
   });
   await tap(page, info, ...(await uncoveredTile(page, ...furnace)));
-  await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect [2-4]/); // it may finish more plates meanwhile
+  await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect [2-4]/); // it may finish more ingots meanwhile
   // Ore lies 20+ tiles out (D-097): skip the engineer's walk there and back, which isn't what this tests.
   await page.evaluate(([x, y]) => Object.assign(window.game.world.state.players[0], { x: x - 0.5, y: y + 0.5, path: [] }), furnace);
   await page.click('#info [data-action="collect"]');
   // The engineer fetches them, then carries them back to the hub. (Next to the hub, they go straight in.)
-  const plates = () =>
+  const ingots = () =>
     page.evaluate(() => {
       const w = window.game.world;
-      return w.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'iron_plate' ? s.n : 0), 0) + (w.state.inventory.iron_plate ?? 0);
+      return w.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'iron_ingot' ? s.n : 0), 0) + (w.state.inventory.iron_ingot ?? 0);
     });
-  await expect.poll(plates, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
+  await expect.poll(ingots, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   await page.evaluate(() => {
     const w = window.game.world;
     Object.assign(w.state.players[0], { x: w.hub.x - 1.5, y: w.hub.y + 2.5, path: [] }); // beside the hub: it drops off
   });
-  await expect.poll(() => stockOf('iron_plate'), { timeout: 30000 }).toBeGreaterThanOrEqual(2);
-  // Logistics, from the hub.
+  await expect.poll(() => stockOf('iron_ingot'), { timeout: 30000 }).toBeGreaterThanOrEqual(2);
+  // Blacksmith, from the hub.
   await expect(step).toContainText('5 of');
   await selectHub(page, info);
   await page.click('#info [data-action="research"]');
-  await page.click('[data-research="logistics"]');
+  await page.click('[data-research="blacksmith"]');
   await page.click('#research [data-close]');
   await expect(step).toContainText('6 of');
   await page.evaluate(() => {
-    window.game.world.state.research.paid.logistics = { iron_plate: 999 }; // finish it now
+    window.game.world.state.research.paid.blacksmith = { iron_ingot: 999, stone: 999 }; // finish it now
   });
-  await expect.poll(() => page.evaluate(() => window.game.world.isUnlocked('belt'))).toBe(true);
-  await page.evaluate(() => (window.game.world.state.inventory.iron_plate = 20));
+  await expect.poll(() => page.evaluate(() => window.game.world.isUnlocked('blacksmith'))).toBe(true);
+  await page.evaluate(() => Object.assign(window.game.world.state.inventory, { iron_ingot: 20, stone: 20 }));
 
-  // Three belts east from the furnace's output.
-  await page.click('[data-tool="belt"]');
+  // The blacksmith goes right in front of the furnace's arrow.
+  await page.click('[data-tool="blacksmith"]');
   await settled(page.locator('#tutorial .tip')); // the card moves out of the way
   await cameraSettled(page);
-  const belts = await page.evaluate(() => {
+  const anvil = await page.evaluate(() => {
     const w = window.game.world;
-    const f = w.state.buildings.find((b: { type: string }) => b.type === 'furnace');
-    const o = w.outputTile(f);
-    return [0, 1, 2].map((i) => [o.x + i, o.y] as [number, number]);
+    const o = w.outputTile(w.state.buildings.find((b: { type: string }) => b.type === 'furnace'));
+    return [o.x, o.y] as [number, number];
   });
-  for (const [x, y] of belts) await buildTile(page, info, x, y);
+  await buildTile(page, info, ...anvil);
   await expect(step).toContainText('7 of');
   await page.click('.tip-next');
+  await expect(page.locator('#tutorial')).toBeHidden();
 
-  // Logistics also unlocked splitters, which have a lesson of their own.
+  // Logistics unlocks splitters, which have a lesson of their own.
+  await page.click('[data-tool="blacksmith"]'); // put the tool down
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.inventory.iron_plate = 20;
+    w.state.research.active = 'logistics';
+    w.state.research.paid.logistics = { iron_plate: 999 }; // finish it now
+  });
   await expect(step).toHaveText(/^Splitters/);
   await page.click('.tip-next');
   await expect(page.locator('#tutorial')).toBeHidden();
 
-  // Bugs: the first time a nest is provoked. It waits for Advanced Defense (turrets), researched from the hub once Industry is done.
+  // Bugs: the first time a nest is provoked. It waits for Advanced Defense (turrets), researched from the hub once Blacksmith is done.
   await page.evaluate(() => {
     const w = window.game.world;
     w.state.nests[0].angryUntil = w.state.time + 600;
@@ -248,7 +255,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     const w = window.game.world;
     for (const n of w.state.nests) n.angryUntil = 0;
   });
-  await selectHub(page, info); // with the belt still in hand: tapping the hub selects it
+  await selectHub(page, info);
   await page.click('#info [data-action="research"]');
   await page.click('[data-research="defense"]');
   await expect(page.locator('#research-body')).toContainText('Researching');

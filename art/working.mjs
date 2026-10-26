@@ -118,6 +118,22 @@ const MACHINES = {
     svg = swap(svg, /<g fill="#e6c48c">.*?<\/g>/s.exec(svg)?.[0] ?? 'lumber dust', dots('#e6c48c', dust), 'lumber camp sawdust');
     return svg;
   },
+  blacksmith(svg, i) {
+    // The hammer rises and strikes the ingot on the anvil; sparks fly on the strike, and the coals breathe.
+    svg = swap(svg, '<g id="bHammer" transform="rotate(0 92 54)">', `<g id="bHammer" transform="rotate(${[0, -18, -30, -10][i]} 92 54)">`, 'blacksmith hammer');
+    svg = swap(svg, 'fill="#ff8a3d" opacity="0.5" filter="url(#bBlur)"', `fill="#ff8a3d" opacity="${[0.5, 0.7, 0.55, 0.75][i]}" filter="url(#bBlur)"`, 'blacksmith coals');
+    const sparks = i === 0 ? [[52, 60], [76, 58], [58, 54], [72, 52], [66, 50]] : i === 3 ? [[56, 62], [74, 60]] : [];
+    svg = swap(svg, '<g fill="#ffd36b" opacity="0"><circle cx="58" cy="64" r="1.5" /></g>', dots('#ffd36b', sparks.length ? sparks : [[64, 64, 0]], 1.6), 'blacksmith sparks');
+    return svg;
+  },
+  machine_shop(svg, i) {
+    // The lathe's chuck spins, the gears turn against each other and the light blinks.
+    svg = swap(svg, 'translate(52 45) rotate(0)', `translate(52 45) rotate(${30 * i})`, 'machine shop chuck');
+    svg = swap(svg, 'translate(40 88) rotate(0)', `translate(40 88) rotate(${7.5 * i})`, 'machine shop big gear');
+    svg = swap(svg, 'translate(70 96) rotate(0) scale(0.6)', `translate(70 96) rotate(${-12.5 * i}) scale(0.6)`, 'machine shop small gear');
+    svg = swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'machine shop light');
+    return svg;
+  },
   sawmill(svg, i) {
     svg = swap(svg, 'translate(64 64) rotate(4)', `translate(64 64) rotate(${4 + 5.625 * i})`, 'sawmill saw');
     // The log feeds into the blade.

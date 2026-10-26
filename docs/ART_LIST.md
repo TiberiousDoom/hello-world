@@ -87,6 +87,9 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 | Peg (two tapered wooden pegs) | 32×32 (+64×64) | P2 | Placeholder (`items/peg`) |
 | Rope (a coil of rope) | 32×32 (+64×64) | P2 | Placeholder (`items/rope`) |
 | Truss (a small triangular wooden frame) | 32×32 (+64×64) | P2 | Placeholder (`items/truss`) |
+| Iron ingot (a grey bar, cooler than copper's, D-113) | 32×32 (+64×64) | P2 | Placeholder (`items/iron_ingot`) |
+| Iron rod (three long round bars) | 32×32 (+64×64) | P2 | Placeholder (`items/iron_rod`) |
+| Rivet (two domed rivets) | 32×32 (+64×64) | P2 | Placeholder (`items/rivet`) |
 
 Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tiles read as one patch (D-096).
 
@@ -106,6 +109,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Extractor | 2×2 (128×128) | Drill, facing east. The game draws an output port at the middle of the east edge. Working: the rotor turns, chips fly | 1 + 4 working | P1 | Upgraded; working strip `extractor_working_4f` |
 | Furnace | 2×2 (128×128) | Idle and working, facing east. Working: flames, embers, smoke from the chimney | 1 + 4 | P1 | Upgraded; working strip `furnace_working_4f` |
 | Workshop | 2×2 (128×128) | Idle and working, facing east. Working: the gears turn, the lamp blinks | 1 + 4 | P2 | Upgraded; working strip `workshop_working_4f` |
+| Blacksmith (D-113): a forge of glowing coals, an anvil with an ingot on it, a hammer, a stack of ingots | 2×2 (128×128) | Idle and working, facing east. Working: the hammer swings and strikes, sparks fly, the coals breathe | 1 + 4 | P2 | Placeholder; working strip `blacksmith_working_4f` |
+| Machine Shop (D-113): a lathe and two gears on a steel floor | 2×2 (128×128) | Idle and working, facing east. Working: the lathe's chuck spins, the gears turn, the light blinks | 1 + 4 | P2 | Placeholder; working strip `machine_shop_working_4f` |
 | Assembler | 3×3 (192×192) | Idle and working, facing east. Working: the arm nods and welds, the gear turns, the lights take turns | 1 + 4 | P2 | Upgraded; working strip `assembler_working_4f` |
 | Splitter | 1×2 (64×128), facing east | A box straddling two belt lanes, an arrow on each: two lanes in, two out (#34) | 1 | P2 | Upgraded |
 | Underground belt entrance | 1×1 | A belt running into a hooded mouth on the east side, diving underground (#35) | 1 | P2 | Upgraded |

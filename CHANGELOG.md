@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.55.0 · 2026-10-26 · The Iron Age begins
+### New
+- **Iron ingots:** furnaces now smelt iron ore into ingots.
+- **The Blacksmith** (research Blacksmith, after Industry): hammers ingots into iron plates, or into iron rods, and rods into rivets. Plates still pay for belts and turrets, so Logistics and Advanced Defense now come after it.
+- **The Machine Shop** (after Blacksmith): gears and copper wire are made here now, not in the Workshop. Assembly and Field Repair come after it.
+- **Smelting lesson:** it now ends with researching Blacksmith and placing one at the furnace's arrow.
+- Saved games keep working: furnaces that made plates make ingots, workshops that made gears or wire become machine shops where they stand, and games already past Industry have the shop researches they relied on. Build a blacksmith after your iron furnaces to keep plates coming.
+
 ## 0.54.0 · 2026-10-26 · Sun, seasons and fog
 ### New
 - **Seasons fade in:** over the last day of each season the land turns to the next one. Trees change one by one, snow settles bit by bit, and in spring the flowers come back before the leaves.
