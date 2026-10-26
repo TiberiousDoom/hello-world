@@ -813,6 +813,41 @@ describe('Ore that runs out, and trees that stop growing back (D-094, D-096)', (
   });
 });
 
+describe('Moving a building (#76, #83)', () => {
+  it('moves with what it holds, for nothing, anywhere a new one could go, its own tiles included', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const f = placed(w.place('furnace', hub.x - 20, hub.y, 0));
+    f.outputs = ['iron_plate'];
+    f.inputs = { iron_ore: 2 };
+    f.recipe = 'iron_plate';
+    const stock = { ...w.state.inventory };
+    expect(w.relocate(f.id, f.x + 1, f.y, 1)).toBe(f); // one tile over, overlapping where it stood
+    expect([f.x, f.y, f.dir]).toEqual([hub.x - 19, hub.y, 1]);
+    expect(f.outputs).toEqual(['iron_plate']);
+    expect(f.inputs).toEqual({ iron_ore: 2 });
+    expect(w.state.inventory).toEqual(stock);
+    expect(w.buildingAt(hub.x - 20, hub.y)).toBeUndefined();
+    expect(w.buildingAt(hub.x - 18, hub.y + 1)).toBe(f);
+    // Not onto another building, and the hub, shipyard and tunnels stay put.
+    placed(w.place('wall', hub.x - 25, hub.y, 0));
+    expect(w.relocate(f.id, hub.x - 26, hub.y, 0)).toBe('occupied');
+    expect(w.relocate(hub.id, hub.x - 40, hub.y, 0)).toBe('unmovable');
+  });
+
+  it('an extractor moved onto other ore mines that ore', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 30, w.hub!.y];
+    ore(w, x, y, 1);
+    ore(w, x + 4, y, 3);
+    const ex = placed(w.place('extractor', x, y, 0));
+    expect(ex.recipe).toBe('iron_ore');
+    expect(w.relocate(ex.id, x + 4, y, 0)).toBe(ex);
+    expect(ex.recipe).toBe('stone');
+    expect(w.relocate(ex.id, x + 10, y, 0)).toBe('needs-resource');
+  });
+});
+
 describe('Rollers and crates (D-106)', () => {
   it('a roller line carries items in single file, slowly, and at belt speed once it is packed', () => {
     const w = emptyWorld();

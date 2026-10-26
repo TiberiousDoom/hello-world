@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.53.0 · 2026-10-26 · Rearranging
+### New
+- **Move buildings:** select a building and press Move, then tap where it should go. It keeps everything it holds and costs nothing. (Not the hub, the shipyard or underground belts.)
+- **Belts go under anything:** drag a belt line across a wall, a machine or trees, and it goes underground beneath them on its own, as it already did under other belts. Rollers still stop at what's in their way.
+
 ## 0.52.0 · 2026-10-26 · Deposits
 ### New
 - **Ore runs out:** every ore tile holds 1,200 ore. Mining by hand and extractors use it up, and then it's bare ground.

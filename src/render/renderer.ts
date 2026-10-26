@@ -341,7 +341,11 @@ export class Renderer {
     const hovered = ui.hover && ui.tool === 'express_belt' ? world.buildingAt(ui.hover.x, ui.hover.y) : undefined;
     if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
     else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, ui.dirSet, z);
-    else if (ui.hover && ui.tool) this.drawGhost(world, ui.tool, ui.hover, ui.dir, z, { keepDir: ui.dirSet });
+    else if (ui.hover && ui.tool) {
+      // Moving a building (#76, #83): its own tiles don't block it, and nothing is paid.
+      const moving = ui.moving != null ? world.byId.get(ui.moving) : undefined;
+      this.drawGhost(world, ui.tool, ui.hover, ui.dir, z, { keepDir: ui.dirSet, moving: moving?.type === ui.tool ? moving : undefined });
+    }
     if (ui.pings.length) this.drawPings(ui, now, z);
   }
 
@@ -1440,7 +1444,7 @@ export class Renderer {
     spot: Spot,
     dir: Dir,
     z: number,
-    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean; keepDir?: boolean } = {},
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean; keepDir?: boolean; moving?: Building } = {},
   ): void {
     const ctx = this.ctx;
     let { x, y } = spot;
@@ -1459,7 +1463,7 @@ export class Renderer {
     const replaceBelt = opts.replaceBelt ?? true;
     ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt, opts.keepDir));
     const [fw, fh] = footprint(tool, dir);
-    const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, replaceBelt);
+    const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
     const directional = tool !== 'wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;

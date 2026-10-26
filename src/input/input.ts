@@ -199,6 +199,10 @@ export class Input {
       if (typeof result === 'string') this.cb.onPlaceError(result);
       this.mode = 'none';
       this.cb.onChange();
+    } else if (this.mover()) {
+      // Moving a building (#76, #83): the tap puts it down there, no blueprint.
+      this.mode = 'none';
+      this.paintTile(this.ui.hover, this.ui.dir);
     } else if (this.onPlan(this.ui.hover)) {
       // Pressing a single building's blueprint: a tap builds it, a drag moves it.
       this.startMove(this.ui.hover, true);
@@ -342,9 +346,16 @@ export class Input {
   }
 
   /** Makes the building at `t` the tool in hand, facing the way it does. */
+  /** The building being moved (#76, #83), while the tool in hand is still its type. */
+  private mover() {
+    const b = this.ui.moving != null ? this.cb.getWorld().byId.get(this.ui.moving) : undefined;
+    return b && b.type === this.ui.tool ? b : undefined;
+  }
+
   pick(t: Tile): void {
     const b = this.cb.getWorld().buildingAt(t.x, t.y);
     if (!b || b.type === 'hub') return;
+    this.ui.moving = null;
     this.ui.tool = b.type;
     this.ui.dir = b.dir;
     this.ui.dirSet = false;
@@ -382,6 +393,7 @@ export class Input {
   }
 
   private softPlace(pointerType: string, tool: string): boolean {
+    if (this.mover()) return false; // moving a building: one tap puts it down
     if (pointerType === 'mouse') return LINE_TOOLS.includes(tool);
     return this.ui.confirmTouch;
   }
@@ -569,6 +581,20 @@ export class Input {
       return;
     }
     const at = placementAt(world, tool, t, dir, replaceBelt, this.ui.dirSet);
+    const mover = this.mover();
+    if (mover) {
+      // Moving a building (#76, #83): one tap puts it down, then the tool is put away.
+      const moved = this.cb.issue({ kind: 'relocate', id: mover.id, x: at.x, y: at.y, dir: at.dir }) ?? world.checkPlace(tool, at.x, at.y, at.dir, false, mover);
+      if (typeof moved === 'string') this.cb.onPlaceError(moved);
+      else {
+        this.ui.moving = null;
+        this.ui.tool = null;
+        this.ui.selected = mover.id;
+        this.mode = 'none'; // the drag that follows doesn't paint
+      }
+      this.cb.onChange();
+      return;
+    }
     // In co-op the result comes later, so judge it now from the world as it is (the host's game decides).
     const entrance = tool === 'tunnel' ? world.findTunnelEntrance(at.x, at.y, at.dir) : undefined;
     const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt }) ?? world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt) ?? { ...at, link: entrance?.id ?? null };

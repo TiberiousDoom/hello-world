@@ -209,7 +209,7 @@ export interface Shot {
 
 /** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
 export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
-export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site';
+export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site' | 'unmovable';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
@@ -972,13 +972,14 @@ export class World {
    * Whether a building can go with its top-left at (x, y), facing `dir`.
    * `replaceBelt`: allow building over a belt (single placements, not drags across a line).
    */
-  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false): PlaceError | null {
+  /** Whether `type` can go at (x, y) facing `dir`. Moving (#76, #83): `moving` itself is no obstacle, and it's free. */
+  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false, moving?: Building): PlaceError | null {
     const [w, h] = footprint(type, dir);
     for (let dy = 0; dy < h; dy++) {
       for (let dx = 0; dx < w; dx++) {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
         const b = this.buildingAt(x + dx, y + dy);
-        if (b && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
+        if (b && b !== moving && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
         if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
         if (moundAt(this, x + dx, y + dy)) return 'nest';
       }
@@ -993,8 +994,30 @@ export class World {
       if (!reach.trees.length && !reach.stumps) return 'needs-trees';
     }
     if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
-    if (!this.canAfford(BUILDINGS[type].cost)) return 'cost';
+    if (!moving && !this.canAfford(BUILDINGS[type].cost)) return 'cost';
     return null;
+  }
+
+  /** Whether a building can be moved at all (#76, #83): not the hub, the shipyard (it has its site) or a paired tunnel. */
+  canMove(b: Building): boolean {
+    return b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'tunnel';
+  }
+
+  /**
+   * Moves a building to (x, y), facing `dir` (#76, #83). It keeps everything it holds and costs nothing.
+   * It can go anywhere a new one could, its old tiles included.
+   */
+  relocate(id: number, x: number, y: number, dir: Dir): Building | PlaceError {
+    const b = this.byId.get(id);
+    if (!b) return 'occupied';
+    if (!this.canMove(b)) return 'unmovable';
+    const err = this.checkPlace(b.type, x, y, dir, false, b);
+    if (err) return err;
+    this.unindex(b);
+    [b.x, b.y, b.dir] = [x, y, dir];
+    if (b.type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(b.type, dir));
+    this.index(b);
+    return b;
   }
 
   place(type: BuildingType, x: number, y: number, dir: Dir, replaceBelt = false): Building | PlaceError {

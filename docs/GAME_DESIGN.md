@@ -144,11 +144,12 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 - **Choosing the exit (#64):** after you place an entrance, its exit appears as a blueprint at the first
   free tile past whatever is in the way (or two tiles on, if nothing is). Tap ✓ (or click it) to build
   it, or drag it along the line, up to 5 tiles ahead, first.
-- **Going under belts automatically (#65):** a belt line dragged straight across one or more belts
-  running the other way goes under them: the tiles just before and after become an underground belt's
-  entrance and exit, and you pay for both. The blueprint shows them. If you can't afford both, the line
-  is built up to the crossing and stops there (the blueprint shows the rest in red). Only belts are
-  tunnelled under; walls and machines still stop a line.
+- **Going under things automatically (#65, #93):** a belt line dragged straight across anything in its
+  way goes under it: belts running the other way, any other building (walls, machines), and trees (D-102).
+  The tiles just before and after become an underground belt's entrance and exit, and you pay for both.
+  The blueprint shows them. If you can't afford both, or the gap is longer than an underground belt
+  reaches (5 tiles), the line is built up to the obstacle and stops there (the blueprint shows the rest
+  in red). Rollers have no underground: a roller line stops at what's in its way.
 - **Hub ports** must touch the hub, and always face away from it. Each port
   takes a chosen item out of hub stock, one every 0.5 s, and puts it on a belt.
   A docking collar joins it to the hub, with items visibly streaming out while it sends.
@@ -606,6 +607,12 @@ one research tree, one supply ship.
 
 ## Controls
 
+**Moving a building (#76, #83, D-110):** a selected building's panel has **Move**. The building becomes the
+tool in hand, facing as it does (Rotate turns it); the next click or tap puts it there, with everything it
+holds (inputs, outputs, ammo, items on a belt), for free. It can go anywhere a new one could, its own tiles
+included. Right-click, or tapping its tool, cancels. The hub, the shipyard (it has its site) and
+underground belts (they'd lose their pair) can't be moved.
+
 | | Desktop | Touch |
 |---|---|---|
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
@@ -618,6 +625,7 @@ one research tree, one supply ship.
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
+| Move a building (#76, #83) | Select it, Move, then click where it goes | Select it, Move, then tap where it goes |
 | Inventory | I, or the Inventory button | Inventory button (right end of the toolbar) |
 | Pick a building | 1–9 | Toolbar |
 | Build more like a placed building | Middle-click it | Hold a finger still on it (about half a second) |

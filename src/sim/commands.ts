@@ -14,6 +14,8 @@ export type Command =
   | { kind: 'place'; type: BuildingType; x: number; y: number; dir: Dir; replaceBelt: boolean }
   | { kind: 'demolish'; id: number }
   | { kind: 'rotate'; id: number; dir?: Dir }
+  // Moves a placed building, keeping what it holds (#76, #83).
+  | { kind: 'relocate'; id: number; x: number; y: number; dir: Dir }
   // Turns the building of this type at (x, y): a dragged belt pointing at the next one. By place, not id,
   // because in co-op the belt is still on its way to the host when the next one is dragged.
   | { kind: 'turn'; x: number; y: number; type: BuildingType; dir: Dir }
@@ -43,6 +45,7 @@ export interface CommandResults {
   place: Building | PlaceError;
   demolish: boolean;
   rotate: boolean;
+  relocate: Building | PlaceError;
   turn: boolean;
   recipe: void;
   filter: void;
@@ -79,6 +82,8 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.demolish(c.id);
     case 'rotate':
       return w.rotate(c.id, c.dir);
+    case 'relocate':
+      return w.relocate(c.id, c.x, c.y, c.dir);
     case 'turn': {
       const b = w.buildingAt(c.x, c.y);
       return b?.type === c.type ? w.rotate(b.id, c.dir) : false;
