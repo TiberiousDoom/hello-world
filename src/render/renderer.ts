@@ -31,9 +31,11 @@ import {
   beltSpeed,
   isBelt,
   isMachine,
+  FUEL,
+  burnsFuel,
   type Season,
 } from '../sim/data';
-import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World } from '../sim/world';
+import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, outOfFuel } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
@@ -757,7 +759,7 @@ export class Renderer {
       if (lights > 60) break;
       const [fw, fh] = world.footprintOf(b);
       if (b.x + fw < x0 - 6 || b.y + fh < y0 - 6 || b.x > x1 + 6 || b.y > y1 + 6) continue;
-      const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0;
+      const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0 && !outOfFuel(b);
       const r = b.type === 'hub' ? 8 : TURRETS[b.type] || b.type === 'repair' ? 3 : working ? 2.2 : 0;
       if (!r) continue;
       const [cx, cy] = world.centreOf(b);
@@ -1375,7 +1377,7 @@ export class Renderer {
 
     // Working machines run their animation (D-082), on game time so it stops when the game pauses.
     const working =
-      ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3) ||
+      ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3 && !outOfFuel(b)) ||
       (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6));
     const key = this.spriteKey(world, b);
     const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * 8 + b.id) : undefined;
@@ -1448,6 +1450,14 @@ export class Renderer {
       const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
       if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
       if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
+    }
+    // Fuel (D-114): a bar above the progress bar, and a flashing flame mark once it's gone.
+    if (burnsFuel(b.type)) {
+      bar(ctx, b.x + 0.12, b.y + fh - 0.28, fw - 0.24, b.ammo / FUEL.max, '#ff8a3d');
+      if (outOfFuel(b)) {
+        ctx.fillStyle = `rgba(255,110,50,${0.5 + 0.5 * Math.sin(now / 200)})`;
+        dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
+      }
     }
 
     if (!sprite(this.spriteKey(world, b)) && z >= 18 && def.short) {

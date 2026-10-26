@@ -152,7 +152,8 @@ The owner's answers, 2026-10-26. Numbers are first guesses to test.
 - **Order, each playtested:**
   1. ✅ Iron (0.55.0): ingots, the Blacksmith (plates, rods, rivets), the Machine Shop (gears, wire), the
      Smelting lesson rewritten.
-  2. Fuel: furnaces and the Blacksmith burn logs, then charcoal.
+  2. ✅ Fuel (0.56.0, D-114): furnaces and the Blacksmith burn logs (8 s) or charcoal (24 s) from a 48 s
+     store, and stop without it; the Charcoal research opens the charcoal recipe.
   3. Water power and Metal Logistics: wells, ponds, the Water Wheel, drive shafts, powered belts, the
      Storage Unit.
   4. Hydraulic defences: the turret and cannon need power; the brick and reinforced walls.
@@ -215,7 +216,7 @@ Age by age, each playtested before the next:
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
 3. 🚧 **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
-   Blacksmith and Machine Shop (0.55.0), then fuel, water power and powered belts, hydraulic defences, the
+   Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), then water power and powered belts, hydraulic defences, the
    launch pad.
 4. **Steam Age:** steam, steel parts, gunpowder weapons, the hull.
 5. **Electric Age:** electricity, circuits, drones, electric defences, launch and supply runs.

@@ -49,6 +49,8 @@ import {
   footprint,
   moundHp,
   isMachine,
+  FUEL,
+  burnsFuel,
 } from './data';
 import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
@@ -80,8 +82,9 @@ export type { ResearchState };
  * v22 (D-091) lets an angry bug give up and head home; older saves' bugs are all still chasing.
  * v27 (D-112) adds fog of war; older saves have seen what their buildings and engineers can see.
  * v28 (D-113): furnaces smelt iron ingots; workshops making gears or wire become machine shops.
+ * v29 (D-114): furnaces and blacksmiths burn fuel; old ones start with a full store.
  */
-export const SAVE_VERSION = 28;
+export const SAVE_VERSION = 29;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -112,7 +115,7 @@ export interface Building {
   inputs: ItemCounts; // machines
   outputs: ItemId[]; // extractors, machines, splitters and tunnel exits
   progress: number; // extractors and machines: seconds into the current job, -1 when idle
-  ammo: number; // turrets: shots stored; repair stations: HP of repairs stored
+  ammo: number; // turrets: shots stored; repair stations: HP of repairs stored; furnaces and blacksmiths: seconds of fuel (D-114)
   cooldown: number; // turrets
   link: number | null; // tunnels: the paired entrance or exit
   rr: number; // splitters: which output side is next
@@ -126,6 +129,9 @@ export interface Building {
   /** Splitters: the lane (0 or 1, see splitterLanes) the buffered item came in through (#92). */
   inFrom?: number;
 }
+
+/** A furnace or blacksmith with no fuel left, which stops until it gets more (D-114). */
+export const outOfFuel = (b: Building): boolean => burnsFuel(b.type) && b.ammo <= 0;
 
 /** A splitter whose two lanes both took in an item this recently, of different kinds, keeps them apart (#92). */
 export const SPLITTER_SORT_WINDOW = 5;
@@ -349,10 +355,25 @@ export class World {
     if (state.version === 25) World.migrateV25(state);
     if (state.version === 26) World.migrateV26(state);
     if (state.version === 27) World.migrateV27(state);
+    if (state.version === 28) World.migrateV28(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * v28 to v29 (D-114): furnaces and blacksmiths burn fuel. Old ones start with a full store, and a game
+   * already making or holding charcoal gets the Charcoal research, which its recipe now needs.
+   */
+  private static migrateV28(state: GameState): void {
+    let charcoal = (state.inventory.charcoal ?? 0) > 0 || (state.inventory.steel ?? 0) > 0;
+    for (const b of state.buildings) {
+      if (burnsFuel(b.type)) b.ammo = FUEL.max;
+      if (b.recipe === 'charcoal' || b.recipe === 'steel') charcoal = true;
+    }
+    if (charcoal && !state.researched.includes('charcoal')) state.researched.push('charcoal');
+    state.version = 29;
   }
 
   /**
@@ -913,8 +934,8 @@ export class World {
       inputs: {},
       outputs: [],
       progress: -1,
-      // Turrets and repair stations arrive stocked.
-      ammo: TURRETS[type]?.maxShots ?? (type === 'repair' ? REPAIR.maxCharge / 2 : type === 'spike_pit' ? SPIKES.maxCharge : 0),
+      // Turrets, repair stations and fuel burners arrive stocked.
+      ammo: TURRETS[type]?.maxShots ?? (type === 'repair' ? REPAIR.maxCharge / 2 : type === 'spike_pit' ? SPIKES.maxCharge : burnsFuel(type) ? FUEL.max : 0),
       cooldown: 0,
       link: null,
       rr: 0,
@@ -1276,6 +1297,16 @@ export class World {
       case 'sawmill':
       case 'blacksmith':
       case 'machine_shop': {
+        // Fuel goes into the fuel store, unless the recipe uses it and still has room for it (D-114).
+        const burn = burnsFuel(target.type) ? FUEL.burns[item] : undefined;
+        if (burn) {
+          const need = target.recipe ? RECIPE_BY_ID[target.recipe].inputs[item] : undefined;
+          if (!need || (target.inputs[item] ?? 0) >= need * 3) {
+            if (target.ammo + burn > FUEL.max) return false;
+            target.ammo += burn;
+            return true;
+          }
+        }
         if (!target.recipe) {
           const r = this.recipesFor(target.type).find((r) => r.inputs[item]);
           if (!r) return false;
@@ -1925,7 +1956,8 @@ export class World {
 
   private tickMachine(b: Building, dt: number): void {
     const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
-    if (recipe) {
+    const fuel = burnsFuel(b.type);
+    if (recipe && !(fuel && b.ammo <= 0)) {
       if (b.progress < 0 && b.outputs.length + recipe.count <= OUTPUT_BUFFER + 1) {
         const ready = Object.entries(recipe.inputs).every(([k, n]) => (b.inputs[k as ItemId] ?? 0) >= n!);
         if (ready) {
@@ -1935,6 +1967,7 @@ export class World {
       }
       if (b.progress >= 0) {
         b.progress += dt;
+        if (fuel) b.ammo = Math.max(0, b.ammo - dt);
         if (b.progress >= recipe.time) {
           for (let i = 0; i < recipe.count; i++) b.outputs.push(recipe.output);
           this.noteMade(b, recipe.count);

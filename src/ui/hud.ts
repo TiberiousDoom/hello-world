@@ -26,6 +26,8 @@ import {
   PLAYER,
   isBelt,
   CRATE_SIZE,
+  FUEL,
+  burnsFuel,
 } from '../sim/data';
 import { clockAt } from '../sim/clock';
 import { threatAt } from '../sim/nests';
@@ -793,6 +795,12 @@ export class Hud {
       }
       if (b.type === 'spike_pit') stats += `<br>Spikes ${Math.ceil(b.ammo)} / ${SPIKES.maxCharge} s of wear ${swatch('stake')}Stakes refill it`;
       if (b.type === 'repair') stats += `<br>Stored repairs ${Math.floor(b.ammo)} / ${REPAIR.maxCharge} HP`;
+      if (burnsFuel(b.type)) {
+        const fuels = Object.entries(FUEL.burns)
+          .map(([k, s]) => `${swatch(k as ItemId)}${ITEMS[k as ItemId].name.toLowerCase()} ${s} s`)
+          .join(', ');
+        stats += `<br>Fuel ${Math.ceil(b.ammo)} / ${FUEL.max} s${b.ammo <= 0 ? ' <b>(out: it has stopped)</b>' : ''} · burns ${fuels}`;
+      }
       if (b.type === 'tunnel') {
         const p = b.link != null ? world.byId.get(b.link) : undefined;
         if (!p) stats += `<br>Entrance with no exit. Place one up to ${TUNNEL_RANGE} tiles ahead, facing the same way.`;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ORE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, ORE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
-import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
+import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
 import { emptySlots, held, heldOf, isDown } from './player';
@@ -993,8 +993,9 @@ describe('Wood in the economy', () => {
     w.setRecipe(saw.id, 'stake');
     for (let i = 0; i < 2; i++) w.insert(saw, 'plank', saw.x - 1, saw.y);
     const furnace = placed(w.place('furnace', hub.x - 20, hub.y - 4, 0));
+    w.setRecipe(furnace.id, 'charcoal'); // logs fed to a furnace are fuel unless it's making charcoal (D-114)
     for (let i = 0; i < 2; i++) expect(w.insert(furnace, 'log', furnace.x - 1, furnace.y)).toBe(true);
-    expect(furnace.recipe).toBe('charcoal');
+    expect(furnace.inputs.log).toBe(2);
     run(w, 3);
     expect(saw.outputs.filter((o) => o === 'stake').length).toBeGreaterThanOrEqual(3);
     expect(furnace.outputs).toEqual(['charcoal']);
@@ -1976,5 +1977,80 @@ describe('The Iron Age: ingots, the Blacksmith and the Machine Shop (D-113)', ()
     old.researched = ['forestry', 'industry'];
     byId(gears.id).recipe = 'rope';
     expect(World.fromJSON(JSON.stringify(old)).state.researched.sort()).toEqual(['forestry', 'industry']);
+  });
+});
+
+describe('Fuel (D-114)', () => {
+  it('a new furnace arrives fuelled, burns only while working, and stops when the fuel runs out', () => {
+    const w = emptyWorld();
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    expect(fu.ammo).toBe(FUEL.max);
+    run(w, 5);
+    expect(fu.ammo).toBe(FUEL.max); // idle: nothing burns
+    fu.ammo = 1;
+    fu.inputs = { iron_ore: 3 };
+    fu.recipe = 'iron_ingot';
+    run(w, 3);
+    expect(fu.ammo).toBe(0);
+    expect(outOfFuel(fu)).toBe(true);
+    expect(fu.outputs).toEqual([]); // the first ingot needs 1.6 s of fire; it had 1
+    const progress = fu.progress;
+    run(w, 3);
+    expect(fu.progress).toBe(progress); // stopped
+    // A log is 8 s more, and it carries on.
+    expect(w.insert(fu, 'log', 19, 20)).toBe(true);
+    expect(fu.ammo).toBe(FUEL.burns.log);
+    run(w, 1);
+    expect(fu.outputs).toEqual(['iron_ingot']);
+  });
+
+  it('logs and charcoal fill the store up to its limit; other machines take no fuel', () => {
+    const w = emptyWorld();
+    const bs = placed(w.place('blacksmith', 20, 20, 0));
+    bs.ammo = 0;
+    expect(w.insert(bs, 'charcoal', 19, 20)).toBe(true);
+    expect(bs.ammo).toBe(FUEL.burns.charcoal);
+    expect(w.insert(bs, 'charcoal', 19, 20)).toBe(true);
+    expect(w.insert(bs, 'log', 19, 20)).toBe(false); // full
+    expect(bs.recipe).toBeNull(); // fuel doesn't pick a recipe
+    const ws = placed(w.place('workshop', 30, 20, 0));
+    expect(w.insert(ws, 'log', 29, 20)).toBe(true);
+    expect(ws.recipe).toBe('rope'); // logs are rope there
+    expect(ws.ammo).toBe(0);
+  });
+
+  it('a furnace making charcoal takes logs as its input first, and burns the rest', () => {
+    const w = emptyWorld();
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    fu.ammo = 0;
+    w.setRecipe(fu.id, 'charcoal');
+    for (let i = 0; i < 7; i++) expect(w.insert(fu, 'log', 19, 20)).toBe(true);
+    expect(fu.inputs.log).toBe(6); // three batches
+    expect(fu.ammo).toBe(FUEL.burns.log);
+  });
+
+  it('charcoal needs its research, which needs the Blacksmith', () => {
+    expect(RESEARCH_BY_ID.charcoal.requires).toEqual(['blacksmith']);
+    const w = emptyWorld();
+    w.state.researched = w.state.researched.filter((r) => r !== 'charcoal');
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    w.setRecipe(fu.id, 'charcoal');
+    expect(fu.recipe).toBeNull();
+  });
+
+  it('v28 saves: furnaces and blacksmiths start with a full store; a game making charcoal gets its research', () => {
+    const w = emptyWorld();
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    const bs = placed(w.place('blacksmith', 30, 20, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 28;
+    old.researched = ['forestry', 'industry', 'blacksmith'];
+    for (const b of old.buildings) if (b.id === fu.id || b.id === bs.id) b.ammo = 0;
+    old.buildings.find((b: { id: number }) => b.id === fu.id).recipe = 'charcoal';
+    const loaded = World.fromJSON(JSON.stringify(old));
+    for (const id of [fu.id, bs.id]) expect(loaded.state.buildings.find((b) => b.id === id)!.ammo).toBe(FUEL.max);
+    expect(loaded.state.researched).toContain('charcoal');
+    old.buildings.find((b: { id: number }) => b.id === fu.id).recipe = 'iron_ingot';
+    expect(World.fromJSON(JSON.stringify(old)).state.researched).not.toContain('charcoal');
   });
 });

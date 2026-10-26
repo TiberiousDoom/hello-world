@@ -413,7 +413,9 @@ export const LESSONS: Lesson[] = [
             ? { el: '#info [data-action="collect"]' }
             : { tiles: furnaceTarget(c.world), shape: 'circle' },
         done: (c) => (c.world.delivered.iron_ingot ?? 0) > (c.start.delivered.iron_ingot ?? 0),
-        text: () => 'Iron ingots pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub.',
+        text: () =>
+          'Iron ingots pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub. ' +
+          'A furnace burns logs as it works: when its orange fuel bar runs low, drop off logs or roll them in. Out of fuel, it stops.',
       },
       {
         target: (c) =>

@@ -1,6 +1,6 @@
 // Small pre-built factories that run behind the main menu, one after another (#99).
 
-import { BuildingType, Dir, HUB_SIZE, NESTS, RESEARCH, TURRETS } from './data';
+import { BuildingType, Dir, FUEL, HUB_SIZE, NESTS, RESEARCH, TURRETS, burnsFuel } from './data';
 import { cellKey, newNest } from './nests';
 import { Building, TREE, World } from './world';
 
@@ -223,6 +223,7 @@ export function sustainDemo(w: World): void {
   for (const b of w.state.buildings) {
     if (TURRETS[b.type] && b.ammo < 6) b.ammo += 6;
     if (b.type === 'spike_pit' && b.ammo < 10) b.ammo = 60;
+    if (burnsFuel(b.type) && b.ammo < 10) b.ammo = FUEL.max;
   }
   for (const n of w.state.nests) n.angryUntil = 0;
 }
