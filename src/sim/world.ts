@@ -36,6 +36,7 @@ import {
   RESEARCH,
   RESEARCH_BY_ID,
   RESOURCE_ITEMS,
+  SULFUR_RESOURCE,
   SHIP,
   SHIP_SITE,
   SPIKES,
@@ -56,6 +57,7 @@ import {
   isStore,
   POWER,
   HYDRAULIC,
+  ELECTRIC_DEFENCES,
   ELECTRIC,
   MK2,
   EXPRESS_BELT_SPEED,
@@ -64,7 +66,7 @@ import {
 } from './data';
 import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
-import { generateNests, generatePonds, generateResources, generateTrees, seeded } from './mapgen';
+import { generateNests, generatePonds, generateResources, generateSulfur, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
 import { newFog, revealBuilding, tickFog } from './fog';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
@@ -98,8 +100,9 @@ export type { ResearchState };
  * v32 (D-118): the ship gains the launch pad, its second stage; a ship past the scaffolding has it built.
  * v33 (D-120): steel needs Steelmaking; a game already making or holding steel gets it, and Engineering.
  * v34 (D-121): the Express Belt moves from a blueprint into research and runs on electricity.
+ * v35 (D-123) adds sulfur deposits to the map.
  */
-export const SAVE_VERSION = 34;
+export const SAVE_VERSION = 35;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -384,6 +387,7 @@ export class World {
     for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
     const sites = shipSites(state);
     state.shipSite = sites[Math.floor(world.random() * sites.length)];
+    world.addSulfur();
     return world;
   }
 
@@ -416,11 +420,34 @@ export class World {
     if (state.version === 31) World.migrateV31(state);
     if (state.version === 32) World.migrateV32(state);
     if (state.version === 33) World.migrateV33(state);
+    if (state.version === 34) state.version = 35; // sulfur goes in once the world exists (addSulfur)
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
+    if (before < 35) world.addSulfur();
     world.rebuildPaths();
     return world;
+  }
+
+  /**
+   * Sulfur deposits (D-123), from a generator of their own: on bare ground away from buildings, water, ore,
+   * mounds and the ship's site. New maps get them last, and older saves the same way, so neither changes the
+   * rest of the map.
+   */
+  private addSulfur(): void {
+    const hub = this.hub;
+    if (!hub) return;
+    const c = hub.x + Math.floor(HUB_SIZE / 2);
+    const cy = hub.y + Math.floor(HUB_SIZE / 2);
+    const site = this.state.shipSite;
+    const free = (x: number, y: number) => {
+      const i = this.idx(x, y);
+      return !this.tiles[i] && !this.wet[i] && !this.state.resources[i] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
+    };
+    for (const i of generateSulfur(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x50f1), free)) {
+      this.state.resources[i] = SULFUR_RESOURCE;
+      this.state.trees[i] = NO_TREE;
+    }
   }
 
   /** Ponds for a game saved before them (D-115), away from its buildings, from a generator of its own. */
@@ -1720,7 +1747,8 @@ export class World {
       case 'sawmill':
       case 'blacksmith':
       case 'machine_shop':
-      case 'steel_works': {
+      case 'steel_works':
+      case 'powder_mill': {
         // Fuel goes into the fuel store, unless the recipe uses it and still has room for it (D-114).
         const burn = burnsFuel(target.type) ? FUEL.burns[item] : undefined;
         if (burn) {
@@ -1749,6 +1777,7 @@ export class World {
         return true;
       }
       case 'turret':
+      case 'turret2':
       case 'ballista':
       case 'cannon':
       case 'tesla':
@@ -2007,10 +2036,12 @@ export class World {
         case 'blacksmith':
         case 'machine_shop':
         case 'steel_works':
+        case 'powder_mill':
           this.tickMachine(b, dt);
           break;
         case 'hub':
         case 'turret':
+        case 'turret2':
         case 'ballista':
         case 'cannon':
         case 'tesla':
@@ -2421,8 +2452,8 @@ export class World {
     if (!hub) this.supplyFromHub(b);
     b.cooldown = Math.max(0, b.cooldown - dt);
     if (b.cooldown > 0 || (!hub && b.ammo <= 0)) return; // the hub's gun needs no ammo
-    // Hydraulic defences fire only with power, and more slowly when their network runs short (D-117).
-    const power = HYDRAULIC.includes(b.type) ? this.powered(b) : 1;
+    // Hydraulic defences fire only with power, and electric ones with electricity, more slowly when their network runs short (D-117, D-123).
+    const power = HYDRAULIC.includes(b.type) ? this.powered(b) : ELECTRIC_DEFENCES.includes(b.type) ? this.electrified(b) : 1;
     if (power <= 0) return;
     const reload = 1 / (def.rate * power);
     const [cx, cy] = this.centreOf(b);

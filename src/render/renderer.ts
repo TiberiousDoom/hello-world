@@ -16,6 +16,7 @@ import {
   HAND_MINING,
   HYDRAULIC,
   ELECTRIC,
+  ELECTRIC_DEFENCES,
   PLAYER,
   HUB_SIZE,
   NESTS,
@@ -48,10 +49,10 @@ import { BeltLook, beltLook } from './belts';
 import { runPiece } from './runs';
 import { Camera } from './camera';
 
-const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone'];
-const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64'];
+const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone', 'terrain/node_sulfur'];
+const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64', '#6e6224'];
 /** The bed of earth under an ore patch (D-096), darker than the grass. */
-const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,76,70,0.75)'];
+const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,76,70,0.75)', 'rgba(96,86,34,0.75)'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
@@ -109,6 +110,8 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   steam_turbine: 0.6,
   power_pole: 1,
   reinforced_wall: 0.5,
+  steel_wall: 0.55,
+  turret2: 0.55,
   palisade: 0.6,
   turret: 0.55,
   ballista: 0.5,
@@ -1415,7 +1418,7 @@ export class Renderer {
   private spriteKey(world: World, b: Building): string {
     if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
     if (TURRETS[b.type]) return `buildings/${b.type}_base`;
-    if (b.type === 'wall' || b.type === 'reinforced_wall' || b.type === 'palisade') {
+    if (b.type === 'wall' || b.type === 'reinforced_wall' || b.type === 'steel_wall' || b.type === 'palisade') {
       const key = `buildings/${b.type}${runPiece(world, b)}`;
       return sprite(key) ? key : `buildings/${b.type}`;
     }
@@ -1449,7 +1452,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1479,7 +1482,7 @@ export class Renderer {
     if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
-        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler' ? '255,120,50' : '120,190,255';
+        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler' ? '255,120,50' : b.type === 'powder_mill' ? '230,210,90' : '120,190,255';
       const [cx, cy] = world.centreOf(b);
       const r = Math.max(fw, fh) * 0.6;
       const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);
@@ -1552,8 +1555,8 @@ export class Renderer {
       }
       ctx.stroke();
     }
-    // Hydraulic defences (D-117): a flashing blue mark while they have no power and can't fire.
-    if (HYDRAULIC.includes(b.type) && world.powered(b) <= 0) {
+    // Hydraulic and electric defences (D-117, D-123): a flashing blue mark while they have no power and can't fire.
+    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || (ELECTRIC_DEFENCES.includes(b.type) && world.electrified(b) <= 0)) {
       ctx.fillStyle = `rgba(80,170,255,${0.5 + 0.5 * Math.sin(now / 200)})`;
       dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
     }
@@ -1746,7 +1749,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
+    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);

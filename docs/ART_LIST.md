@@ -148,6 +148,11 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Placeholder (`buildings/power_pole`) |
 | Storage Silo (D-122): a round steel silo roof inside a square frame, with an output hatch | 2×2 | Static | 1 | P2 | Placeholder (`buildings/storage_silo`) |
 | Mk2 plate (D-122) | — | A gold plate with two chevrons on Mk2 extractors and furnaces, dim without electricity | — | P3 | Code |
+| Sulfur node (D-123) | 1×1 | Yellow crystals in rock, like the other ore nodes | 1 | P2 | Placeholder (`terrain/node_sulfur`, recoloured from copper) |
+| Powder Mill (D-123): a stone pan with two edge runners, sulfur and charcoal bins | 2×2 | Static, plus a 4-frame working strip (runners turning, light) | 1 + 4 | P2 | Placeholder (`buildings/powder_mill`, `powder_mill_working_4f`) |
+| Turret Mk.2 (D-123): a darker turret base and a four-barrel head | 1×1 | Base and barrel (`turret2_base`, `turret2_barrel`), like the turret | 2 | P2 | Placeholder |
+| Steel wall set (D-123) | 1×1 each | The wall set in blue-grey steel, the same pieces (`steel_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
+| Sulfur, gunpowder, casing and bullet items (D-123) | 16×16 | A yellow crystal; a powder sack; a brass casing; two cartridges | 1 each | P3 | Placeholder |
 | Reinforced wall set (D-117) | 1×1 each | The wall set in iron-grey stone with iron straps and rivets, the same pieces (`reinforced_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 

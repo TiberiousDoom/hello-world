@@ -3,6 +3,16 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.64.0 · 2026-10-27 · Gunpowder
+### New
+- **Sulfur:** yellow deposits now lie out on the map, at least 45 tiles from the hub. Mine them by hand or with extractors.
+- **Heavy Defense** (after Steelmaking and Steam Power):
+  - The **Powder Mill** grinds sulfur and charcoal into **gunpowder**.
+  - The Steel Works makes **casings**, and the Assembler puts casings and gunpowder together into **bullets**.
+  - The **Turret Mk.2** fires bullets six times a second, but only with electricity from a power pole.
+  - The **Steel Wall** has 1,600 HP.
+- Saved games keep working, and get sulfur deposits on free ground away from what's built.
+
 ## 0.63.0 · 2026-10-27 · Mk2 machines
 ### New
 - **Mk2 Machines** (after Steel Works and Steam Power): select an extractor or furnace and press **Upgrade to Mk2** (6 steel beams, 4 bearings, 2 motors). It keeps its place and what it holds, gets a gold plate, and with electricity from a power pole works twice as fast. Without electricity it works at its old speed.

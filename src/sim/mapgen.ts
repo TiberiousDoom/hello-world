@@ -3,7 +3,7 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { FOREST, NESTS, ORE, PONDS } from './data';
+import { FOREST, NESTS, ORE, PONDS, SULFUR } from './data';
 import { hypot } from './math';
 import { Nest, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
@@ -172,4 +172,28 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
   }
   for (const nest of nests) populate(w, nest, hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy));
   return nests;
+}
+
+/**
+ * Sulfur deposits (D-123): SULFUR.count small, ragged patches at least SULFUR.minDist tiles from the hub's
+ * centre, on tiles `free` allows. Returns their tile indices. It has a generator of its own, so adding it
+ * leaves the rest of the map as it was, for new games and old saves alike.
+ */
+export function generateSulfur(width: number, height: number, hubCx: number, hubCy: number, random: () => number, free: (x: number, y: number) => boolean): number[] {
+  const out = new Set<number>();
+  for (let n = 0, tries = 0; n < SULFUR.count && tries < SULFUR.count * 20; tries++) {
+    const cx = 4 + random() * (width - 8);
+    const cy = 4 + random() * (height - 8);
+    const [r0, r1] = SULFUR.radius;
+    const r = r0 + random() * (r1 - r0);
+    if (hypot(cx - hubCx, cy - hubCy) < SULFUR.minDist + r) continue;
+    n++;
+    for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++) {
+      for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++) {
+        if (x < 0 || y < 0 || x >= width || y >= height || !free(x, y)) continue;
+        if (hypot(x - cx, y - cy) <= r + (random() - 0.5) * 0.8) out.add(y * width + x);
+      }
+    }
+  }
+  return [...out];
 }

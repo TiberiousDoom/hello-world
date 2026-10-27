@@ -155,6 +155,11 @@ const MACHINES = {
     svg = swap(svg, 'translate(58 64) rotate(0)', `translate(58 64) rotate(${11.25 * i})`, 'turbine rotor');
     return swap(svg, '<circle cx="90" cy="18" r="4" fill="#f2c14e"', `<circle cx="90" cy="18" r="4" fill="${i % 2 ? '#fff4c2' : '#f2c14e'}"`, 'turbine spark');
   },
+  powder_mill(svg, i) {
+    // The edge runners roll round the pan: a quarter turn over the loop, two-fold symmetric. The light blinks.
+    svg = swap(svg, 'translate(56 62) rotate(0)', `translate(56 62) rotate(${45 * i})`, 'powder mill runners');
+    return swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'powder mill light');
+  },
   well(svg, i) {
     // The crank turns a quarter of the way round over the loop, and back to the start: four-fold symmetric.
     return swap(svg, '<g id="wCrank" transform="rotate(0 64 64)">', `<g id="wCrank" transform="rotate(${22.5 * i} 64 64)">`, 'well crank');
