@@ -30,3 +30,26 @@ test('Electric Defense: the toolbar has the tesla, arc fence and floodlight, and
   await page.evaluate((id) => (window.game.ui.selected = id), placed[0]);
   await expect(page.locator('#info')).toContainText('No ammunition needed');
 });
+
+test('an assembler upgrades to Mk3 from its panel, and its panel says it needs electricity (D-127)', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  const id = await page.evaluate(() => {
+    const w = window.game.world;
+    const s = w.state;
+    s.researched.push('assembly', 'electronics', 'circuit_works', 'mk2', 'mk3');
+    Object.assign(s.inventory, { gear: 20, wire: 20, circuit: 20, coil: 20, steel_beam: 20 });
+    const [x, y] = [w.hub.x - 10, w.hub.y + 2];
+    for (let dy = -2; dy <= 4; dy++) for (let dx = -2; dx <= 4; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    const a = w.place('assembler', x, y, 0);
+    window.game.ui.selected = a.id;
+    window.game.camera.x = x + 3;
+    window.game.camera.y = y + 1;
+    return a.id;
+  });
+  await expect(page.locator('#info [data-action="upgrade"]')).toContainText('Mk3');
+  await page.click('#info [data-action="upgrade"]');
+  await expect.poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.tier, id)).toBe(3);
+  await expect(page.locator('#info [data-action="upgrade"]')).toHaveCount(0);
+  await expect(page.locator('#info')).toContainText('Mk3: no electricity');
+});

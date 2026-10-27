@@ -187,18 +187,22 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 - **The Circuit Works (D-125)** runs only on electricity, using **3**: short of it, it works proportionally slower,
   and with none it stops (a flashing blue mark, and "No electricity" in its panel).
 - **Express belts** (Express Logistics, after Steam Power) work the same way at 3 tiles/s with electricity, and at
-  roller speed without it.
-- **Mk2 machines (D-122):** after **Mk2 Machines**, select an extractor or furnace and press **Upgrade to Mk2**
-  (6 steel beams, 4 bearings, 2 motors). It stays where it is with what it holds, gets a gold plate, and uses
-  **2** electricity: with all of it, it works **twice as fast**; short of it, proportionally less; with none, at
-  Mk1 speed. Demolishing it refunds the upgrade too. A furnace's fuel lasts the same time, so Mk2 smelts twice as
-  much per log. They can be laid like belts,
+  roller speed without it. They can be laid like belts,
   but the quick way is to **tap or click an existing belt with the Express Belt selected: its whole line
   is upgraded in place**, with no ✓ step on touch. The line is every belt joined to the tapped one,
   belt-to-belt in either direction (side merges included), up to any other building such as a splitter,
   tunnel or machine. Each belt keeps its facing and items, and the old belt's plate is refunded, so an
   upgrade costs 1 gear. Hovering a belt with the tool outlines the line, red where stock runs out; with
   too little stock, the belts nearest the tap are upgraded first.
+- **Mk2 machines (D-122):** after **Mk2 Machines**, select an extractor or furnace and press **Upgrade to Mk2**
+  (6 steel beams, 4 bearings, 2 motors). It stays where it is with what it holds, gets a gold plate, and uses
+  **2** electricity: with all of it, it works **twice as fast**; short of it, proportionally less; with none, at
+  Mk1 speed. Demolishing it refunds the upgrade too. A furnace's fuel lasts the same time, so Mk2 smelts twice as
+  much per log.
+- **Mk3 machines (D-127):** after **Mk3 Machines**, a Mk2 extractor or furnace, or an **assembler** (straight from
+  Mk1), shows **Upgrade to Mk3** (6 circuit boards, 4 coils, 4 steel beams). It gets a blue plate with three
+  chevrons and uses **4** electricity: with all of it, it works **three times as fast**; short of it, proportionally
+  less; with none, at Mk1 speed. Demolishing it refunds every upgrade it had.
 - **Machines and extractors** output from the **middle of the side their arrow marks** (for an even
   width, the tile left of centre as seen facing out). A small port with an arrow shows the spot.
   Machines accept input on any tile of any side, and buffer up to 3 crafts' worth of each input.
@@ -319,6 +323,7 @@ runs, have none to offer until the Electric Age's special buildings (D-126). **S
 | Hull | 60 steel beams, 30 bearings, 20 motors | 120 s | Engineering | The ship's hull stage |
 | Electronics | 100 steel beams, 60 bearings, 40 motors | 150 s | Mk2 Machines, Heavy Defense 2 | Opens the Electric Age |
 | Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
+| Mk3 Machines | 80 circuit boards, 40 coils, 60 steel beams | 150 s | Circuit Works, Mk2 Machines | Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3 |
 | Electric Defense | 60 circuit boards, 100 wire, 30 coils | 120 s | Circuit Works | Tesla Turret, Arc Fence, Floodlight |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
@@ -430,7 +435,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 10. **The Electric Age (D-125):** **Electronics** (100 steel beams, 60 bearings, 40 motors, after Mk2 Machines and
    Heavy Defense 2) opens it. The **Circuit Works** makes **circuit boards** and **coils** from wire, and works only
    with electricity. **Electric Defense** brings the **Tesla Turret** (no ammunition, only electricity), the
-   **Arc Fence** and **Floodlights**. Drones, Mk3 machines, Electric Defense 2 and the ship's last stages follow.
+   **Arc Fence** and **Floodlights**; **Mk3 Machines** makes extractors, furnaces and assemblers three times as
+   fast. Drones, Electric Defense 2 and the ship's last stages follow.
 
 ## Bugs
 

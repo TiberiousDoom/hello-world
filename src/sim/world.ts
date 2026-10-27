@@ -62,6 +62,7 @@ import {
   ELECTRIC_MACHINES,
   FLOODLIGHT,
   MK2,
+  MK3,
   EXPRESS_BELT_SPEED,
   WATER_SOURCES,
   CONDUCTS,
@@ -165,7 +166,23 @@ const sumCounts = (a: ItemCounts, b: ItemCounts): ItemCounts => {
 };
 
 /** The electricity a building uses (D-121, D-122): express belts, and Mk2 machines. */
-export const electricUse = (b: Building): number => ELECTRIC.uses[b.type] ?? (b.tier === 2 ? MK2.uses : 0);
+export const electricUse = (b: Building): number => ELECTRIC.uses[b.type] ?? (b.tier === 3 ? MK3.uses : b.tier === 2 ? MK2.uses : 0);
+
+/** The upgrade a building can take next (D-122, D-127): its tier, cost and research, or null. */
+export function nextTier(b: Building): { tier: number; cost: ItemCounts; research: string; speed: number } | null {
+  const tier = b.tier ?? 1;
+  if (MK3.from[b.type] === tier) return { tier: 3, cost: MK3.cost, research: 'mk3', speed: MK3.speed };
+  if (tier === 1 && MK2.types.includes(b.type)) return { tier: 2, cost: MK2.cost, research: 'mk2', speed: MK2.speed };
+  return null;
+}
+
+/** What a building's upgrades cost all told, which demolishing it gives back too (D-122, D-127). */
+function upgradesCost(b: Building): ItemCounts {
+  let cost: ItemCounts = {};
+  if ((b.tier ?? 1) >= 2 && MK2.types.includes(b.type)) cost = sumCounts(cost, MK2.cost);
+  if (b.tier === 3) cost = sumCounts(cost, MK3.cost);
+  return cost;
+}
 
 /** A splitter whose two lanes both took in an item this recently, of different kinds, keeps them apart (#92). */
 export const SPLITTER_SORT_WINDOW = 5;
@@ -1077,20 +1094,22 @@ export class World {
     return [...out];
   }
 
-  /** How fast a machine works (D-122): Mk2 at up to MK2.speed with electricity, Mk1 at 1. */
+  /** How fast a machine works (D-122, D-127): Mk2 or Mk3 at up to their speed with electricity, Mk1 at 1. */
   speedUp(b: Building): number {
     if (ELECTRIC_MACHINES.includes(b.type)) return this.electrified(b); // electric only (D-125)
-    return b.tier === 2 ? 1 + (MK2.speed - 1) * this.electrified(b) : 1;
+    const top = b.tier === 3 ? MK3.speed : b.tier === 2 ? MK2.speed : 1;
+    return top > 1 ? 1 + (top - 1) * this.electrified(b) : 1;
   }
 
-  /** Upgrades an extractor or furnace to Mk2 in place (D-122), keeping what it holds. */
+  /** Upgrades a machine to its next tier in place (D-122, D-127), keeping what it holds. */
   upgradeMachine(id: number): PlaceError | null {
     const b = this.byId.get(id);
-    if (!b || !MK2.types.includes(b.type) || b.tier === 2) return 'occupied';
-    if (!this.state.researched.includes('mk2')) return 'locked';
-    if (!this.canAfford(MK2.cost)) return 'cost';
-    this.pay(MK2.cost);
-    b.tier = 2;
+    const next = b && nextTier(b);
+    if (!b || !next) return 'occupied';
+    if (!this.state.researched.includes(next.research)) return 'locked';
+    if (!this.canAfford(next.cost)) return 'cost';
+    this.pay(next.cost);
+    b.tier = next.tier;
     this.layout++; // it joins the electric network
     return null;
   }
@@ -1668,7 +1687,7 @@ export class World {
     if (!b || b.type === 'hub') return false;
     const def = BUILDINGS[b.type];
     const frac = b.hp / this.maxHp(b);
-    const cost = b.tier === 2 ? sumCounts(def.cost, MK2.cost) : def.cost; // a Mk2 upgrade comes back too (D-122)
+    const cost = sumCounts(def.cost, upgradesCost(b)); // its upgrades come back too (D-122, D-127)
     for (const [item, n] of Object.entries(cost)) {
       const inv = this.state.inventory;
       inv[item as ItemId] = (inv[item as ItemId] ?? 0) + Math.floor(n! * frac);

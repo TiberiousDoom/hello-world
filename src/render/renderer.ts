@@ -1544,18 +1544,19 @@ export class Renderer {
       if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
       if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
     }
-    // Mk2 machines (D-122): a gold plate with two chevrons in the bottom-left corner.
-    if (b.tier === 2) {
+    // Mk2 machines (D-122): a gold plate with two chevrons in the bottom-left corner; Mk3 (D-127) a blue one with three.
+    if (b.tier === 2 || b.tier === 3) {
+      const mk3 = b.tier === 3;
       ctx.fillStyle = '#0f1a2e';
       roundRect(ctx, b.x + 0.1, b.y + fh - 0.5, 0.42, 0.36, 0.06);
       ctx.fill();
-      ctx.fillStyle = world.electrified(b) > 0 ? '#f2c14e' : '#8a7a4a';
+      ctx.fillStyle = world.electrified(b) > 0 ? (mk3 ? '#7fd3ff' : '#f2c14e') : mk3 ? '#4a6a7a' : '#8a7a4a';
       roundRect(ctx, b.x + 0.13, b.y + fh - 0.47, 0.36, 0.3, 0.05);
       ctx.fill();
       ctx.strokeStyle = '#0f1a2e';
       ctx.lineWidth = 0.05;
       ctx.beginPath();
-      for (const dy of [0.06, 0.15]) {
+      for (const dy of mk3 ? [0.02, 0.09, 0.16] : [0.06, 0.15]) {
         ctx.moveTo(b.x + 0.2, b.y + fh - 0.25 - dy + 0.1);
         ctx.lineTo(b.x + 0.31, b.y + fh - 0.34 - dy + 0.1);
         ctx.lineTo(b.x + 0.42, b.y + fh - 0.25 - dy + 0.1);

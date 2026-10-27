@@ -474,6 +474,17 @@ export const MK2 = {
   speed: 2,
   uses: 2,
 };
+/**
+ * Mk3 machines (D-125, D-127): a Mk2 extractor or furnace, or an assembler (from Mk1), upgraded in place for
+ * `cost`. With all the electricity it needs (`uses`) it works `speed` times as fast; with less, proportionally
+ * less; with none, at Mk1 speed. `from` is the tier each type upgrades from.
+ */
+export const MK3 = {
+  from: { extractor: 2, furnace: 2, assembler: 1 } as Partial<Record<BuildingType, number>>,
+  cost: { circuit: 6, coil: 4, steel_beam: 4 } as ItemCounts,
+  speed: 3,
+  uses: 4,
+};
 
 /** What the boiler's water comes from: it has to touch one (D-121). */
 export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
@@ -571,6 +582,7 @@ export const RESEARCH: Research[] = [
   // The Electric Age (D-125): Electronics opens it, after the Steam Age's top defence.
   { id: 'electronics', name: 'Electronics', cost: { steel_beam: 100, bearing: 60, motor: 40 }, time: 150, requires: ['mk2', 'heavy_defense2'], unlocks: [], description: 'Opens the Electric Age: circuit boards and coils, drones, Mk3 machines and electric defences.' },
   { id: 'circuit_works', name: 'Circuit Works', cost: { steel_beam: 80, wire: 120, bearing: 40 }, time: 120, requires: ['electronics'], unlocks: ['circuit_works'], description: 'Circuit works make circuit boards and coils, with electricity.' },
+  { id: 'mk3', name: 'Mk3 Machines', cost: { circuit: 80, coil: 40, steel_beam: 60 }, time: 150, requires: ['circuit_works', 'mk2'], unlocks: [], description: 'Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3: with electricity, they work three times as fast.' },
   { id: 'electric_defense', name: 'Electric Defense', cost: { circuit: 60, wire: 100, coil: 30 }, time: 120, requires: ['circuit_works'], unlocks: ['tesla', 'arc_fence', 'floodlight'], description: 'Tesla turrets, whose shots arc from bug to bug on electricity alone; arc fences, walls that shock bugs biting them; and floodlights, which slow bugs at night.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },

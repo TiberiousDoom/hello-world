@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, FLOODLIGHT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { ARC_FENCE, FLOODLIGHT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
-import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
+import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
 import { blocked, emptySlots, held, heldOf, isDown } from './player';
@@ -2386,7 +2386,7 @@ describe('Mk2 machines and the Storage Silo (D-122)', () => {
     expect(fu.tier).toBe(2);
     expect(w.state.inventory.steel_beam).toBe(beams - MK2.cost.steel_beam!);
     expect(fu.recipe).toBe('iron_ingot');
-    expect(w.upgradeMachine(fu.id)).toBe('occupied'); // already Mk2
+    expect(w.upgradeMachine(fu.id)).toBe('cost'); // next is Mk3 (D-127), and there are no circuits
     expect(w.speedUp(fu)).toBe(1); // no electricity yet
     // A plant, and a pole by the furnace.
     placed(w.place('well', 30, 20, 0));
@@ -2634,5 +2634,59 @@ describe('Electric Defense: the Tesla, the Arc Fence and Floodlights (D-126)', (
     };
     expect(walk(true) / walk(false)).toBeCloseTo(FLOODLIGHT.slow, 1);
     expect(sightOf(f)).toBe(FLOODLIGHT.sight);
+  });
+});
+
+describe('Mk3 machines (D-127)', () => {
+  it('Mk3 Machines comes after Circuit Works and Mk2 Machines', () => {
+    expect(RESEARCH_BY_ID.mk3.requires.sort()).toEqual(['circuit_works', 'mk2']);
+  });
+
+  it('a Mk2 furnace upgrades to Mk3 and works three times as fast with electricity; a Mk1 one goes to Mk2 first', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel_beam: 99, bearing: 99, motor: 99, circuit: 99, coil: 99 });
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    expect(w.upgradeMachine(fu.id)).toBeNull();
+    expect(fu.tier).toBe(2);
+    w.state.researched = w.state.researched.filter((r) => r !== 'mk3');
+    expect(w.upgradeMachine(fu.id)).toBe('locked');
+    w.state.researched.push('mk3');
+    const circuits = w.state.inventory.circuit!;
+    expect(w.upgradeMachine(fu.id)).toBeNull();
+    expect(fu.tier).toBe(3);
+    expect(w.state.inventory.circuit).toBe(circuits - MK3.cost.circuit!);
+    expect(w.upgradeMachine(fu.id)).toBe('occupied'); // nothing past Mk3
+    expect(w.speedUp(fu)).toBe(MK3.speed); // freePower: full electricity
+    w.freePower = false;
+    expect(w.speedUp(fu)).toBe(1); // no electricity: Mk1 speed
+    expect(electricUse(fu)).toBe(MK3.uses);
+  });
+
+  it('an assembler upgrades straight to Mk3; demolishing it returns the upgrade; other machines have none', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, coil: 99, steel_beam: 99, steel: 99 });
+    const as = placed(w.place('assembler', 20, 20, 0));
+    expect(w.upgradeMachine(as.id)).toBeNull();
+    expect(as.tier).toBe(3);
+    w.setRecipe(as.id, 'motor');
+    for (const [k, n] of Object.entries({ gear: 1, wire: 2, iron_plate: 1 })) for (let i = 0; i < n; i++) w.insert(as, k as ItemId, 19, 20);
+    run(w, 4 / MK3.speed + 0.1);
+    expect(as.outputs).toEqual(['motor']);
+    const coils = w.state.inventory.coil!;
+    w.demolish(as.id);
+    expect(w.state.inventory.coil).toBe(coils + MK3.cost.coil!);
+    expect(w.upgradeMachine(placed(w.place('steel_works', 40, 30, 0)).id)).toBe('occupied');
+  });
+
+  it('a Mk3 furnace demolished returns both upgrades', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel_beam: 99, bearing: 99, circuit: 99, coil: 99 });
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    w.upgradeMachine(fu.id);
+    w.upgradeMachine(fu.id);
+    const [beams, bearings] = [w.state.inventory.steel_beam!, w.state.inventory.bearing!];
+    w.demolish(fu.id);
+    expect(w.state.inventory.steel_beam).toBe(beams + MK2.cost.steel_beam! + MK3.cost.steel_beam!);
+    expect(w.state.inventory.bearing).toBe(bearings + MK2.cost.bearing!);
   });
 });

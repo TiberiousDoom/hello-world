@@ -219,7 +219,7 @@ circuits, drones, Mk3 machines and electric defences, all on the Steam Age's pow
 | **Electronics** (keystone) | Opens the age | 100 steel beams, 60 bearings, 40 motors | Mk2 Machines, Heavy Defense 2 |
 | Circuit Works | Circuit Works (circuit boards, coils; electric) | 80 steel beams, 120 wire, 40 bearings | Electronics |
 | Drone Logistics | Drone Pad: pad-to-pad delivery by drone (electric) | 60 circuit boards, 40 motors | Circuit Works |
-| Mk3 Machines | Mk2 extractors and furnaces, and assemblers, upgraded in place to Mk3 (electric) | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works |
+| Mk3 Machines | Mk2 extractors and furnaces, and assemblers, upgraded in place to Mk3 (electric) | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works, Mk2 Machines |
 | Electric Defense | Tesla Turret (electric, no ammunition), Arc Fence, Floodlights | 60 circuit boards, 100 wire, 30 coils | Circuit Works |
 | Electric Defense 2 | Shield Pylon, Railgun | 100 circuit boards, 60 coils, 40 bearings | Electric Defense |
 | Ship Systems | The ship's engines, life support and navigation; launch | *to set* (circuits, coils, motors, steel) | Electronics |
@@ -246,7 +246,7 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
 - **Order, each playtested:**
   1. ✅ Electronics and the Circuit Works (0.66.0): the keystone, circuit boards and coils.
   2. ✅ Electric Defense (0.67.0, D-126): the electric Tesla, the Arc Fence and Floodlights.
-  3. Mk3 Machines.
+  3. ✅ Mk3 Machines (0.68.0, D-127).
   4. Drone Logistics: drone pads.
   5. Electric Defense 2: the Shield Pylon and the Railgun.
   6. Ship Systems and the launch.
@@ -288,7 +288,7 @@ Age by age, each playtested before the next:
    steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), ✅ Mk2 machines and the Storage Silo (0.63.0), ✅ gunpowder
    and the Turret Mk.2 (0.64.0), ✅ the mortar, artillery and hull (0.65.0). The Steam Age is built.
 5. **Electric Age** (decided, D-125; see [How the Electric Age plays](#how-the-electric-age-plays-d-125)): ✅ Electronics
-   and the Circuit Works (0.66.0), ✅ Electric Defense (0.67.0); next Mk3 machines.
+   and the Circuit Works (0.66.0), ✅ Electric Defense (0.67.0), ✅ Mk3 Machines (0.68.0); next drone pads.
 
 Each step changes saved games: a save migration grants an age's keystone to a game that already
 researched something in it, and refunds researches that are removed.
