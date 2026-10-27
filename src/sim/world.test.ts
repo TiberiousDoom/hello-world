@@ -2517,3 +2517,41 @@ describe('Heavy Defense 2 and the hull (D-124)', () => {
     expect(w.recipesFor('assembler').map((r) => r.id)).toContain('shell');
   });
 });
+
+describe('The Electric Age: Electronics and the Circuit Works (D-125)', () => {
+  it('Electronics opens the age after Mk2 Machines and Heavy Defense 2; Circuit Works comes after it', () => {
+    expect(RESEARCH_BY_ID.electronics.requires.sort()).toEqual(['heavy_defense2', 'mk2']);
+    expect(RESEARCH_BY_ID.circuit_works.requires).toEqual(['electronics']);
+    expect(RESEARCH_BY_ID.circuit_works.unlocks).toEqual(['circuit_works']);
+  });
+
+  it('the Circuit Works makes circuit boards and coils, but only with electricity', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    Object.assign(w.state.inventory, { steel: 999, steel_beam: 99, motor: 9 });
+    const cw = placed(w.place('circuit_works', 29, 20, 0));
+    expect(w.insert(cw, 'gear', 28, 20)).toBe(false);
+    expect(w.insert(cw, 'wire', 28, 20)).toBe(true);
+    expect(cw.recipe).toBe('circuit');
+    for (let i = 0; i < 2; i++) w.insert(cw, 'wire', 28, 20);
+    w.insert(cw, 'iron_plate', 28, 20);
+    run(w, 5);
+    expect(cw.outputs).toEqual([]); // no electricity: it can't work
+    expect(w.speedUp(cw)).toBe(0);
+    // A boiler, a turbine and a pole by it.
+    placed(w.place('well', 20, 20, 0));
+    placed(w.place('boiler', 22, 20, 0));
+    placed(w.place('steam_turbine', 24, 20, 0));
+    placed(w.place('power_pole', 27, 20, 0));
+    expect(w.electrified(cw)).toBe(1);
+    expect(w.electricNet(cw)!.demand).toBe(ELECTRIC.uses.circuit_works);
+    run(w, 4);
+    expect(cw.outputs).toEqual(['circuit']);
+    w.setRecipe(cw.id, 'coil');
+    cw.outputs = [];
+    for (let i = 0; i < 4; i++) w.insert(cw, 'wire', 28, 20);
+    w.insert(cw, 'iron_rod', 28, 20);
+    run(w, 4);
+    expect(cw.outputs).toEqual(['coil']);
+  });
+});

@@ -73,6 +73,7 @@ const TOOLBAR: BuildingType[] = [
   'steel_works',
   'powder_mill',
   'assembler',
+  'circuit_works',
   'turret',
   'ballista',
   'cannon',
@@ -92,7 +93,7 @@ const TOOLBAR: BuildingType[] = [
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 

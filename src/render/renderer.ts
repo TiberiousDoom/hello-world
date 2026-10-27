@@ -16,6 +16,7 @@ import {
   HAND_MINING,
   HYDRAULIC,
   ELECTRIC,
+  ELECTRIC_MACHINES,
   ELECTRIC_DEFENCES,
   PLAYER,
   HUB_SIZE,
@@ -1461,7 +1462,7 @@ export class Renderer {
 
     // Working machines run their animation (D-082), on game time so it stops when the game pauses.
     const working =
-      ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3 && !outOfFuel(b)) ||
+      ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3 && !outOfFuel(b) && world.speedUp(b) > 0) ||
       b.type === 'well' ||
       b.type === 'water_wheel' ||
       (b.type === 'boiler' && world.boilerWorks(b)) ||
@@ -1484,7 +1485,7 @@ export class Renderer {
     if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
-        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler' ? '255,120,50' : b.type === 'powder_mill' ? '230,210,90' : '120,190,255';
+        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler' ? '255,120,50' : b.type === 'powder_mill' ? '230,210,90' : b.type === 'circuit_works' ? '120,240,150' : '120,190,255';
       const [cx, cy] = world.centreOf(b);
       const r = Math.max(fw, fh) * 0.6;
       const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);
@@ -1557,8 +1558,8 @@ export class Renderer {
       }
       ctx.stroke();
     }
-    // Hydraulic and electric defences (D-117, D-123): a flashing blue mark while they have no power and can't fire.
-    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || (ELECTRIC_DEFENCES.includes(b.type) && world.electrified(b) <= 0)) {
+    // Hydraulic and electric defences and machines (D-117, D-123, D-125): a flashing blue mark while they have no power and can't work.
+    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type)) && world.electrified(b) <= 0)) {
       ctx.fillStyle = `rgba(80,170,255,${0.5 + 0.5 * Math.sin(now / 200)})`;
       dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
     }
