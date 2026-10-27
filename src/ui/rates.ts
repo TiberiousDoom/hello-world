@@ -60,7 +60,8 @@ export function rateSummary(type: BuildingType): string {
       .join(', ');
   }
   const t = TURRETS[type];
-  if (t) return `${t.rate} shots/s, ${fmt((t.rate * 60) / t.shotsPerItem)} ${name(t.ammoItem)}/min while firing`;
+  if (t?.ammoItem) return `${t.rate} shots/s, ${fmt((t.rate * 60) / t.shotsPerItem)} ${name(t.ammoItem)}/min while firing`;
+  if (t) return `${t.rate} shots/s, no ammunition`;
   if (type === 'repair') return `heals ${REPAIR.hpPerSecond} HP/s`;
   return '';
 }

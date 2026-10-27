@@ -75,7 +75,14 @@ test('two players host and join with a code, and play one game', async ({ page: 
   expect(await guest.evaluate(() => window.game.ui.pings.length)).toBe(1); // shown at once on the guest's own screen
 
   // The colony's offer is a card that leaves the map playable, and the first pick is everyone's.
-  for (const p of [host, guest]) await p.evaluate(() => (window.game.world.state.ship.offer = ['tesla']));
+  // A stand-in blueprint: the pool is empty until the special buildings come (D-126).
+  for (const p of [host, guest])
+    await p.evaluate(() => {
+      const bp = { id: 'stand_in', name: 'Stand-in', description: 'A test blueprint.', unlocks: ['tesla'] };
+      window.game.blueprints.list.push(bp);
+      window.game.blueprints.byId[bp.id] = bp;
+      window.game.world.state.ship.offer = ['stand_in'];
+    });
   await host.locator('#speed [data-speed="1"]').click(); // the host plays on: the card doesn't pause
   for (const p of [host, guest]) {
     await expect(p.locator('#blueprints')).toBeVisible();
@@ -84,9 +91,9 @@ test('two players host and join with a code, and play one game', async ({ page: 
     expect(await p.evaluate(() => document.elementFromPoint(innerWidth / 2, document.querySelector('#blueprints .card')!.getBoundingClientRect().bottom + 12)?.id)).toBe('game');
   }
   expect(await host.evaluate(() => window.game.ui.speed)).toBe(1);
-  await guest.locator('[data-blueprint="tesla"]').click();
+  await guest.locator('[data-blueprint="stand_in"]').click();
   for (const p of [host, guest]) {
-    await expect.poll(() => p.evaluate(() => window.game.world.state.ship.blueprints.join())).toBe('tesla');
+    await expect.poll(() => p.evaluate(() => window.game.world.state.ship.blueprints.join())).toBe('stand_in');
     await expect(p.locator('#blueprints')).toBeHidden();
   }
   await host.locator('#speed [data-speed="0"]').click();

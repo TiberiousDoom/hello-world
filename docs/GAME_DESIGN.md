@@ -123,7 +123,9 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Steam Turbine | 2×2, touching a boiler | 20 steel, 10 gears, 20 wire | 180 | Steam Power |
 | Power Pole | 1×1 | 2 iron rods, 2 wire, 1 plank | 40 | Steam Power |
 | Storage Silo | 2×2 | 20 steel, 8 steel beams, 10 rivets | 300 | Express Logistics |
-| Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
+| Tesla Turret | 1×1, needs electricity | 8 steel, 4 circuit boards, 4 coils | 160 | Electric Defense |
+| Arc Fence | 1×1 wall, needs electricity to shock | 2 steel, 1 coil, 2 wire | 700 | Electric Defense |
+| Floodlight | 1×1, bugs walk past it; needs electricity | 1 circuit board, 4 iron rods, 4 wire | 80 | Electric Defense |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
 | Sawmill | 2×2 | 14 logs | 100 | Forestry |
@@ -166,7 +168,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
   everything on it evenly: belts slow down, and turrets and cannons fire more slowly. A belt with no power
   at all rolls at **roller speed** (0.5 tiles/s); a turret or cannon with none doesn't fire, and flashes a
   blue mark. Selecting a belt, shaft, source or turret shows its network's power and use. Rollers, express
-  belts, the hub's gun, ballistae, trebuchets and tesla turrets need no power.
+  belts, the hub's gun, ballistae and trebuchets need no power.
 - **Belts** move 1.5 tiles/s when powered and have **two lanes** side by side (#61, D-069), each holding about 3
   items per tile, so a belt line carries up to about **530 items a minute** (an express belt about
   1,060). A belt accepts items from any side except the tile it points into. An item reaching the end
@@ -278,8 +280,8 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
 ## Research
 
 You start with nothing to build (D-093): Forestry, paid in logs chopped by hand, comes first, then
-Industry for extractors and furnaces. Everything is researched, except colony blueprints, which come
-from supply runs. **Select the hub** and press **Research** to open the list.
+Industry for extractors and furnaces. Everything is researched; colony blueprints, which came from supply
+runs, have none to offer until the Electric Age's special buildings (D-126). **Select the hub** and press **Research** to open the list.
 
 - **Start** a research, and it draws its items from hub stock at a steady pace over its research
   time. For example, Advanced Defense takes 20 iron plates over 30 s.
@@ -317,6 +319,7 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Hull | 60 steel beams, 30 bearings, 20 motors | 120 s | Engineering | The ship's hull stage |
 | Electronics | 100 steel beams, 60 bearings, 40 motors | 150 s | Mk2 Machines, Heavy Defense 2 | Opens the Electric Age |
 | Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
+| Electric Defense | 60 circuit boards, 100 wire, 30 coils | 120 s | Circuit Works | Tesla Turret, Arc Fence, Floodlight |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
@@ -426,7 +429,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    shells; and **Hull** the ship's Steam Age stage.
 10. **The Electric Age (D-125):** **Electronics** (100 steel beams, 60 bearings, 40 motors, after Mk2 Machines and
    Heavy Defense 2) opens it. The **Circuit Works** makes **circuit boards** and **coils** from wire, and works only
-   with electricity. Drones, Mk3 machines, electric defences and the ship's last stages follow.
+   with electricity. **Electric Defense** brings the **Tesla Turret** (no ammunition, only electricity), the
+   **Arc Fence** and **Floodlights**. Drones, Mk3 machines, Electric Defense 2 and the ship's last stages follow.
 
 ## Bugs
 
@@ -504,7 +508,7 @@ came and sways as it goes (#96). Only the drawing is long: it is hit, and bites,
 
 ### Turrets
 
-Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
+Turrets hold ammo as shots, and arrive fully loaded. You refill them with items (the tesla needs none):
 
 | Turret | Ammo | Shots per item | Max shots | Range | Fire rate | Damage |
 |---|---|---|---|---|---|---|
@@ -515,16 +519,21 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 | Turret Mk.2 | bullets | 5 | 60 | 6.5 | 6/s | 7 |
 | Mortar | shell | 1 | 12 | 13, nothing closer than 3 | 0.5/s | 45, splash radius 1.8 |
 | Artillery (2×2) | shell | 1 | 10 | 30, nothing closer than 8 | 0.2/s | 100, splash radius 2.6 |
-| Tesla Turret | copper wire | 2 | 30 | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
+| Tesla Turret | none: electricity | — | — | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
 
 The **Hydraulic Turret** and **Hydraulic Cannon** (D-117) fire only with power (see Water power): lay a
 drive shaft to them, or place them touching a well, a powered belt or another powered turret. The **Turret
 Mk.2** (D-123) fires only with electricity, using 2: put a power pole within 2 tiles of it. So do the
-**Mortar** (2) and **Artillery** (4) (D-124). Short of
+**Mortar** (2) and **Artillery** (4) (D-124), and the **Tesla Turret** (3, D-126), which needs no ammunition at all. Short of
 power they fire more slowly, and with none they don't fire at all, so a cut shaft leaves a gap.
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
 **trebuchet** (D-107) can't hit anything within 6 tiles, so it needs other defences close in.
+
+**The Arc Fence** (D-126) is a wall (700 HP) that shocks each bug biting it for **30 damage a second**, scaled by
+its electricity (it uses 0.25); without electricity it's just a wall. A **Floodlight** (it uses 1) lights the ground
+**7 tiles** around it at night, and bugs in its light move at **60%** speed. It sees 14 tiles into the fog when
+built, and bugs walk past it.
 
 **Spike pits** (1×1, D-107) are traps bugs walk over: they don't block, and bugs don't go for them. A
 bug on a pit takes **15 damage a second** and moves at **half speed**. A pit holds **60 seconds** of
@@ -597,8 +606,9 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 - The main menu's Continue button shows how many supply runs a save has delivered.
 - **Blueprints from the colony (D-049):** after each delivery the colony offers **two blueprints** for
   buildings you can't research, and you **pick one** on a screen that pauses the game. The other stays
-  on offer for a later run; when only one is left, the next delivery simply sends it. The one blueprint left
-  is the **Tesla Turret** (the Express Belt is researched now, D-121). Research lists them under "From the colony", with
+  on offer for a later run; when only one is left, the next delivery simply sends it. There are **none left
+  for now**: the Express Belt and the Tesla Turret are researched (D-121, D-126), and the special buildings the
+  colony will send come later (D-125). Research lists them under "From the colony", with
   what you've received and what's on offer.
 
 ## Modes
@@ -838,7 +848,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v36**). v36 (D-124) makes the hull a steel stage after its research: a ship past
+- Save files are versioned (currently **v37**). v37 (D-126) turns the Tesla blueprint, or teslas already built, into
+  Electric Defense, with stock for a boiler, turbine, well and poles to power them. v36 (D-124) makes the hull a steel stage after its research: a ship past
   it gets the research, and one building it gets back what it had brought in. v35 (D-123) adds sulfur deposits to older maps, on free ground away from
   what's built. v34 (D-121) turns the Express Belt blueprint, or express belts already
   built, into Steam Power and Express Logistics, with stock in the hub for the boilers, turbines, wells and poles its

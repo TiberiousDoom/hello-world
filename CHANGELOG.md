@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.67.0 · 2026-10-27 · Electric Defense
+### New
+- **Electric Defense** (after Circuit Works) brings three new defences:
+  - The **Tesla Turret** is researched now, not a colony blueprint. It needs **no ammunition**, only electricity from a power pole.
+  - The **Arc Fence** is a wall that shocks every bug biting it, with electricity.
+  - **Floodlights** light the ground around them at night, and bugs in their light move more slowly. They see far into the fog.
+- Saved games with the Tesla blueprint, or teslas, get Electric Defense, and stock in the hub to power their teslas.
+- The colony has no blueprints to offer for now. Special buildings will come later.
+
 ## 0.66.0 · 2026-10-27 · Electronics
 ### New
 - **The Electric Age begins.** Research **Electronics** (after Mk2 Machines and Heavy Defense 2) to open it.
