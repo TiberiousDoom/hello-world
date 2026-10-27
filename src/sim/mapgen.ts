@@ -3,7 +3,7 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { FOREST, NESTS, ORE, PONDS, QUEENS, SULFUR, nestKindFor } from './data';
+import { DIFFICULTY, FOREST, NESTS, ORE, PONDS, QUEENS, SULFUR, nestKindFor } from './data';
 import { hypot } from './math';
 import { Nest, moundTile, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
@@ -170,7 +170,7 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
   for (let cy = 0; cy + c <= height; cy += c) {
     for (let cx = 0; cx + c <= width; cx += c) {
       if (nearHub(cx, cy, hubCx, hubCy)) continue;
-      if (w.random() >= NESTS.chance) continue;
+      if (w.random() >= NESTS.chance * DIFFICULTY[w.state.difficulty].nests) continue;
       const d = hypot(cx + c / 2 - hubCx, cy + c / 2 - hubCy);
       const n = newNest(nests.length, cx, cy, d, 1, nestKindFor(d, w.random()));
       n.age = Math.floor(w.random() * NESTS.stageEvery * 0.5);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
+import { ARC_FENCE, DIFFICULTY, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
 import { Nest, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -3407,5 +3407,31 @@ describe('Enemy targeting (D-137)', () => {
     w.demolish(t.id);
     run(w, 1);
     expect(bug.foe).toBeUndefined();
+  });
+});
+
+describe('Difficulty settings (D-138)', () => {
+  it('Easy has fewer nests and weaker bugs than Normal, and Hard more and tougher; Hardcore is always Normal', () => {
+    const nests = (d: 'easy' | 'normal' | 'hard') => World.create(42, 'standard', d).state.nests.length;
+    expect(nests('easy')).toBeLessThan(nests('normal'));
+    expect(nests('hard')).toBeGreaterThan(nests('normal'));
+    expect(World.create(42, 'hardcore', 'easy').state.difficulty).toBe('normal');
+    const hp = (d: 'easy' | 'normal' | 'hard') => {
+      const w = emptyWorld();
+      w.state.difficulty = d;
+      return w.spawnBug('brute', addNest(w, 80, 80, 0), 1).maxHp;
+    };
+    expect(hp('normal')).toBe(ENEMIES.brute.hp);
+    expect(hp('easy')).toBe(Math.round(ENEMIES.brute.hp * DIFFICULTY.easy.toughness));
+    expect(hp('hard')).toBe(Math.round(ENEMIES.brute.hp * DIFFICULTY.hard.toughness));
+  });
+
+  it('v41 saves load as Normal', () => {
+    const old = JSON.parse(emptyWorld().toJSON());
+    old.version = 41;
+    delete old.difficulty;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.difficulty).toBe('normal');
+    expect(loaded.state.version).toBe(SAVE_VERSION);
   });
 });

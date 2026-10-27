@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.80.0 · 2026-10-27 · Difficulty settings
+### New
+- New games in Standard can be **Easy**, **Normal** or **Hard**. Easy has fewer nests and weaker bugs; Hard has more nests and tougher bugs. Pick it in New game. Saved games are Normal.
+
 ## 0.79.0 · 2026-10-27 · Bugs hold a grudge
 ### New
 - **Brutes and beetles go for the turret that shoots them**, instead of the nearest building, until it's gone. Walls in front of your turrets matter more now.

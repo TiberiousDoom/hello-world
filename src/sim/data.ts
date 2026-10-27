@@ -667,6 +667,17 @@ export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEA
 
 export type GameMode = 'standard' | 'hardcore';
 
+/**
+ * Standard mode's difficulty (D-138): how many cells hold a nest (times NESTS.chance) and how tough every
+ * bug is (times its health). Hardcore is always Normal; it has its own rules (D-133).
+ */
+export type Difficulty = 'easy' | 'normal' | 'hard';
+export const DIFFICULTY: Record<Difficulty, { name: string; nests: number; toughness: number }> = {
+  easy: { name: 'Easy', nests: 0.6, toughness: 0.7 },
+  normal: { name: 'Normal', nests: 1, toughness: 1 },
+  hard: { name: 'Hard', nests: 1.4, toughness: 1.3 },
+};
+
 /** Standard mode: what happens when the hub falls instead of ending the run. */
 export const BREACH = {
   stockLost: 0.25, // fraction of every item in hub stock

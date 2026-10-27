@@ -22,6 +22,8 @@ import {
   EXTRACTOR_PERIOD,
   EnemyType,
   GameMode,
+  Difficulty,
+  DIFFICULTY,
   HUB_SIZE,
   HUB_WEAPON,
   ItemCounts,
@@ -115,7 +117,7 @@ export type { ResearchState };
  * v38 (D-128) adds drones in flight.
  * v39 (D-130): the engines, life support and navigation are Electric Age stages, after Ship Systems.
  */
-export const SAVE_VERSION = 41;
+export const SAVE_VERSION = 42;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -227,6 +229,7 @@ export interface GameState {
   nextId: number;
   time: number;
   mode: GameMode;
+  difficulty: Difficulty; // Standard's nest count and bug toughness (D-138)
   researched: string[];
   research: ResearchState;
   breaches: number; // standard mode: times the hub has fallen
@@ -401,7 +404,7 @@ export class World {
     indexNests(this);
   }
 
-  static create(seed = Math.floor(Math.random() * 2 ** 31), mode: GameMode = 'standard'): World {
+  static create(seed = Math.floor(Math.random() * 2 ** 31), mode: GameMode = 'standard', difficulty: Difficulty = 'normal'): World {
     const size = MAP_SIZE;
     const state: GameState = {
       version: SAVE_VERSION,
@@ -417,6 +420,7 @@ export class World {
       nextId: 1,
       time: 0,
       mode,
+      difficulty: mode === 'hardcore' ? 'normal' : difficulty,
       researched: [],
       research: createResearchState(),
       breaches: 0,
@@ -494,6 +498,10 @@ export class World {
     if (state.version === 40) {
       for (const n of state.nests) Object.assign(n.brood, { wasp: n.brood.wasp ?? 0, beetle: n.brood.beetle ?? 0 }); // v41 (D-135): wasps and beetles
       state.version = 41;
+    }
+    if (state.version === 41) {
+      state.difficulty = 'normal'; // v42 (D-138): difficulty settings
+      state.version = 42;
     }
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
@@ -1403,7 +1411,7 @@ export class World {
   /** Adds a calm bug at a random spot in its nest's territory: an adult, or `young`, just hatched (D-065). */
   spawnBug(type: EnemyType, nest: Nest, hpMult: number, young = false): Enemy {
     const [x, y] = spotIn(this, nest);
-    const hp = Math.round(ENEMIES[type].hp * hpMult);
+    const hp = Math.round(ENEMIES[type].hp * hpMult * DIFFICULTY[this.state.difficulty].toughness);
     const e: Enemy = { id: this.state.nextId++, type, x, y, hp, maxHp: hp, nest: nest.id, tx: x, ty: y, wait: this.random() * NESTS.pause[1] };
     if (young) {
       e.hp = hp * NESTS.young;

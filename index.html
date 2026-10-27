@@ -82,6 +82,13 @@
           <button data-mode="standard"><i data-icon="factory"></i><span><b>Standard</b><small id="standard-note"></small></span></button>
           <button data-mode="hardcore" id="btn-hardcore"><i data-icon="skull"></i><span><b>Hardcore</b><small id="hardcore-note"></small></span></button>
         </div>
+        <div class="difficulty" role="group" aria-labelledby="difficulty-label">
+          <span id="difficulty-label">Bugs in Standard</span>
+          <button type="button" data-difficulty="easy">Easy</button>
+          <button type="button" data-difficulty="normal" class="active">Normal</button>
+          <button type="button" data-difficulty="hard">Hard</button>
+        </div>
+        <p class="muted small" id="difficulty-note"></p>
         <label class="toggle"><input type="checkbox" id="newgame-tutorial" /> Start with the Essentials tutorial</label>
         <button data-close>Cancel</button>
       </div>
