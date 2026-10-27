@@ -17,6 +17,7 @@ game as it is on `master`.
 npm run dev          # dev server
 npm test             # unit tests (Vitest, src/**/*.test.ts)
 npm run typecheck    # tsc --noEmit (tests included: CI fails on type errors in tests too)
+npm run lint         # ESLint and Prettier's check (npm run format rewrites the files)
 npm run build        # typecheck + static site in dist/
 npm run build:single # one self-contained HTML file in dist-single/ (no music, no public/)
 npm run test:e2e     # Playwright, desktop and phone viewports; builds and serves on :4173
@@ -32,7 +33,8 @@ npm run server                                 # the dedicated server (build:ser
 Locally, Playwright reuses a server already listening on :4173 (`reuseExistingServer`), so a
 leftover `vite preview` serves a stale build. Stop it before running e2e after code changes.
 
-Before every push, run `npm run typecheck`, `npm test`, `npm run build` and `npm run test:e2e`.
+Before every push, run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` and `npm run test:e2e`
+(`npm run format` fixes what Prettier complains about).
 CI (`.github/workflows/deploy.yml`) runs all of them on every PR, inside Playwright's container image; when
 upgrading `@playwright/test`, change the image tag to the same version (a CI step checks). Browser tests can be flaky under
 load, so run the full suite twice after touching input, the HUD or the tutorial.
@@ -91,7 +93,7 @@ methods that change it. The main menu runs a live `World` too (`demo.ts`), witho
   `selectHub`, `uncoveredTile` (pans so a tile isn't under a panel), `build` (handles the touch
   blueprint ✓), `settled` and `cameraSettled` (wait for animations). Don't depend on game time
   passing; trigger states directly through `window.game`.
-- `window.game` exposes `world`, `camera`, `ui`, `music` and `sfx` for tests and debugging.
+- `window.game` exposes `world`, `camera`, `renderer`, `ui`, `music` and `sfx` for tests and debugging.
 
 ## Docs: keep them true
 

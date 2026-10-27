@@ -155,9 +155,7 @@ export function launch(w: World): LaunchError | null {
     n.angryUntil = Math.max(n.angryUntil, s.ship.launchAt + NESTS.calmAfter);
   }
   w.markFlowDirty();
-  w.events.push(
-    `Launch in ${SHIP.launchTime} seconds. The engines woke ${woken.length} nest${woken.length === 1 ? '' : 's'}, and the bugs are coming for the shipyard: hold it!`,
-  );
+  w.events.push(`Launch in ${SHIP.launchTime} seconds. The engines woke ${woken.length} nest${woken.length === 1 ? '' : 's'}, and the bugs are coming for the shipyard: hold it!`);
   return null;
 }
 

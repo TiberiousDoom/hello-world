@@ -202,7 +202,10 @@ function openLocalRoom(code: string, host: RoomHost): LocalRoom {
       const result = admit(room.peers, 'guest', m.version, m.key, room.host, { pass: m.pass });
       if ('refuse' in result) return post({ k: 'to', to: m.from, message: { t: 'refused', reason: result.refuse, hostVersion: result.hostVersion } });
       // The guest's old link, if it's still in the room (#100): told, closed, and out of the room.
-      const old = retire(room.peers.filter((p) => p.role === 'guest'), result.slot);
+      const old = retire(
+        room.peers.filter((p) => p.role === 'guest'),
+        result.slot,
+      );
       if (old) {
         room.peers.splice(room.peers.indexOf(old), 1);
         for (const [id, p] of guests) if (p === old) guests.delete(id);

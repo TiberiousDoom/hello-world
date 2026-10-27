@@ -9,7 +9,11 @@ describe('The changelog', () => {
 
   it('numbers every release, newest first', () => {
     expect(RELEASES.length).toBeGreaterThan(20);
-    const num = (v: string) => v.split('.').map(Number).reduce((a, b) => a * 1000 + b, 0);
+    const num = (v: string) =>
+      v
+        .split('.')
+        .map(Number)
+        .reduce((a, b) => a * 1000 + b, 0);
     for (let i = 1; i < RELEASES.length; i++) expect(num(RELEASES[i - 1].version)).toBeGreaterThan(num(RELEASES[i].version));
     for (const r of RELEASES) expect(r.lines.length, `v${r.version} has notes`).toBeGreaterThan(0);
   });

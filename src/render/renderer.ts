@@ -45,6 +45,7 @@ import {
 } from '../sim/data';
 import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, defenceTier, outOfFuel } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
+import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
 import { Nest, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
@@ -137,7 +138,6 @@ const FOREST_CANOPY = '#1f4a2e';
 const FIREFLIES = 70;
 const LEAVES = 9;
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
-const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** A cheap integer hash, for choosing decorations per tile. */
 function hash(x: number, y: number): number {
@@ -198,6 +198,8 @@ export class Renderer {
   private dpr = 1;
   /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
   maxDpr = 2;
+  /** No drifting fireflies or leaves: the player or their system asked for less motion (D-144). */
+  reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private ground = newLayer();
   private canopy = newLayer();
   /** Turret aim angles, from their most recent shot. */
@@ -338,7 +340,10 @@ export class Renderer {
     this.drawShadows(world, standing);
     for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
-    this.drawWires(s.buildings.filter((b) => b.type === 'power_pole'), z); // all of them: a wire can cross the screen
+    this.drawWires(
+      s.buildings.filter((b) => b.type === 'power_pole'),
+      z,
+    ); // all of them: a wire can cross the screen
 
     if (!hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
     else for (const n of nests) this.drawCover(world, n, z, placing);
@@ -367,11 +372,12 @@ export class Renderer {
       if (grown < 1) ctx.filter = `saturate(${Math.round(55 + 45 * grown)}%) brightness(${Math.round(80 + 20 * grown)}%)`;
       const x = ex - size / 2;
       const y = ey - size / 2;
-      const drawn = e.type === 'runner' && track
-        ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
-        : biting
-        ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
-        : this.drawFrame(`enemies/${e.type}_walk`, step, x, y, size, angle);
+      const drawn =
+        e.type === 'runner' && track
+          ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
+          : biting
+            ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
+            : this.drawFrame(`enemies/${e.type}_walk`, step, x, y, size, angle);
       if (!drawn && !this.drawSprite(`enemies/${e.type}${frame}`, x, y, size, angle)) {
         ctx.fillStyle = def.color;
         dot(ctx, ex, ey, def.radius * (0.4 + 0.6 * grown));
@@ -379,7 +385,7 @@ export class Renderer {
       if (grown < 1) ctx.filter = 'none';
       const full = e.maxHp * grown;
       if (e.hp < full - 0.5) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / full, '#e0445a');
-        };
+    };
     for (const e of s.enemies) if (!ENEMIES[e.type].flies) drawBug(e);
 
     // Engineers and bugs walk under the trees (#95); a faint engineer shows through so it isn't lost.
@@ -434,6 +440,7 @@ export class Renderer {
     // Express belt over a belt: outline the whole line a tap would upgrade.
     const hovered = ui.hover && ui.tool === 'express_belt' ? world.buildingAt(ui.hover.x, ui.hover.y) : undefined;
     if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
+    else if (ui.clipMode) this.drawClip(world, ui, z);
     else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, ui.dirSet, z);
     else if (ui.hover && ui.tool) {
       // Moving a building (#76, #83): its own tiles don't block it, and nothing is paid.
@@ -655,7 +662,12 @@ export class Renderer {
     ctx.fill();
     if (!standing) return;
     ctx.fillStyle = '#1e140c';
-    for (const [dx, dy, r] of [[-0.4, -0.1, 0.18], [0.35, 0.15, 0.15], [0.05, -0.45, 0.12]]) dot(ctx, cx + dx, cy + dy, r);
+    for (const [dx, dy, r] of [
+      [-0.4, -0.1, 0.18],
+      [0.35, 0.15, 0.15],
+      [0.05, -0.45, 0.12],
+    ])
+      dot(ctx, cx + dx, cy + dy, r);
     if (n.hp < n.maxHp) {
       if (n.hp < n.maxHp / 2) {
         ctx.strokeStyle = '#1e140c';
@@ -1037,8 +1049,14 @@ export class Renderer {
       // The outline with its corners cut (the hub's are cut deep), and the same carried along by the sun.
       const c = b.type === 'hub' ? fw * 0.15 : 0.12;
       const base: [number, number][] = [
-        [x0 + c, y0], [x1 - c, y0], [x1, y0 + c], [x1, y1 - c],
-        [x1 - c, y1], [x0 + c, y1], [x0, y1 - c], [x0, y0 + c],
+        [x0 + c, y0],
+        [x1 - c, y0],
+        [x1, y0 + c],
+        [x1, y1 - c],
+        [x1 - c, y1],
+        [x0 + c, y1],
+        [x0, y1 - c],
+        [x0, y0 + c],
       ];
       const hull = convexHull([...base, ...base.map(([x, y]): [number, number] => [x + ox, y + oy])]);
       ctx.moveTo(hull[0][0], hull[0][1]);
@@ -1088,7 +1106,7 @@ export class Renderer {
 
   /** Fireflies drifting over the map and a few leaves blowing across the view. */
   private drawAmbient(w: number, h: number, x0f: number, y0f: number, x1f: number, y1f: number, now: number, z: number): void {
-    if (REDUCED_MOTION) return;
+    if (this.reducedMotion) return;
     const ctx = this.ctx;
     const t = now / 1000;
     ctx.save();
@@ -1210,7 +1228,7 @@ export class Renderer {
     const cx = b.x + 0.5;
     const cy = b.y + 0.5;
     // The path: from the side items come in, to the middle, then out of the front.
-    const inDir = look.curved ? look.from : ((b.dir + 2) % 4 as Dir);
+    const inDir = look.curved ? look.from : (((b.dir + 2) % 4) as Dir);
     const legs: [Dir, number, number][] = [
       [((inDir + 2) % 4) as Dir, -0.5, 0], // the entry leg runs toward the middle, against `inDir`
       [b.dir, 0, 0.5],
@@ -1366,7 +1384,10 @@ export class Renderer {
       ctx.lineWidth = 1.5 / z;
       ctx.strokeStyle = '#0f1a2e';
       // Rails line up with the straight belt sprite's (4–11 and 53–60 px of 64).
-      for (const [r0, r1] of [[0.06, 0.17], [0.83, 0.94]]) {
+      for (const [r0, r1] of [
+        [0.06, 0.17],
+        [0.83, 0.94],
+      ]) {
         ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
         ring(r0, r1);
         ctx.fill();
@@ -1479,7 +1500,10 @@ export class Renderer {
         if (q.id >= p.id || (p.x - q.x) ** 2 + (p.y - q.y) ** 2 > ELECTRIC.link ** 2) continue;
         const [ax, ay, bx, by] = [p.x + 0.5, p.y + 0.2, q.x + 0.5, q.y + 0.2];
         const sag = 0.12 + 0.03 * Math.hypot(bx - ax, by - ay);
-        for (const [style, width] of [['rgba(15,26,46,0.85)', 3], ['#c98a3a', 1.6]] as const) {
+        for (const [style, width] of [
+          ['rgba(15,26,46,0.85)', 3],
+          ['#c98a3a', 1.6],
+        ] as const) {
           ctx.strokeStyle = style;
           ctx.lineWidth = width / z;
           ctx.beginPath();
@@ -1556,7 +1580,24 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'arc_fence' && b.type !== 'floodlight' && b.type !== 'shield_pylon' && b.type !== 'tree_nursery' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
+    const directional =
+      b.type !== 'hub' &&
+      b.type !== 'shipyard' &&
+      b.type !== 'wall' &&
+      b.type !== 'reinforced_wall' &&
+      b.type !== 'steel_wall' &&
+      b.type !== 'arc_fence' &&
+      b.type !== 'floodlight' &&
+      b.type !== 'shield_pylon' &&
+      b.type !== 'tree_nursery' &&
+      b.type !== 'palisade' &&
+      b.type !== 'repair' &&
+      b.type !== 'spike_pit' &&
+      b.type !== 'well' &&
+      b.type !== 'boiler' &&
+      b.type !== 'steam_turbine' &&
+      b.type !== 'power_pole' &&
+      !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1586,7 +1627,19 @@ export class Renderer {
     if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
-        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler' ? '255,120,50' : b.type === 'powder_mill' ? '230,210,90' : b.type === 'circuit_works' ? '120,240,150' : '120,190,255';
+        b.type === 'furnace'
+          ? '255,150,60'
+          : b.type === 'extractor' || b.type === 'lumber_camp'
+            ? '160,220,90'
+            : b.type === 'sawmill'
+              ? '230,190,120'
+              : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler'
+                ? '255,120,50'
+                : b.type === 'powder_mill'
+                  ? '230,210,90'
+                  : b.type === 'circuit_works'
+                    ? '120,240,150'
+                    : '120,190,255';
       const [cx, cy] = world.centreOf(b);
       const r = Math.max(fw, fh) * 0.6;
       const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);
@@ -1694,7 +1747,10 @@ export class Renderer {
       ctx.stroke();
     }
     // Hydraulic and electric defences and machines (D-117, D-123, D-125): a flashing blue mark while they have no power and can't work.
-    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type) || b.type === 'floodlight' || b.type === 'shield_pylon') && world.electrified(b) <= 0)) {
+    if (
+      (HYDRAULIC.includes(b.type) && world.powered(b) <= 0) ||
+      ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type) || b.type === 'floodlight' || b.type === 'shield_pylon') && world.electrified(b) <= 0)
+    ) {
       ctx.fillStyle = `rgba(80,170,255,${0.5 + 0.5 * Math.sin(now / 200)})`;
       dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
     }
@@ -1860,13 +1916,43 @@ export class Renderer {
     this.drawItem(item, x + 0.8, y + 0.2, 0.28);
   }
 
+  /** Copy and paste (D-144): the area being selected, or the copy under the pointer where a tap puts it. */
+  private drawClip(world: World, ui: UIState, z: number): void {
+    const ctx = this.ctx;
+    const sel = ui.selecting;
+    if (ui.clipMode === 'copy') {
+      const a = sel?.from ?? ui.hover;
+      const b = sel?.to ?? ui.hover;
+      if (!a || !b) return;
+      const [x0, y0] = [Math.min(a.x, b.x), Math.min(a.y, b.y)];
+      const [w, h] = [Math.abs(a.x - b.x) + 1, Math.abs(a.y - b.y) + 1];
+      ctx.fillStyle = 'rgba(63,169,245,0.15)';
+      ctx.fillRect(x0, y0, w, h);
+      ctx.strokeStyle = '#3fa9f5';
+      ctx.lineWidth = 2.5 / z;
+      ctx.setLineDash([6 / z, 4 / z]);
+      ctx.strokeRect(x0, y0, w, h);
+      ctx.setLineDash([]);
+      return;
+    }
+    const clip = ui.clip;
+    if (!clip || !ui.hover) return;
+    const at = clipCorner(clip, ui.hover);
+    for (const it of clip.items) this.drawGhost(world, it.type, { x: at.x + it.dx, y: at.y + it.dy }, it.dir, z, { exact: true, range: false, dashed: true, replaceBelt: false });
+    ctx.strokeStyle = 'rgba(63,169,245,0.6)';
+    ctx.lineWidth = 1.5 / z;
+    ctx.setLineDash([4 / z, 4 / z]);
+    ctx.strokeRect(at.x, at.y, clip.w, clip.h);
+    ctx.setLineDash([]);
+  }
+
   private drawGhost(
     world: World,
     tool: BuildingType | 'demolish',
     spot: Spot,
     dir: Dir,
     z: number,
-    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean; keepDir?: boolean; moving?: Building } = {},
+    opts: { ok?: boolean; range?: boolean; dashed?: boolean; replaceBelt?: boolean; exit?: boolean; keepDir?: boolean; moving?: Building; exact?: boolean } = {},
   ): void {
     const ctx = this.ctx;
     let { x, y } = spot;
@@ -1883,11 +1969,27 @@ export class Renderer {
     }
     // Big buildings centre on the hovered tile; dropped onto a belt, a building faces the way it runs.
     const replaceBelt = opts.replaceBelt ?? true;
-    ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt, opts.keepDir));
+    if (!opts.exact) ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt, opts.keepDir));
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'arc_fence' && tool !== 'floodlight' && tool !== 'shield_pylon' && tool !== 'tree_nursery' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
+    const directional =
+      tool !== 'wall' &&
+      tool !== 'reinforced_wall' &&
+      tool !== 'steel_wall' &&
+      tool !== 'arc_fence' &&
+      tool !== 'floodlight' &&
+      tool !== 'shield_pylon' &&
+      tool !== 'tree_nursery' &&
+      tool !== 'palisade' &&
+      tool !== 'repair' &&
+      tool !== 'port' &&
+      tool !== 'shipyard' &&
+      tool !== 'spike_pit' &&
+      tool !== 'boiler' &&
+      tool !== 'steam_turbine' &&
+      tool !== 'power_pole' &&
+      !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
@@ -1928,7 +2030,6 @@ export class Renderer {
       if (entrance) linkLine(ctx, entrance, { x, y }, z);
     }
   }
-
 
   // ------------------------------------------------------------- effects
 
@@ -2034,7 +2135,12 @@ export class Renderer {
     const n = world.state.nests.find((q) => q.id === e.nest);
     if (!e.raid && !(n && isAngry(world, n))) return false;
     const reach = radius + 0.55;
-    for (const [dx, dy] of [[reach, 0], [-reach, 0], [0, reach], [0, -reach]]) {
+    for (const [dx, dy] of [
+      [reach, 0],
+      [-reach, 0],
+      [0, reach],
+      [0, -reach],
+    ]) {
       if (world.buildingAt(Math.floor(e.x + dx), Math.floor(e.y + dy))) return true;
     }
     return world.state.players.some((p) => p.downUntil == null && Math.hypot(p.x - e.x, p.y - e.y) <= radius + 0.45);
@@ -2084,7 +2190,12 @@ export class Renderer {
       ctx.lineTo(x - 0.2, y + 0.2);
       ctx.stroke();
       const spin = now / 40;
-      for (const [rx, ry] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]]) {
+      for (const [rx, ry] of [
+        [-0.2, -0.2],
+        [0.2, -0.2],
+        [-0.2, 0.2],
+        [0.2, 0.2],
+      ]) {
         ctx.fillStyle = 'rgba(200,220,235,0.35)';
         dot(ctx, x + rx, y + ry, 0.11);
         ctx.strokeStyle = 'rgba(15,26,46,0.7)';
@@ -2164,7 +2275,10 @@ export class Renderer {
       pts.push([sh.x1 + dx * t - (dy / len) * off, sh.y1 + dy * t + (dx / len) * off]);
     }
     pts.push([sh.x2, sh.y2]);
-    for (const [width, color] of [[6, `rgba(120,200,255,${0.35 * fade})`], [2, `rgba(235,248,255,${fade})`]] as const) {
+    for (const [width, color] of [
+      [6, `rgba(120,200,255,${0.35 * fade})`],
+      [2, `rgba(235,248,255,${fade})`],
+    ] as const) {
       ctx.strokeStyle = color;
       ctx.lineWidth = width / z;
       ctx.beginPath();
@@ -2198,7 +2312,8 @@ export class Renderer {
       d.at = now;
       const dx = (p.x - d.x) * ease;
       const dy = (p.y - d.y) * ease;
-      if (Math.abs(p.x - d.x) + Math.abs(p.y - d.y) > 3) [d.x, d.y] = [p.x, p.y]; // a jump (a load): no gliding
+      if (Math.abs(p.x - d.x) + Math.abs(p.y - d.y) > 3)
+        [d.x, d.y] = [p.x, p.y]; // a jump (a load): no gliding
       else {
         d.x += dx;
         d.y += dy;
@@ -2348,7 +2463,12 @@ export class Renderer {
     ctx.beginPath();
     for (const side of [1, -1]) {
       ctx.moveTo(x + fx * size * 0.1, y + fy * size * 0.1);
-      ctx.quadraticCurveTo(x + fx * size * 0.3 - fy * side * size * 0.1, y + fy * size * 0.3 + fx * side * size * 0.1, x + fx * size * 0.38 - fy * side * size * 0.22, y + fy * size * 0.38 + fx * side * size * 0.22);
+      ctx.quadraticCurveTo(
+        x + fx * size * 0.3 - fy * side * size * 0.1,
+        y + fy * size * 0.3 + fx * side * size * 0.1,
+        x + fx * size * 0.38 - fy * side * size * 0.22,
+        y + fy * size * 0.38 + fx * side * size * 0.22,
+      );
     }
     ctx.stroke();
     ctx.fillStyle = '#2a2f3c';

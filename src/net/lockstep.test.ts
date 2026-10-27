@@ -118,7 +118,11 @@ describe('Co-op lockstep', () => {
     const { host, guest, frame, settle, join } = pair();
     const sent: string[] = [];
     let resyncs = 0;
-    const h = new HostLockstep(host.session, () => {}, () => resyncs++);
+    const h = new HostLockstep(
+      host.session,
+      () => {},
+      () => resyncs++,
+    );
     h.receive(1, JSON.stringify({ t: 'resync' }));
     expect(resyncs).toBe(1);
     // The real one: the guest's game drifts, it notices at the next fingerprint, and asks once.
@@ -192,9 +196,15 @@ describe('Co-op lockstep', () => {
     host.receive(2, JSON.stringify({ t: 'ping', x: 1.5, y: 31 })); // not a tile
     host.receive(2, JSON.stringify({ t: 'ping', x: -5, y: 31 })); // off the map
     host.flush(1, 0);
-    expect(seen).toEqual([[0, 10, 12], [2, 30, 31]]);
+    expect(seen).toEqual([
+      [0, 10, 12],
+      [2, 30, 31],
+    ]);
     expect(turns.length).toBe(1);
-    expect(turns[0].t === 'turn' && turns[0].pings).toEqual([[0, 10, 12], [2, 30, 31]]);
+    expect(turns[0].t === 'turn' && turns[0].pings).toEqual([
+      [0, 10, 12],
+      [2, 30, 31],
+    ]);
     expect(summaryHash(w)).toBe(before);
   });
 
@@ -265,10 +275,59 @@ describe('Co-op lockstep', () => {
       seed = (seed * 1103515245 + 12345) % 2 ** 31;
       return list[seed % list.length];
     };
-    const kinds = ['place', 'demolish', 'rotate', 'relocate', 'turn', 'recipe', 'filter', 'splitter-side', 'research', 'pause-research', 'upgrade-belts', 'upgrade', 'launch', 'strike', 'pick-blueprint', 'mine', 'collect', 'drop', 'pickup', 'auto-drop', 'move', 'walk'];
+    const kinds = [
+      'place',
+      'demolish',
+      'rotate',
+      'relocate',
+      'turn',
+      'recipe',
+      'filter',
+      'splitter-side',
+      'research',
+      'pause-research',
+      'upgrade-belts',
+      'upgrade',
+      'launch',
+      'strike',
+      'pick-blueprint',
+      'mine',
+      'collect',
+      'drop',
+      'pickup',
+      'auto-drop',
+      'move',
+      'walk',
+      'paste',
+    ];
     let applied = 0;
     for (let k = 0; k < 1500; k++) {
-      const c = { kind: pick(kinds), id: pick([...ints, ...names] as (number | string)[]), x: pick(ints), y: pick(ints), dx: pick(ints), dy: pick(ints), dir: pick([0, 1, 2, 3, 4, -1]), type: pick(['belt', 'turret', 'wall', 'hub', 'constructor', 'extractor']), recipe: pick([null, ...names]), item: pick([null, ...names]), side: pick(names), on: pick([true, false]), replaceBelt: pick([true, false]) };
+      const c = {
+        kind: pick(kinds),
+        id: pick([...ints, ...names] as (number | string)[]),
+        x: pick(ints),
+        y: pick(ints),
+        dx: pick(ints),
+        dy: pick(ints),
+        dir: pick([0, 1, 2, 3, 4, -1]),
+        type: pick(['belt', 'turret', 'wall', 'hub', 'constructor', 'extractor']),
+        recipe: pick([null, ...names]),
+        item: pick([null, ...names]),
+        side: pick(names),
+        on: pick([true, false]),
+        replaceBelt: pick([true, false]),
+        items: pick([
+          [],
+          'belt',
+          [{ type: 'belt', dx: 0, dy: 0, dir: 0 }],
+          [
+            { type: 'furnace', dx: 0, dy: 0, dir: 1, recipe: 'brick' },
+            { type: 'splitter', dx: 2, dy: 0, dir: 0, side: 'left' },
+          ],
+          [{ type: 'turret', dx: 256, dy: -256, dir: 3, filter: 'iron_plate' }],
+          [{ type: 'constructor', dx: 0, dy: 0, dir: 0 }],
+        ] as unknown[]),
+      };
       if (!validCommand(c)) continue;
       applied++;
       expect(() => applyCommand(w, c, 0)).not.toThrow();
@@ -344,7 +403,11 @@ describe('A co-op room', () => {
     const host = new Coop('local', '1.0.0');
     host.hostRoom('PASS23', 'k', await passHash('PASS23', 'hunter2'));
     await until(() => host.phase === 'lobby');
-    for (const [password, ok] of [['', false], ['wrong', false], ['hunter2', true]] as const) {
+    for (const [password, ok] of [
+      ['', false],
+      ['wrong', false],
+      ['hunter2', true],
+    ] as const) {
       const guest = new Coop('local', '1.0.0');
       let why = '';
       guest.onEnd = (w) => (why = w);

@@ -155,11 +155,15 @@ export class Coop {
       return;
     }
     for (const slot of starters) if (slot !== 0) this.toGuest({ t: 'start', slot, world: packed, seq: 0, cmds: [], speed: 1 }, slot);
-    const host = new HostLockstep(session, (m) => this.toGuest(m), (slot) => {
-      if (Date.now() - (this.copied.get(slot) ?? -Infinity) < RESYNC_MS) return;
-      this.copied.set(slot, Date.now());
-      void this.sendCopy(slot, false);
-    });
+    const host = new HostLockstep(
+      session,
+      (m) => this.toGuest(m),
+      (slot) => {
+        if (Date.now() - (this.copied.get(slot) ?? -Infinity) < RESYNC_MS) return;
+        this.copied.set(slot, Date.now());
+        void this.sendCopy(slot, false);
+      },
+    );
     host.onPing = (player, x, y) => {
       if (player !== 0) this.onPing(player, x, y);
     };
@@ -279,7 +283,7 @@ export class Coop {
         // Back in after a dropped connection: the host sends a fresh copy, as to anyone joining.
         if (this.phase !== 'playing') this.phase = 'lobby';
         return this.onChange();
-      case 'joined':
+      case 'joined': {
         // A slot already here is a player back on a new connection (#100): no new player, but a fresh copy.
         const back = this.players.includes(m.slot);
         this.players = [...new Set([...this.players, m.slot])].sort((a, b) => a - b);
@@ -295,6 +299,7 @@ export class Coop {
           void this.sendCopy(m.slot, true);
         }
         return this.onChange();
+      }
       case 'left':
         if (!this.players.includes(m.slot)) return;
         this.players = this.players.filter((s) => s !== m.slot);

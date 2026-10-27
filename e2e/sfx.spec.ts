@@ -28,8 +28,10 @@ test('sound effects: buttons click, building and research sound, the slider mute
 
   // Zero volume: nothing plays.
   await page.click('#menu-btn');
+  await page.click('#btn-settings');
   await page.locator('#sfx-volume').fill('0');
   await page.locator('#sfx-volume').dispatchEvent('change');
+  await page.click('#settings [data-close]'); // back to the pause menu
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).sfxVolume)).toBe(0);
   await clear();
   await page.click('#btn-resume');

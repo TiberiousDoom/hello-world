@@ -42,7 +42,7 @@ describe('Buildings line up with belts while aiming', () => {
     expect(out).toEqual({ x: x0, y });
   });
 
-  it('with no belts around, or in a dragged line, the building keeps the player\'s facing', () => {
+  it("with no belts around, or in a dragged line, the building keeps the player's facing", () => {
     const w = clearWorld();
     const x0 = w.hub!.x - 20;
     const y = w.hub!.y - 10;
@@ -61,7 +61,7 @@ describe('Buildings line up with belts while aiming', () => {
 });
 
 describe('The player can turn a building away from the belts (#85)', () => {
-  it('the first turn starts from the facing shown, and from then on the player\'s facing wins', () => {
+  it("the first turn starts from the facing shown, and from then on the player's facing wins", () => {
     const w = clearWorld();
     const x0 = w.hub!.x - 20;
     const y = w.hub!.y - 10;
@@ -79,7 +79,7 @@ describe('The player can turn a building away from the belts (#85)', () => {
     expect(placementAt(w, 'furnace', ui.hover, ui.dir, true, ui.dirSet).dir).toBe(2);
   });
 
-  it('a turned building dropped onto a belt keeps the player\'s facing', () => {
+  it("a turned building dropped onto a belt keeps the player's facing", () => {
     const w = clearWorld();
     const x0 = w.hub!.x - 20;
     const y = w.hub!.y - 10;

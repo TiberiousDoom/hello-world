@@ -32,6 +32,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint # ESLint and Prettier (D-144)
       - run: npm test
       - run: npm run build
       - run: npm run build:server # the dedicated server bundles (D-084)

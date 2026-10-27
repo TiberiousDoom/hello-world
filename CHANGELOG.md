@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.85.0 · 2026-10-27 · Undo, copy and settings
+### New
+- **Undo** your last building or demolishing with Ctrl+Z, Z or the new Undo button. A dragged line undoes in one go.
+- **Copy and paste** parts of your factory: press Copy (or C), drag over some buildings, then tap where the copy goes. Recipes and filters come along, R turns it, and V pastes it again later.
+- A **Settings** screen, from the main menu or the pause menu: volumes, the size of text and buttons, reduce motion, battery saver, touch confirmation and your keys.
+- **Change your keys** in Settings. The number keys now reach further: 0 picks the 10th tool, and Shift+1–9 the 11th to 19th.
+- **Install the game** to your home screen, and play it **offline** once you've opened it (without music).
+- Buttons on touch screens are bigger: at least 44 pixels high.
+
 ## 0.84.1 · 2026-10-27 · Plans for opening up
 ### New
 - Nothing new in the game this time: the plan for opening co-op to strangers is written up. Invite links and player accounts come first, then a cloud server and more rooms.

@@ -15,6 +15,8 @@ export default defineConfig({
     baseURL: 'http://localhost:4173/',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // The offline cache (D-144) would serve the last build's files to later tests; its own test allows it.
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'npx vite build --logLevel warn && npx vite preview --port 4173 --strictPort',

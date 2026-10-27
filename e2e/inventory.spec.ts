@@ -4,8 +4,7 @@ import { calm, expect, newGame, test } from './helpers';
 // The engineer's inventory (#87, D-090): 12 slots of 10, a toolbar button at the bottom right, a switch
 // for dropping off at the hub, and Pick up on belts.
 
-const stone = (page: Page) =>
-  page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0));
+const stone = (page: Page) => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0));
 
 test('the Inventory button shows the slots, drop-off at the hub can be switched off, and a belt offers Pick up', async ({ page }) => {
   await newGame(page);

@@ -102,14 +102,7 @@ export function seeded(seed: number): () => number {
  * (counting their own size). `free` says which tiles may hold water. Returns the water tiles' indices, in
  * order; the caller clears ore and trees off them.
  */
-export function generatePonds(
-  width: number,
-  height: number,
-  hubCx: number,
-  hubCy: number,
-  random: () => number,
-  free: (x: number, y: number) => boolean,
-): number[] {
+export function generatePonds(width: number, height: number, hubCx: number, hubCy: number, random: () => number, free: (x: number, y: number) => boolean): number[] {
   const water = new Set<number>();
   const [rMin, rMax] = PONDS.radius;
   for (let n = 0, tries = 0; n < PONDS.count && tries < PONDS.count * 20; tries++) {
@@ -139,8 +132,7 @@ export function generatePonds(
 export function generateTrees(w: World, hubCx: number, hubCy: number): void {
   const { width, height } = w.state;
   const trees = w.state.trees;
-  const free = (x: number, y: number) =>
-    w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && !w.isWater(x, y) && hypot(x - hubCx, y - hubCy) >= FOREST.clear;
+  const free = (x: number, y: number) => w.inBounds(x, y) && !w.state.resources[w.idx(x, y)] && !w.tiles[w.idx(x, y)] && !w.isWater(x, y) && hypot(x - hubCx, y - hubCy) >= FOREST.clear;
   const noise = new ValueNoise(64, () => w.random());
   const values = new Float32Array(width * height);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) values[y * width + x] = noise.fbm(x / FOREST.scale, y / FOREST.scale);

@@ -27,6 +27,8 @@ export type Command =
   | { kind: 'upgrade-belts'; x: number; y: number }
   // Empties a whole belt line into hub stock (D-141).
   | { kind: 'clear-belts'; id: number }
+  // Builds a copied section of a factory with its corner at (x, y) (D-144).
+  | { kind: 'paste'; x: number; y: number; items: PasteItem[] }
   // An extractor or furnace to Mk2 (D-122).
   | { kind: 'upgrade'; id: number }
   | { kind: 'launch' }
@@ -60,6 +62,7 @@ export interface CommandResults {
   'pause-research': void;
   'upgrade-belts': { upgraded: number; left: number } | PlaceError;
   'clear-belts': number;
+  paste: { ids: number[]; failed: number };
   upgrade: PlaceError | null;
   launch: LaunchError | null;
   strike: StrikeError | null;
@@ -77,6 +80,41 @@ export interface CommandResults {
 }
 
 export type ResultOf<C extends Command> = CommandResults[C['kind']];
+
+/** One building of a copied section (D-144): where it sits from the section's corner, and its settings. */
+export interface PasteItem {
+  type: BuildingType;
+  dx: number;
+  dy: number;
+  dir: Dir;
+  recipe?: string | null;
+  filter?: ItemId | null;
+  side?: 'left' | 'right';
+}
+
+/** The most buildings one paste command carries: a co-op guest's message has to stay small (MAX_GUEST_MESSAGE). */
+export const PASTE_MAX = 40;
+
+/**
+ * Builds each copied building that fits, paying as usual, then gives it the copy's recipe, filter and side.
+ * What can't be built (in the way, too poor, locked) is skipped and counted.
+ */
+function paste(w: World, x: number, y: number, items: readonly PasteItem[]): { ids: number[]; failed: number } {
+  const ids: number[] = [];
+  let failed = 0;
+  for (const it of items) {
+    const b = w.place(it.type, x + it.dx, y + it.dy, it.dir, false);
+    if (typeof b === 'string') {
+      failed++;
+      continue;
+    }
+    ids.push(b.id);
+    if (it.recipe) w.setRecipe(b.id, it.recipe);
+    if (it.filter) w.setFilter(b.id, it.filter);
+    if (it.side) w.setSplitterSide(b.id, it.side);
+  }
+  return { ids, failed };
+}
 
 /** Applies a command for `player`: whose engineer mines, walks and carries. */
 export function applyCommand<C extends Command>(w: World, c: C, player = 0): ResultOf<C> {
@@ -111,6 +149,8 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.upgradeBeltLine(c.x, c.y);
     case 'clear-belts':
       return w.clearBeltLine(c.id);
+    case 'paste':
+      return paste(w, c.x, c.y, c.items);
     case 'upgrade':
       return w.upgradeMachine(c.id);
     case 'launch':

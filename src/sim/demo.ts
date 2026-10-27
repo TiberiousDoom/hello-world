@@ -142,7 +142,8 @@ export const DEMO_SCENES: DemoScene[] = [
         [x1 - 2, y0 + 2],
         [x0 + 2, y1 - 2],
         [x1 - 2, y1 - 2],
-      ]) put('turret', x, y, 0);
+      ])
+        put('turret', x, y, 0);
       put('cannon', hx + 3, y0 + 2, 0);
       put('cannon', hx + 3, y1 - 2, 0);
       put('tesla', x1 - 2, my, 0);
@@ -163,7 +164,29 @@ export function createDemoWorld(scene = 0): World {
   w.freePower = true; // the menu shows belts at full speed without laying shafts or poles to every one
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
-  s.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999, log: 9999, dowel: 9999, peg: 9999, rope: 9999, truss: 9999, stake: 9999, iron_ingot: 9999, iron_rod: 9999, rivet: 9999, steel: 9999, circuit: 9999, coil: 9999 };
+  s.inventory = {
+    iron_plate: 9999,
+    stone: 9999,
+    iron_ore: 9999,
+    copper_ingot: 9999,
+    brick: 9999,
+    gear: 9999,
+    wire: 9999,
+    motor: 9999,
+    plank: 9999,
+    log: 9999,
+    dowel: 9999,
+    peg: 9999,
+    rope: 9999,
+    truss: 9999,
+    stake: 9999,
+    iron_ingot: 9999,
+    iron_rod: 9999,
+    rivet: 9999,
+    steel: 9999,
+    circuit: 9999,
+    coil: 9999,
+  };
   const hub = w.hub!;
   const hx = hub.x;
   const hy = hub.y;

@@ -82,16 +82,7 @@ describe('Belts dragged across anything else go under it too (#93, D-102)', () =
     expect(steps.filter((s) => !s.over).every((s) => s.status === null)).toBe(true);
     const t = clearWorld();
     for (const x of [x0 + 3, x0 + 4]) t.state.trees[t.idx(x, y)] = 1; // a strip of trees
-    expect(planSteps(t, eastLine(x0, x0 + 7, y), 0).map((s) => (s.over ? 'under' : s.exit ? 'exit' : s.tool))).toEqual([
-      'belt',
-      'belt',
-      'tunnel',
-      'under',
-      'under',
-      'exit',
-      'belt',
-      'belt',
-    ]);
+    expect(planSteps(t, eastLine(x0, x0 + 7, y), 0).map((s) => (s.over ? 'under' : s.exit ? 'exit' : s.tool))).toEqual(['belt', 'belt', 'tunnel', 'under', 'under', 'exit', 'belt', 'belt']);
   });
 
   it('rollers have no underground: a roller line stops at what is in the way', () => {
