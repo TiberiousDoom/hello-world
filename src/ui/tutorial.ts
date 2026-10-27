@@ -451,8 +451,11 @@ export const LESSONS: Lesson[] = [
     steps: [
       {
         target: (c) => ({ tiles: nestTarget(c.world), shape: 'circle' }),
-        text: () =>
-          'Bugs live in territories like this one, around a nest mound. They ignore you unless provoked: building in or next to their territory, a building coming close to one, or shooting them. Then they go for your nearest buildings until things calm down. Destroy the mound to clear the territory for good: turrets in range shoot it when no bugs are near, and it drops chitin.',
+        text: (c) =>
+          'Bugs live in territories like this one, around a nest mound. They ignore you unless provoked: building in or next to their territory, a building coming close to one, or shooting them. Then they go for your nearest buildings until things calm down. ' +
+          (c.world.state.mode === 'hardcore'
+            ? 'In Hardcore, a mound can only be destroyed by building over it and the ring of tiles around it (walls and belts count). It breeds faster while you do. It drops chitin.'
+            : 'Destroy the mound to clear the territory for good: turrets in range shoot it when no bugs are near, and it drops chitin.'),
       },
       {
         // Once the hub is selected, point at its Research button instead (and keep the card off it).

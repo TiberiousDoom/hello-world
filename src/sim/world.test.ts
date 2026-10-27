@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
-import { Nest, cellKey, damageMound, hubDistance, isAngry, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
+import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
+import { Nest, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
@@ -1812,16 +1812,17 @@ describe('Night raids (D-065)', () => {
     const w = emptyWorld('hardcore'); // a raid every night
     const n = addNest(w, 50, 50, 3);
     const wall = placed(w.place('wall', 55 + CLOCK.nightGiveUp + 5, 55, 0)); // beyond an angry bug's reach, in raid range
+    const sturdy = (wall.hp = w.maxHp(wall) * 10); // it lasts the night
     w.state.nextSpread = Infinity;
     w.state.time = nightfall(1) - 0.01;
     w.tick();
     expect(w.state.enemies.some((e) => e.raid)).toBe(false); // not on the first night
     w.state.time = nightfall(2) - 0.01;
     w.tick();
-    expect(w.state.enemies.filter((e) => e.raid).length).toBe(RAIDS.party);
+    expect(w.state.enemies.filter((e) => e.raid).length).toBe(RAIDS.party + Math.floor(HARDCORE_NESTS.threat / RAIDS.partyThreat)); // Hardcore starts at a higher threat (D-133)
     expect(w.events.some((e) => e.startsWith('Bugs are raiding from the'))).toBe(true);
     run(w, 60);
-    expect(wall.hp).toBeLessThan(w.maxHp(wall));
+    expect(wall.hp).toBeLessThan(sturdy);
     expect(isAngry(w, n)).toBe(false); // the rest of the nest stayed calm
     w.state.time = nightfall(2) + CLOCK.night - 0.01;
     run(w, 1);
@@ -3059,5 +3060,77 @@ describe('Nest kinds, growth and merging (D-132)', () => {
     expect(loaded.state.nests.every((n) => n.stage === 1 && n.age === 0)).toBe(true);
     expect(loaded.state.nextMerge).toBe(500 + NESTS.mergeEvery);
     expect(loaded.state.version).toBe(SAVE_VERSION);
+  });
+});
+
+describe('Hardcore nests (D-133)', () => {
+  const nest = (w: World): Nest => {
+    const n = newNest(0, 50, 50, 80, 1, 'warren');
+    w.state.nests.push(n);
+    w.nestCells.set(cellKey(5, 5), n);
+    return n;
+  };
+
+  it('Hardcore starts at a higher threat level', () => {
+    expect(threatAt(0, 'hardcore')).toBe(HARDCORE_NESTS.threat);
+    expect(threatAt(0)).toBe(0);
+    expect(threatAt(NESTS.threatEvery * 100, 'hardcore')).toBe(NESTS.threatMax);
+  });
+
+  it("a mound can't be shot down; covering it and the ring around it with buildings destroys it", () => {
+    const w = emptyWorld('hardcore');
+    const n = nest(w);
+    const hp = n.hp;
+    damageMound(w, n, hp * 2);
+    expect(n.destroyed).toBeFalsy();
+    expect(n.hp).toBe(hp);
+    expect(isAngry(w, n)).toBe(true); // it still wakes
+    // A turret in range with no bugs about leaves it alone.
+    const [mx, my] = moundTile(n);
+    const t = placed(w.place('turret', mx - 3, my, 0));
+    t.ammo = 20;
+    run(w, 2);
+    expect(t.ammo).toBe(20);
+    w.remove(t);
+    // Walls on the mound and its ring: the last one destroys it.
+    const tiles = coverTiles(n);
+    expect(tiles).toHaveLength(16);
+    w.state.inventory.chitin = 0;
+    for (const [x, y] of tiles.slice(0, -1)) placed(w.place('wall', x, y, 0));
+    expect(n.destroyed).toBeFalsy();
+    const [lx, ly] = tiles[tiles.length - 1];
+    placed(w.place('belt', lx, ly, 0)); // belts count
+    expect(n.destroyed).toBe(true);
+    expect(w.state.inventory.chitin).toBeGreaterThan(0);
+  });
+
+  it('moving a building onto the last open tile destroys it too; in Standard the mound stays unbuildable', () => {
+    const w = emptyWorld('hardcore');
+    const n = nest(w);
+    const tiles = coverTiles(n);
+    for (const [x, y] of tiles.slice(0, -1)) placed(w.place('wall', x, y, 0));
+    const wall = placed(w.place('wall', 40, 40, 0));
+    const [lx, ly] = tiles[tiles.length - 1];
+    expect(w.relocate(wall.id, lx, ly, 0)).toBe(wall);
+    expect(n.destroyed).toBe(true);
+    const s = emptyWorld();
+    const m = nest(s);
+    const [mx, my] = moundTile(m);
+    expect(s.place('wall', mx, my, 0)).toBe('nest');
+  });
+
+  it('nests breed faster in Hardcore, and faster again while being built over', () => {
+    const gap = (mode: 'standard' | 'hardcore', cover: boolean): number => {
+      const w = emptyWorld(mode);
+      const n = nest(w);
+      if (cover) placed(w.place('wall', ...coverTiles(n)[0], 0));
+      n.angryUntil = 0;
+      w.state.time = 10;
+      run(w, 1.05);
+      return n.nextBreed - w.state.time;
+    };
+    expect(gap('standard', false)).toBeGreaterThanOrEqual(NESTS.breedEvery[0] - 1.1);
+    expect(gap('hardcore', false)).toBeLessThanOrEqual(NESTS.breedEvery[1] / HARDCORE_NESTS.faster);
+    expect(gap('hardcore', true)).toBeLessThanOrEqual(NESTS.breedEvery[1] / HARDCORE_NESTS.faster / HARDCORE_NESTS.builtOver);
   });
 });

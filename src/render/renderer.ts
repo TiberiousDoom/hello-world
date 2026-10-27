@@ -46,7 +46,7 @@ import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, outOfFuel } from
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
-import { Nest, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
+import { Nest, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
 import { BeltLook, beltLook } from './belts';
@@ -316,6 +316,14 @@ export class Renderer {
       const exit = world.byId.get(b.link);
       if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
     }
+    // Bug territories: a mound in each, and its outline while placing or while it's angry.
+    // (A cleared territory taken over by a newer nest is drawn as that nest.) In Hardcore, buildings go
+    // over mounds (D-133), so they're drawn first; otherwise over the buildings around them.
+    const placing = !!ui?.tool && ui.tool !== 'demolish';
+    const nests = s.nests.filter((n) => territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n));
+    const hardcore = s.mode === 'hardcore';
+    if (hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
+
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
     const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
@@ -331,9 +339,8 @@ export class Renderer {
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
     this.drawWires(s.buildings.filter((b) => b.type === 'power_pole'), z); // all of them: a wire can cross the screen
 
-    // Bug territories: a mound in each, and its outline while placing or while it's angry.
-    // (A cleared territory taken over by a newer nest is drawn as that nest.)
-    for (const n of s.nests) if (territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
+    if (!hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
+    else for (const n of nests) this.drawCover(world, n, z, placing);
 
     if (ui) this.drawPlayers(world, now, z);
 
@@ -1480,6 +1487,30 @@ export class Renderer {
     }
     if (b.type === 'hub' && b.hp < world.maxHp(b) / 2 && sprite('buildings/hub_damaged')) return 'buildings/hub_damaged';
     return `buildings/${b.type}`;
+  }
+
+  /**
+   * A Hardcore nest's cover (D-133), drawn over the buildings: while placing, or once building over it has
+   * begun, the tiles still to cover are marked, with a bar for how much is covered.
+   */
+  private drawCover(world: World, n: Nest, z: number, placing: boolean): void {
+    if (n.destroyed) return;
+    const tiles = coverTiles(n);
+    const done = coveredTiles(world, n);
+    if (!placing && !done) return;
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(217,169,58,0.28)';
+    ctx.strokeStyle = 'rgba(242,193,78,0.9)';
+    ctx.lineWidth = 1.5 / z;
+    ctx.setLineDash([4 / z, 4 / z]);
+    for (const [x, y] of tiles) {
+      if (world.buildingAt(x, y) || world.isWater(x, y)) continue;
+      ctx.fillRect(x, y, 1, 1);
+      ctx.strokeRect(x + 0.05, y + 0.05, 0.9, 0.9);
+    }
+    ctx.setLineDash([]);
+    const [x0, y0] = tiles[0];
+    if (done) bar(ctx, x0, y0 - 0.35, Math.sqrt(tiles.length), done / tiles.length, '#f2c14e');
   }
 
   /** Dead, straw-coloured grass fading out around a nest's mound (blight), over each cell it owns. */

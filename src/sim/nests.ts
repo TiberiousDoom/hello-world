@@ -19,8 +19,10 @@
 // Nests come in kinds by distance (D-132): crawler warrens, runner hives, brute dens, and rare queens near
 // the map edge. A calm nest grows through three stages, and two grown nests of a kind whose territories
 // touch may merge into one bigger nest, owning both cells.
+//
+// In Hardcore (D-133) a mound can't be shot down: covering it and a ring around it with buildings destroys it.
 
-import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
+import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, GameMode, HARDCORE_NESTS, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
@@ -140,8 +142,9 @@ export function hubDistance(w: World, n: Nest): number {
   return hypot(cx - (hub.x + Math.floor(HUB_SIZE / 2)), cy - (hub.y + Math.floor(HUB_SIZE / 2)));
 }
 
-/** The nearest standing mound whose edge is within `range` of (x, y), if any. */
+/** The nearest standing mound whose edge is within `range` of (x, y), if any. In Hardcore, none: they can't be shot down (D-133). */
 export function moundInRange(w: World, x: number, y: number, range: number): Nest | undefined {
+  if (w.state.mode === 'hardcore') return undefined;
   const reach = range + NESTS.moundRadius;
   let best: Nest | undefined;
   let bestD = reach;
@@ -157,12 +160,45 @@ export function moundInRange(w: World, x: number, y: number, range: number): Nes
   return best;
 }
 
-/** Damage to a nest's mound: it wakes the nest, and at zero the mound is destroyed. */
+/** Damage to a nest's mound: it wakes the nest, and at zero the mound is destroyed. In Hardcore it only wakes it (D-133). */
 export function damageMound(w: World, n: Nest, amount: number): void {
   if (n.destroyed) return;
   provoke(w, n);
+  if (w.state.mode === 'hardcore') return;
   n.hp -= amount;
   if (n.hp > 0) return;
+  destroyNest(w, n);
+}
+
+/** The tiles that must be covered to destroy a Hardcore nest (D-133): its mound and a ring around it. */
+export function coverTiles(n: Nest): [number, number][] {
+  const [mx, my] = moundTile(n);
+  const r = HARDCORE_NESTS.ring;
+  const out: [number, number][] = [];
+  for (let y = my - r; y < my + 2 + r; y++) for (let x = mx - r; x < mx + 2 + r; x++) out.push([x, y]);
+  return out;
+}
+
+/** How many of a Hardcore nest's cover tiles have a building on them (water counts: it can't be built on). */
+export function coveredTiles(w: World, n: Nest): number {
+  return coverTiles(n).filter(([x, y]) => w.buildingAt(x, y) || w.isWater(x, y)).length;
+}
+
+/** A building went up in Hardcore: any nest whose mound and ring are now all covered is destroyed (D-133). */
+export function checkBuiltOver(w: World, b: Building): void {
+  if (w.state.mode !== 'hardcore') return;
+  const [bw, bh] = w.footprintOf(b);
+  const r = HARDCORE_NESTS.ring;
+  for (const n of w.state.nests) {
+    if (n.destroyed) continue;
+    const [mx, my] = moundTile(n);
+    if (b.x > mx + 1 + r || b.y > my + 1 + r || b.x + bw <= mx - r || b.y + bh <= my - r) continue;
+    if (coveredTiles(w, n) === coverTiles(n).length) destroyNest(w, n);
+  }
+}
+
+/** A mound is gone: the territory is clear for good, and chitin drops into stock. */
+function destroyNest(w: World, n: Nest): void {
   n.hp = 0;
   n.destroyed = true;
   // More from a queen, a grown nest and a merged one (D-132).
@@ -191,20 +227,21 @@ export function populate(w: World, n: Nest, distance: number, tougher = 1): void
   for (const type of BUG_TYPES) for (let i = 0; i < n.brood[type]; i++) w.spawnBug(type, n, hpMult);
 }
 
-/** The threat level (D-065): 0 at the start, one more every NESTS.threatEvery seconds of play. */
-export function threatAt(time: number): number {
-  return Math.min(NESTS.threatMax, Math.floor(Math.max(0, time) / NESTS.threatEvery));
+/** The threat level (D-065): 0 at the start (2 in Hardcore, D-133), one more every NESTS.threatEvery seconds of play. */
+export function threatAt(time: number, mode: GameMode = 'standard'): number {
+  const start = mode === 'hardcore' ? HARDCORE_NESTS.threat : 0;
+  return Math.min(NESTS.threatMax, start + Math.floor(Math.max(0, time) / NESTS.threatEvery));
 }
 
 /** How much more health bugs bred or spread now get, from the threat level. */
 export function threatToughness(w: World): number {
-  return 1 + NESTS.threatHp * threatAt(w.state.time);
+  return 1 + NESTS.threatHp * threatAt(w.state.time, w.state.mode);
 }
 
 /** Says when the threat level rises. */
 export function announceThreat(w: World, before: number, now: number): void {
-  const t = threatAt(now);
-  if (t > threatAt(before)) w.events.push(`Threat level ${t}: new bugs are tougher, and territories spread sooner.`);
+  const t = threatAt(now, w.state.mode);
+  if (t > threatAt(before, w.state.mode)) w.events.push(`Threat level ${t}: new bugs are tougher, and territories spread sooner.`);
 }
 
 const BUG_TYPES: EnemyType[] = ['crawler', 'runner', 'brute'];
@@ -229,17 +266,17 @@ export function tickBreeding(w: World, dt: number): void {
       n.nextBreed = 0;
       continue;
     }
-    growNest(n);
+    growNest(w, n);
     const got = have.get(n.id) ?? { crawler: 0, runner: 0, brute: 0 };
     const total = (b: Brood) => b.crawler + b.runner + b.brute;
     if (total(got) >= total(n.brood)) n.nextBreed = 0;
-    else if (!n.nextBreed) n.nextBreed = s.time + (NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0])) / (n.kind === 'queen' ? QUEENS.breed : 1);
+    else if (!n.nextBreed) n.nextBreed = s.time + (NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0])) / breedRate(w, n);
     else if (s.time >= n.nextBreed) {
       const distance = hubDistance(w, n);
       const short = BUG_TYPES.filter((t) => got[t] < n.brood[t]);
       let type = short.length ? short[Math.floor(w.random() * short.length)] : 'crawler';
       // With threat, crawlers more often hatch as something worse (D-065). The nest's size stays the same.
-      const threat = threatAt(s.time);
+      const threat = threatAt(s.time, s.mode);
       if (type === 'crawler' && w.random() < Math.min(NESTS.threatSwapMax, NESTS.threatSwap * threat)) {
         type = (n.kind === 'den' || n.kind === 'queen') && w.random() < 0.5 ? 'brute' : 'runner';
       }
@@ -253,9 +290,9 @@ export function tickBreeding(w: World, dt: number): void {
  * A calm nest's second of growing (D-132): after NESTS.stageEvery seconds of calm it moves up a stage, its
  * brood and mound growing from stageSize(s) to stageSize(s + 1) of stage 1's. It keeps the damage taken.
  */
-function growNest(n: Nest): void {
+function growNest(w: World, n: Nest): void {
   if (n.stage >= NESTS.stageMax) return;
-  n.age++;
+  n.age += w.state.mode === 'hardcore' ? HARDCORE_NESTS.faster : 1;
   if (n.age < NESTS.stageEvery) return;
   n.age = 0;
   const k = stageSize(n.stage + 1) / stageSize(n.stage);
@@ -305,6 +342,13 @@ export function tickMerge(w: World): void {
   w.events.push('Two nests have merged into one bigger nest.');
 }
 
+/** How many times as fast as usual a nest breeds: a queen's twice (D-132); in Hardcore faster, and faster again while being built over (D-133). */
+function breedRate(w: World, n: Nest): number {
+  let rate = n.kind === 'queen' ? QUEENS.breed : 1;
+  if (w.state.mode === 'hardcore') rate *= HARDCORE_NESTS.faster * (coveredTiles(w, n) > 0 ? HARDCORE_NESTS.builtOver : 1);
+  return rate;
+}
+
 /** How grown up a bug is, from 0 (just hatched) to 1 (an adult). */
 export function growth(w: World, e: Enemy): number {
   return e.born == null ? 1 : Math.min(1, (w.state.time - e.born) / NESTS.growUp);
@@ -331,8 +375,8 @@ function grow(w: World, e: Enemy, dt: number): void {
 export function tickSpread(w: World): void {
   const s = w.state;
   if (s.time < s.nextSpread) return;
-  const sooner = Math.max(NESTS.threatSpreadMin, 1 - NESTS.threatSpread * threatAt(s.time));
-  s.nextSpread = s.time + NESTS.spreadEvery * sooner;
+  const sooner = Math.max(NESTS.threatSpreadMin, 1 - NESTS.threatSpread * threatAt(s.time, s.mode));
+  s.nextSpread = s.time + (NESTS.spreadEvery * sooner) / (s.mode === 'hardcore' ? HARDCORE_NESTS.faster : 1);
   const hub = w.hub;
   if (!hub) return;
   const hubCx = hub.x + Math.floor(HUB_SIZE / 2);
@@ -392,6 +436,7 @@ export function onBuilt(w: World, b: Building): void {
       }
     }
   }
+  checkBuiltOver(w, b);
 }
 
 /**
@@ -405,7 +450,7 @@ export function startRaids(w: World, before: number, now: number): void {
   const c = clockAt(now);
   if (was.night || !c.night || c.day < RAIDS.firstNight) return;
   const s = w.state;
-  const threat = threatAt(now);
+  const threat = threatAt(now, s.mode);
   const chance = s.mode === 'hardcore' ? 1 : RAIDS.chance + RAIDS.chancePerThreat * threat;
   if (w.random() >= chance) return;
   const grown = (n: Nest) => s.enemies.filter((e) => e.nest === n.id && e.hp > 0 && e.born == null && !e.raid);

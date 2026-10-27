@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.75.0 · 2026-10-27 · Hardcore nests
+### New
+- In Hardcore, nests can't be shot down. **Build over a mound and the ring of tiles around it** to destroy it. The tiles left to cover are marked.
+- A nest being built over breeds faster, so be quick.
+- Hardcore starts at threat level 2, and its nests breed, spread and grow faster.
+
 ## 0.74.0 · 2026-10-27 · Nests grow
 ### New
 - Nests come in **kinds**: crawler warrens near the hub, runner hives further out, and brute dens furthest. Where two zones meet, they mix.

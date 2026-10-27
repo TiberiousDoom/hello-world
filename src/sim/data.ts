@@ -770,6 +770,18 @@ export const NESTS = {
   mergeCells: 4,
 };
 
+/**
+ * Hardcore nests (D-133): a higher starting threat, nests that breed, spread and grow faster, and mounds that
+ * can't be shot down. A Hardcore nest is destroyed only by covering its mound and a ring of `ring` tiles
+ * around it with buildings; while partly covered, it breeds faster still.
+ */
+export const HARDCORE_NESTS = {
+  threat: 2, // threat levels from the start
+  faster: 1.5, // breeding, spreading and growing this many times as fast
+  ring: 1, // tiles of ring around the 2×2 mound to cover, as well as the mound
+  builtOver: 2, // a partly covered nest breeds this many times as fast again
+};
+
 /** Queen nests (D-132): rare, near the map edge, with a big brood, a tougher mound and lots of chitin. */
 export const QUEENS = {
   edge: 20, // only cells with a tile this close to the map edge
