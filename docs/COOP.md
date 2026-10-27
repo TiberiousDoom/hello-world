@@ -153,6 +153,10 @@ CI from master.
   (hibernation), so idle rooms cost nothing.
 - **Limits:** only the game's own pages (GitHub Pages, and localhost for development) may connect;
   guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
+  The host takes at most 5 commands a second that send a guest's engineer walking (move, mine,
+  collect, drop, pick up; bursts of 10), since each finds a path in every game (D-139).
+- **What the host lets in:** only commands a guest may send, with whole numbers and known names
+  (`validCommand` in `lockstep.ts`); a fuzz test applies thousands of odd ones without a throw.
 
 ## Phases
 

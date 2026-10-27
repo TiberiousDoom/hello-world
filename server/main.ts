@@ -14,7 +14,7 @@
 // A connection that dies without closing (a router restarting, a new IP address) is noticed by the
 // heartbeat in Coop (D-085): the server reconnects and the relay hands it the room.
 
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Coop } from '../src/net/coop';
 import { RELAY_URL } from '../src/net/client';
@@ -51,9 +51,10 @@ function log(text: string): void {
   console.log(`${new Date().toISOString()} ${text}`);
 }
 
-/** Writes a file whole or not at all: a crash mid-write leaves the old one. */
-function writeAtomic(file: string, text: string): void {
-  writeFileSync(`${file}.tmp`, text);
+/** Writes a file whole or not at all: a crash mid-write leaves the old one. `mode`: its permissions. */
+function writeAtomic(file: string, text: string, mode = 0o644): void {
+  writeFileSync(`${file}.tmp`, text, { mode });
+  chmodSync(`${file}.tmp`, mode); // writeFileSync's mode only applies to a new file
   renameSync(`${file}.tmp`, file);
 }
 
@@ -79,7 +80,9 @@ function loadRoom(): { code: string; key: string } {
   const code = (env.FOUNDRY_ROOM ?? room?.code ?? makeCode(crypto.getRandomValues(new Uint8Array(6)))).toUpperCase();
   if (!validCode(code)) throw new Error(`FOUNDRY_ROOM must be 6 letters and digits, without 0, O, 1, I or L (got "${code}").`);
   const key = room?.key ?? [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
-  if (code !== room?.code || key !== room?.key) writeAtomic(ROOM_FILE, JSON.stringify({ code, key }));
+  // The key lets whoever holds it take the room (D-085): readable by the server's user alone.
+  if (code !== room?.code || key !== room?.key) writeAtomic(ROOM_FILE, JSON.stringify({ code, key }), 0o600);
+  else chmodSync(ROOM_FILE, 0o600); // tighten one written before this rule
   return { code, key };
 }
 

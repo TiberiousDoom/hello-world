@@ -1443,7 +1443,8 @@ export class World {
 
   /** Why a research can't be started yet, or null if it can. */
   checkResearch(id: string): ResearchError | null {
-    const r = RESEARCH_BY_ID[id];
+    // Own keys only: a co-op guest's id like "constructor" would otherwise find Object's and throw.
+    const r = Object.hasOwn(RESEARCH_BY_ID, id) ? RESEARCH_BY_ID[id] : undefined;
     if (!r) return 'unknown';
     if (this.state.researched.includes(id)) return 'done';
     if (!r.requires.every((q) => this.state.researched.includes(q))) return 'requires';

@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.81.0 · 2026-10-27 · Safer co-op
+### Fixed
+- A player in a co-op game could crash everyone's game, the dedicated server's included, with one bad message. The host now refuses it.
+- A player could stall a co-op game by sending their engineer walking thousands of times a second. The host now takes at most 5 a second from each player, which is far more than tapping.
+- The dedicated server's room key is now readable only by the server's own user.
+
 ## 0.80.0 · 2026-10-27 · Difficulty settings
 ### New
 - New games in Standard can be **Easy**, **Normal** or **Hard**. Easy has fewer nests and weaker bugs; Hard has more nests and tougher bugs. Pick it in New game. Saved games are Normal.

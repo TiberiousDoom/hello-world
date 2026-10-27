@@ -10,6 +10,7 @@ Nobody has to host.
 - A restart within a minute takes the room back: players see "The host is back" and carry on.
 - If your internet drops (a router restart, a new IP address), it notices within about 20 seconds and
   takes the room back once the connection works again (D-085).
+- `room.json` holds the room's key: whoever has it can take the room. The server keeps it readable by its own user only.
 - Run only one copy per room. A second copy with the same `room.json` takes the room, and the first
   then stays out and says so in its log.
 - Rooms hold up to 10 players. The server's engineer (player 1) stays at the hub.

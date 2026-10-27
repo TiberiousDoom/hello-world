@@ -4,7 +4,7 @@ import { fightingWorld } from '../sim/scenario';
 import { Session, summaryHash } from '../sim/session';
 import { TICK, World } from '../sim/world';
 import { Coop } from './coop';
-import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, validCommand } from './lockstep';
+import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_RATE, validCommand } from './lockstep';
 import { pack, unpack } from './pack';
 import { held } from '../sim/player';
 import { roomStatus } from './client';
@@ -162,6 +162,24 @@ describe('Co-op lockstep', () => {
     }
   });
 
+  it('takes at most WALK_RATE walking commands a second from each guest, in bursts of twice that; other commands as they come', () => {
+    const turns: HostMessage[] = [];
+    const { w } = fightingWorld(5);
+    const host = new HostLockstep(new Session(w), (m) => turns.push(m));
+    const moves = JSON.stringify({ t: 'cmds', cmds: Array.from({ length: 50 }, (_, i) => ({ kind: 'move', x: 100 + i, y: 100 })) });
+    const turnsOf = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: 'rotate', id: 1 + i }));
+    host.receive(1, moves, 0);
+    host.receive(1, JSON.stringify({ t: 'cmds', cmds: turnsOf(30) }), 0);
+    host.receive(2, moves, 0); // each guest has its own
+    host.receive(1, moves, 1000); // a second later
+    host.flush(1, 0);
+    const cmds = turns[0].t === 'turn' ? turns[0].cmds : [];
+    const count = (player: number, kind: string) => cmds.filter((e) => e.player === player && e.command.kind === kind).length;
+    expect(count(1, 'move')).toBe(WALK_RATE * 2 + WALK_RATE);
+    expect(count(2, 'move')).toBe(WALK_RATE * 2);
+    expect(count(1, 'rotate')).toBe(30);
+  });
+
   it('passes pings to every guest beside the turns, without touching the world', () => {
     const turns: HostMessage[] = [];
     const { w } = fightingWorld(5);
@@ -234,6 +252,30 @@ describe('Co-op lockstep', () => {
     expect(validCommand({ kind: 'toString' })).toBe(false);
     expect(validCommand(null)).toBe(false);
   });
+
+  it("no guest command the host lets through can throw, whatever its numbers and names (a guest can't crash the host)", () => {
+    expect(validCommand({ kind: 'research', id: 'constructor' })).toBe(false);
+    expect(validCommand({ kind: 'pick-blueprint', id: '__proto__' })).toBe(false);
+    const { w } = fightingWorld(5);
+    const ids = w.state.buildings.map((b) => b.id);
+    const ints = [0, 1, -1, 3, 127, 255, 256, 1e9, -1e9, Number.MAX_SAFE_INTEGER, ...ids];
+    const names = ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'belt', 'logistics', 'iron_plate', 'gear', 'left'];
+    let seed = 1;
+    const pick = <T>(list: readonly T[]): T => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31;
+      return list[seed % list.length];
+    };
+    const kinds = ['place', 'demolish', 'rotate', 'relocate', 'turn', 'recipe', 'filter', 'splitter-side', 'research', 'pause-research', 'upgrade-belts', 'upgrade', 'launch', 'strike', 'pick-blueprint', 'mine', 'collect', 'drop', 'pickup', 'auto-drop', 'move', 'walk'];
+    let applied = 0;
+    for (let k = 0; k < 1500; k++) {
+      const c = { kind: pick(kinds), id: pick([...ints, ...names] as (number | string)[]), x: pick(ints), y: pick(ints), dx: pick(ints), dy: pick(ints), dir: pick([0, 1, 2, 3, 4, -1]), type: pick(['belt', 'turret', 'wall', 'hub', 'constructor', 'extractor']), recipe: pick([null, ...names]), item: pick([null, ...names]), side: pick(names), on: pick([true, false]), replaceBelt: pick([true, false]) };
+      if (!validCommand(c)) continue;
+      applied++;
+      expect(() => applyCommand(w, c, 0)).not.toThrow();
+      if (k % 50 === 0) expect(() => w.tick(TICK)).not.toThrow();
+    }
+    expect(applied).toBeGreaterThan(500);
+  }, 60_000);
 });
 
 describe('Packing a world', () => {
