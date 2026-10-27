@@ -62,6 +62,7 @@ import {
   ELECTRIC,
   ELECTRIC_MACHINES,
   FLOODLIGHT,
+  SHIELD,
   MK2,
   MK3,
   EXPRESS_BELT_SPEED,
@@ -300,6 +301,7 @@ export interface Shot {
   age: number;
   arc?: boolean; // a tesla's lightning
   jump?: boolean; // an arc jumping on from one bug to the next, not fired from a turret
+  beam?: boolean; // a railgun's slug, through everything on its line (D-129)
 }
 
 /** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
@@ -1089,6 +1091,35 @@ export class World {
 
   /** Floodlights lit right now (D-126): at night, with electricity. Worked out once a tick. */
   private lit = { at: -1, spots: [] as [number, number][] };
+
+  /** Shield pylons with some shield left, worked out once a tick (D-129). */
+  private shields = { at: -1, pylons: [] as Building[] };
+
+  /**
+   * How much of a bite gets through to a building (D-129): shield pylons near it take what they can, in the
+   * order they were built.
+   */
+  shielded(b: Building, amount: number): number {
+    if (this.shields.at !== this.state.time) {
+      this.shields.at = this.state.time;
+      this.shields.pylons = this.state.buildings.filter((p) => p.type === 'shield_pylon');
+    }
+    if (!this.shields.pylons.length) return amount;
+    const [fw, fh] = this.footprintOf(b);
+    for (const p of this.shields.pylons) {
+      if (p.ammo <= 0 || p.hp <= 0) continue;
+      const [px, py] = this.centreOf(p);
+      // From the pylon's middle to the nearest point of the building.
+      const dx = Math.max(b.x - px, 0, px - (b.x + fw));
+      const dy = Math.max(b.y - py, 0, py - (b.y + fh));
+      if (dx * dx + dy * dy > SHIELD.radius ** 2) continue;
+      const take = Math.min(p.ammo, amount);
+      p.ammo -= take;
+      amount -= take;
+      if (amount <= 0) return 0;
+    }
+    return amount;
+  }
 
   /** Whether (x, y) is in a lit floodlight's light, which slows bugs (D-126). */
   inFloodlight(x: number, y: number): boolean {
@@ -2173,6 +2204,7 @@ export class World {
         case 'ballista':
         case 'cannon':
         case 'tesla':
+        case 'railgun':
         case 'trebuchet':
           this.tickTurret(b, dt);
           break;
@@ -2184,6 +2216,9 @@ export class World {
           break;
         case 'drone_pad':
           if (b.filter) this.pushOutput(b); // a receiving pad: a belt leaving its front takes items out
+          break;
+        case 'shield_pylon':
+          b.ammo = Math.min(SHIELD.max, b.ammo + SHIELD.recharge * this.electrified(b) * dt); // its shield (D-129)
           break;
       }
     }
@@ -2693,6 +2728,24 @@ export class World {
     }
     if (ammo) b.ammo--;
     b.cooldown = reload;
+    if (def.pierce) {
+      // A railgun's slug (D-129) goes on to its full range, through every bug near its line.
+      const len = Math.sqrt(best) || 1;
+      const ux = (target.x - cx) / len;
+      const uy = (target.y - cy) / len;
+      const ex = cx + ux * def.range;
+      const ey = cy + uy * def.range;
+      for (const e of this.state.enemies) {
+        const along = (e.x - cx) * ux + (e.y - cy) * uy;
+        if (along < 0 || along > def.range) continue;
+        const off = (e.x - cx) * uy - (e.y - cy) * ux;
+        if (off * off > def.pierce * def.pierce) continue;
+        e.hp -= def.damage;
+        onBugHurt(this, e);
+      }
+      this.shots.push({ x1: cx, y1: cy, x2: ex, y2: ey, splash: 0, age: 0, beam: true });
+      return;
+    }
     if (def.splash > 0) {
       for (const e of this.state.enemies) {
         if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > def.splash ** 2) continue;

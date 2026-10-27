@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs>
+            <linearGradient id="rbRail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3dae2" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+            <radialGradient id="rbBody" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#6d8aa8" /><stop offset="1" stop-color="#263b52" /></radialGradient>
+          </defs>
+          <rect x="58" y="50" width="66" height="8" rx="2" fill="url(#rbRail)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="58" y="70" width="66" height="8" rx="2" fill="url(#rbRail)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="62" y="59" width="58" height="10" fill="#1b2a3a" />
+          <path d="M66 64 H118" stroke="#6ec8ff" stroke-width="3" stroke-linecap="round" opacity="0.85" />
+          <g fill="#d98a3a" stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" /><rect x="94" y="46" width="6" height="36" rx="2" /></g>
+          <rect x="30" y="40" width="46" height="48" rx="10" fill="url(#rbBody)" stroke="#0f1a2e" stroke-width="4" />
+          <circle cx="52" cy="64" r="10" fill="#1b2a3a" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="52" cy="64" r="5" fill="#6ec8ff" />
+          <rect x="20" y="52" width="12" height="24" rx="3" fill="#263b52" stroke="#0f1a2e" stroke-width="3" />
+        </svg>

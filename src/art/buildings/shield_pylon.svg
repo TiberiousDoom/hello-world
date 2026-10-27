@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="spOrb" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#e8fbff" /><stop offset="1" stop-color="#3a8fd0" /></radialGradient></defs><g>
+        <rect x="8" y="10" width="52" height="52" rx="8" fill="#0a1a0c" opacity="0.3" />
+        <path d="M14 6 H50 L58 14 V50 L50 58 H14 L6 50 V14 Z" fill="#3a6a9a" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M18 12 H46 L52 18 V46 L46 52 H18 L12 46 V18 Z" fill="#2b4f74" />
+        <g stroke="#9ad4ff" stroke-width="2" stroke-linecap="round" opacity="0.8"><path d="M16 16 L24 24 M48 16 L40 24 M16 48 L24 40 M48 48 L40 40" /></g>
+        <circle cx="32" cy="32" r="11" fill="url(#spOrb)" stroke="#0f1a2e" stroke-width="2" />
+        <path d="M26 28 Q32 22 38 28" fill="none" stroke="#ffffff" stroke-width="1.6" opacity="0.8" stroke-linecap="round" />
+      </g>
+      </svg>

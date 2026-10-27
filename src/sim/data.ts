@@ -132,6 +132,8 @@ export type BuildingType =
   | 'steel_wall'
   | 'arc_fence'
   | 'drone_pad'
+  | 'shield_pylon'
+  | 'railgun'
   | 'floodlight'
   | 'boiler'
   | 'steam_turbine'
@@ -224,6 +226,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
+  shield_pylon: { name: 'Shield Pylon', short: 'SP', color: '#3a6a9a', hp: 220, cost: { circuit: 6, coil: 6, steel_beam: 4 }, blocking: true, description: 'Shields the buildings around it: bites come off its shield first. The shield recharges with electricity from a power pole.' },
+  railgun: { name: 'Railgun', short: 'RG', color: '#2f4a6a', hp: 450, size: [2, 2], cost: { steel_beam: 20, circuit: 10, coil: 10, bearing: 6 }, blocking: true, description: 'Fires a slug that goes through every bug in a long line. It needs no ammunition, only electricity from a power pole.' },
   drone_pad: { name: 'Drone Pad', short: 'DP', color: '#3a5a6a', hp: 160, cost: { circuit: 4, motor: 2, steel_beam: 2 }, blocking: true, description: 'With electricity, its drone flies items to pads that ask for them. Set to Send, belts fill it with one kind of item; set to receive an item, drones bring it and a belt leaving its front takes it out.' },
   arc_fence: { name: 'Arc Fence', short: '', color: '#3a6a8a', hp: 700, cost: { steel: 2, coil: 1, wire: 2 }, blocking: true, description: 'A wall that shocks the bugs biting it, with electricity from a power pole.' },
   floodlight: { name: 'Floodlight', short: '', color: '#d9c25a', hp: 80, cost: { circuit: 1, iron_rod: 4, wire: 4 }, blocking: false, description: `Lights the ground around it at night and slows bugs in its light, with electricity from a power pole. It sees far into the fog.` },
@@ -321,6 +325,8 @@ export interface TurretDef {
   splash: number; // radius in tiles, 0 for single target
   /** Can't hit anything closer than this (the trebuchet, D-107). */
   minRange?: number;
+  /** Railgun (D-129): the shot goes on to its full range, hitting every bug within this many tiles of its line. */
+  pierce?: number;
   /** Tesla: each shot jumps on to up to this many more bugs, each within `chainRange` tiles of the last. */
   chain?: number;
   chainRange?: number;
@@ -335,6 +341,7 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0 },
   mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8 },
   artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6 },
+  railgun: { shotsPerItem: 0, maxShots: 0, range: 18, minRange: 2, rate: 0.4, damage: 120, splash: 0, pierce: 0.6 },
   tesla: { shotsPerItem: 0, maxShots: 0, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
 
@@ -459,7 +466,7 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1, drone_pad: 2 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1, drone_pad: 2, shield_pylon: 4, railgun: 6 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
@@ -494,7 +501,7 @@ export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
 /** Defences that fire only with power (D-117). */
 export const HYDRAULIC: BuildingType[] = ['turret', 'cannon'];
 /** Defences that fire only with electricity (D-123). */
-export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2', 'mortar', 'artillery', 'tesla'];
+export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2', 'mortar', 'artillery', 'tesla', 'railgun'];
 /**
  * The Arc Fence (D-126): a wall that shocks each bug biting it for `dps`, scaled by its electricity. The
  * Floodlight: at night, with electricity, bugs within `radius` of it move at `slow` of their speed; it sees
@@ -508,6 +515,11 @@ export const ARC_FENCE = { dps: 30 };
  */
 export const DRONES = { hold: 40, load: 8, speed: 5, range: 24 };
 export const FLOODLIGHT = { radius: 7, slow: 0.6, sight: 14 };
+/**
+ * The Shield Pylon (D-129): bites on buildings whose footprint comes within `radius` tiles of it come off its
+ * shield (up to `max`, kept in `Building.ammo`) first. It recharges `recharge` a second times its electricity.
+ */
+export const SHIELD = { radius: 5, max: 600, recharge: 10 };
 /**
  * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
  * defences too, so a row of turrets shares one shaft.
@@ -591,6 +603,7 @@ export const RESEARCH: Research[] = [
   { id: 'electronics', name: 'Electronics', cost: { steel_beam: 100, bearing: 60, motor: 40 }, time: 150, requires: ['mk2', 'heavy_defense2'], unlocks: [], description: 'Opens the Electric Age: circuit boards and coils, drones, Mk3 machines and electric defences.' },
   { id: 'circuit_works', name: 'Circuit Works', cost: { steel_beam: 80, wire: 120, bearing: 40 }, time: 120, requires: ['electronics'], unlocks: ['circuit_works'], description: 'Circuit works make circuit boards and coils, with electricity.' },
   { id: 'mk3', name: 'Mk3 Machines', cost: { circuit: 80, coil: 40, steel_beam: 60 }, time: 150, requires: ['circuit_works', 'mk2'], unlocks: [], description: 'Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3: with electricity, they work three times as fast.' },
+  { id: 'electric_defense2', name: 'Electric Defense 2', cost: { circuit: 100, coil: 60, bearing: 40 }, time: 150, requires: ['electric_defense'], unlocks: ['shield_pylon', 'railgun'], description: 'Shield pylons, which take the bites for the buildings around them, and railguns, whose slugs go through a whole line of bugs.' },
   { id: 'drones', name: 'Drone Logistics', cost: { circuit: 60, motor: 40 }, time: 120, requires: ['circuit_works'], unlocks: ['drone_pad'], description: 'Drone pads: drones fly items from pads that send to pads that ask for them, with electricity, without belts.' },
   { id: 'electric_defense', name: 'Electric Defense', cost: { circuit: 60, wire: 100, coil: 30 }, time: 120, requires: ['circuit_works'], unlocks: ['tesla', 'arc_fence', 'floodlight'], description: 'Tesla turrets, whose shots arc from bug to bug on electricity alone; arc fences, walls that shock bugs biting them; and floodlights, which slow bugs at night.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
@@ -741,7 +754,7 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
 /** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'steel_wall', 'arc_fence', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'railgun', 'shield_pylon', 'steel_wall', 'arc_fence', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

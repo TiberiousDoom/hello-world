@@ -18,6 +18,7 @@ import {
   ELECTRIC,
   ELECTRIC_MACHINES,
   FLOODLIGHT,
+  SHIELD,
   ELECTRIC_DEFENCES,
   PLAYER,
   HUB_SIZE,
@@ -113,6 +114,8 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   power_pole: 1,
   reinforced_wall: 0.5,
   steel_wall: 0.55,
+  shield_pylon: 0.9,
+  railgun: 0.9,
   arc_fence: 0.5,
   floodlight: 1,
   turret2: 0.55,
@@ -1460,7 +1463,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'arc_fence' && b.type !== 'floodlight' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'arc_fence' && b.type !== 'floodlight' && b.type !== 'shield_pylon' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1545,6 +1548,21 @@ export class Renderer {
       if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
       if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
     }
+    // A shield pylon (D-129): a faint dome over what it covers, as strong as its shield, and a charge bar.
+    if (b.type === 'shield_pylon') {
+      const [cx, cy] = world.centreOf(b);
+      const charge = b.ammo / SHIELD.max;
+      if (charge > 0) {
+        ctx.fillStyle = `rgba(110,190,255,${0.06 * charge})`;
+        dot(ctx, cx, cy, SHIELD.radius);
+        ctx.strokeStyle = `rgba(150,215,255,${0.35 * charge})`;
+        ctx.lineWidth = 0.05;
+        ctx.beginPath();
+        ctx.arc(cx, cy, SHIELD.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, charge, '#6ec8ff');
+    }
     // A drone pad (D-128): the item it receives, or the one it holds to send.
     if (b.type === 'drone_pad') {
       const item = b.filter ?? b.outputs[0];
@@ -1570,7 +1588,7 @@ export class Renderer {
       ctx.stroke();
     }
     // Hydraulic and electric defences and machines (D-117, D-123, D-125): a flashing blue mark while they have no power and can't work.
-    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type) || b.type === 'floodlight') && world.electrified(b) <= 0)) {
+    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type) || b.type === 'floodlight' || b.type === 'shield_pylon') && world.electrified(b) <= 0)) {
       ctx.fillStyle = `rgba(80,170,255,${0.5 + 0.5 * Math.sin(now / 200)})`;
       dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
     }
@@ -1763,7 +1781,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'arc_fence' && tool !== 'floodlight' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
+    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'arc_fence' && tool !== 'floodlight' && tool !== 'shield_pylon' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
@@ -1964,6 +1982,21 @@ export class Renderer {
       const fade = 1 - sh.age / 0.12;
       if (sh.arc) {
         this.drawArc(sh, fade, z);
+        continue;
+      }
+      if (sh.beam) {
+        // A railgun's slug (D-129): a bright blue line the length of its reach, with a glow.
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = `rgba(110,200,255,${0.35 * fade})`;
+        ctx.lineWidth = 0.35;
+        ctx.beginPath();
+        ctx.moveTo(sh.x1, sh.y1);
+        ctx.lineTo(sh.x2, sh.y2);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(230,248,255,${fade})`;
+        ctx.lineWidth = 0.09;
+        ctx.stroke();
+        ctx.lineCap = 'butt';
         continue;
       }
       if (sh.splash && sprite('effects/cannon_shell')) {

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs>
+            <filter id="rgSh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="2.5" dy="4" stdDeviation="2.5" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+            <pattern id="rgPlate" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#2f4a6a" /><path d="M0 8 H16 M8 0 V16" stroke="#26405c" stroke-width="1.2" /></pattern>
+          </defs>
+          <g filter="url(#rgSh)"><path d="M28 6 H100 L122 28 V100 L100 122 H28 L6 100 V28 Z" fill="url(#rgPlate)" stroke="#0f1a2e" stroke-width="4" stroke-linejoin="round" /></g>
+          <circle cx="64" cy="64" r="40" fill="#22374f" stroke="#0f1a2e" stroke-width="3" />
+          <circle cx="64" cy="64" r="32" fill="none" stroke="#6ec8ff" stroke-width="2" stroke-dasharray="6 4" opacity="0.7" />
+          <g fill="#6ec8ff" stroke="#0f1a2e" stroke-width="1.5"><circle cx="20" cy="64" r="4" /><circle cx="108" cy="64" r="4" /><circle cx="64" cy="20" r="4" /><circle cx="64" cy="108" r="4" /></g>
+          <g fill="#3a5a7a" stroke="#0f1a2e" stroke-width="2"><circle cx="24" cy="24" r="5" /><circle cx="104" cy="24" r="5" /><circle cx="24" cy="104" r="5" /><circle cx="104" cy="104" r="5" /></g>
+        </svg>

@@ -79,3 +79,26 @@ test('a drone pad switches between sending and receiving an item from its panel 
   await page.click('#info [data-action="filter"][data-item=""]');
   await expect.poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.filter, id)).toBeNull();
 });
+
+test('Electric Defense 2: the shield pylon and railgun are on the toolbar, and the pylon shows its shield (D-129)', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  const id = await page.evaluate(() => {
+    const w = window.game.world;
+    const s = w.state;
+    s.researched.push('electronics', 'circuit_works', 'electric_defense', 'electric_defense2');
+    Object.assign(s.inventory, { circuit: 20, coil: 20, steel_beam: 40, bearing: 10 });
+    const [x, y] = [w.hub.x - 10, w.hub.y + 2];
+    for (let dy = -2; dy <= 3; dy++) for (let dx = -2; dx <= 4; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    w.place('railgun', x + 2, y, 0);
+    const p = w.place('shield_pylon', x, y, 0);
+    window.game.ui.selected = p.id;
+    window.game.camera.x = x + 3;
+    window.game.camera.y = y;
+    return p.id;
+  });
+  for (const t of ['railgun', 'shield_pylon']) await expect(page.locator(`[data-tool="${t}"]`)).toBeVisible();
+  await expect(page.locator('#info')).toContainText('Shield 0 / 600');
+  await expect(page.locator('#info')).toContainText("it doesn't recharge");
+  expect(await page.evaluate((id) => window.game.world.byId.get(id)?.type, id)).toBe('shield_pylon');
+});
