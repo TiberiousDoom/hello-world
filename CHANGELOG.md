@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.71.0 · 2026-10-27 · Ship Systems
+### New
+- **Ship Systems** (after Electronics and Hull) is needed for the ship's **engine**, **life support** and **navigation**.
+  - These stages are built of circuit boards, coils, steel and motors now, so the first launch comes in the Electric Age.
+- Saved games keep working:
+  - A ship already past its engine gets Ship Systems.
+  - A ship building one of these stages gets back what it had brought in for it.
+
 ## 0.70.0 · 2026-10-27 · Shields and railguns
 ### New
 - **Electric Defense 2** (after Electric Defense) brings two new defences:

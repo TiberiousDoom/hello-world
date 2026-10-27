@@ -62,7 +62,7 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
     for (const [item, n] of Object.entries({ plank: 150, truss: 40, rope: 60 })) for (let i = 0; i < n; i++) w.insert(b, item, b.x - 1, b.y);
   });
   await expect(page.locator('#info')).toContainText('Research Launch Pad at the hub first');
-  await page.evaluate(() => window.game.world.state.researched.push('launch_pad', 'hull'));
+  await page.evaluate(() => window.game.world.state.researched.push('launch_pad', 'hull', 'ship_systems'));
   await expect(page.locator('#info')).not.toContainText('Research Launch Pad');
 
   // Finish every stage: the cargo list appears.
@@ -72,9 +72,9 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
     const stages = [
       { brick: 120, iron_plate: 80, rivet: 60, iron_rod: 40 },
       { steel: 120, steel_beam: 60, bearing: 30, motor: 20 },
-      { motor: 30, gear: 80 },
-      { wire: 120, copper_ingot: 60 },
-      { motor: 20, wire: 80, gear: 40 },
+      { motor: 40, coil: 60, steel_beam: 40, bearing: 30 },
+      { circuit: 80, steel: 60, wire: 120 },
+      { circuit: 100, coil: 40, motor: 20 },
     ];
     for (const st of stages) for (const [item, n] of Object.entries(st)) for (let i = 0; i < n; i++) w.insert(b, item, b.x - 1, b.y);
   });

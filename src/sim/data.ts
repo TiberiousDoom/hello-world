@@ -603,6 +603,7 @@ export const RESEARCH: Research[] = [
   { id: 'electronics', name: 'Electronics', cost: { steel_beam: 100, bearing: 60, motor: 40 }, time: 150, requires: ['mk2', 'heavy_defense2'], unlocks: [], description: 'Opens the Electric Age: circuit boards and coils, drones, Mk3 machines and electric defences.' },
   { id: 'circuit_works', name: 'Circuit Works', cost: { steel_beam: 80, wire: 120, bearing: 40 }, time: 120, requires: ['electronics'], unlocks: ['circuit_works'], description: 'Circuit works make circuit boards and coils, with electricity.' },
   { id: 'mk3', name: 'Mk3 Machines', cost: { circuit: 80, coil: 40, steel_beam: 60 }, time: 150, requires: ['circuit_works', 'mk2'], unlocks: [], description: 'Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3: with electricity, they work three times as fast.' },
+  { id: 'ship_systems', name: 'Ship Systems', cost: { circuit: 120, coil: 60, motor: 40, steel: 100 }, time: 180, requires: ['electronics', 'hull'], unlocks: [], description: "The ship's Electric Age stages: its engines, life support and navigation, built in the shipyard after the hull. Then it can launch." },
   { id: 'electric_defense2', name: 'Electric Defense 2', cost: { circuit: 100, coil: 60, bearing: 40 }, time: 150, requires: ['electric_defense'], unlocks: ['shield_pylon', 'railgun'], description: 'Shield pylons, which take the bites for the buildings around them, and railguns, whose slugs go through a whole line of bugs.' },
   { id: 'drones', name: 'Drone Logistics', cost: { circuit: 60, motor: 40 }, time: 120, requires: ['circuit_works'], unlocks: ['drone_pad'], description: 'Drone pads: drones fly items from pads that send to pads that ask for them, with electricity, without belts.' },
   { id: 'electric_defense', name: 'Electric Defense', cost: { circuit: 60, wire: 100, coil: 30 }, time: 120, requires: ['circuit_works'], unlocks: ['tesla', 'arc_fence', 'floodlight'], description: 'Tesla turrets, whose shots arc from bug to bug on electricity alone; arc fences, walls that shock bugs biting them; and floodlights, which slow bugs at night.' },
@@ -647,9 +648,10 @@ export const SHIP = {
     { id: 'scaffold', name: 'Scaffolding', items: { plank: 150, truss: 40, rope: 60 } },
     { id: 'pad', name: 'Launch pad', items: { brick: 120, iron_plate: 80, rivet: 60, iron_rod: 40 }, research: 'launch_pad' }, // the Iron Age's (D-118)
     { id: 'hull', name: 'Hull', items: { steel: 120, steel_beam: 60, bearing: 30, motor: 20 }, research: 'hull' }, // the Steam Age's (D-124)
-    { id: 'engine', name: 'Engine', items: { motor: 30, gear: 80 } },
-    { id: 'life', name: 'Life support', items: { wire: 120, copper_ingot: 60 } },
-    { id: 'nav', name: 'Navigation', items: { motor: 20, wire: 80, gear: 40 } },
+    // The Electric Age's three (D-130), after Ship Systems.
+    { id: 'engine', name: 'Engine', items: { motor: 40, coil: 60, steel_beam: 40, bearing: 30 }, research: 'ship_systems' },
+    { id: 'life', name: 'Life support', items: { circuit: 80, steel: 60, wire: 120 }, research: 'ship_systems' },
+    { id: 'nav', name: 'Navigation', items: { circuit: 100, coil: 40, motor: 20 }, research: 'ship_systems' },
   ] as ShipStage[],
   launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
   wakeRadius: 48, // the engines provoke every bug territory within this many tiles on the first run

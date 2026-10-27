@@ -334,6 +334,7 @@ runs, have none to offer until the Electric Age's special buildings (D-126). **S
 | Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
 | Drone Logistics | 60 circuit boards, 40 motors | 120 s | Circuit Works | Drone Pad |
 | Electric Defense 2 | 100 circuit boards, 60 coils, 40 bearings | 150 s | Electric Defense | Shield Pylon, Railgun |
+| Ship Systems | 120 circuit boards, 60 coils, 40 motors, 100 steel | 180 s | Electronics, Hull | The ship's engine, life support and navigation stages |
 | Mk3 Machines | 80 circuit boards, 40 coils, 60 steel beams | 150 s | Circuit Works, Mk2 Machines | Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3 |
 | Electric Defense | 60 circuit boards, 100 wire, 30 coils | 120 s | Circuit Works | Tesla Turret, Arc Fence, Floodlight |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
@@ -448,7 +449,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    with electricity. **Electric Defense** brings the **Tesla Turret** (no ammunition, only electricity), the
    **Arc Fence** and **Floodlights**; **Mk3 Machines** makes extractors, furnaces and assemblers three times as
    fast. **Drone Logistics** brings **drone pads**, which fly items between pads without belts. **Electric Defense 2**
-   brings **Shield Pylons** and the **Railgun**. The ship's last stages follow.
+   brings **Shield Pylons** and the **Railgun**; and **Ship Systems** the ship's last three stages, so the first
+   launch comes in the Electric Age.
 
 ## Bugs
 
@@ -592,9 +594,9 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   | Scaffolding (Wood Age) | 150 planks, 40 trusses, 60 rope |
   | Launch pad (Iron Age; needs the Launch Pad research) | 120 bricks, 80 iron plates, 60 rivets, 40 iron rods |
   | Hull (Steam Age; needs the Hull research) | 120 steel, 60 steel beams, 30 bearings, 20 motors |
-  | Engine | 30 motors, 80 gears |
-  | Life support | 120 wire, 60 copper ingots |
-  | Navigation | 20 motors, 80 wire, 40 gears |
+  | Engine (Electric Age; needs Ship Systems) | 40 motors, 60 coils, 40 steel beams, 30 bearings |
+  | Life support (needs Ship Systems) | 80 circuit boards, 60 steel, 120 wire |
+  | Navigation (needs Ship Systems) | 100 circuit boards, 40 coils, 20 motors |
 
 - Then each **supply run** needs its **cargo** belted in, the same way:
 
@@ -872,7 +874,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v38**). v38 (D-128) adds drones in flight. v37 (D-126) turns the Tesla blueprint, or teslas already built, into
+- Save files are versioned (currently **v39**). v39 (D-130) makes the engine, life support and navigation Electric Age
+  stages: a ship past the engine gets Ship Systems, and one building one of them gets back what it had brought in.
+  v38 (D-128) adds drones in flight. v37 (D-126) turns the Tesla blueprint, or teslas already built, into
   Electric Defense, with stock for a boiler, turbine, well and poles to power them. v36 (D-124) makes the hull a steel stage after its research: a ship past
   it gets the research, and one building it gets back what it had brought in. v35 (D-123) adds sulfur deposits to older maps, on free ground away from
   what's built. v34 (D-121) turns the Express Belt blueprint, or express belts already

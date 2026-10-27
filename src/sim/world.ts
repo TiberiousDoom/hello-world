@@ -109,8 +109,9 @@ export type { ResearchState };
  * v36 (D-124): the hull is built of steel now, after its research; a hull under way is refunded.
  * v37 (D-126): the Tesla moves from a blueprint into research and runs on electricity alone.
  * v38 (D-128) adds drones in flight.
+ * v39 (D-130): the engines, life support and navigation are Electric Age stages, after Ship Systems.
  */
-export const SAVE_VERSION = 38;
+export const SAVE_VERSION = 39;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -468,6 +469,7 @@ export class World {
       state.drones = []; // v38 (D-128): drones
       state.version = 38;
     }
+    if (state.version === 38) World.migrateV38(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -523,6 +525,22 @@ export class World {
       ship.delivered = {};
     }
     state.version = 36;
+  }
+
+  /**
+   * v38 to v39 (D-130): the engines, life support and navigation are built of circuits, coils and steel now,
+   * after Ship Systems. A ship past the engines gets the research and keeps what it built; one building one of
+   * them gets back what it had brought in, and starts it again.
+   */
+  private static migrateV38(state: GameState): void {
+    const ship = state.ship;
+    const engine = SHIP.stages.findIndex((st) => st.id === 'engine');
+    if (ship.stage > engine && !state.researched.includes('ship_systems')) state.researched.push('ship_systems');
+    if (ship.stage >= engine && ship.stage < SHIP.stages.length) {
+      for (const [k, n] of Object.entries(ship.delivered)) state.inventory[k as ItemId] = (state.inventory[k as ItemId] ?? 0) + n!;
+      ship.delivered = {};
+    }
+    state.version = 39;
   }
 
   /**
