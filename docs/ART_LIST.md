@@ -153,6 +153,9 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Turret Mk.2 (D-123): a darker turret base and a four-barrel head | 1×1 | Base and barrel (`turret2_base`, `turret2_barrel`), like the turret | 2 | P2 | Placeholder |
 | Steel wall set (D-123) | 1×1 each | The wall set in blue-grey steel, the same pieces (`steel_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Sulfur, gunpowder, casing and bullet items (D-123) | 16×16 | A yellow crystal; a powder sack; a brass casing; two cartridges | 1 each | P3 | Placeholder |
+| Mortar (D-124): a squat tube on a green-grey turret base | 1×1 | Base and barrel (`mortar_base`, `mortar_barrel`), like the turret | 2 | P2 | Placeholder |
+| Artillery (D-124): a long gun in a turret on a big octagonal base | 2×2 | Base and barrel (`artillery_base`, `artillery_barrel`), like the trebuchet | 2 | P2 | Placeholder |
+| Shell item (D-124) | 16×16 | A shell with a brass case | 1 | P3 | Placeholder (`items/shell`) |
 | Reinforced wall set (D-117) | 1×1 each | The wall set in iron-grey stone with iron straps and rivets, the same pieces (`reinforced_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 

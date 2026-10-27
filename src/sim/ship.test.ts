@@ -25,7 +25,7 @@ function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, truss: 999, rope: 999, rivet: 999, iron_rod: 999 };
+  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, truss: 999, rope: 999, rivet: 999, iron_rod: 999, steel: 999, steel_beam: 999, bearing: 999 };
   return w;
 }
 
@@ -120,13 +120,13 @@ describe('Supply ship', () => {
     for (const [item, n] of Object.entries(SHIP.stages[1].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
     expect(w.state.ship.stage).toBe(2);
     expect(w.events.some((e) => e.includes('Launch pad done'))).toBe(true);
-    expect(w.insert(b, 'motor', ...from)).toBe(false); // the hull comes next
-    for (let i = 0; i < 150; i++) w.insert(b, 'iron_plate', ...from);
-    expect(w.insert(b, 'iron_plate', ...from)).toBe(false); // enough plates
-    for (let i = 0; i < 80; i++) w.insert(b, 'brick', ...from);
+    expect(w.insert(b, 'brick', ...from)).toBe(false); // the hull comes next, all steel (D-124)
+    for (let i = 0; i < 120; i++) w.insert(b, 'steel', ...from);
+    expect(w.insert(b, 'steel', ...from)).toBe(false); // enough steel
+    for (const [item, n] of Object.entries(SHIP.stages[2].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
     expect(w.state.ship.stage).toBe(3);
     expect(w.events.some((e) => e.includes('Hull done'))).toBe(true);
-    expect(w.insert(b, 'motor', ...from)).toBe(true); // now the engine
+    expect(w.insert(b, 'gear', ...from)).toBe(true); // now the engine
   });
 
   it('once built, the ship takes only the cargo the run still needs', () => {
@@ -262,7 +262,7 @@ describe('Supply ship', () => {
       expect(loaded.state.ship).toEqual(
         escaped
           ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['tesla'] }
-          : { stage: 2, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
+          : { stage: 2, delivered: {}, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
   });
@@ -352,7 +352,8 @@ describe('Supply ship', () => {
       old.ship.delivered = { iron_plate: 7 };
       const loaded = World.fromJSON(JSON.stringify(old));
       expect(loaded.state.ship.stage).toBe(after);
-      expect(loaded.state.ship.delivered).toEqual({ iron_plate: 7 });
+      // At the hull, what was brought in for the old one comes back (D-124).
+      expect(loaded.state.ship.delivered).toEqual(after === 2 ? {} : { iron_plate: 7 });
       expect(loaded.state.researched.includes('launch_pad')).toBe(stage > 0);
     }
     expect(SHIP.stages.length).toBe(6);
@@ -373,5 +374,23 @@ describe('Supply ship', () => {
     expect(loaded.state.researched).toEqual(expect.arrayContaining(['steam_power', 'express_logistics']));
     expect(loaded.isUnlocked('express_belt')).toBe(true);
     expect(loaded.state.inventory.steel).toBe(BUILDINGS.boiler.cost.steel! + BUILDINGS.steam_turbine.cost.steel!);
+  });
+
+  it('v35 saves: the hull is steel now; a hull under way gives back its parts, and a ship past it gets the research', () => {
+    for (const stage of [2, 4]) {
+      const w = quiet();
+      w.state.researched = w.state.researched.filter((r) => r !== 'hull');
+      const old = JSON.parse(w.toJSON());
+      old.version = 35;
+      old.ship.stage = stage;
+      old.ship.delivered = { iron_plate: 40, brick: 10 };
+      old.inventory = {};
+      const loaded = World.fromJSON(JSON.stringify(old));
+      expect(loaded.state.ship.stage).toBe(stage);
+      expect(loaded.state.researched.includes('hull')).toBe(stage > 2);
+      expect(loaded.state.ship.delivered).toEqual(stage === 2 ? {} : { iron_plate: 40, brick: 10 });
+      if (stage === 2) expect(loaded.state.inventory).toEqual({ iron_plate: 40, brick: 10 });
+    }
+    expect(SHIP.stages[2]).toMatchObject({ id: 'hull', research: 'hull' });
   });
 });

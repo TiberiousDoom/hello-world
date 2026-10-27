@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2489,5 +2489,31 @@ describe('Gunpowder weapons: sulfur, the Powder Mill and the Turret Mk.2 (D-123)
     const wall = placed(w.place('steel_wall', 70, 70, 0));
     expect(wall.hp).toBe(w.maxHp(wall)); // Chitin Plating counts it too
     expect(BUILDINGS.steel_wall.hp).toBeGreaterThan(BUILDINGS.reinforced_wall.hp);
+  });
+});
+
+describe('Heavy Defense 2 and the hull (D-124)', () => {
+  it('mortars and artillery fire shells with electricity, splashing where they land; the assembler makes shells', () => {
+    expect(RESEARCH_BY_ID.heavy_defense2.requires.sort()).toEqual(['heavy_defense', 'steel_works']);
+    expect(RESEARCH_BY_ID.heavy_defense2.unlocks.sort()).toEqual(['artillery', 'mortar']);
+    expect(TURRETS.artillery!.range).toBeGreaterThan(TURRETS.trebuchet!.range);
+    expect(TURRETS.mortar!.splash).toBeGreaterThan(0);
+    for (const type of ['mortar', 'artillery'] as const) {
+      const w = emptyWorld();
+      w.freePower = false;
+      Object.assign(w.state.inventory, { steel: 999, steel_beam: 99, bearing: 99 });
+      const n = addNest(w, 50, 50, 0);
+      const [mx, my] = nestCentre(n);
+      const g = placed(w.place(type, Math.round(mx) + 9, Math.round(my), 0)); // past both blind spots
+      g.ammo = 10;
+      run(w, 6);
+      expect(g.ammo).toBe(10); // no electricity
+      expect(ELECTRIC_DEFENCES).toContain(type);
+      w.freePower = true;
+      run(w, 6);
+      expect(g.ammo).toBeLessThan(10);
+    }
+    const w = emptyWorld();
+    expect(w.recipesFor('assembler').map((r) => r.id)).toContain('shell');
   });
 });

@@ -3,6 +3,19 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.65.0 · 2026-10-27 · Heavy guns and the hull
+### New
+- **Heavy Defense 2** (after Heavy Defense and Steel Works):
+  - The **Mortar** lobs shells over walls, splashing every bug where they land.
+  - **Artillery** (2×2) fires shells 30 tiles, but can't hit anything within 8.
+  - Both need electricity from a power pole.
+  - The Assembler makes **shells** from casings, gunpowder and steel.
+- **The hull** is the ship's Steam Age stage now: 120 steel, 60 steel beams, 30 bearings and 20 motors, once you research **Hull**.
+- This completes the Steam Age.
+- Saved games keep working:
+  - A ship already past its hull keeps it.
+  - A hull under way gives back the plates and bricks brought in for it.
+
 ## 0.64.0 · 2026-10-27 · Gunpowder
 ### New
 - **Sulfur:** yellow deposits now lie out on the map, at least 45 tiles from the hub. Mine them by hand or with extractors.

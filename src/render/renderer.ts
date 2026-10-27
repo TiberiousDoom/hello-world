@@ -112,6 +112,8 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   reinforced_wall: 0.5,
   steel_wall: 0.55,
   turret2: 0.55,
+  mortar: 0.5,
+  artillery: 0.9,
   palisade: 0.6,
   turret: 0.55,
   ballista: 0.5,
@@ -1502,7 +1504,7 @@ export class Renderer {
     const turret = TURRETS[b.type];
     if (turret) {
       const aim = this.aims.get(b.id) ?? -Math.PI / 2;
-      const [fw] = world.footprintOf(b); // the trebuchet is 2×2 (D-107)
+      const [fw] = world.footprintOf(b); // the trebuchet and artillery are 2×2 (D-107, D-124)
       if (!this.drawSprite(`buildings/${b.type}_barrel`, b.x, b.y, fw, aim)) {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);

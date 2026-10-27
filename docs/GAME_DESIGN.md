@@ -72,6 +72,7 @@ How the game works on `master` today. Balance numbers live in
 | Gunpowder ×2 | Powder Mill | 1 sulfur + 1 charcoal | 3 s |
 | Casing ×4 | Steel Works (after Heavy Defense) | 1 steel | 2 s |
 | Bullets | Assembler (after Heavy Defense) | 1 casing + 1 gunpowder | 2 s |
+| Shell | Assembler (after Heavy Defense 2) | 2 casings + 2 gunpowder + 1 steel | 4 s |
 | Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
@@ -103,6 +104,8 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Powder Mill | 2×2 | 10 steel, 10 bricks, 6 gears | 160 | Heavy Defense |
 | Turret Mk.2 | 1×1, needs electricity | 12 steel, 4 steel beams, 2 motors | 260 | Heavy Defense |
 | Steel Wall | 1×1 | 4 steel, 2 steel beams | 1600 | Heavy Defense |
+| Mortar | 1×1, needs electricity | 14 steel, 6 steel beams, 4 bearings | 240 | Heavy Defense 2 |
+| Artillery | 2×2, needs electricity | 30 steel, 16 steel beams, 10 bearings, 4 motors | 420 | Heavy Defense 2 |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Metal Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Metal Logistics |
@@ -305,6 +308,8 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Express Logistics | 60 steel, 20 motors | 90 s | Steam Power | Express Belt, Storage Silo |
 | Mk2 Machines | 60 steel beams, 40 bearings, 20 motors | 120 s | Steel Works, Steam Power | Upgrade extractors and furnaces to Mk2 |
 | Heavy Defense | 60 steel, 30 motors, 50 gears | 120 s | Steelmaking, Steam Power | Powder Mill, Turret Mk.2, Steel Wall; casings and bullets |
+| Heavy Defense 2 | 100 steel beams, 80 casings, 60 gunpowder | 150 s | Heavy Defense, Steel Works | Mortar, Artillery; shells |
+| Hull | 60 steel beams, 30 bearings, 20 motors | 120 s | Engineering | The ship's hull stage |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
@@ -410,7 +415,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    makes **bearings** from steel and gears. **Steam Power** brings electricity: boilers, steam turbines and power
    poles, which run **express belts** and the **Storage Silo** (Express Logistics), and **Mk2** extractors and furnaces.
    **Heavy Defense** brings gunpowder (sulfur and charcoal, in the **Powder Mill**), casings and bullets, the electric
-   **Turret Mk.2** and the **steel wall**.
+   **Turret Mk.2** and the **steel wall**; **Heavy Defense 2** the electric **mortar** and **artillery**, which fire
+   shells; and **Hull** the ship's Steam Age stage.
 
 ## Bugs
 
@@ -497,11 +503,14 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 | Trebuchet (2×2) | stone | 1 | 12 | 24, nothing closer than 6 | 0.25/s | 40, splash radius 2 |
 | Cannon | gear | 3 | 24 | 6.5 | 0.7/s | 30, splash radius 1.3 |
 | Turret Mk.2 | bullets | 5 | 60 | 6.5 | 6/s | 7 |
+| Mortar | shell | 1 | 12 | 13, nothing closer than 3 | 0.5/s | 45, splash radius 1.8 |
+| Artillery (2×2) | shell | 1 | 10 | 30, nothing closer than 8 | 0.2/s | 100, splash radius 2.6 |
 | Tesla Turret | copper wire | 2 | 30 | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
 
 The **Hydraulic Turret** and **Hydraulic Cannon** (D-117) fire only with power (see Water power): lay a
 drive shaft to them, or place them touching a well, a powered belt or another powered turret. The **Turret
-Mk.2** (D-123) fires only with electricity, using 2: put a power pole within 2 tiles of it. Short of
+Mk.2** (D-123) fires only with electricity, using 2: put a power pole within 2 tiles of it. So do the
+**Mortar** (2) and **Artillery** (4) (D-124). Short of
 power they fire more slowly, and with none they don't fire at all, so a cut shaft leaves a gap.
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
@@ -539,7 +548,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   |---|---|
   | Scaffolding (Wood Age) | 150 planks, 40 trusses, 60 rope |
   | Launch pad (Iron Age; needs the Launch Pad research) | 120 bricks, 80 iron plates, 60 rivets, 40 iron rods |
-  | Hull | 150 iron plates, 80 bricks |
+  | Hull (Steam Age; needs the Hull research) | 120 steel, 60 steel beams, 30 bearings, 20 motors |
   | Engine | 30 motors, 80 gears |
   | Life support | 120 wire, 60 copper ingots |
   | Navigation | 20 motors, 80 wire, 40 gears |
@@ -819,7 +828,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v35**). v35 (D-123) adds sulfur deposits to older maps, on free ground away from
+- Save files are versioned (currently **v36**). v36 (D-124) makes the hull a steel stage after its research: a ship past
+  it gets the research, and one building it gets back what it had brought in. v35 (D-123) adds sulfur deposits to older maps, on free ground away from
   what's built. v34 (D-121) turns the Express Belt blueprint, or express belts already
   built, into Steam Power and Express Logistics, with stock in the hub for the boilers, turbines, wells and poles its
   express belts need. v33 (D-120) gives a game already making or holding steel Steelmaking and

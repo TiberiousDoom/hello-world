@@ -1,7 +1,7 @@
 # The research tree in four ages (planned)
 
 The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood and
-Iron Ages are built, and the Steam Age is under way. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
+Iron Ages are built, and so is the Steam Age; the Electric Age is next. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the
@@ -175,7 +175,7 @@ The owner's answers, 2026-10-26. Numbers are first guesses to test.
 | Mk2 Machines | Extractors and furnaces upgraded in place (electric) | 60 steel beams, 40 bearings, 20 motors | Steel Works, Steam Power |
 | Heavy Defense | Turret Mk.2 (electric, fires bullets), Steel Wall; sulfur, gunpowder (Powder Mill), casings, bullets | 60 steel, 30 motors, 50 gears | Steelmaking, Steam Power |
 | Heavy Defense 2 | Mortar and Artillery (electric, fire shells); shells | 100 steel beams, 80 casings, 60 gunpowder | Heavy Defense, Steel Works |
-| Hull | The ship's hull | *to set* (steel beams, bearings, motors) | Engineering |
+| Hull | The ship's hull | 60 steel beams, 30 bearings, 20 motors (D-124) | Engineering |
 
 ### How the Steam Age plays (D-119)
 
@@ -206,7 +206,8 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
      fast on electricity; the silo holds 12 stacks of 100.
   4. ✅ Heavy Defense (0.64.0, D-123): sulfur deposits, the Powder Mill, casings and bullets, the electric Turret
      Mk.2 and the steel wall.
-  5. Heavy Defense 2 and the hull: the mortar, artillery and shells, and the ship's Steam Age stage.
+  5. ✅ Heavy Defense 2 and the hull (0.65.0, D-124): the electric mortar and artillery, shells, and the steel
+     hull, the ship's Steam Age stage.
 
 ## Electric Age
 
@@ -255,10 +256,9 @@ Age by age, each playtested before the next:
 3. ✅ **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
    Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), ✅ the Storage Unit (0.58.0), ✅ hydraulic defences (0.59.0), ✅ the
    launch pad (0.60.0). The Iron Age is built.
-4. 🚧 **Steam Age** (decided, D-119; see [How the Steam Age plays](#how-the-steam-age-plays-d-119)): ✅ Engineering,
+4. ✅ **Steam Age** (decided, D-119; see [How the Steam Age plays](#how-the-steam-age-plays-d-119)): ✅ Engineering,
    steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), ✅ Mk2 machines and the Storage Silo (0.63.0), ✅ gunpowder
-   and the Turret Mk.2 (0.64.0), then
-   gunpowder weapons, the hull.
+   and the Turret Mk.2 (0.64.0), ✅ the mortar, artillery and hull (0.65.0). The Steam Age is built.
 5. **Electric Age:** circuits, drones, electric defences, launch and supply runs.
 
 Each step changes saved games: a save migration grants an age's keystone to a game that already
