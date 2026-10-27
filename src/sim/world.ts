@@ -52,9 +52,12 @@ import {
   FUEL,
   burnsFuel,
   storageRoom,
+  STORES,
+  isStore,
   POWER,
   HYDRAULIC,
   ELECTRIC,
+  MK2,
   EXPRESS_BELT_SPEED,
   WATER_SOURCES,
   CONDUCTS,
@@ -134,6 +137,8 @@ export interface Building {
   filter: ItemId | null; // hub ports: the item taken out of stock; splitters: the item sorted to `side` (#62)
   /** Splitters: the lane each buffered item came in on, so it leaves on the same one (#61). */
   outLanes?: Lane[];
+  /** Extractors and furnaces upgraded to Mk2 (D-122); absent is Mk1. */
+  tier?: number;
   /** Splitters: which side the filtered item goes out of; everything else takes the other (#62). */
   side?: 'left' | 'right';
   /** Splitters: the last item each of its two lanes took in, and when, to keep two kinds apart (#92). */
@@ -144,6 +149,16 @@ export interface Building {
 
 /** A furnace or blacksmith with no fuel left, which stops until it gets more (D-114). */
 export const outOfFuel = (b: Building): boolean => burnsFuel(b.type) && b.ammo <= 0;
+
+/** Two lists of item counts added together. */
+const sumCounts = (a: ItemCounts, b: ItemCounts): ItemCounts => {
+  const out: ItemCounts = { ...a };
+  for (const [k, n] of Object.entries(b)) out[k as ItemId] = (out[k as ItemId] ?? 0) + n!;
+  return out;
+};
+
+/** The electricity a building uses (D-121, D-122): express belts, and Mk2 machines. */
+export const electricUse = (b: Building): number => ELECTRIC.uses[b.type] ?? (b.tier === 2 ? MK2.uses : 0);
 
 /** A splitter whose two lanes both took in an item this recently, of different kinds, keeps them apart (#92). */
 export const SPLITTER_SORT_WINDOW = 5;
@@ -967,6 +982,23 @@ export class World {
     return [...out];
   }
 
+  /** How fast a machine works (D-122): Mk2 at up to MK2.speed with electricity, Mk1 at 1. */
+  speedUp(b: Building): number {
+    return b.tier === 2 ? 1 + (MK2.speed - 1) * this.electrified(b) : 1;
+  }
+
+  /** Upgrades an extractor or furnace to Mk2 in place (D-122), keeping what it holds. */
+  upgradeMachine(id: number): PlaceError | null {
+    const b = this.byId.get(id);
+    if (!b || !MK2.types.includes(b.type) || b.tier === 2) return 'occupied';
+    if (!this.state.researched.includes('mk2')) return 'locked';
+    if (!this.canAfford(MK2.cost)) return 'cost';
+    this.pay(MK2.cost);
+    b.tier = 2;
+    this.layout++; // it joins the electric network
+    return null;
+  }
+
   /** A boiler has water when it touches a well or a water wheel. */
   hasWater(b: Building): boolean {
     return this.touching(b).some((n) => WATER_SOURCES.includes(n.type));
@@ -995,7 +1027,7 @@ export class World {
     if (this.enetsAt === this.layout) return;
     this.enetsAt = this.layout;
     this.enets.clear();
-    const nodes = this.state.buildings.filter((b) => b.type === 'power_pole' || b.type === 'steam_turbine' || ELECTRIC.uses[b.type] != null);
+    const nodes = this.state.buildings.filter((b) => b.type === 'power_pole' || b.type === 'steam_turbine' || electricUse(b) > 0);
     const parent = new Map<number, number>(nodes.map((b) => [b.id, b.id]));
     const find = (id: number): number => {
       let r = id;
@@ -1028,7 +1060,7 @@ export class World {
       let net = byRoot.get(r);
       if (!net) byRoot.set(r, (net = { turbines: [], demand: 0, supply: 0, at: -1 }));
       if (b.type === 'steam_turbine') net.turbines.push(b);
-      net.demand += ELECTRIC.uses[b.type] ?? 0;
+      net.demand += electricUse(b);
       this.enets.set(b.id, net);
     }
   }
@@ -1540,7 +1572,8 @@ export class World {
     if (!b || b.type === 'hub') return false;
     const def = BUILDINGS[b.type];
     const frac = b.hp / this.maxHp(b);
-    for (const [item, n] of Object.entries(def.cost)) {
+    const cost = b.tier === 2 ? sumCounts(def.cost, MK2.cost) : def.cost; // a Mk2 upgrade comes back too (D-122)
+    for (const [item, n] of Object.entries(cost)) {
       const inv = this.state.inventory;
       inv[item as ItemId] = (inv[item as ItemId] ?? 0) + Math.floor(n! * frac);
     }
@@ -1639,9 +1672,10 @@ export class World {
         target.outputs.push(item);
         return true;
       }
-      case 'storage': {
+      case 'storage':
+      case 'storage_silo': {
         // Six stacks of 50, mixed, from anywhere but the tiles in front, where it sends them (D-116).
-        if (this.inFront(target, fromX, fromY) || !storageRoom(target.outputs, item)) return false;
+        if (this.inFront(target, fromX, fromY) || !storageRoom(target.outputs, item, STORES[target.type])) return false;
         target.outputs.push(item);
         return true;
       }
@@ -1945,6 +1979,7 @@ export class World {
           break;
         case 'crate':
         case 'storage':
+        case 'storage_silo':
           this.pushOutput(b); // a belt or roller leaving its front takes items out
           break;
         case 'splitter':
@@ -2163,7 +2198,7 @@ export class World {
     if (!n || n === target) return false;
     if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
     if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
-    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && n.type !== 'storage') return false;
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type)) return false;
     const o = this.outputTile(n);
     return o.x === target.x && o.y === target.y;
   }
@@ -2327,7 +2362,7 @@ export class World {
       if (!tiles.length) {
         b.progress = -1; // used up
       } else {
-        b.progress = Math.max(b.progress, 0) + dt;
+        b.progress = Math.max(b.progress, 0) + dt * this.speedUp(b);
         if (b.progress >= EXTRACTOR_PERIOD) {
           b.progress = 0;
           for (const i of tiles) {
@@ -2368,7 +2403,7 @@ export class World {
         }
       }
       if (b.progress >= 0) {
-        b.progress += dt;
+        b.progress += dt * this.speedUp(b);
         if (fuel) b.ammo = Math.max(0, b.ammo - dt);
         if (b.progress >= recipe.time) {
           for (let i = 0; i < recipe.count; i++) b.outputs.push(recipe.output);
@@ -2670,5 +2705,5 @@ export function shipSites(state: GameState): { x: number; y: number }[] {
 }
 
 export function canCollect(t: BuildingType): boolean {
-  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || t === 'storage' || isMachine(t);
+  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || isStore(t) || isMachine(t);
 }

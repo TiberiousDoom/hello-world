@@ -15,6 +15,7 @@ export function outputsTo(world: World, n: Building, x: number, y: number): bool
     case 'roller':
     case 'crate':
     case 'storage':
+    case 'storage_silo':
     case 'extractor':
     case 'lumber_camp':
     case 'furnace':
@@ -50,7 +51,8 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'roller':
     case 'crate':
       return !front;
-    case 'storage': {
+    case 'storage':
+    case 'storage_silo': {
       // From anywhere but the tiles past its front edge (D-116).
       const [w, h] = world.footprintOf(b);
       const inside = (x: number, y: number) => x >= b.x && y >= b.y && x < b.x + w && y < b.y + h;

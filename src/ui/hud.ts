@@ -11,6 +11,7 @@ import {
   HUB_WEAPON,
   HYDRAULIC,
   ELECTRIC,
+  MK2,
   ITEMS,
   ITEM_IDS,
   ItemCounts,
@@ -29,7 +30,7 @@ import {
   PLAYER,
   isBelt,
   CRATE_SIZE,
-  STORAGE,
+  STORES,
   FUEL,
   burnsFuel,
 } from '../sim/data';
@@ -49,6 +50,7 @@ const TOOLBAR: BuildingType[] = [
   'roller',
   'crate',
   'storage',
+  'storage_silo',
   'belt',
   'express_belt',
   'splitter',
@@ -84,7 +86,7 @@ const TOOLBAR: BuildingType[] = [
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -411,6 +413,9 @@ export class Hud {
         case 'launch':
           this.actions.issue({ kind: 'launch' });
           break;
+        case 'upgrade':
+          if (id != null) this.actions.issue({ kind: 'upgrade', id });
+          break;
         case 'collect':
           if (id != null) this.actions.issue({ kind: 'collect', id });
           break;
@@ -690,7 +695,7 @@ export class Hud {
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.tier ?? 1}:${world.state.researched.includes('mk2')}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -737,6 +742,13 @@ export class Hud {
           actions += '</div>';
         }
         if (b!.type === 'shipyard') actions += `<div class="row"><button data-action="ship-view">Side view</button></div>`;
+        // Mk2 (D-122): upgrade an extractor or furnace in place.
+        if (MK2.types.includes(b!.type) && b!.tier !== 2 && world.state.researched.includes('mk2')) {
+          const cost = Object.entries(MK2.cost)
+            .map(([k, n]) => `${swatch(k as ItemId)}${n}`)
+            .join(' ');
+          actions += `<div class="row"><button data-action="upgrade" title="Twice as fast with electricity from a power pole">⬆ Upgrade to Mk2 ${cost}</button></div>`;
+        }
         if (b!.type === 'shipyard' && checkLaunch(world) === null) {
           actions += `<div class="row"><button data-action="launch" class="primary launch">🚀 Launch</button></div>`;
         }
@@ -855,6 +867,10 @@ export class Hud {
               ? '<br>Making steam'
               : '';
       }
+      if (b.tier === 2) {
+        const e = world.electrified(b);
+        stats += `<br>Mk2: ${e >= 1 ? `${MK2.speed}× speed` : e > 0 ? `${(1 + (MK2.speed - 1) * e).toFixed(1)}× speed, short of electricity` : '<b>no electricity:</b> Mk1 speed. Put a power pole near it'}`;
+      }
       if (burnsFuel(b.type)) {
         const fuels = Object.entries(FUEL.burns)
           .map(([k, s]) => `${swatch(k as ItemId)}${ITEMS[k as ItemId].name.toLowerCase()} ${s} s`)
@@ -892,11 +908,12 @@ export class Hud {
       if (b.type === 'shipyard') stats += shipStats(world);
       if (isBelt(b.type)) stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
       if (b.type === 'crate') stats += b.outputs.length ? `<br>Holds ${b.outputs.length} of ${CRATE_SIZE}: ${esc(ITEMS[b.outputs[0]].name)}` : `<br>Empty: holds up to ${CRATE_SIZE} of one item`;
-      if (b.type === 'storage') {
+      const store = STORES[b.type];
+      if (store) {
         const counts = new Map<ItemId, number>();
         for (const it of b.outputs) counts.set(it, (counts.get(it) ?? 0) + 1);
         const list = [...counts].map(([k, n]) => `${swatch(k)}${n}`).join(' ');
-        stats += b.outputs.length ? `<br>Holds ${b.outputs.length} of ${STORAGE.slots * STORAGE.stack}: ${list}` : `<br>Empty: ${STORAGE.slots} stacks of up to ${STORAGE.stack}`;
+        stats += b.outputs.length ? `<br>Holds ${b.outputs.length} of ${store.slots * store.stack}: ${list}` : `<br>Empty: ${store.slots} stacks of up to ${store.stack}`;
       }
     }
     if (stats !== this.statsHtml) {

@@ -115,6 +115,7 @@ export type BuildingType =
   | 'roller'
   | 'crate'
   | 'storage'
+  | 'storage_silo'
   | 'spike_pit'
   | 'trebuchet';
 
@@ -135,14 +136,19 @@ export const TUNNEL_RANGE = 5; // max distance from an entrance to its exit
 export const CRATE_SIZE = 50;
 /** The Storage Unit (#87, D-116): six slots of up to 50 of one item each. */
 export const STORAGE = { slots: 6, stack: 50 };
+/** The Storage Silo (D-122): the Steam Age's bigger store, the same rules. */
+export const SILO = { slots: 12, stack: 100 };
+/** Stores with slots of mixed items, first in, first out: their slots and stack sizes. */
+export const STORES: Partial<Record<BuildingType, { slots: number; stack: number }>> = { storage: STORAGE, storage_silo: SILO };
+export const isStore = (t: BuildingType): boolean => STORES[t] != null;
 
-/** Whether a Storage Unit holding `items` has room for one more `item`. */
-export function storageRoom(items: ItemId[], item: ItemId): boolean {
+/** Whether a store holding `items` has room for one more `item`. */
+export function storageRoom(items: ItemId[], item: ItemId, store = STORAGE): boolean {
   const counts = new Map<ItemId, number>([[item, 1]]);
   for (const it of items) counts.set(it, (counts.get(it) ?? 0) + 1);
   let slots = 0;
-  for (const n of counts.values()) slots += Math.ceil(n / STORAGE.stack);
-  return slots <= STORAGE.slots;
+  for (const n of counts.values()) slots += Math.ceil(n / store.stack);
+  return slots <= store.slots;
 }
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
@@ -240,6 +246,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   },
   crate: { name: 'Storage Crate', short: 'CR', color: '#9a6a3a', hp: 60, cost: { plank: 6, peg: 4 }, blocking: true, description: `Holds up to ${CRATE_SIZE} of one item. Rollers fill it, and a roller leaving its front takes items out.` },
   storage: { name: 'Storage Unit', short: 'SU', color: '#5a6a7a', hp: 160, size: [1, 2], cost: { iron_plate: 12, rivet: 8 }, blocking: true, description: `Holds ${STORAGE.slots} stacks of up to ${STORAGE.stack} items, mixed. Belts fill it from the sides and back, and a belt leaving its front takes items out, first in, first out.` },
+  storage_silo: { name: 'Storage Silo', short: 'SS', color: '#6a7a8a', hp: 300, size: [2, 2], cost: { steel: 20, steel_beam: 8, rivet: 10 }, blocking: true, description: `Holds ${SILO.slots} stacks of up to ${SILO.stack} items, mixed. Belts fill it from the sides and back, and a belt leaving its front takes items out, first in, first out.` },
   shipyard: {
     name: 'Shipyard',
     short: 'SHIP',
@@ -415,6 +422,18 @@ export const ELECTRIC = {
   link: 6,
   reach: 2,
 };
+/**
+ * Mk2 machines (D-119, D-122): an extractor or furnace upgraded in place, for `cost`. With all the
+ * electricity it needs (`uses`) it works `speed` times as fast; with less, proportionally less; with none, at
+ * Mk1 speed.
+ */
+export const MK2 = {
+  types: ['extractor', 'furnace'] as BuildingType[],
+  cost: { steel_beam: 6, bearing: 4, motor: 2 } as ItemCounts,
+  speed: 2,
+  uses: 2,
+};
+
 /** What the boiler's water comes from: it has to touch one (D-121). */
 export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
 
@@ -491,7 +510,8 @@ export const RESEARCH: Research[] = [
   { id: 'steelmaking', name: 'Steelmaking', cost: { iron_plate: 100, charcoal: 60 }, time: 60, requires: ['engineering', 'charcoal'], unlocks: [], description: 'Furnaces can make steel from iron plates and charcoal.' },
   { id: 'steel_works', name: 'Steel Works', cost: { steel: 80, gear: 40, motor: 20 }, time: 90, requires: ['steelmaking'], unlocks: ['steel_works'], description: 'Steel works roll steel into steel beams, and make bearings from steel and gears.' },
   { id: 'steam_power', name: 'Steam Power', cost: { steel: 60, iron_rod: 40, brick: 30 }, time: 90, requires: ['steelmaking'], unlocks: ['boiler', 'steam_turbine', 'power_pole'], description: 'Boilers and steam turbines make electricity, and power poles carry it.' },
-  { id: 'express_logistics', name: 'Express Logistics', cost: { steel: 60, motor: 20 }, time: 90, requires: ['steam_power'], unlocks: ['express_belt'], description: 'Express belts, twice as fast as belts, run on electricity.' },
+  { id: 'express_logistics', name: 'Express Logistics', cost: { steel: 60, motor: 20 }, time: 90, requires: ['steam_power'], unlocks: ['express_belt', 'storage_silo'], description: 'Express belts, twice as fast as belts, run on electricity. The Storage Silo holds twelve stacks of 100.' },
+  { id: 'mk2', name: 'Mk2 Machines', cost: { steel_beam: 60, bearing: 40, motor: 20 }, time: 120, requires: ['steel_works', 'steam_power'], unlocks: [], description: 'Upgrade extractors and furnaces in place: with electricity, they work twice as fast.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'launch_pad', name: 'Launch Pad', cost: { iron_plate: 60, brick: 60, rivet: 30 }, time: 60, requires: ['blacksmith', 'shipyard'], unlocks: [], description: "The ship's Iron Age stage: a brick and iron launch pad, built in the shipyard after the scaffolding." },

@@ -146,6 +146,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Boiler (D-121): a brick firebox with a riveted steel drum, a fire behind the grate and a smoke stack | 2×2 | Static, plus a 4-frame working strip (fire flickering, glow, smoke) | 1 + 4 | P2 | Placeholder (`buildings/boiler`, `boiler_working_4f`) |
 | Steam Turbine (D-121): a bladed rotor in a steel casing, with a copper generator coil | 2×2 | Static, plus a 4-frame working strip (rotor turning, spark) | 1 + 4 | P2 | Placeholder (`buildings/steam_turbine`, `steam_turbine_working_4f`) |
 | Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Placeholder (`buildings/power_pole`) |
+| Storage Silo (D-122): a round steel silo roof inside a square frame, with an output hatch | 2×2 | Static | 1 | P2 | Placeholder (`buildings/storage_silo`) |
+| Mk2 plate (D-122) | — | A gold plate with two chevrons on Mk2 extractors and furnaces, dim without electricity | — | P3 | Code |
 | Reinforced wall set (D-117) | 1×1 each | The wall set in iron-grey stone with iron straps and rivets, the same pieces (`reinforced_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 

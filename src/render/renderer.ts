@@ -103,6 +103,7 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   splitter: 0.2,
   crate: 0.35,
   storage: 0.5,
+  storage_silo: 0.9,
   wall: 0.5,
   boiler: 0.8,
   steam_turbine: 0.6,
@@ -1532,6 +1533,24 @@ export class Renderer {
       const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
       if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
       if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
+    }
+    // Mk2 machines (D-122): a gold plate with two chevrons in the bottom-left corner.
+    if (b.tier === 2) {
+      ctx.fillStyle = '#0f1a2e';
+      roundRect(ctx, b.x + 0.1, b.y + fh - 0.5, 0.42, 0.36, 0.06);
+      ctx.fill();
+      ctx.fillStyle = world.electrified(b) > 0 ? '#f2c14e' : '#8a7a4a';
+      roundRect(ctx, b.x + 0.13, b.y + fh - 0.47, 0.36, 0.3, 0.05);
+      ctx.fill();
+      ctx.strokeStyle = '#0f1a2e';
+      ctx.lineWidth = 0.05;
+      ctx.beginPath();
+      for (const dy of [0.06, 0.15]) {
+        ctx.moveTo(b.x + 0.2, b.y + fh - 0.25 - dy + 0.1);
+        ctx.lineTo(b.x + 0.31, b.y + fh - 0.34 - dy + 0.1);
+        ctx.lineTo(b.x + 0.42, b.y + fh - 0.25 - dy + 0.1);
+      }
+      ctx.stroke();
     }
     // Hydraulic defences (D-117): a flashing blue mark while they have no power and can't fire.
     if (HYDRAULIC.includes(b.type) && world.powered(b) <= 0) {

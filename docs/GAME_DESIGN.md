@@ -108,6 +108,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Boiler | 2×2, touching a well or water wheel | 10 steel, 20 bricks, 6 iron rods | 200 | Steam Power |
 | Steam Turbine | 2×2, touching a boiler | 20 steel, 10 gears, 20 wire | 180 | Steam Power |
 | Power Pole | 1×1 | 2 iron rods, 2 wire, 1 plank | 40 | Steam Power |
+| Storage Silo | 2×2 | 20 steel, 8 steel beams, 10 rivets | 300 | Express Logistics |
 | Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
@@ -140,6 +141,8 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 - **Storage Unit** (1×2, #87, D-116): its Iron Age upgrade. It holds **6 stacks of up to 50**, of any mix
   of items (300 in all), takes them from the back and sides, and sends them out of its front, first in,
   first out, onto a belt or roller there. Collect and Drop off work as on the crate.
+- **The Storage Silo** (D-122, Express Logistics) is the same with **12 stacks of 100** (1200 items) on a 2×2
+  footprint.
 - **Water power (D-113, D-115, D-117):** belts, turrets and cannons need power. A **Well** (anywhere) gives
   **8** power and a **Water Wheel** (its front tile in a pond, the other two on land) gives **32**; each belt
   uses **0.2**, each hydraulic turret **1** and each hydraulic cannon **2**, so a well runs 40 belts or 8
@@ -166,7 +169,12 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
   **0.5**, so a turbine runs 120 express belts. Short of electricity, everything on the network slows evenly.
   It's a network of its own: belts and hydraulic defences stay on drive shafts.
 - **Express belts** (Express Logistics, after Steam Power) work the same way at 3 tiles/s with electricity, and at
-  roller speed without it. They can be laid like belts,
+  roller speed without it.
+- **Mk2 machines (D-122):** after **Mk2 Machines**, select an extractor or furnace and press **Upgrade to Mk2**
+  (6 steel beams, 4 bearings, 2 motors). It stays where it is with what it holds, gets a gold plate, and uses
+  **2** electricity: with all of it, it works **twice as fast**; short of it, proportionally less; with none, at
+  Mk1 speed. Demolishing it refunds the upgrade too. A furnace's fuel lasts the same time, so Mk2 smelts twice as
+  much per log. They can be laid like belts,
   but the quick way is to **tap or click an existing belt with the Express Belt selected: its whole line
   is upgraded in place**, with no ✓ step on touch. The line is every belt joined to the tapped one,
   belt-to-belt in either direction (side merges included), up to any other building such as a splitter,
@@ -286,7 +294,8 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Steelmaking | 100 iron plates, 60 charcoal | 60 s | Engineering, Charcoal | The steel recipe |
 | Steel Works | 80 steel, 40 gears, 20 motors | 90 s | Steelmaking | Steel Works (steel beams, bearings) |
 | Steam Power | 60 steel, 40 iron rods, 30 bricks | 90 s | Steelmaking | Boiler, Steam Turbine, Power Pole |
-| Express Logistics | 60 steel, 20 motors | 90 s | Steam Power | Express Belt |
+| Express Logistics | 60 steel, 20 motors | 90 s | Steam Power | Express Belt, Storage Silo |
+| Mk2 Machines | 60 steel beams, 40 bearings, 20 motors | 120 s | Steel Works, Steam Power | Upgrade extractors and furnaces to Mk2 |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
@@ -390,7 +399,7 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 9. **The Steam Age (D-119):** **Engineering** (30 motors, 100 gears, 60 bricks, after Assembly and Advanced Defense 2)
    opens it. **Steelmaking** lets furnaces make **steel**, and the **Steel Works** rolls it into **steel beams** and
    makes **bearings** from steel and gears. **Steam Power** brings electricity: boilers, steam turbines and power
-   poles, which run **express belts** (Express Logistics).
+   poles, which run **express belts** and the **Storage Silo** (Express Logistics), and **Mk2** extractors and furnaces.
 
 ## Bugs
 
