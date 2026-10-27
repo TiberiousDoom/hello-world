@@ -10,7 +10,7 @@
 import { shipyard } from '../sim/ship';
 import { heldOf } from '../sim/player';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
-import { BREACH, BUILDINGS, BuildingType, CRATE_SIZE, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, POWER, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
+import { BREACH, BUILDINGS, BuildingType, CRATE_SIZE, ELECTRIC, HAND_MINING, HUB_SIZE, ItemId, LUMBER, NESTS, POWER, RECIPE_BY_ID, RESEARCH_BY_ID, SHIP } from '../sim/data';
 import { TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { UIState } from './state';
@@ -498,6 +498,29 @@ export const LESSONS: Lesson[] = [
         text: () =>
           `Lay Drive Shafts from a well to your belts: everything a shaft touches shares its power, and belts pass it along their line. ` +
           `A well powers about ${Math.floor(POWER.sources.well! / POWER.uses.belt!)} belts. Select a belt to see how its network is doing.`,
+      },
+    ],
+  },
+  {
+    id: 'electricity',
+    title: 'Electricity',
+    // Steam Power is done, and no boiler is built yet (D-121).
+    trigger: (w) => w.isUnlocked('boiler') && count(w, 'boiler') === 0,
+    steps: [
+      {
+        target: () => ({ el: '[data-tool="boiler"]' }),
+        text: () =>
+          'A Boiler burns logs or charcoal to make steam. It needs water, so place it touching a well or a water wheel, and keep it fed by belt like a furnace.',
+      },
+      {
+        target: () => ({ el: '[data-tool="steam_turbine"]' }),
+        text: () =>
+          `A Steam Turbine touching the boiler turns its steam into ${ELECTRIC.turbine} electricity. A boiler shared by two turbines gives each half.`,
+      },
+      {
+        target: () => ({ el: '[data-tool="power_pole"]' }),
+        text: () =>
+          `Power Poles carry it: each links to poles within ${ELECTRIC.link} tiles, and connects turbines and electric buildings within ${ELECTRIC.reach} tiles of it. Express belts pass it along their line.`,
       },
     ],
   },

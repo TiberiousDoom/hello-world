@@ -75,7 +75,7 @@ test('two players host and join with a code, and play one game', async ({ page: 
   expect(await guest.evaluate(() => window.game.ui.pings.length)).toBe(1); // shown at once on the guest's own screen
 
   // The colony's offer is a card that leaves the map playable, and the first pick is everyone's.
-  for (const p of [host, guest]) await p.evaluate(() => (window.game.world.state.ship.offer = ['express_belt', 'tesla']));
+  for (const p of [host, guest]) await p.evaluate(() => (window.game.world.state.ship.offer = ['tesla']));
   await host.locator('#speed [data-speed="1"]').click(); // the host plays on: the card doesn't pause
   for (const p of [host, guest]) {
     await expect(p.locator('#blueprints')).toBeVisible();

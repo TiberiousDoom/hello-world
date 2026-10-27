@@ -105,6 +105,9 @@ export type BuildingType =
   | 'blacksmith'
   | 'machine_shop'
   | 'steel_works'
+  | 'boiler'
+  | 'steam_turbine'
+  | 'power_pole'
   | 'shaft'
   | 'well'
   | 'water_wheel'
@@ -152,7 +155,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     hp: 40,
     cost: { iron_plate: 1, gear: 1 },
     blocking: false,
-    description: 'Moves items twice as fast as a belt. Tap a belt to upgrade its whole line.',
+    description: 'Moves items twice as fast as a belt, with electricity from a power pole; without it, at roller speed. Tap a belt to upgrade its whole line.',
   },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, size: [1, 2], cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Spans two belt lanes. Takes items from behind either lane and sends them out of both in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
@@ -202,6 +205,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   shaft: { name: 'Drive Shaft', short: '', color: '#7d8794', hp: 30, cost: { iron_rod: 1 }, blocking: false, description: 'Carries power from a well or water wheel to belts and anything touching it. Drag to lay a line.' },
   well: { name: 'Well', short: 'WE', color: '#4f7fa8', hp: 150, size: [2, 2], cost: { brick: 10, iron_plate: 6, iron_rod: 4 }, blocking: true, description: 'Draws groundwater anywhere to turn the drive shafts touching it. A little power.' },
   water_wheel: { name: 'Water Wheel', short: 'WW', color: '#3f74b0', hp: 160, size: [3, 1], cost: { plank: 20, iron_rod: 10, rivet: 20 }, blocking: true, description: 'Place with its front tile in a pond and the other two on land. Four times the power of a well.' },
+  // Electricity (D-119, D-121): boilers by water feed steam turbines; poles carry the power.
+  boiler: { name: 'Boiler', short: 'BO', color: '#7a5a48', hp: 200, size: [2, 2], cost: { steel: 10, brick: 20, iron_rod: 6 }, blocking: true, description: 'Burns logs or charcoal to make steam for the steam turbines it touches. Needs water: place it touching a well or a water wheel.' },
+  steam_turbine: { name: 'Steam Turbine', short: 'ST', color: '#5d6a86', hp: 180, size: [2, 2], cost: { steel: 20, gear: 10, wire: 20 }, blocking: true, description: 'Turns steam from a boiler it touches into electricity, carried by power poles.' },
+  power_pole: { name: 'Power Pole', short: '', color: '#8a6a44', hp: 40, cost: { iron_rod: 2, wire: 2, plank: 1 }, blocking: false, description: 'Carries electricity: links to poles nearby, and powers turbines and electric buildings close to it.' },
   palisade: { name: 'Palisade', short: '', color: '#8a6234', hp: 160, cost: { plank: 2 }, blocking: true, description: 'A cheap wooden wall. Weaker than stone.' },
   roller: {
     name: 'Wooden Roller',
@@ -252,7 +259,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
 export const FUEL = {
   burns: { log: 8, charcoal: 24 } as Partial<Record<ItemId, number>>,
   max: 48,
-  types: ['furnace', 'blacksmith'] as BuildingType[],
+  types: ['furnace', 'blacksmith', 'boiler'] as BuildingType[],
 };
 export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
 
@@ -395,6 +402,22 @@ export const POWER = {
   sources: { well: 8, water_wheel: 32 } as Partial<Record<BuildingType, number>>,
   uses: { belt: 0.2, turret: 1, cannon: 2 } as Partial<Record<BuildingType, number>>,
 };
+/**
+ * Electricity (D-119, D-121), a network of its own beside the drive shafts. A turbine with all the steam it
+ * can use gives `turbine`; each building on the network uses what `uses` says, and a network short of it
+ * slows them all evenly. Poles link to poles within `link` tiles (centre to centre) and connect anything
+ * whose footprint comes within `reach` tiles of them; express belts pass it along their line, as belts do
+ * with a shaft's power.
+ */
+export const ELECTRIC = {
+  turbine: 60,
+  uses: { express_belt: 0.5 } as Partial<Record<BuildingType, number>>,
+  link: 6,
+  reach: 2,
+};
+/** What the boiler's water comes from: it has to touch one (D-121). */
+export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
+
 /** Defences that fire only with power (D-117). */
 export const HYDRAULIC: BuildingType[] = ['turret', 'cannon'];
 /**
@@ -467,6 +490,8 @@ export const RESEARCH: Research[] = [
   { id: 'engineering', name: 'Engineering', cost: { motor: 30, gear: 100, brick: 60 }, time: 120, requires: ['assembly', 'ordnance'], unlocks: [], description: 'Opens the Steam Age: steel, steam turbines and electricity, and heavy guns.' },
   { id: 'steelmaking', name: 'Steelmaking', cost: { iron_plate: 100, charcoal: 60 }, time: 60, requires: ['engineering', 'charcoal'], unlocks: [], description: 'Furnaces can make steel from iron plates and charcoal.' },
   { id: 'steel_works', name: 'Steel Works', cost: { steel: 80, gear: 40, motor: 20 }, time: 90, requires: ['steelmaking'], unlocks: ['steel_works'], description: 'Steel works roll steel into steel beams, and make bearings from steel and gears.' },
+  { id: 'steam_power', name: 'Steam Power', cost: { steel: 60, iron_rod: 40, brick: 30 }, time: 90, requires: ['steelmaking'], unlocks: ['boiler', 'steam_turbine', 'power_pole'], description: 'Boilers and steam turbines make electricity, and power poles carry it.' },
+  { id: 'express_logistics', name: 'Express Logistics', cost: { steel: 60, motor: 20 }, time: 90, requires: ['steam_power'], unlocks: ['express_belt'], description: 'Express belts, twice as fast as belts, run on electricity.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'launch_pad', name: 'Launch Pad', cost: { iron_plate: 60, brick: 60, rivet: 30 }, time: 60, requires: ['blacksmith', 'shipyard'], unlocks: [], description: "The ship's Iron Age stage: a brick and iron launch pad, built in the shipyard after the scaffolding." },
@@ -537,7 +562,6 @@ export interface Blueprint {
 }
 
 export const BLUEPRINTS: Blueprint[] = [
-  { id: 'express_belt', name: 'Express Belt', description: 'Belts twice as fast. Tap a belt to upgrade its whole line.', unlocks: ['express_belt'] },
   { id: 'tesla', name: 'Tesla Turret', description: 'Fed by copper wire. Each shot arcs on to two more bugs nearby.', unlocks: ['tesla'] },
 ];
 export const BLUEPRINT_BY_ID: Record<string, Blueprint> = Object.fromEntries(BLUEPRINTS.map((b) => [b.id, b]));

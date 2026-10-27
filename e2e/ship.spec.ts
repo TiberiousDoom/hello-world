@@ -109,14 +109,10 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   await page.click('#btn-keep-playing');
   await expect(page.locator('#victory')).toBeHidden();
 
-  // The colony offers two blueprints; the game waits for a pick.
-  await expect(page.locator('#blueprints')).toBeVisible();
-  await expect(page.locator('#blueprint-choices button')).toHaveCount(2);
-  expect(await page.evaluate(() => window.game.ui.speed)).toBe(0);
-  await page.click('[data-blueprint="express_belt"]');
+  // The colony sends its one blueprint left (the Express Belt is researched now, D-121): no pick to wait for.
   await expect(page.locator('#blueprints')).toBeHidden();
-  expect(await page.evaluate(() => window.game.world.state.ship.blueprints)).toEqual(['express_belt']);
-  await expect(page.locator('[data-tool="express_belt"]')).toBeVisible();
+  expect(await page.evaluate(() => window.game.world.state.ship.blueprints)).toEqual(['tesla']);
+  await expect(page.locator('[data-tool="tesla"]')).toBeVisible();
   const ship = await page.evaluate(() => ({ ...window.game.world.state.ship, yards: window.game.world.state.buildings.filter((b: { type: string }) => b.type === 'shipyard').length }));
   expect(ship.runs).toBe(1);
   expect(ship.returnAt).not.toBeNull();
@@ -131,6 +127,7 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   const belts = await page.evaluate(() => {
     const w = window.game.world;
     const s = w.state;
+    s.researched.push('express_logistics');
     s.inventory.gear = 50;
     s.inventory.iron_plate = 50;
     const y = w.hub.y - 6;

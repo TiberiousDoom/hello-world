@@ -143,6 +143,18 @@ const MACHINES = {
     svg = swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'steel works light');
     return svg;
   },
+  boiler(svg, i) {
+    // The fire flickers behind the grate, its glow breathes, and smoke puffs from the stack.
+    svg = swap(svg, 'fill="url(#oFire)" opacity="0.85"', `fill="url(#oFire)" opacity="${[0.85, 1, 0.75, 0.95][i]}"`, 'boiler fire');
+    svg = swap(svg, 'fill="#ff8a3d" opacity="0.35" filter="url(#oBlur)"', `fill="#ff8a3d" opacity="${[0.35, 0.55, 0.3, 0.5][i]}" filter="url(#oBlur)"`, 'boiler glow');
+    const smoke = [[[96, 86, 4], [100, 80, 3]], [[97, 84, 4.5], [102, 77, 3.5]], [[98, 82, 5], [104, 74, 4]], [[96, 87, 3.5], [101, 79, 3]]][i];
+    return swap(svg, /<g fill="#d9dde2" opacity="0.7" id="oSmoke">.*?<\/g>/s.exec(svg)?.[0] ?? 'boiler smoke', `<g fill="#d9dde2" opacity="0.7" id="oSmoke">${smoke.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" />`).join('')}</g>`, 'boiler smoke');
+  },
+  steam_turbine(svg, i) {
+    // Eight blades: an eighth of a turn over the loop. The spark at the coil blinks.
+    svg = swap(svg, 'translate(58 64) rotate(0)', `translate(58 64) rotate(${11.25 * i})`, 'turbine rotor');
+    return swap(svg, '<circle cx="90" cy="18" r="4" fill="#f2c14e"', `<circle cx="90" cy="18" r="4" fill="${i % 2 ? '#fff4c2' : '#f2c14e'}"`, 'turbine spark');
+  },
   well(svg, i) {
     // The crank turns a quarter of the way round over the loop, and back to the start: four-fold symmetric.
     return swap(svg, '<g id="wCrank" transform="rotate(0 64 64)">', `<g id="wCrank" transform="rotate(${22.5 * i} 64 64)">`, 'well crank');

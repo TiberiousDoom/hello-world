@@ -54,6 +54,9 @@ import {
   storageRoom,
   POWER,
   HYDRAULIC,
+  ELECTRIC,
+  EXPRESS_BELT_SPEED,
+  WATER_SOURCES,
   CONDUCTS,
 } from './data';
 import { clockAt } from './clock';
@@ -91,8 +94,9 @@ export type { ResearchState };
  * v31 (D-117): turrets and cannons need power, and Masonry goes into Advanced Defense.
  * v32 (D-118): the ship gains the launch pad, its second stage; a ship past the scaffolding has it built.
  * v33 (D-120): steel needs Steelmaking; a game already making or holding steel gets it, and Engineering.
+ * v34 (D-121): the Express Belt moves from a blueprint into research and runs on electricity.
  */
-export const SAVE_VERSION = 33;
+export const SAVE_VERSION = 34;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -206,6 +210,14 @@ export interface PowerNet {
   demand: number;
 }
 
+/** An electric network (D-121): its turbines, what it all uses, and its supply as of `at` (game time). */
+export interface ElectricNet {
+  turbines: Building[];
+  demand: number;
+  supply: number;
+  at: number;
+}
+
 export interface PathTimers {
   dirty: boolean;
   at: number | null; // game time of the last rebuild; null: never, or rebuild at once
@@ -297,6 +309,8 @@ export class World {
   /** Power networks (D-115), worked out from the buildings whenever they change (`layout`): each conductor's network. */
   private nets = new Map<number, PowerNet>();
   private netsAt = -1;
+  private enets = new Map<number, ElectricNet>();
+  private enetsAt = -1;
 
   constructor(state: GameState) {
     this.state = state;
@@ -386,6 +400,7 @@ export class World {
     if (state.version === 30) World.migrateV30(state);
     if (state.version === 31) World.migrateV31(state);
     if (state.version === 32) World.migrateV32(state);
+    if (state.version === 33) World.migrateV33(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -403,6 +418,35 @@ export class World {
     const free = (x: number, y: number) =>
       !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
     this.addWater(generatePonds(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x5eed), free));
+  }
+
+  /**
+   * v33 to v34 (D-121): the Express Belt is researched now (Express Logistics, after Steam Power) and runs on
+   * electricity. A game with its blueprint, or with express belts, gets both researches instead, and stock
+   * for the boilers, turbines and poles its express belts need; an offer that held it keeps the rest.
+   */
+  private static migrateV33(state: GameState): void {
+    const ship = state.ship;
+    const had = ship.blueprints.includes('express_belt');
+    ship.blueprints = ship.blueprints.filter((id) => id !== 'express_belt');
+    if (ship.offer?.includes('express_belt')) {
+      const rest = ship.offer.filter((id) => id !== 'express_belt');
+      ship.offer = rest.length ? rest : null;
+    }
+    const belts = state.buildings.filter((b) => b.type === 'express_belt').length;
+    if (had || belts) for (const id of ['steam_power', 'express_logistics']) if (!state.researched.includes(id)) state.researched.push(id);
+    if (belts) {
+      const turbines = Math.ceil((belts * ELECTRIC.uses.express_belt!) / ELECTRIC.turbine);
+      const inv = state.inventory;
+      const add = (items: ItemCounts, n: number) => {
+        for (const [k, c] of Object.entries(items)) inv[k as ItemId] = (inv[k as ItemId] ?? 0) + c! * n;
+      };
+      add(BUILDINGS.boiler.cost, turbines);
+      add(BUILDINGS.steam_turbine.cost, turbines);
+      add(BUILDINGS.well.cost, turbines);
+      add(BUILDINGS.power_pole.cost, 4 * turbines);
+    }
+    state.version = 34;
   }
 
   /**
@@ -872,10 +916,121 @@ export class World {
     return n.demand <= 0 ? 1 : Math.min(1, n.supply / n.demand);
   }
 
-  /** How fast items move on a belt-like building, in tiles a second. Powered belts slow without power (D-115). */
+  /**
+   * How fast items move on a belt-like building, in tiles a second. Powered belts slow without power (D-115),
+   * and express belts without electricity (D-121), down to roller speed.
+   */
   speedOf(b: Building): number {
     if (b.type === 'belt') return ROLLER.speed + (BELT_SPEED - ROLLER.speed) * this.powered(b);
+    if (b.type === 'express_belt') return ROLLER.speed + (EXPRESS_BELT_SPEED - ROLLER.speed) * this.electrified(b);
     return beltSpeed(b.type);
+  }
+
+  // ------------------------------------------------------------ electricity (D-119, D-121)
+
+  /** The electric network a building is on, if it's a pole, a turbine or something that uses electricity. */
+  electricNet(b: Building): ElectricNet | undefined {
+    this.refreshElectric();
+    return this.enets.get(b.id);
+  }
+
+  /** What a network's turbines give right now, from the steam their boilers make. */
+  electricSupply(net: ElectricNet): number {
+    if (net.at !== this.state.time) {
+      net.at = this.state.time;
+      net.supply = net.turbines.reduce((sum, t) => sum + ELECTRIC.turbine * this.steam(t), 0);
+    }
+    return net.supply;
+  }
+
+  /** How much of the electricity it needs a building gets: 1 in full, 0 none. */
+  electrified(b: Building): number {
+    if (this.freePower) return 1;
+    const n = this.electricNet(b);
+    if (!n) return 0;
+    const supply = this.electricSupply(n);
+    if (supply <= 0) return 0;
+    return n.demand <= 0 ? 1 : Math.min(1, supply / n.demand);
+  }
+
+  /** The buildings touching a building's footprint, each once. */
+  touching(b: Building): Building[] {
+    const out = new Set<Building>();
+    const [fw, fh] = this.footprintOf(b);
+    for (let dy = -1; dy <= fh; dy++) {
+      for (let dx = -1; dx <= fw; dx++) {
+        if ((dx < 0 || dx >= fw) === (dy < 0 || dy >= fh)) continue; // the edges, not the corners or inside
+        const n = this.buildingAt(b.x + dx, b.y + dy);
+        if (n && n !== b) out.add(n);
+      }
+    }
+    return [...out];
+  }
+
+  /** A boiler has water when it touches a well or a water wheel. */
+  hasWater(b: Building): boolean {
+    return this.touching(b).some((n) => WATER_SOURCES.includes(n.type));
+  }
+
+  /** A boiler works, burning fuel, when it has fuel and water and touches a turbine to feed. */
+  boilerWorks(b: Building): boolean {
+    return b.type === 'boiler' && b.ammo > 0 && this.hasWater(b) && this.touching(b).some((n) => n.type === 'steam_turbine');
+  }
+
+  /** How much of the steam it can use a turbine gets: each working boiler's steam is shared by the turbines it touches. */
+  steam(t: Building): number {
+    let s = 0;
+    for (const n of this.touching(t)) {
+      if (!this.boilerWorks(n)) continue;
+      s += 1 / this.touching(n).filter((m) => m.type === 'steam_turbine').length;
+    }
+    return Math.min(1, s);
+  }
+
+  /**
+   * Works out the electric networks: poles link to poles within ELECTRIC.link tiles and connect turbines and
+   * electric buildings within ELECTRIC.reach of them; express belts connect to the express belts they touch.
+   */
+  private refreshElectric(): void {
+    if (this.enetsAt === this.layout) return;
+    this.enetsAt = this.layout;
+    this.enets.clear();
+    const nodes = this.state.buildings.filter((b) => b.type === 'power_pole' || b.type === 'steam_turbine' || ELECTRIC.uses[b.type] != null);
+    const parent = new Map<number, number>(nodes.map((b) => [b.id, b.id]));
+    const find = (id: number): number => {
+      let r = id;
+      while (parent.get(r) !== r) r = parent.get(r)!;
+      parent.set(id, r);
+      return r;
+    };
+    const join = (a: Building, b: Building) => parent.set(find(a.id), find(b.id));
+    const poles = nodes.filter((b) => b.type === 'power_pole');
+    const R = ELECTRIC.reach;
+    for (const p of poles) {
+      for (const q of poles) if (q.id < p.id && (p.x - q.x) ** 2 + (p.y - q.y) ** 2 <= ELECTRIC.link ** 2) join(p, q);
+      for (let y = p.y - R; y <= p.y + R; y++) {
+        for (let x = p.x - R; x <= p.x + R; x++) {
+          const n = this.buildingAt(x, y);
+          if (n && n !== p && parent.has(n.id) && n.type !== 'power_pole') join(p, n);
+        }
+      }
+    }
+    for (const b of nodes) {
+      if (b.type !== 'express_belt') continue;
+      for (let d = 0; d < 4; d++) {
+        const n = this.buildingAt(b.x + DX[d], b.y + DY[d]);
+        if (n?.type === 'express_belt') join(b, n);
+      }
+    }
+    const byRoot = new Map<number, ElectricNet>();
+    for (const b of nodes) {
+      const r = find(b.id);
+      let net = byRoot.get(r);
+      if (!net) byRoot.set(r, (net = { turbines: [], demand: 0, supply: 0, at: -1 }));
+      if (b.type === 'steam_turbine') net.turbines.push(b);
+      net.demand += ELECTRIC.uses[b.type] ?? 0;
+      this.enets.set(b.id, net);
+    }
   }
 
   /**
@@ -1225,6 +1380,7 @@ export class World {
       upgraded++;
     }
     if (!upgraded) return 'cost';
+    this.layout++; // the line leaves the shaft network and joins the electric one
     const left = line.length - upgraded;
     this.events.push(
       left
@@ -1487,6 +1643,13 @@ export class World {
         // Six stacks of 50, mixed, from anywhere but the tiles in front, where it sends them (D-116).
         if (this.inFront(target, fromX, fromY) || !storageRoom(target.outputs, item)) return false;
         target.outputs.push(item);
+        return true;
+      }
+      case 'boiler': {
+        // Fuel only (D-121).
+        const burn = FUEL.burns[item];
+        if (!burn || target.ammo + burn > FUEL.max) return false;
+        target.ammo += burn;
         return true;
       }
       case 'splitter': {
@@ -1821,6 +1984,9 @@ export class World {
           break;
         case 'spike_pit':
           this.tickSpikes(b, dt);
+          break;
+        case 'boiler':
+          if (this.boilerWorks(b)) b.ammo = Math.max(0, b.ammo - dt);
           break;
       }
     }

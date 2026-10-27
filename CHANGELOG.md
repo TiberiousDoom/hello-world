@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.62.0 · 2026-10-27 · Electricity
+### New
+- **Steam Power** (after Steelmaking) brings electricity. A **Boiler** burns logs or charcoal and needs water: place it touching a well or a water wheel. A **Steam Turbine** touching it makes electricity. **Power Poles** carry it: each links to poles within 6 tiles, with a wire between them, and connects turbines and electric buildings within 2 tiles.
+- **Express Logistics** (after Steam Power): the **Express Belt** is researched now, and runs on electricity. A line of express belts passes it along; without it, they roll only at roller speed. A turbine runs about 120 of them.
+- An **Electricity** lesson explains boilers, turbines and poles once Steam Power is done.
+- Select a pole, turbine, boiler or express belt to see how its network is doing.
+- The colony's last blueprint is the Tesla Turret; the Express Belt has left the pool.
+- Saved games keep working: a game with the Express Belt blueprint or express belts gets Steam Power and Express Logistics, and materials in the hub for the boilers, turbines and poles its express belts need.
+
 ## 0.61.0 · 2026-10-27 · The Steam Age begins
 ### New
 - **Engineering** (after Assembly and Advanced Defense 2) opens the Steam Age.

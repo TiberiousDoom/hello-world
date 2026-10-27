@@ -15,6 +15,7 @@ import {
   EXTRACTOR_PERIOD,
   HAND_MINING,
   HYDRAULIC,
+  ELECTRIC,
   PLAYER,
   HUB_SIZE,
   NESTS,
@@ -103,6 +104,9 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   crate: 0.35,
   storage: 0.5,
   wall: 0.5,
+  boiler: 0.8,
+  steam_turbine: 0.6,
+  power_pole: 1,
   reinforced_wall: 0.5,
   palisade: 0.6,
   turret: 0.55,
@@ -311,6 +315,7 @@ export class Renderer {
     this.drawShadows(world, standing);
     for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
+    this.drawWires(s.buildings.filter((b) => b.type === 'power_pole'), z); // all of them: a wire can cross the screen
 
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
     // (A cleared territory taken over by a newer nest is drawn as that nest.)
@@ -385,6 +390,7 @@ export class Renderer {
       const range =
         TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : sel.type === 'lumber_camp' ? LUMBER.range : 0);
       if (range) rangeCircle(ctx, sel.x + fw / 2, sel.y + fh / 2, range, z);
+      if (sel.type === 'power_pole') reachSquare(ctx, sel.x, sel.y, z);
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
       if (partner) linkLine(ctx, sel, partner, z);
     }
@@ -1383,6 +1389,28 @@ export class Renderer {
     ctx.lineCap = 'butt';
   }
 
+  /** Wires between linked power poles (D-121), sagging a little between their tops. */
+  private drawWires(poles: Building[], z: number): void {
+    const ctx = this.ctx;
+    ctx.lineCap = 'round';
+    for (const p of poles) {
+      for (const q of poles) {
+        if (q.id >= p.id || (p.x - q.x) ** 2 + (p.y - q.y) ** 2 > ELECTRIC.link ** 2) continue;
+        const [ax, ay, bx, by] = [p.x + 0.5, p.y + 0.2, q.x + 0.5, q.y + 0.2];
+        const sag = 0.12 + 0.03 * Math.hypot(bx - ax, by - ay);
+        for (const [style, width] of [['rgba(15,26,46,0.85)', 3], ['#c98a3a', 1.6]] as const) {
+          ctx.strokeStyle = style;
+          ctx.lineWidth = width / z;
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.quadraticCurveTo((ax + bx) / 2, (ay + by) / 2 + sag, bx, by);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.lineCap = 'butt';
+  }
+
   private spriteKey(world: World, b: Building): string {
     if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
     if (TURRETS[b.type]) return `buildings/${b.type}_base`;
@@ -1420,7 +1448,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1430,6 +1458,8 @@ export class Renderer {
       ((isMachine(b.type) || b.type === 'extractor' || b.type === 'lumber_camp') && b.progress >= 0 && b.outputs.length < 3 && !outOfFuel(b)) ||
       b.type === 'well' ||
       b.type === 'water_wheel' ||
+      (b.type === 'boiler' && world.boilerWorks(b)) ||
+      (b.type === 'steam_turbine' && world.steam(b) > 0) ||
       (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6));
     const key = this.spriteKey(world, b);
     const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * 8 + b.id) : undefined;
@@ -1448,7 +1478,7 @@ export class Renderer {
     if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
-        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' ? '255,120,50' : '120,190,255';
+        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' || b.type === 'boiler' ? '255,120,50' : '120,190,255';
       const [cx, cy] = world.centreOf(b);
       const r = Math.max(fw, fh) * 0.6;
       const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);
@@ -1697,7 +1727,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && !turret;
+    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);
@@ -1732,6 +1762,7 @@ export class Renderer {
     }
     const range = TURRETS[tool]?.range ?? (tool === 'repair' ? REPAIR.range : tool === 'lumber_camp' ? LUMBER.range : 0);
     if (range && opts.range !== false) rangeCircle(ctx, x + fw / 2, y + fh / 2, range, z);
+    if (tool === 'power_pole' && opts.range !== false) reachSquare(ctx, x, y, z);
     if (tool === 'tunnel' && ok) {
       const entrance = world.findTunnelEntrance(x, y, dir);
       if (entrance) linkLine(ctx, entrance, { x, y }, z);
@@ -2230,6 +2261,16 @@ function bar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, fra
   ctx.fillRect(x, y, w, 0.09);
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), 0.09);
+}
+
+/** The tiles a power pole connects (D-121): its own tile and ELECTRIC.reach tiles around it. */
+function reachSquare(ctx: CanvasRenderingContext2D, x: number, y: number, z: number): void {
+  const r = ELECTRIC.reach;
+  ctx.fillStyle = 'rgba(255,214,90,0.08)';
+  ctx.strokeStyle = 'rgba(255,214,90,0.7)';
+  ctx.lineWidth = 1.5 / z;
+  ctx.fillRect(x - r, y - r, 2 * r + 1, 2 * r + 1);
+  ctx.strokeRect(x - r, y - r, 2 * r + 1, 2 * r + 1);
 }
 
 function rangeCircle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, z: number): void {

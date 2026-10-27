@@ -104,7 +104,10 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Assembler | 3×3 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
 | Hydraulic Cannon | 1×1, needs power | 15 iron plates, 5 gears, 10 rivets | 220 | Advanced Defense 2 |
-| Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
+| Express Belt | 1×1, needs electricity | 1 iron plate, 1 gear | 40 | Express Logistics |
+| Boiler | 2×2, touching a well or water wheel | 10 steel, 20 bricks, 6 iron rods | 200 | Steam Power |
+| Steam Turbine | 2×2, touching a boiler | 20 steel, 10 gears, 20 wire | 180 | Steam Power |
+| Power Pole | 1×1 | 2 iron rods, 2 wire, 1 plank | 40 | Steam Power |
 | Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
@@ -155,7 +158,15 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
   lane** (right as you look the way it runs). A belt feeding into another from the side puts its items
   onto the **near lane**; coming from behind, round a corner, through an underground belt or a splitter,
   items keep their lane. Machines and the hub take from both lanes.
-- **Express belts** (a colony blueprint) work the same way at 3 tiles/s. They can be laid like belts,
+- **Electricity (D-119, D-121):** a **Boiler** burns logs or charcoal (a 48 s store, fed like a furnace's) and
+  needs water: it goes touching a **well** or a **water wheel**. A **Steam Turbine** touching a working boiler
+  makes **60** electricity; a boiler touching two turbines shares its steam between them. **Power poles** carry
+  it: each links to poles within **6** tiles, and connects turbines and electric buildings within **2** tiles of
+  it (a 5×5 square, shown while placing or selecting one). Express belts pass it along their line, each using
+  **0.5**, so a turbine runs 120 express belts. Short of electricity, everything on the network slows evenly.
+  It's a network of its own: belts and hydraulic defences stay on drive shafts.
+- **Express belts** (Express Logistics, after Steam Power) work the same way at 3 tiles/s with electricity, and at
+  roller speed without it. They can be laid like belts,
   but the quick way is to **tap or click an existing belt with the Express Belt selected: its whole line
   is upgraded in place**, with no ✓ step on touch. The line is every belt joined to the tapped one,
   belt-to-belt in either direction (side merges included), up to any other building such as a splitter,
@@ -274,6 +285,8 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Engineering | 30 motors, 100 gears, 60 bricks | 120 s | Assembly, Advanced Defense 2 | Opens the Steam Age |
 | Steelmaking | 100 iron plates, 60 charcoal | 60 s | Engineering, Charcoal | The steel recipe |
 | Steel Works | 80 steel, 40 gears, 20 motors | 90 s | Steelmaking | Steel Works (steel beams, bearings) |
+| Steam Power | 60 steel, 40 iron rods, 30 bricks | 90 s | Steelmaking | Boiler, Steam Turbine, Power Pole |
+| Express Logistics | 60 steel, 20 motors | 90 s | Steam Power | Express Belt |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
@@ -376,7 +389,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    reinforced walls). The **Machine Shop** (after Blacksmith) makes gears and wire.
 9. **The Steam Age (D-119):** **Engineering** (30 motors, 100 gears, 60 bricks, after Assembly and Advanced Defense 2)
    opens it. **Steelmaking** lets furnaces make **steel**, and the **Steel Works** rolls it into **steel beams** and
-   makes **bearings** from steel and gears.
+   makes **bearings** from steel and gears. **Steam Power** brings electricity: boilers, steam turbines and power
+   poles, which run **express belts** (Express Logistics).
 
 ## Bugs
 
@@ -542,8 +556,8 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 - The main menu's Continue button shows how many supply runs a save has delivered.
 - **Blueprints from the colony (D-049):** after each delivery the colony offers **two blueprints** for
   buildings you can't research, and you **pick one** on a screen that pauses the game. The other stays
-  on offer for a later run; when only one is left, the next delivery simply sends it. The blueprints are
-  the **Express Belt** and the **Tesla Turret**. Research lists them under "From the colony", with
+  on offer for a later run; when only one is left, the next delivery simply sends it. The one blueprint left
+  is the **Tesla Turret** (the Express Belt is researched now, D-121). Research lists them under "From the colony", with
   what you've received and what's on offer.
 
 ## Modes
@@ -625,7 +639,7 @@ one research tree, one supply ship.
   It offers **Continue** (when a save exists, showing its mode and time played),
   **New game** (choose the mode) and **How to play**.
 
-- **Tutorial lessons** (eight) start by themselves the first time each one is useful:
+- **Tutorial lessons** (ten) start by themselves the first time each one is useful:
 
   | Lesson | Starts when | Steps |
   |---|---|---|
@@ -636,6 +650,7 @@ one research tree, one supply ship.
   | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (hydraulic turrets, brick walls, and power to the turrets) once Hydraulics is done |
   | Splitters and tunnels | The splitter is unlocked (Metal Logistics) | What splitters do |
   | Water power | Hydraulics is researched, before any well or water wheel is built | Wells and water wheels → drive shafts, and how many belts a well runs |
+  | Electricity | Steam Power is researched, before any boiler is built | The boiler and its water → the steam turbine → power poles and their reach |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it on its staked-out site → stages and the side view → cargo and launch |
   | Breaches | The hub is breached for the first time | What a breach costs |
 
@@ -782,7 +797,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v33**). v33 (D-120) gives a game already making or holding steel Steelmaking and
+- Save files are versioned (currently **v34**). v34 (D-121) turns the Express Belt blueprint, or express belts already
+  built, into Steam Power and Express Logistics, with stock in the hub for the boilers, turbines, wells and poles its
+  express belts need. v33 (D-120) gives a game already making or holding steel Steelmaking and
   Engineering, since the steel recipe now needs them. v32 (D-118) adds the launch pad as the ship's second stage: a ship past the
   scaffolding counts it as built, with its research, and carries on with the stage it was on. v31 (D-117) trades Masonry for Advanced Defense (with Hydraulics, which it
   needs), returns what was paid towards Masonry, and puts stock in the hub for the wells and shafts its turrets and cannons now

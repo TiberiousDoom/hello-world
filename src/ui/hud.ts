@@ -10,6 +10,7 @@ import {
   HUB_SIZE,
   HUB_WEAPON,
   HYDRAULIC,
+  ELECTRIC,
   ITEMS,
   ITEM_IDS,
   ItemCounts,
@@ -56,6 +57,9 @@ const TOOLBAR: BuildingType[] = [
   'shaft',
   'well',
   'water_wheel',
+  'boiler',
+  'steam_turbine',
+  'power_pole',
   'extractor',
   'lumber_camp',
   'furnace',
@@ -78,9 +82,9 @@ const TOOLBAR: BuildingType[] = [
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['well', 'wall', 'reinforced_wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'spike_pit', 'trebuchet', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -825,6 +829,31 @@ export class Hud {
                 ? `<br>Short of power: ${Math.round(p * 100)}% (${use}). ${hydraulic ? 'It fires more slowly' : 'Belts slow down'}`
                 : `<br><b>No power:</b> ${hydraulic ? "it can't fire" : 'it rolls only at roller speed'}. Lay drive shafts from a well or water wheel`
             : `<br>Network: ${use}`;
+      }
+      // Electricity (D-121): what the building's electric network gives and uses.
+      const enet = world.electricNet(b);
+      if (enet) {
+        const use = `${fmtPower(world.electricSupply(enet))} electricity, it all uses ${fmtPower(enet.demand)}`;
+        const e = world.electrified(b);
+        stats +=
+          b.type === 'express_belt'
+            ? e >= 1
+              ? `<br>Electric (${use})`
+              : e > 0
+                ? `<br>Short of electricity: ${Math.round(e * 100)}% (${use}). Express belts slow down`
+                : '<br><b>No electricity:</b> it rolls only at roller speed. Put a power pole near it, linked to a steam turbine'
+            : b.type === 'steam_turbine'
+              ? `<br>Steam ${Math.round(world.steam(b) * 100)}%: ${world.steam(b) > 0 ? `makes ${fmtPower(ELECTRIC.turbine * world.steam(b))}` : 'needs a working boiler touching it'} (${use})`
+              : `<br>Network: ${use}`;
+      }
+      if (b.type === 'boiler') {
+        stats += !world.hasWater(b)
+          ? '<br><b>No water:</b> place it touching a well or a water wheel'
+          : !world.touching(b).some((n) => n.type === 'steam_turbine')
+            ? '<br>No turbine: place a steam turbine touching it'
+            : b.ammo > 0
+              ? '<br>Making steam'
+              : '';
       }
       if (burnsFuel(b.type)) {
         const fuels = Object.entries(FUEL.burns)
