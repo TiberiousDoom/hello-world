@@ -16,7 +16,7 @@
 // nest near your buildings sends a raiding party. Bugs notice the engineer:
 // walking close to calm bugs provokes them, and angry ones close by go for it.
 
-import { BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, HUB_SIZE, NESTS, PLAYER, RAIDS, SPIKES, chitinFor, moundHp, nestComposition } from './data';
+import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, HUB_SIZE, NESTS, PLAYER, RAIDS, SPIKES, chitinFor, moundHp, nestComposition } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
@@ -445,10 +445,11 @@ function targetNear(w: World, e: Enemy, reach: number): boolean {
   return buildingNear(w, e.x, e.y, reach);
 }
 
-/** How fast a bug moves now: slower on a working spike pit (D-107). */
+/** How fast a bug moves now: slower on a working spike pit (D-107), and in a floodlight's light at night (D-126). */
 function speedOf(w: World, e: Enemy): number {
   const b = w.buildingAt(Math.floor(e.x), Math.floor(e.y));
-  return ENEMIES[e.type].speed * (b?.type === 'spike_pit' && b.ammo > 0 ? SPIKES.slow : 1);
+  const spikes = b?.type === 'spike_pit' && b.ammo > 0 ? SPIKES.slow : 1;
+  return ENEMIES[e.type].speed * spikes * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1);
 }
 
 /** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
@@ -461,7 +462,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
   const here = w.buildingAt(tx, ty);
   const dps = def.dps * strength(w, e);
   if (here && here.type !== 'spike_pit') {
-    bite(w, here, n, dps * dt, angers);
+    bite(w, here, n, dps * dt, angers, e, dt);
     return;
   }
   let best = -1;
@@ -484,7 +485,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
   const dist = hypot(gx - e.x, gy - e.y);
   const blocker = w.buildingAt(nx, ny);
   if (blocker && BUILDINGS[blocker.type].blocking && dist <= 0.55 + def.radius) {
-    bite(w, blocker, n, dps * dt, angers);
+    bite(w, blocker, n, dps * dt, angers, e, dt);
     return;
   }
   const step = Math.min(dist, speedOf(w, e) * dt);
@@ -516,9 +517,16 @@ function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolea
   return true;
 }
 
-/** Damage a building; a nest stays angry while it's busy biting (raiders leave it be). */
-function bite(w: World, b: Building, n: Nest, amount: number, angers = true): void {
+/** Damage a building; a nest stays angry while it's busy biting (raiders leave it be). An arc fence bites back (D-126). */
+function bite(w: World, b: Building, n: Nest, amount: number, angers: boolean, e: Enemy, dt: number): void {
   b.hp -= amount;
+  if (b.type === 'arc_fence') {
+    const shock = ARC_FENCE.dps * w.electrified(b) * dt;
+    if (shock > 0) {
+      e.hp -= shock;
+      onBugHurt(w, e);
+    }
+  }
   if (angers) n.angryUntil = Math.max(n.angryUntil, w.state.time + NESTS.calmAfter);
 }
 

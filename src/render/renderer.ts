@@ -17,6 +17,7 @@ import {
   HYDRAULIC,
   ELECTRIC,
   ELECTRIC_MACHINES,
+  FLOODLIGHT,
   ELECTRIC_DEFENCES,
   PLAYER,
   HUB_SIZE,
@@ -112,6 +113,8 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   power_pole: 1,
   reinforced_wall: 0.5,
   steel_wall: 0.55,
+  arc_fence: 0.5,
+  floodlight: 1,
   turret2: 0.55,
   mortar: 0.5,
   artillery: 0.9,
@@ -823,7 +826,8 @@ export class Renderer {
       const [fw, fh] = world.footprintOf(b);
       if (b.x + fw < x0 - 6 || b.y + fh < y0 - 6 || b.x > x1 + 6 || b.y > y1 + 6) continue;
       const working = (isMachine(b.type) || b.type === 'extractor') && b.progress >= 0 && !outOfFuel(b);
-      const r = b.type === 'hub' ? 8 : TURRETS[b.type] || b.type === 'repair' ? 3 : working ? 2.2 : 0;
+      const lit = b.type === 'floodlight' && world.electrified(b) > 0; // D-126
+      const r = b.type === 'hub' ? 8 : lit ? FLOODLIGHT.radius : TURRETS[b.type] || b.type === 'repair' ? 3 : working ? 2.2 : 0;
       if (!r) continue;
       const [cx, cy] = world.centreOf(b);
       light(cx, cy, r);
@@ -1421,7 +1425,7 @@ export class Renderer {
   private spriteKey(world: World, b: Building): string {
     if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
     if (TURRETS[b.type]) return `buildings/${b.type}_base`;
-    if (b.type === 'wall' || b.type === 'reinforced_wall' || b.type === 'steel_wall' || b.type === 'palisade') {
+    if (b.type === 'wall' || b.type === 'reinforced_wall' || b.type === 'steel_wall' || b.type === 'arc_fence' || b.type === 'palisade') {
       const key = `buildings/${b.type}${runPiece(world, b)}`;
       return sprite(key) ? key : `buildings/${b.type}`;
     }
@@ -1455,7 +1459,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'arc_fence' && b.type !== 'floodlight' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1510,7 +1514,7 @@ export class Renderer {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);
       }
-      bar(ctx, b.x + 0.12, b.y + fw - 0.14, fw - 0.24, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
+      if (turret.ammoItem) bar(ctx, b.x + 0.12, b.y + fw - 0.14, fw - 0.24, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
     }
     if (b.type === 'spike_pit') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / SPIKES.maxCharge, ITEMS.stake.color);
 
@@ -1559,7 +1563,7 @@ export class Renderer {
       ctx.stroke();
     }
     // Hydraulic and electric defences and machines (D-117, D-123, D-125): a flashing blue mark while they have no power and can't work.
-    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type)) && world.electrified(b) <= 0)) {
+    if ((HYDRAULIC.includes(b.type) && world.powered(b) <= 0) || ((ELECTRIC_DEFENCES.includes(b.type) || ELECTRIC_MACHINES.includes(b.type) || b.type === 'floodlight') && world.electrified(b) <= 0)) {
       ctx.fillStyle = `rgba(80,170,255,${0.5 + 0.5 * Math.sin(now / 200)})`;
       dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
     }
@@ -1752,7 +1756,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
+    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'arc_fence' && tool !== 'floodlight' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);

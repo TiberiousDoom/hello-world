@@ -10,7 +10,9 @@ import {
   HUB_SIZE,
   HUB_WEAPON,
   HYDRAULIC,
+  ARC_FENCE,
   ELECTRIC,
+  FLOODLIGHT,
   ELECTRIC_DEFENCES,
   MK2,
   ITEMS,
@@ -85,15 +87,17 @@ const TOOLBAR: BuildingType[] = [
   'wall',
   'reinforced_wall',
   'steel_wall',
+  'arc_fence',
+  'floodlight',
   'palisade',
   'spike_pit',
   'trebuchet',
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -780,7 +784,8 @@ export class Hud {
         if (rates.now) stats += `<br><b>Now</b> ${esc(rates.now)}`;
       }
       const t = TURRETS[b.type];
-      if (t) stats += `<br>Ammo ${b.ammo} / ${t.maxShots} ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name}`;
+      if (t?.ammoItem) stats += `<br>Ammo ${b.ammo} / ${t.maxShots} ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name}`;
+      else if (t) stats += '<br>No ammunition needed: it fires on electricity';
       if (b.type === 'extractor') {
         const ore = b.recipe as ItemId | null;
         stats += `<br>Mining ${ore ? swatch(ore) + ITEMS[ore].name : 'nothing'}`;
@@ -864,6 +869,16 @@ export class Hud {
             : b.type === 'steam_turbine'
               ? `<br>Steam ${Math.round(world.steam(b) * 100)}%: ${world.steam(b) > 0 ? `makes ${fmtPower(ELECTRIC.turbine * world.steam(b))}` : 'needs a working boiler touching it'} (${use})`
               : `<br>Network: ${use}`;
+      }
+      // The Arc Fence and the Floodlight (D-126).
+      if (b.type === 'arc_fence') {
+        const e = world.electrified(b);
+        stats += e > 0 ? `<br>Shocks each bug biting it for ${Math.round(ARC_FENCE.dps * e)} damage a second` : "<br><b>No electricity:</b> it doesn't shock. Put a power pole near it";
+      }
+      if (b.type === 'floodlight') {
+        stats += world.electrified(b) > 0
+          ? `<br>At night it lights ${FLOODLIGHT.radius} tiles around it, and bugs in its light move at ${Math.round(FLOODLIGHT.slow * 100)}% speed`
+          : "<br><b>No electricity:</b> it's dark. Put a power pole near it";
       }
       if (b.type === 'boiler') {
         stats += !world.hasWater(b)
@@ -1003,9 +1018,12 @@ export class Hud {
         <div><b>${esc(bp.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br><span class="muted">${esc(bp.description)}</span></div>
         <div>${state}</div></div>`;
     });
-    setHtml($('research-body'), `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}
-      <h3>From the colony</h3>
-      <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`);
+    setHtml($('research-body'), `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}${
+      colony.length // none until the special buildings come (D-126)
+        ? `<h3>From the colony</h3>
+      <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`
+        : ''
+    }`);
   }
 
   private openLessons(): void {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { sightOf } from './fog';
+import { ARC_FENCE, FLOODLIGHT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -1100,9 +1101,9 @@ describe('Colony blueprints', () => {
     expect(w.upgradeBeltLine(x0, y)).toBe('cost');
   });
 
-  it('a tesla arcs from the nearest bug to up to two more within reach, and reloads with wire', () => {
+  it('a tesla arcs from the nearest bug to up to two more within reach, and needs no ammunition (D-126)', () => {
     const w = emptyWorld();
-    w.state.ship.blueprints = ['tesla'];
+    Object.assign(w.state.inventory, { steel: 99, circuit: 9, coil: 9 });
     const t = placed(w.place('tesla', w.hub!.x - 20, w.hub!.y - 10, 0));
     const n = addNest(w, 0, 0, 0);
     // A string of bugs 1.5 tiles apart, starting 3 tiles from the tesla.
@@ -1117,11 +1118,9 @@ describe('Colony blueprints', () => {
     expect(bugs.map((e) => e.hp < 1000)).toEqual([true, true, true, false]);
     expect(w.shots.filter((s) => s.arc).length).toBe(3);
     expect(w.shots.filter((s) => s.jump).length).toBe(2);
-    const def = TURRETS.tesla!;
-    t.ammo = 0;
-    expect(w.insert(t, 'iron_plate', t.x - 1, t.y)).toBe(false);
-    expect(w.insert(t, 'wire', t.x - 1, t.y)).toBe(true);
-    expect(t.ammo).toBe(def.shotsPerItem);
+    expect(TURRETS.tesla!.ammoItem).toBeUndefined();
+    expect(t.ammo).toBe(0);
+    expect(w.insert(t, 'wire', t.x - 1, t.y)).toBe(false);
   });
 });
 
@@ -2553,5 +2552,87 @@ describe('The Electric Age: Electronics and the Circuit Works (D-125)', () => {
     w.insert(cw, 'iron_rod', 28, 20);
     run(w, 4);
     expect(cw.outputs).toEqual(['coil']);
+  });
+});
+
+describe('Electric Defense: the Tesla, the Arc Fence and Floodlights (D-126)', () => {
+  it('Electric Defense comes after Circuit Works, with the tesla, arc fence and floodlight; no blueprint is needed', () => {
+    expect(RESEARCH_BY_ID.electric_defense.requires).toEqual(['circuit_works']);
+    expect(RESEARCH_BY_ID.electric_defense.unlocks.sort()).toEqual(['arc_fence', 'floodlight', 'tesla']);
+    const w = emptyWorld();
+    expect(w.state.ship.blueprints).toEqual([]);
+    expect(w.isUnlocked('tesla')).toBe(true);
+  });
+
+  it("a tesla doesn't fire without electricity", () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    Object.assign(w.state.inventory, { steel: 99, circuit: 9, coil: 9 });
+    const t = placed(w.place('tesla', w.hub!.x - 20, w.hub!.y - 10, 0));
+    const e = w.spawnBug('crawler', addNest(w, 0, 0, 0), 1);
+    Object.assign(e, { x: t.x + 3.5, y: t.y + 0.5, hp: 1000, maxHp: 1000 });
+    run(w, 2);
+    expect(e.hp).toBe(1000);
+  });
+
+  /** A bug walking at the hub's west side from `dx` tiles out, with a building of `type` in its way. */
+  function biter(type: 'arc_fence' | 'steel_wall', power = true) {
+    const w = emptyWorld();
+    w.freePower = power;
+    Object.assign(w.state.inventory, { steel: 999, steel_beam: 999, coil: 999, wire: 999 });
+    const hub = w.hub!;
+    const y = hub.y + 2;
+    // A wall across the whole way in, so the bug has to bite through it.
+    for (let dy = -12; dy <= 12; dy++) placed(w.place(type, hub.x - 6, y + dy, 0));
+    const n = addNest(w, 0, 0, 0);
+    n.angryUntil = 1e9;
+    const e = w.spawnBug('crawler', n, 1);
+    Object.assign(e, { x: hub.x - 7.5, y: y + 0.5, hp: 1e6, maxHp: 1e6 });
+    w.rebuildPaths();
+    run(w, 3);
+    return { w, e, fence: w.buildingAt(hub.x - 6, y)! };
+  }
+
+  it('an arc fence shocks the bugs biting it, with electricity; a steel wall or an unpowered fence does not', () => {
+    const { w, e, fence } = biter('arc_fence');
+    expect(fence.hp).toBeLessThan(w.maxHp(fence)); // it was bitten
+    expect(e.hp).toBeLessThan(1e6 - ARC_FENCE.dps); // and shocked back for more than a second of it
+    expect(biter('steel_wall').e.hp).toBe(1e6);
+    expect(biter('arc_fence', false).e.hp).toBe(1e6);
+  });
+
+  it('a lit floodlight slows bugs around it at night, and only then; it sees far into the fog', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    Object.assign(w.state.inventory, { circuit: 9, iron_rod: 99, wire: 99 });
+    const hub = w.hub!;
+    const f = placed(w.place('floodlight', hub.x - 30, hub.y, 0));
+    const [cx, cy] = w.centreOf(f);
+    w.state.time = CLOCK.day + 10; // night
+    expect(w.inFloodlight(cx + 3, cy)).toBe(false); // no electricity: dark
+    w.freePower = true;
+    w.state.time += 1; // a new tick works it out again
+    expect(w.inFloodlight(cx + 3, cy)).toBe(true);
+    expect(w.inFloodlight(cx + FLOODLIGHT.radius + 1, cy)).toBe(false);
+    w.state.time = 10; // day
+    expect(w.inFloodlight(cx + 3, cy)).toBe(false);
+    // A bug crossing its light at night moves at FLOODLIGHT.slow of its speed.
+    const walk = (night: boolean) => {
+      const v = emptyWorld();
+      v.state.inventory = { ...v.state.inventory, circuit: 9, iron_rod: 99, wire: 99 };
+      const h = v.hub!;
+      const y = h.y + 2;
+      placed(v.place('floodlight', h.x - 12, y + 3, 0));
+      v.state.time = night ? CLOCK.day + 10 : 10;
+      const n = addNest(v, 0, 0, 0);
+      n.angryUntil = 1e9;
+      const e = v.spawnBug('crawler', n, 1);
+      Object.assign(e, { x: h.x - 14.5, y: y + 0.5, hp: 1e6, maxHp: 1e6 });
+      v.rebuildPaths();
+      run(v, 1);
+      return e.x - (h.x - 14.5);
+    };
+    expect(walk(true) / walk(false)).toBeCloseTo(FLOODLIGHT.slow, 1);
+    expect(sightOf(f)).toBe(FLOODLIGHT.sight);
   });
 });

@@ -130,6 +130,8 @@ export type BuildingType =
   | 'mortar'
   | 'artillery'
   | 'steel_wall'
+  | 'arc_fence'
+  | 'floodlight'
   | 'boiler'
   | 'steam_turbine'
   | 'power_pole'
@@ -204,9 +206,9 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     short: 'TE',
     color: '#2f6f9f',
     hp: 160,
-    cost: { iron_plate: 12, copper_ingot: 6, wire: 10 },
+    cost: { steel: 8, circuit: 4, coil: 4 },
     blocking: true,
-    description: 'Its shots arc from bug to bug. Arrives loaded; refill it with copper wire by belt.',
+    description: 'Its shots arc from bug to bug. It needs no ammunition, only electricity from a power pole.',
   },
   ballista: {
     name: 'Ballista',
@@ -221,6 +223,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
+  arc_fence: { name: 'Arc Fence', short: '', color: '#3a6a8a', hp: 700, cost: { steel: 2, coil: 1, wire: 2 }, blocking: true, description: 'A wall that shocks the bugs biting it, with electricity from a power pole.' },
+  floodlight: { name: 'Floodlight', short: '', color: '#d9c25a', hp: 80, cost: { circuit: 1, iron_rod: 4, wire: 4 }, blocking: false, description: `Lights the ground around it at night and slows bugs in its light, with electricity from a power pole. It sees far into the fog.` },
   steel_wall: { name: 'Steel Wall', short: '', color: '#4a5562', hp: 1600, cost: { steel: 4, steel_beam: 2 }, blocking: true, description: 'Steel plate on beams: the toughest wall.' },
   lumber_camp: {
     name: 'Lumber Camp',
@@ -305,7 +309,8 @@ export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler',
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
 
 export interface TurretDef {
-  ammoItem: ItemId;
+  /** What it fires; none for the tesla, which needs only electricity (D-125). */
+  ammoItem?: ItemId;
   shotsPerItem: number;
   maxShots: number;
   range: number; // tiles
@@ -328,7 +333,7 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0 },
   mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8 },
   artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6 },
-  tesla: { ammoItem: 'wire', shotsPerItem: 2, maxShots: 30, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
+  tesla: { shotsPerItem: 0, maxShots: 0, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
 
 /**
@@ -452,7 +457,7 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
@@ -476,7 +481,14 @@ export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
 /** Defences that fire only with power (D-117). */
 export const HYDRAULIC: BuildingType[] = ['turret', 'cannon'];
 /** Defences that fire only with electricity (D-123). */
-export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2', 'mortar', 'artillery'];
+export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2', 'mortar', 'artillery', 'tesla'];
+/**
+ * The Arc Fence (D-126): a wall that shocks each bug biting it for `dps`, scaled by its electricity. The
+ * Floodlight: at night, with electricity, bugs within `radius` of it move at `slow` of their speed; it sees
+ * `sight` tiles into the fog.
+ */
+export const ARC_FENCE = { dps: 30 };
+export const FLOODLIGHT = { radius: 7, slow: 0.6, sight: 14 };
 /**
  * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
  * defences too, so a row of turrets shares one shaft.
@@ -559,6 +571,7 @@ export const RESEARCH: Research[] = [
   // The Electric Age (D-125): Electronics opens it, after the Steam Age's top defence.
   { id: 'electronics', name: 'Electronics', cost: { steel_beam: 100, bearing: 60, motor: 40 }, time: 150, requires: ['mk2', 'heavy_defense2'], unlocks: [], description: 'Opens the Electric Age: circuit boards and coils, drones, Mk3 machines and electric defences.' },
   { id: 'circuit_works', name: 'Circuit Works', cost: { steel_beam: 80, wire: 120, bearing: 40 }, time: 120, requires: ['electronics'], unlocks: ['circuit_works'], description: 'Circuit works make circuit boards and coils, with electricity.' },
+  { id: 'electric_defense', name: 'Electric Defense', cost: { circuit: 60, wire: 100, coil: 30 }, time: 120, requires: ['circuit_works'], unlocks: ['tesla', 'arc_fence', 'floodlight'], description: 'Tesla turrets, whose shots arc from bug to bug on electricity alone; arc fences, walls that shock bugs biting them; and floodlights, which slow bugs at night.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'launch_pad', name: 'Launch Pad', cost: { iron_plate: 60, brick: 60, rivet: 30 }, time: 60, requires: ['blacksmith', 'shipyard'], unlocks: [], description: "The ship's Iron Age stage: a brick and iron launch pad, built in the shipyard after the scaffolding." },
@@ -628,9 +641,8 @@ export interface Blueprint {
   unlocks: BuildingType[];
 }
 
-export const BLUEPRINTS: Blueprint[] = [
-  { id: 'tesla', name: 'Tesla Turret', description: 'Fed by copper wire. Each shot arcs on to two more bugs nearby.', unlocks: ['tesla'] },
-];
+/** None for now: the Tesla moved into the tree (D-126); special buildings come later (D-125). */
+export const BLUEPRINTS: Blueprint[] = [];
 export const BLUEPRINT_BY_ID: Record<string, Blueprint> = Object.fromEntries(BLUEPRINTS.map((b) => [b.id, b]));
 
 /** The cargo for supply run `run` (0 for the first). */
@@ -708,7 +720,7 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
 /** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'steel_wall', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'steel_wall', 'arc_fence', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

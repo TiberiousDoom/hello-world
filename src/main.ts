@@ -6,7 +6,7 @@ import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { loadArt } from './art';
-import { HUB_SIZE } from './sim/data';
+import { BLUEPRINTS, BLUEPRINT_BY_ID, HUB_SIZE } from './sim/data';
 import { Command, ResultOf, applyCommand } from './sim/commands';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
@@ -676,4 +676,6 @@ requestAnimationFrame(frame);
   coop,
   /** The scripted game the cross-browser determinism test runs (D-058). */
   runScenario,
+  /** The colony's blueprints, so a test can add a stand-in while the pool is empty (D-126). */
+  blueprints: { list: BLUEPRINTS, byId: BLUEPRINT_BY_ID },
 };

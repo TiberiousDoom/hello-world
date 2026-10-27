@@ -60,6 +60,7 @@ import {
   ELECTRIC_DEFENCES,
   ELECTRIC,
   ELECTRIC_MACHINES,
+  FLOODLIGHT,
   MK2,
   EXPRESS_BELT_SPEED,
   WATER_SOURCES,
@@ -103,8 +104,9 @@ export type { ResearchState };
  * v34 (D-121): the Express Belt moves from a blueprint into research and runs on electricity.
  * v35 (D-123) adds sulfur deposits to the map.
  * v36 (D-124): the hull is built of steel now, after its research; a hull under way is refunded.
+ * v37 (D-126): the Tesla moves from a blueprint into research and runs on electricity alone.
  */
-export const SAVE_VERSION = 36;
+export const SAVE_VERSION = 37;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -424,6 +426,7 @@ export class World {
     if (state.version === 33) World.migrateV33(state);
     if (state.version === 34) state.version = 35; // sulfur goes in once the world exists (addSulfur)
     if (state.version === 35) World.migrateV35(state);
+    if (state.version === 36) World.migrateV36(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -479,6 +482,36 @@ export class World {
       ship.delivered = {};
     }
     state.version = 36;
+  }
+
+  /**
+   * v36 to v37 (D-126): the Tesla is researched now (Electric Defense) and runs on electricity, with no
+   * ammunition. A game with its blueprint, or with teslas, gets the research, and stock for a boiler, a
+   * turbine, a well and poles to power them; an offer that held it is dropped.
+   */
+  private static migrateV36(state: GameState): void {
+    const ship = state.ship;
+    const had = ship.blueprints.includes('tesla');
+    ship.blueprints = ship.blueprints.filter((id) => id !== 'tesla');
+    if (ship.offer?.includes('tesla')) {
+      const rest = ship.offer.filter((id) => id !== 'tesla');
+      ship.offer = rest.length ? rest : null;
+    }
+    const teslas = state.buildings.filter((b) => b.type === 'tesla');
+    for (const b of teslas) b.ammo = 0;
+    if (had || teslas.length) if (!state.researched.includes('electric_defense')) state.researched.push('electric_defense');
+    if (teslas.length) {
+      const turbines = Math.ceil((teslas.length * ELECTRIC.uses.tesla!) / ELECTRIC.turbine);
+      const inv = state.inventory;
+      const add = (items: ItemCounts, n: number) => {
+        for (const [k, c] of Object.entries(items)) inv[k as ItemId] = (inv[k as ItemId] ?? 0) + c! * n;
+      };
+      add(BUILDINGS.boiler.cost, turbines);
+      add(BUILDINGS.steam_turbine.cost, turbines);
+      add(BUILDINGS.well.cost, turbines);
+      add(BUILDINGS.power_pole.cost, 2 * teslas.length);
+    }
+    state.version = 37;
   }
 
   /**
@@ -891,7 +924,8 @@ export class World {
   /** v10 to v11: colony blueprints. Runs already delivered earn one pick from the first two. */
   private static migrateV10(state: GameState): void {
     state.ship.blueprints = [];
-    state.ship.offer = state.ship.runs > 0 ? BLUEPRINTS.slice(0, 2).map((b) => b.id) : null;
+    const pick = BLUEPRINTS.slice(0, 2).map((b) => b.id);
+    state.ship.offer = state.ship.runs > 0 && pick.length ? pick : null; // none while the pool is empty (D-126)
     state.version = 11;
   }
 
@@ -1012,6 +1046,21 @@ export class World {
     const supply = this.electricSupply(n);
     if (supply <= 0) return 0;
     return n.demand <= 0 ? 1 : Math.min(1, supply / n.demand);
+  }
+
+  /** Floodlights lit right now (D-126): at night, with electricity. Worked out once a tick. */
+  private lit = { at: -1, spots: [] as [number, number][] };
+
+  /** Whether (x, y) is in a lit floodlight's light, which slows bugs (D-126). */
+  inFloodlight(x: number, y: number): boolean {
+    if (this.lit.at !== this.state.time) {
+      this.lit.at = this.state.time;
+      this.lit.spots = clockAt(this.state.time).night
+        ? this.state.buildings.filter((b) => b.type === 'floodlight' && this.electrified(b) > 0).map((b) => this.centreOf(b))
+        : [];
+    }
+    const r = FLOODLIGHT.radius ** 2;
+    return this.lit.spots.some(([cx, cy]) => (x - cx) ** 2 + (y - cy) ** 2 <= r);
   }
 
   /** The buildings touching a building's footprint, each once. */
@@ -2477,7 +2526,8 @@ export class World {
     const def = hub ? HUB_WEAPON : TURRETS[b.type]!;
     if (!hub) this.supplyFromHub(b);
     b.cooldown = Math.max(0, b.cooldown - dt);
-    if (b.cooldown > 0 || (!hub && b.ammo <= 0)) return; // the hub's gun needs no ammo
+    const ammo = !hub && !!def.ammoItem; // the hub's gun and the tesla (D-126) need none
+    if (b.cooldown > 0 || (ammo && b.ammo <= 0)) return;
     // Hydraulic defences fire only with power, and electric ones with electricity, more slowly when their network runs short (D-117, D-123).
     const power = HYDRAULIC.includes(b.type) ? this.powered(b) : ELECTRIC_DEFENCES.includes(b.type) ? this.electrified(b) : 1;
     if (power <= 0) return;
@@ -2499,14 +2549,14 @@ export class World {
       if (!mound) return;
       const [mx0, my0] = nestCentre(mound);
       if ((mx0 - cx) ** 2 + (my0 - cy) ** 2 < min) return;
-      b.ammo--;
+      if (ammo) b.ammo--;
       b.cooldown = reload;
       damageMound(this, mound, def.damage);
       const [mx, my] = nestCentre(mound);
       this.shots.push({ x1: cx, y1: cy, x2: mx, y2: my, splash: def.splash, age: 0, arc: !!def.chain });
       return;
     }
-    if (!hub) b.ammo--;
+    if (ammo) b.ammo--;
     b.cooldown = reload;
     if (def.splash > 0) {
       for (const e of this.state.enemies) {
@@ -2560,7 +2610,7 @@ export class World {
   /** A turret touching the hub reloads from hub stock, one item at a time. */
   private supplyFromHub(b: Building): void {
     const t = TURRETS[b.type];
-    if (!t || b.ammo + t.shotsPerItem > t.maxShots || this.awayFromHub(b.x, b.y) == null) return;
+    if (!t?.ammoItem || b.ammo + t.shotsPerItem > t.maxShots || this.awayFromHub(b.x, b.y) == null) return;
     const inv = this.state.inventory;
     if ((inv[t.ammoItem] ?? 0) <= 0) return;
     inv[t.ammoItem]!--;

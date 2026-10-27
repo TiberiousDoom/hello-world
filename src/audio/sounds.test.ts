@@ -88,7 +88,7 @@ describe('Sound effects', () => {
 
   it('a tesla zaps once per shot, however far its arc jumps; a line upgrade sounds once', () => {
     const { w, hub, sfx, watcher } = setup();
-    w.state.ship.blueprints = ['express_belt', 'tesla'];
+    Object.assign(w.state.inventory, { steel: 99, circuit: 9, coil: 9 });
     const t = placed(w.place('tesla', hub.x + HUB_SIZE + 2, hub.y, 0));
     const n = addNest(w, 0, 0);
     for (let i = 0; i < 3; i++) {

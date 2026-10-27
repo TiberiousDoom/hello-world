@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, ItemId, NESTS, RESEARCH, RESEARCH_BY_ID, SHIP, SHIP_SITE, cargoFor } from './data';
+import { BLUEPRINTS, BLUEPRINT_BY_ID, BUILDINGS, Blueprint, ItemId, NESTS, RESEARCH, RESEARCH_BY_ID, SHIP, SHIP_SITE, cargoFor } from './data';
 import { Nest, cellKey, isAngry, newNest } from './nests';
 import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, stageNeeds, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
@@ -261,7 +261,7 @@ describe('Supply ship', () => {
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
-          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['tesla'] }
+          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: null } // the Tesla left the pool (D-126)
           : { stage: 2, delivered: {}, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
@@ -276,22 +276,70 @@ describe('Supply ship', () => {
   });
 
   it('after a delivery the colony offers blueprints to pick from, or sends the last one left', () => {
+    // The pool is empty until the special buildings come (D-125, D-126), so these are stand-ins.
+    const stand = (id: string): Blueprint => ({ id, name: `Test ${id}`, description: '', unlocks: ['tesla'] });
+    const added = [stand('one'), stand('two')];
+    for (const b of added) {
+      BLUEPRINTS.push(b);
+      BLUEPRINT_BY_ID[b.id] = b;
+    }
+    try {
+      const w = quiet();
+      yard(w);
+      w.state.researched = w.state.researched.filter((r) => r !== 'electric_defense');
+      expect(w.isUnlocked('tesla')).toBe(false);
+      const ship = w.state.ship;
+      deliverRun(w); // two left: an offer of both
+      expect([...ship.offer!].sort()).toEqual(['one', 'two']);
+      expect(pickBlueprint(w, 'shipyard')).toBe(false);
+      expect(pickBlueprint(w, 'one')).toBe(true);
+      expect(ship.offer).toBeNull();
+      expect(w.isUnlocked('tesla')).toBe(true);
+      deliverRun(w); // only one left: it's simply sent
+      expect(ship.offer).toBeNull();
+      expect(w.events.some((e) => e.includes('Test two blueprint'))).toBe(true);
+      deliverRun(w); // none left
+      expect(ship.offer).toBeNull();
+      expect(ship.blueprints).toEqual(['one', 'two']);
+    } finally {
+      for (const b of added) {
+        BLUEPRINTS.splice(BLUEPRINTS.indexOf(b), 1);
+        delete BLUEPRINT_BY_ID[b.id];
+      }
+    }
+  });
+
+  it('with no blueprints in the pool, a delivery offers none (D-126)', () => {
     const w = quiet();
     yard(w);
-    expect(w.isUnlocked('tesla')).toBe(false);
-    const ship = w.state.ship;
-    ship.offer = ['tesla']; // as an offer of two would be, with more blueprints in the pool
-    expect(pickBlueprint(w, 'shipyard')).toBe(false);
-    expect(pickBlueprint(w, 'tesla')).toBe(true);
-    expect(ship.offer).toBeNull();
-    expect(w.isUnlocked('tesla')).toBe(true);
-    ship.blueprints = [];
-    deliverRun(w); // only one left: it's simply sent
-    expect(ship.offer).toBeNull();
-    expect(w.events.some((e) => e.includes('Tesla Turret blueprint'))).toBe(true);
-    deliverRun(w); // none left
-    expect(ship.offer).toBeNull();
-    expect(ship.blueprints).toEqual(['tesla']);
+    expect(BLUEPRINTS).toEqual([]);
+    deliverRun(w);
+    expect(w.state.ship.offer).toBeNull();
+    expect(w.state.ship.blueprints).toEqual([]);
+  });
+
+  it('v36 saves: the Tesla blueprint becomes Electric Defense, with stock to power its teslas (D-126)', () => {
+    const w = quiet();
+    w.state.researched = w.state.researched.filter((r) => r !== 'electric_defense');
+    const old = JSON.parse(w.toJSON());
+    old.version = 36;
+    old.ship.blueprints = ['tesla'];
+    old.ship.offer = null;
+    old.inventory = {};
+    old.buildings.push({ ...old.buildings[0], id: 9001, type: 'tesla', x: 3, y: 3, dir: 0, ammo: 20 });
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.ship.blueprints).toEqual([]);
+    expect(loaded.state.researched).toContain('electric_defense');
+    expect(loaded.isUnlocked('tesla')).toBe(true);
+    expect(loaded.state.buildings.find((b) => b.id === 9001)!.ammo).toBe(0);
+    expect(loaded.state.inventory.steel).toBe(BUILDINGS.boiler.cost.steel! + BUILDINGS.steam_turbine.cost.steel!);
+    // An offer holding it is dropped; a game with neither gets nothing.
+    old.ship.blueprints = [];
+    old.ship.offer = ['tesla'];
+    old.buildings.pop();
+    const plain = World.fromJSON(JSON.stringify(old));
+    expect(plain.state.ship.offer).toBeNull();
+    expect(plain.state.researched).not.toContain('electric_defense');
   });
 
   it('each run wakes nests further out, up to a limit, as the loaded ship gets heavier', () => {
@@ -323,7 +371,7 @@ describe('Supply ship', () => {
       const loaded = World.fromJSON(JSON.stringify(old));
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship.blueprints).toEqual([]);
-      expect(loaded.state.ship.offer).toEqual(runs ? ['tesla'] : null); // the express belt left the pool (D-121)
+      expect(loaded.state.ship.offer).toBeNull(); // the Express Belt and Tesla left the pool (D-121, D-126)
     }
   });
 
@@ -370,7 +418,7 @@ describe('Supply ship', () => {
     old.buildings.push({ ...old.buildings[0], id: 9001, type: 'express_belt', x: 3, y: 3, dir: 0 });
     const loaded = World.fromJSON(JSON.stringify(old));
     expect(loaded.state.ship.blueprints).toEqual([]);
-    expect(loaded.state.ship.offer).toEqual(['tesla']);
+    expect(loaded.state.ship.offer).toBeNull(); // then the Tesla left too (D-126)
     expect(loaded.state.researched).toEqual(expect.arrayContaining(['steam_power', 'express_logistics']));
     expect(loaded.isUnlocked('express_belt')).toBe(true);
     expect(loaded.state.inventory.steel).toBe(BUILDINGS.boiler.cost.steel! + BUILDINGS.steam_turbine.cost.steel!);

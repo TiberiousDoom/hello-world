@@ -2,7 +2,7 @@
 // co-op game agrees and a save keeps it. Seeing is shared: what one engineer finds, everyone sees.
 // It's only the view; the rules never ask about it.
 
-import { BUILDINGS, FOG, TURRETS } from './data';
+import { BUILDINGS, FLOODLIGHT, FOG, TURRETS } from './data';
 import type { Building, GameState } from './world';
 
 /** The fog grid's size in cells along each side. */
@@ -49,6 +49,7 @@ export function reveal(state: GameState, x: number, y: number, r: number): numbe
 /** How far a building sees, from its middle. */
 export function sightOf(b: Building): number {
   if (b.type === 'hub') return FOG.hub;
+  if (b.type === 'floodlight') return FLOODLIGHT.sight; // it lights far into the dark (D-126)
   const [w, h] = BUILDINGS[b.type].size ?? [1, 1];
   return FOG.building + Math.max(w, h) / 2 + (TURRETS[b.type]?.range ?? 0);
 }
