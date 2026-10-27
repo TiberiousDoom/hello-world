@@ -44,13 +44,14 @@ import {
   burnsFuel,
   DIFFICULTY,
   Difficulty,
+  DEFENCE_TIERS,
 } from '../sim/data';
 import { clockAt } from '../sim/clock';
 import { threatAt } from '../sim/nests';
 import { artUrl, icon } from '../art';
 import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, stageNeeds, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
-import { PlaceError, World, canCollect, nextTier } from '../sim/world';
+import { PlaceError, World, canCollect, defenceTier, nextDefenceTier, nextTier } from '../sim/world';
 import { Player, held } from '../sim/player';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
@@ -741,7 +742,7 @@ export class Hud {
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.tier ?? 1}:${b.type === 'strike_beacon' && b.ammo >= STRIKE.charge}:${world.state.researched.includes('mk2')}:${world.state.researched.includes('mk3')}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.tier ?? 1}:${b.type === 'strike_beacon' && b.ammo >= STRIKE.charge}:${world.state.researched.length}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -800,6 +801,18 @@ export class Hud {
           actions += '</div>';
         }
         if (b!.type === 'shipyard') actions += `<div class="row"><button data-action="ship-view">Side view</button></div>`;
+        // Defence tiers (D-142): up a tier in place.
+        const up = nextDefenceTier(b!);
+        if (up) {
+          const cost = Object.entries(up.cost)
+            .map(([k, n]) => `${swatch(k as ItemId)}${n}`)
+            .join(' ');
+          const turret = !!TURRETS[b!.type];
+          const gain = `+${DEFENCE_TIERS.hp * 100}% health${turret ? `, +${DEFENCE_TIERS.damage * 100}% damage, +${DEFENCE_TIERS.range * 100}% range` : ''}`;
+          actions += world.state.researched.includes(up.research)
+            ? `<div class="row"><button data-action="upgrade" title="${gain}">⬆ Tier ${up.tier} ${cost}</button></div>`
+            : `<p class="small muted">Tier ${up.tier} needs ${esc(RESEARCH_BY_ID[up.research].name)}.</p>`;
+        }
         // Mk2 and Mk3 (D-122, D-127): upgrade a machine in place.
         const next = nextTier(b!);
         if (next && world.state.researched.includes(next.research)) {
@@ -943,7 +956,12 @@ export class Hud {
               ? '<br>Making steam'
               : '';
       }
-      if (b.tier === 2 || b.tier === 3) {
+      if (DEFENCE_TIERS.types.includes(b.type)) {
+        const t = defenceTier(b);
+        const turret = TURRETS[b.type];
+        stats += `<br>Tier ${t} of ${DEFENCE_TIERS.max}${t > 1 ? `: +${Math.round(DEFENCE_TIERS.hp * 100 * (t - 1))}% health` : ''}${t > 1 && turret?.damage ? `, +${Math.round(DEFENCE_TIERS.damage * 100 * (t - 1))}% damage, +${Math.round(DEFENCE_TIERS.range * 100 * (t - 1))}% range` : ''}`;
+      }
+      if ((b.tier === 2 || b.tier === 3) && !DEFENCE_TIERS.types.includes(b.type)) {
         const e = world.electrified(b);
         const top = b.tier === 3 ? MK3.speed : MK2.speed;
         stats += `<br>Mk${b.tier}: ${e >= 1 ? `${top}× speed` : e > 0 ? `${world.speedUp(b).toFixed(1)}× speed, short of electricity` : '<b>no electricity:</b> Mk1 speed. Put a power pole near it'}`;

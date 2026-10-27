@@ -613,7 +613,6 @@ export interface Research {
   requires: string[]; // research ids
   unlocks: BuildingType[];
   /** A research that improves something instead of unlocking a building. */
-  effect?: 'plating';
   description: string;
 }
 
@@ -634,7 +633,7 @@ export const RESEARCH: Research[] = [
   // The Wood Age's defences (D-089, D-107). Ids kept from before, so saves keep them.
   { id: 'palisades', name: 'Basic Defense', cost: { plank: 30, rope: 10 }, time: 30, requires: ['rollers', 'workshop'], unlocks: ['palisade', 'spike_pit'], description: 'Palisades, cheap wooden walls, and spike pits, traps bugs walk over.' },
   { id: 'defense2', name: 'Basic Defense 2', cost: { log: 100, plank: 100, rope: 200, truss: 50 }, time: 120, requires: ['palisades', 'carpentry'], unlocks: ['trebuchet', 'ballista'], description: 'Trebuchets that hurl stone a long way, and ballistae that fire stakes.' },
-  { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
+  { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], description: 'Defences can be upgraded to Tier 2 with chitin and their own materials: more health, and turrets hit harder and reach further. Heavy Defense opens Tier 3 and Electric Defense Tier 4. Chitin comes from destroyed nests.' },
   { id: 'rollers', name: 'Basic Logistics', cost: { log: 20, plank: 20, dowel: 50 }, time: 45, requires: ['forestry'], unlocks: ['roller', 'crate'], description: 'Wooden rollers carry items in single file without power, and storage crates hold 50 of one item.' },
   { id: 'workshop', name: 'Workshops', cost: { plank: 40, log: 20 }, time: 45, requires: ['forestry'], unlocks: ['workshop'], description: 'Workshops make pegs from dowels and rope from logs.' },
   { id: 'carpentry', name: 'Carpentry', cost: { plank: 60, peg: 40, rope: 20 }, time: 60, requires: ['workshop'], unlocks: [], description: 'Workshops can make trusses from planks, pegs and rope.' },
@@ -873,8 +872,21 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 /** Chitin a destroyed mound drops, more further out (D-065). */
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
-/** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'railgun', 'shield_pylon', 'steel_wall', 'arc_fence', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
+/**
+ * Defence tiers (D-142, from D-089; they replace Chitin Plating's flat +50% health). A defence upgrades in
+ * place from Tier 1 to 4. Each tier above 1 adds `hp` of its base health and, for a turret, `damage` of its
+ * damage and `range` of its reach. Reaching tier t costs the building's own cost times t plus `chitin[t]`,
+ * from hub stock, and needs `research[t]`.
+ */
+export const DEFENCE_TIERS = {
+  types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'railgun', 'shield_pylon', 'steel_wall', 'arc_fence', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[],
+  max: 4,
+  hp: 0.25,
+  damage: 0.2,
+  range: 0.1,
+  chitin: [0, 0, 5, 10, 20],
+  research: ['', '', 'plating', 'heavy_defense', 'electric_defense'],
+};
 
 /**
  * What lives in a nest `distance` tiles from the hub: further out is more dangerous. Each kind is mostly its

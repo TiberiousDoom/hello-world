@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.83.0 · 2026-10-27 · Defence tiers
+### New
+- **Defence tiers.** Every turret, wall and fence upgrades from Tier 1 to Tier 4 from its panel, using its own materials and chitin. Each tier adds 25% health, and turrets hit 20% harder and reach 10% further.
+- Chitin Plating now opens Tier 2. Heavy Defense opens Tier 3, and Electric Defense Tier 4.
+- Green pips show a defence's tier. Defences plated in older saves are now Tier 3, with the same health.
+
 ## 0.82.0 · 2026-10-27 · Clear a belt line
 ### New
 - **Clear line** on a belt's panel empties every item off the whole line into hub stock. The belts stay where they are.
