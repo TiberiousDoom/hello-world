@@ -147,6 +147,7 @@ export class Input {
   /** Right-click: cancel the blueprint, or put down the tool and clear the selection (same as Esc). */
   private clearSelection(): void {
     if (this.ui.plan) return this.cancelPlan();
+    this.ui.aiming = null;
     this.ui.tool = null;
     this.ui.selected = null;
     this.cb.onChange();
@@ -227,7 +228,8 @@ export class Input {
       this.reportedError = false;
       this.lastTile = this.ui.hover;
       this.paintTile(this.ui.hover, this.ui.dir, true);
-    } else if (this.canMine(this.ui.hover)) {
+    } else if (this.ui.aiming == null && this.canMine(this.ui.hover)) {
+      // While aiming a strike, a tree or ore is a target like any other tile (D-131).
       this.mode = 'mine';
       this.startMining(this.ui.hover);
     } else {
@@ -297,7 +299,15 @@ export class Input {
     this.pointers.delete(e.pointerId);
     this.cancelLongPress();
     if (this.mode === 'mine') this.stopMining();
-    if (completed && (this.mode === 'pending' || this.mode === 'mine')) {
+    if (completed && this.mode === 'pending' && this.ui.aiming != null && !this.ui.tool) {
+      // An orbital strike's target (D-131): this tap picks it, instead of selecting or walking.
+      const t = this.tileAt(x, y);
+      const r = this.cb.issue({ kind: 'strike', id: this.ui.aiming, x: t.x, y: t.y });
+      if (r === 'unexplored' || r === 'bounds') this.cb.onNotice("The beacon can only strike ground that's been explored.");
+      else if (r === 'not-ready') this.cb.onNotice("The beacon isn't charged.");
+      this.ui.aiming = null;
+      this.cb.onChange();
+    } else if (completed && (this.mode === 'pending' || this.mode === 'mine')) {
       const t = this.tileAt(x, y);
       // Empty ground: the character walks there (and any selection is cleared).
       if (this.mode === 'pending' && !this.ui.tool && !this.cb.getWorld().buildingAt(t.x, t.y)) this.cb.issue({ kind: 'move', x: t.x, y: t.y });
@@ -642,6 +652,7 @@ export class Input {
     } else if (k === 'escape' || k === 'q') {
       this.ui.tool = null;
       this.ui.selected = null;
+      this.ui.aiming = null;
     } else if (k === 'x' || k === 'delete') {
       this.ui.tool = this.ui.tool === 'demolish' ? null : 'demolish';
     } else return;

@@ -19,6 +19,7 @@ import {
   ELECTRIC_MACHINES,
   FLOODLIGHT,
   SHIELD,
+  STRIKE,
   ELECTRIC_DEFENCES,
   PLAYER,
   HUB_SIZE,
@@ -387,6 +388,7 @@ export class Renderer {
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);
     this.drawDrones(world, now);
+    this.drawBlasts(world);
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
     this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
@@ -416,6 +418,23 @@ export class Renderer {
       // Moving a building (#76, #83): its own tiles don't block it, and nothing is paid.
       const moving = ui.moving != null ? world.byId.get(ui.moving) : undefined;
       this.drawGhost(world, ui.tool, ui.hover, ui.dir, z, { keepDir: ui.dirSet, moving: moving?.type === ui.tool ? moving : undefined });
+    }
+    // Aiming an orbital strike (D-131): a red target over the strike's reach under the pointer.
+    if (ui.aiming != null && ui.hover && !ui.tool) {
+      const [cx, cy] = [ui.hover.x + 0.5, ui.hover.y + 0.5];
+      ctx.strokeStyle = 'rgba(255,80,60,0.9)';
+      ctx.lineWidth = 2.5 / z;
+      ctx.setLineDash([6 / z, 4 / z]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, STRIKE.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(cx - 0.6, cy);
+      ctx.lineTo(cx + 0.6, cy);
+      ctx.moveTo(cx, cy - 0.6);
+      ctx.lineTo(cx, cy + 0.6);
+      ctx.stroke();
     }
     if (ui.pings.length) this.drawPings(ui, now, z);
   }
@@ -1939,6 +1958,25 @@ export class Renderer {
     if (!frameCount(key)) return false;
     this.effects.push({ kind: 'sprite', x, y, r: size, born: at, life, color: key, angle });
     return true;
+  }
+
+  /** Orbital strikes landing (D-131): a white flash, then a ring of fire spreading over the strike's reach. */
+  private drawBlasts(world: World): void {
+    const ctx = this.ctx;
+    for (const bl of world.blasts) {
+      const t = bl.age / 1.5;
+      if (bl.age < 0.2) {
+        ctx.fillStyle = `rgba(255,250,230,${0.8 * (1 - bl.age / 0.2)})`;
+        dot(ctx, bl.x, bl.y, STRIKE.radius * 1.2);
+      }
+      ctx.fillStyle = `rgba(255,140,50,${0.45 * (1 - t)})`;
+      dot(ctx, bl.x, bl.y, STRIKE.radius * Math.min(1, 0.3 + t * 2));
+      ctx.strokeStyle = `rgba(255,220,120,${1 - t})`;
+      ctx.lineWidth = 0.15;
+      ctx.beginPath();
+      ctx.arc(bl.x, bl.y, STRIKE.radius * Math.min(1.3, 0.4 + t * 2), 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
 
   /** Drones in flight (D-128): a small quadcopter with spinning rotors, carrying its item on the way out. */

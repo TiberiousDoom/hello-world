@@ -34,6 +34,8 @@ export interface UIState {
   pings: Ping[];
   /** A building being moved (#76, #83): the tool in hand is its type, and the next tap puts it there. */
   moving: number | null;
+  /** A charged strike beacon whose target the next tap on the map picks (D-131). */
+  aiming: number | null;
 }
 
 /** A co-op ping: player `player` points at tile (x, y). */
@@ -48,7 +50,7 @@ export interface Ping {
 export const PING_MS = 5000;
 
 export function createUIState(): UIState {
-  return { tool: null, dir: 0, dirSet: false, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [], moving: null };
+  return { tool: null, dir: 0, dirSet: false, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [], moving: null, aiming: null };
 }
 
 /**
@@ -107,7 +109,7 @@ export const isBig = (type: BuildingType): boolean => {
 };
 
 /** Buildings that send items out of one side, and so can line up with a belt. */
-const ALIGNS: BuildingType[] = ['extractor', 'lumber_camp', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'splitter'];
+const ALIGNS: BuildingType[] = ['extractor', 'lumber_camp', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'greenhouse', 'splitter'];
 
 /**
  * How well a building at (x, y) facing `dir` joins the belts around it: 2 if

@@ -5,7 +5,7 @@
 import { Camera } from '../render/camera';
 import { BUILDINGS, HUB_SIZE, isBelt, isMachine } from '../sim/data';
 import { isAngry, nestCentre } from '../sim/nests';
-import { Shot, World, outOfFuel } from '../sim/world';
+import { Blast, Shot, World, outOfFuel } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
 
 /** How far past the screen's edge (as a fraction of half the screen) a sound fades to nothing. */
@@ -20,6 +20,7 @@ export class SoundWatcher {
   private buildings = new Map<number, { type: string; x: number; y: number }>();
   private enemies = new Map<number, { x: number; y: number }>();
   private seenShots = new WeakSet<Shot>();
+  private seenBlasts = new WeakSet<Blast>();
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
   private angry = new Set<number>();
@@ -78,6 +79,13 @@ export class SoundWatcher {
       if (sh.jump) continue; // part of a tesla's arc, already heard
       const from = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
       this.play(from?.type === 'hub' ? 'hub_shot' : from?.type === 'ballista' || from?.type === 'trebuchet' ? 'twang' : sh.arc || sh.beam ? 'zap' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
+    }
+
+    // Orbital strikes (D-131): heard wherever they land.
+    for (const bl of world.blasts) {
+      if (this.seenBlasts.has(bl)) continue;
+      this.seenBlasts.add(bl);
+      this.play('destroyed', bl.x, bl.y);
     }
 
     // Trees cut by Lumber Camps.

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="tpGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#f3e6ff" /><stop offset="0.6" stop-color="#b07cf0" /><stop offset="1" stop-color="#5a3a8a" /></radialGradient></defs><g>
+        <rect x="5" y="7" width="56" height="56" rx="8" fill="#0a1a0c" opacity="0.3" />
+        <rect x="3" y="3" width="56" height="56" rx="8" fill="#5a3a8a" stroke="#0f1a2e" stroke-width="2.5" />
+        <circle cx="31" cy="31" r="22" fill="#2a1a40" stroke="#0f1a2e" stroke-width="2" />
+        <circle cx="31" cy="31" r="17" fill="url(#tpGlow)" />
+        <g fill="none" stroke="#e6d4ff" stroke-width="1.6" opacity="0.85"><circle cx="31" cy="31" r="11" stroke-dasharray="4 3" /><circle cx="31" cy="31" r="5" /></g>
+        <g fill="#d98a3a" stroke="#0f1a2e" stroke-width="1.2"><rect x="28" y="5" width="6" height="6" rx="1" /><rect x="28" y="51" width="6" height="6" rx="1" /><rect x="5" y="28" width="6" height="6" rx="1" /><rect x="51" y="28" width="6" height="6" rx="1" /></g>
+      </g>
+      </svg>

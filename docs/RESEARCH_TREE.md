@@ -1,7 +1,7 @@
 # The research tree in four ages (planned)
 
 The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood and
-Iron Ages are built, and so is the Steam Age; the Electric Age is under way. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
+Iron Ages are built, and so are the Steam and Electric Ages. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the
@@ -241,8 +241,8 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
   recharges from electricity, and the **Railgun** is the age's heavy weapon.
 - **Ship Systems**, one research, gates the engines, life support and navigation, whose parts change to
   circuits, coils and steel. So the first launch needs the Electric Age.
-- **Supply runs** reward **special buildings** outside the tree once the Tesla has moved into it. Their list is
-  for the owner to approve before that step.
+- **Supply runs** reward **special buildings** outside the tree once the Tesla has moved into it. The owner
+  chose three (D-131): the **Teleporter Pad**, the **Orbital Strike Beacon** and the **Greenhouse**.
 - **Order, each playtested:**
   1. ✅ Electronics and the Circuit Works (0.66.0): the keystone, circuit boards and coils.
   2. ✅ Electric Defense (0.67.0, D-126): the electric Tesla, the Arc Fence and Floodlights.
@@ -250,7 +250,8 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
   4. ✅ Drone Logistics (0.69.0, D-128): drone pads.
   5. ✅ Electric Defense 2 (0.70.0, D-129): the Shield Pylon and the Railgun.
   6. ✅ Ship Systems and the launch (0.71.0, D-130): the engine, life support and navigation, of circuits, coils and steel.
-  7. Special buildings from supply runs.
+  7. ✅ Special buildings from supply runs (0.72.0, D-131): the Teleporter Pad, the Orbital Strike Beacon and the
+     Greenhouse.
 
 ## The ship
 
@@ -288,7 +289,7 @@ Age by age, each playtested before the next:
    steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), ✅ Mk2 machines and the Storage Silo (0.63.0), ✅ gunpowder
    and the Turret Mk.2 (0.64.0), ✅ the mortar, artillery and hull (0.65.0). The Steam Age is built.
 5. **Electric Age** (decided, D-125; see [How the Electric Age plays](#how-the-electric-age-plays-d-125)): ✅ Electronics
-   and the Circuit Works (0.66.0), ✅ Electric Defense (0.67.0), ✅ Mk3 Machines (0.68.0), ✅ drone pads (0.69.0), ✅ Electric Defense 2 (0.70.0), ✅ Ship Systems (0.71.0); next the colony's special buildings.
+   and the Circuit Works (0.66.0), ✅ Electric Defense (0.67.0), ✅ Mk3 Machines (0.68.0), ✅ drone pads (0.69.0), ✅ Electric Defense 2 (0.70.0), ✅ Ship Systems (0.71.0), ✅ the colony's special buildings (0.72.0). The Electric Age is built.
 
 Each step changes saved games: a save migration grants an age's keystone to a game that already
 researched something in it, and refunds researches that are removed.

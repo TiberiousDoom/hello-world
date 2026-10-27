@@ -63,6 +63,8 @@ import {
   ELECTRIC_MACHINES,
   FLOODLIGHT,
   SHIELD,
+  STRIKE,
+  TELEPORT,
   MK2,
   MK3,
   EXPRESS_BELT_SPEED,
@@ -73,7 +75,7 @@ import { clockAt } from './clock';
 import { ResearchState, createResearchState, drawResearch, researchFraction } from './research';
 import { generateNests, generatePonds, generateResources, generateSulfur, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
-import { newFog, revealBuilding, tickFog } from './fog';
+import { explored, newFog, revealBuilding, tickFog } from './fog';
 import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
@@ -305,10 +307,19 @@ export interface Shot {
   beam?: boolean; // a railgun's slug, through everything on its line (D-129)
 }
 
+/** An orbital strike landing (D-131), for drawing and sound. */
+export interface Blast {
+  x: number;
+  y: number;
+  age: number;
+}
+
 /** 'far': the character walks over and mines on arriving. 'full': its inventory has no room for it. */
 export type MineError = 'no-ore' | 'occupied' | 'far' | 'full' | 'down';
 export type PlaceError = 'bounds' | 'occupied' | 'tree' | 'nest' | 'locked' | 'cost' | 'needs-resource' | 'needs-trees' | 'needs-hub' | 'unique' | 'site' | 'unmovable' | 'water' | 'needs-water';
 export type ResearchError = 'unknown' | 'done' | 'requires' | 'cost';
+/** Why an orbital strike can't be called (D-131). */
+export type StrikeError = 'not-ready' | 'unexplored' | 'bounds';
 
 /** A save from before v8: it can't be loaded into the new kind of map. */
 export class OldSaveError extends Error {}
@@ -337,6 +348,8 @@ export class World {
   /** The nest owning each territory cell (see cellKey). */
   nestCells = new Map<number, Nest>();
   shots: Shot[] = [];
+  /** Orbital strikes landing (D-131). */
+  blasts: Blast[] = [];
   /**
    * Buildings lost to bugs in the last moment (not saved); lets sound tell them from demolishing, and
    * says where the debris flies (its centre, and how many tiles across it was).
@@ -1512,7 +1525,7 @@ export class World {
       dir,
       hp: this.maxHpFor(type),
       belt: [],
-      recipe: null,
+      recipe: type === 'greenhouse' ? 'greenhouse_log' : null, // a greenhouse has one recipe and no inputs (D-131)
       inputs: {},
       outputs: [],
       progress: -1,
@@ -1817,8 +1830,8 @@ export class World {
   setFilter(id: number, item: ItemId | null): void {
     const b = this.byId.get(id);
     if (b?.type === 'port' || b?.type === 'splitter') b.filter = item;
-    // A drone pad (D-128): an item makes it receive that item; none makes it send. Switching empties it into the hub.
-    if (b?.type === 'drone_pad' && b.filter !== item) {
+    // A drone pad or teleporter (D-128, D-131): an item makes it receive that item; none makes it send. Switching empties it into the hub.
+    if ((b?.type === 'drone_pad' || b?.type === 'teleporter') && b.filter !== item) {
       for (const it of b.outputs) this.state.inventory[it] = (this.state.inventory[it] ?? 0) + 1;
       b.outputs = [];
       b.filter = item;
@@ -1864,8 +1877,9 @@ export class World {
         target.outputs.push(item);
         return true;
       }
-      case 'drone_pad': {
-        // A sending pad takes one kind of item from belts, up to DRONES.hold; a receiving one only from drones (D-128).
+      case 'drone_pad':
+      case 'teleporter': {
+        // A sending pad takes one kind of item from belts, up to DRONES.hold; a receiving one only from drones (D-128, D-131).
         if (target.filter || target.outputs.length >= DRONES.hold || (target.outputs.length && target.outputs[0] !== item)) return false;
         target.outputs.push(item);
         return true;
@@ -2212,6 +2226,7 @@ export class World {
         case 'steel_works':
         case 'powder_mill':
         case 'circuit_works':
+        case 'greenhouse':
           this.tickMachine(b, dt);
           break;
         case 'hub':
@@ -2234,6 +2249,12 @@ export class World {
           break;
         case 'drone_pad':
           if (b.filter) this.pushOutput(b); // a receiving pad: a belt leaving its front takes items out
+          break;
+        case 'teleporter':
+          this.tickTeleporter(b, dt);
+          break;
+        case 'strike_beacon':
+          b.ammo = Math.min(STRIKE.charge, b.ammo + dt * this.electrified(b)); // charging (D-131)
           break;
         case 'shield_pylon':
           b.ammo = Math.min(SHIELD.max, b.ammo + SHIELD.recharge * this.electrified(b) * dt); // its shield (D-129)
@@ -2273,6 +2294,8 @@ export class World {
       }
     }
 
+    for (const bl of this.blasts) bl.age += dt;
+    this.blasts = this.blasts.filter((bl) => bl.age < 1.5);
     for (const shot of this.shots) shot.age += dt;
     this.shots = this.shots.filter((sh) => sh.age < 0.12);
     for (const l of this.lost) l.age += dt;
@@ -2414,7 +2437,7 @@ export class World {
     if (!n || n === target) return false;
     if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
     if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
-    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type) && n.type !== 'drone_pad') return false;
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type) && n.type !== 'drone_pad' && n.type !== 'teleporter') return false;
     const o = this.outputTile(n);
     return o.x === target.x && o.y === target.y;
   }
@@ -2495,6 +2518,56 @@ export class World {
       s.drones.push({ home: best.id, to: want.id, item, count, flown: 0, back: false });
       busy.add(best.id);
     }
+  }
+
+  /**
+   * A receiving teleporter (D-131) pulls its item, TELEPORT.rate a second, from the first sending teleporter
+   * holding it, anywhere; both need electricity. A belt leaving its front takes the items out.
+   */
+  private tickTeleporter(b: Building, dt: number): void {
+    const item = b.filter;
+    if (item) {
+      const e = this.electrified(b);
+      if (e > 0 && b.outputs.length < DRONES.hold) {
+        b.progress = Math.max(b.progress, 0) + TELEPORT.rate * e * dt;
+        while (b.progress >= 1 && b.outputs.length < DRONES.hold) {
+          const from = this.state.buildings.find((p) => p.type === 'teleporter' && !p.filter && p.outputs[0] === item && this.electrified(p) > 0);
+          if (!from) break;
+          from.outputs.shift();
+          b.outputs.push(item);
+          b.progress -= 1;
+        }
+        b.progress = Math.min(b.progress, 1);
+      }
+      this.pushOutput(b);
+    }
+  }
+
+  /**
+   * Calls an orbital strike from a charged beacon onto (x, y), an explored spot (D-131): every bug within
+   * STRIKE.radius takes STRIKE.damage, and each nest mound there STRIKE.mound.
+   */
+  strike(id: number, x: number, y: number): StrikeError | null {
+    const b = this.byId.get(id);
+    if (!b || b.type !== 'strike_beacon' || b.ammo < STRIKE.charge) return 'not-ready';
+    if (!this.inBounds(x, y)) return 'bounds';
+    if (!explored(this.state, x, y)) return 'unexplored';
+    b.ammo = 0;
+    const cx = x + 0.5;
+    const cy = y + 0.5;
+    const r2 = STRIKE.radius ** 2;
+    for (const e of this.state.enemies) {
+      if ((e.x - cx) ** 2 + (e.y - cy) ** 2 > r2) continue;
+      e.hp -= STRIKE.damage;
+      onBugHurt(this, e);
+    }
+    for (const n of [...this.state.nests]) {
+      const [mx, my] = nestCentre(n);
+      if (!n.destroyed && (mx - cx) ** 2 + (my - cy) ** 2 <= (STRIKE.radius + NESTS.moundRadius) ** 2) damageMound(this, n, STRIKE.mound);
+    }
+    this.blasts.push({ x: cx, y: cy, age: 0 });
+    this.events.push('Orbital strike!');
+    return null;
   }
 
   /** Belts, and tunnel exits (which run like one belt tile once items come up). */
@@ -3018,5 +3091,5 @@ export function shipSites(state: GameState): { x: number; y: number }[] {
 }
 
 export function canCollect(t: BuildingType): boolean {
-  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || t === 'drone_pad' || isStore(t) || isMachine(t);
+  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || t === 'drone_pad' || t === 'teleporter' || isStore(t) || isMachine(t);
 }
