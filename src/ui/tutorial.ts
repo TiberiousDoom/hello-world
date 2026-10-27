@@ -439,7 +439,7 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         text: () =>
-          'Now ore becomes ingots, and ingots become plates. Select the blacksmith to make rods or rivets instead. Lay rollers to bring the plates home: they pay for belts (Logistics) and turrets (Advanced Defense).',
+          'Now ore becomes ingots, and ingots become plates. Select the blacksmith to make rods or rivets instead. Lay rollers to bring the plates home. They pay for Hydraulics, the water power that belts and turrets need.',
       },
     ],
   },
@@ -460,11 +460,11 @@ export const LESSONS: Lesson[] = [
           document.querySelector('#info:not([hidden]) [data-action="research"]')
             ? { el: '#info [data-action="research"]' }
             : { tiles: hubTarget(c.world), shape: 'circle' },
-        // Before plates (Blacksmith, D-113), the defence to research is Basic Defense: palisades and spike pits (D-107).
-        done: (c) => c.world.state.researched.includes(c.world.state.researched.includes('blacksmith') ? 'defense' : 'palisades'),
+        // Before Hydraulics (D-117), the defence to research is Basic Defense: palisades and spike pits (D-107).
+        done: (c) => c.world.state.researched.includes(c.world.state.researched.includes('hydraulics') ? 'defense' : 'palisades'),
         text: (c) =>
-          c.world.state.researched.includes('blacksmith')
-            ? 'Select the hub, open Research and start Advanced Defense: it unlocks turrets, which fire iron plates. Feed them by belt, or place them touching the hub.'
+          c.world.state.researched.includes('hydraulics')
+            ? 'Select the hub, open Research and start Advanced Defense: hydraulic turrets, which fire iron plates, and brick walls. A turret fires only with power, so lay a drive shaft to it from a well. Feed it by belt, or place it touching the hub.'
             : 'Select the hub, open Research and start Basic Defense: palisades to keep bugs off your buildings, and spike pits that hurt and slow them as they cross. Your hub has a gun of its own meanwhile.',
       },
     ],
@@ -497,7 +497,7 @@ export const LESSONS: Lesson[] = [
         target: () => ({ el: '[data-tool="shaft"]' }),
         text: () =>
           `Lay Drive Shafts from a well to your belts: everything a shaft touches shares its power, and belts pass it along their line. ` +
-          `A well powers about ${Math.floor(POWER.sources.well! / POWER.belt)} belts. Select a belt to see how its network is doing.`,
+          `A well powers about ${Math.floor(POWER.sources.well! / POWER.uses.belt!)} belts. Select a belt to see how its network is doing.`,
       },
     ],
   },

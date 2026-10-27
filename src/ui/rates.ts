@@ -22,6 +22,7 @@ import {
   BELT_SPEED,
   ROLLER,
   burnsFuel,
+  HYDRAULIC,
 } from '../sim/data';
 import type { Building, World } from '../sim/world';
 
@@ -88,7 +89,8 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
     return { max: `${fmt(pm.output)} ${name(r.output)}/min, using ${uses}/min`, now: nowLine(world, b, machineStatus(b, r)) };
   }
   const t = TURRETS[b.type];
-  if (t) return { max: rateSummary(b.type), now: '' };
+  // Hydraulic defences (D-117) fire only with power.
+  if (t) return { max: rateSummary(b.type), now: HYDRAULIC.includes(b.type) && world.powered(b) <= 0 ? "No power: it can't fire. Lay a drive shaft to it" : '' };
   return null;
 }
 

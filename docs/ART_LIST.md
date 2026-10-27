@@ -140,6 +140,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel, no arrow; centred pivot | 1 | P2 | Upgraded (`buildings/tesla_barrel`) |
 | Tesla lightning | — | A jagged bolt with a glow, redrawn every frame | — | P3 | Code; Reference `effects/tesla_bolt` (a guide for the code) |
 | Wall set | 1×1 each | Near top-down capstones, chosen from neighbours: `wall` (east–west), `wall_v`, corners `wall_nw`, `_ne`, `_sw`, `_se`, gate ends `wall_end_w`, `_end_e` and a lone pier `wall_pier` | 1 | P2 | Upgraded |
+| Reinforced wall set (D-117) | 1×1 each | The wall set in iron-grey stone with iron straps and rivets, the same pieces (`reinforced_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 
 ## Units

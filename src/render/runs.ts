@@ -22,5 +22,5 @@ export function runSuffix(n: boolean, s: boolean, e: boolean, w: boolean, lone: 
 /** The run piece for a wall or palisade building. */
 export function runPiece(world: World, b: Building): string {
   const same = (dx: number, dy: number) => world.buildingAt(b.x + dx, b.y + dy)?.type === b.type;
-  return runSuffix(same(0, -1), same(0, 1), same(1, 0), same(-1, 0), b.type === 'wall' ? '_pier' : '_post');
+  return runSuffix(same(0, -1), same(0, 1), same(1, 0), same(-1, 0), b.type === 'palisade' ? '_post' : '_pier');
 }

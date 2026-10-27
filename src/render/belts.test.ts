@@ -12,7 +12,7 @@ function emptyWorld(): World {
   w.state.trees.fill(0);
   w.state.nests = []; // no mounds in the way, wherever the map put them
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, plank: 999 };
+  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, plank: 999, rivet: 999 };
   return w;
 }
 

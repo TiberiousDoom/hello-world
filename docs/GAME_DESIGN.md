@@ -84,10 +84,11 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Belt | 1×1 | 1 iron plate | 30 | Metal Logistics |
 | Extractor | 2×2 | 4 stone, 4 iron ore | 80 | Industry |
 | Furnace | 2×2 | 6 stone | 120 | Industry |
-| Turret | 1×1 | 10 iron plates, 2 copper ingots | 150 | Advanced Defense |
+| Hydraulic Turret | 1×1, needs power | 10 iron plates, 6 rivets, 2 copper ingots | 150 | Advanced Defense |
 | Ballista | 1×1 | 10 planks, 4 rope | 140 | Basic Defense 2 |
 | Trebuchet | 2×2 | 40 planks, 10 rope, 8 trusses | 220 | Basic Defense 2 |
-| Wall | 1×1 | 3 bricks | 400 | Masonry |
+| Brick Wall | 1×1 | 3 bricks | 400 | Advanced Defense |
+| Reinforced Wall | 1×1 | 4 bricks, 2 iron plates, 4 rivets | 900 | Advanced Defense 2 |
 | Workshop | 2×2 | 10 planks, 6 logs | 120 | Workshops |
 | Blacksmith | 2×2 | 10 stone, 6 iron ingots | 140 | Blacksmith |
 | Machine Shop | 2×2 | 10 iron plates, 10 rivets, 4 bricks | 140 | Machine Shop |
@@ -99,7 +100,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Water Wheel | 3×1, front tile in a pond | 20 planks, 10 iron rods, 20 rivets | 160 | Hydraulics |
 | Assembler | 3×3 | 10 gears, 10 wire | 150 | Assembly |
 | Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
-| Cannon | 1×1 | 15 iron plates, 5 gears, 2 motors | 220 | Heavy Ordnance |
+| Hydraulic Cannon | 1×1, needs power | 15 iron plates, 5 gears, 10 rivets | 220 | Advanced Defense 2 |
 | Express Belt | 1×1 | 1 iron plate, 1 gear | 40 | Colony blueprint |
 | Tesla Turret | 1×1 | 12 iron plates, 6 copper ingots, 10 wire | 160 | Colony blueprint |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
@@ -133,14 +134,16 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 - **Storage Unit** (1×2, #87, D-116): its Iron Age upgrade. It holds **6 stacks of up to 50**, of any mix
   of items (300 in all), takes them from the back and sides, and sends them out of its front, first in,
   first out, onto a belt or roller there. Collect and Drop off work as on the crate.
-- **Water power (D-113, D-115):** belts need power. A **Well** (anywhere) gives **8** power and a
-  **Water Wheel** (its front tile in a pond, the other two on land) gives **32**; each belt uses **0.2**, so a
-  well runs 40 belts and a wheel 160. Power travels through **drive shafts** (laid in lines like belts) and
-  anything touching them: every shaft, source, belt, splitter and underground belt that touches another
-  is on the same network, and an underground pair carries it across. A network with less power than its
-  belts use slows them all evenly; a belt with no power at all rolls at **roller speed** (0.5 tiles/s).
-  Selecting a belt, shaft or source shows its network's power and use. Rollers and express belts need no
-  power.
+- **Water power (D-113, D-115, D-117):** belts, turrets and cannons need power. A **Well** (anywhere) gives
+  **8** power and a **Water Wheel** (its front tile in a pond, the other two on land) gives **32**; each belt
+  uses **0.2**, each hydraulic turret **1** and each hydraulic cannon **2**, so a well runs 40 belts or 8
+  turrets. Power travels through **drive shafts** (laid in lines like belts) and anything touching them:
+  every shaft, source, belt, splitter, underground belt, turret and cannon that touches another is on the
+  same network, and an underground pair carries it across. A network with less power than it uses slows
+  everything on it evenly: belts slow down, and turrets and cannons fire more slowly. A belt with no power
+  at all rolls at **roller speed** (0.5 tiles/s); a turret or cannon with none doesn't fire, and flashes a
+  blue mark. Selecting a belt, shaft, source or turret shows its network's power and use. Rollers, express
+  belts, the hub's gun, ballistae, trebuchets and tesla turrets need no power.
 - **Belts** move 1.5 tiles/s when powered and have **two lanes** side by side (#61, D-069), each holding about 3
   items per tile, so a belt line carries up to about **530 items a minute** (an express belt about
   1,060). A belt accepts items from any side except the tile it points into. An item reaching the end
@@ -257,17 +260,16 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Charcoal | 40 logs, 20 iron plates | 45 s | Blacksmith | The charcoal recipe (a fuel that lasts three times as long as a log) |
 | Hydraulics | 80 iron plates, 40 iron rods, 20 bricks | 45 s | Blacksmith | Well, Water Wheel, Drive Shaft |
 | Metal Logistics | 60 iron plates, 40 iron rods, 20 bricks | 45 s | Hydraulics | Belt, Splitter, Underground Belt, Storage Unit |
-| Advanced Defense | 20 iron plates | 30 s | Blacksmith | Turret |
+| Advanced Defense | 40 iron plates, 20 copper, 20 rivets, 20 bricks | 45 s | Hydraulics | Hydraulic Turret, Brick Wall |
+| Advanced Defense 2 | 100 iron plates, 80 bricks, 50 gears, 40 rivets | 120 s | Advanced Defense, Machine Shop | Hydraulic Cannon, Reinforced Wall |
 | Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
 | Basic Defense 2 | 100 logs, 100 planks, 200 rope, 50 trusses | 120 s | Basic Defense, Carpentry | Trebuchet, Ballista |
 | Basic Logistics | 20 logs, 20 planks, 50 dowels | 45 s | Forestry | Wooden Roller, Storage Crate |
 | Chitin Plating | 10 chitin, 20 iron plates | 45 s | Advanced Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
-| Masonry | 12 bricks | 30 s | Industry | Wall |
 | Distribution | 25 iron plates, 10 copper | 60 s | Advanced Defense | Hub Port |
 | Assembly | 30 gears, 30 wire | 120 s | Machine Shop | Assembler |
-| Field Repair | 20 gears, 20 wire | 90 s | Machine Shop, Masonry | Repair Station |
+| Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
-| Heavy Ordnance | 10 motors, 30 gears | 150 s | Assembly, Advanced Defense | Cannon |
 
 The hub starts empty.
 
@@ -363,7 +365,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    the **furnace**, which smelts iron ore into **ingots**.
 8. **The Iron Age's shops (D-113):** research **Blacksmith** (50 ingots, 30 stone) for the Blacksmith, which
    hammers ingots into **plates** (or rods, and rods into rivets). Plates pay for **Hydraulics**, then **Metal Logistics** (powered belts), and
-   **Advanced Defense** (turrets). The **Machine Shop** (after Blacksmith) makes gears and wire.
+   **Advanced Defense** (hydraulic turrets and brick walls), then **Advanced Defense 2** (hydraulic cannons and
+   reinforced walls). The **Machine Shop** (after Blacksmith) makes gears and wire.
 
 ## Bugs
 
@@ -450,6 +453,10 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items:
 | Trebuchet (2×2) | stone | 1 | 12 | 24, nothing closer than 6 | 0.25/s | 40, splash radius 2 |
 | Cannon | gear | 3 | 24 | 6.5 | 0.7/s | 30, splash radius 1.3 |
 | Tesla Turret | copper wire | 2 | 30 | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
+
+The **Hydraulic Turret** and **Hydraulic Cannon** (D-117) fire only with power (see Water power): lay a
+drive shaft to them, or place them touching a well, a powered belt or another powered turret. Short of
+power they fire more slowly, and with none they don't fire at all, so a cut shaft leaves a gap.
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
 **trebuchet** (D-107) can't hit anything within 6 tiles, so it needs other defences close in.
@@ -615,7 +622,7 @@ one research tree, one supply ship.
   | Rollers | Basic Logistics is researched, before any roller is laid | Pick the Wooden Roller → lay 3 → how rollers move, and the Storage Crate |
   | Wooden parts | Workshops is researched, before Industry and before any workshop is built | Pick and place the Workshop → what it makes (rope from logs, pegs from dowels, trusses after Carpentry) → what Industry costs |
   | Smelting | Industry is researched, before any extractor or furnace is built | Mine 10 stone and 4 iron ore by hand → place an extractor over iron ore → a furnace in front of its arrow → Collect an ingot and bring it back (and what the fuel bar means) → research Blacksmith → place a blacksmith in front of the furnace's arrow → what it makes, and what plates pay for |
-  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (turrets) once Blacksmith is done |
+  | Bugs | A nest is provoked for the first time, or you build within 16 tiles of a nest's centre | The territory → research Basic Defense (palisades and spike pits) from the hub; Advanced Defense (hydraulic turrets, brick walls, and power to the turrets) once Hydraulics is done |
   | Splitters and tunnels | The splitter is unlocked (Metal Logistics) | What splitters do |
   | Water power | Hydraulics is researched, before any well or water wheel is built | Wells and water wheels → drive shafts, and how many belts a well runs |
   | The supply ship | The shipyard is researched, before any run is delivered | Pick the shipyard → place it on its staked-out site → stages and the side view → cargo and launch |
@@ -764,7 +771,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v30**). v30 (D-115) adds ponds away from what's built, gives a game with Logistics
+- Save files are versioned (currently **v31**). v31 (D-117) trades Masonry for Advanced Defense (with Hydraulics, which it
+  needs), returns what was paid towards Masonry, and puts stock in the hub for the wells and shafts its turrets and cannons now
+  need. v30 (D-115) adds ponds away from what's built, gives a game with Logistics
   Hydraulics, and puts stock in the hub for the wells and shafts its belts now need. v29 (D-114) fills the fuel store of every furnace and blacksmith, and gives a game
   already making or holding charcoal the Charcoal research. v28 (D-113) switches furnaces making plates to iron ingots, turns workshops
   making gears or wire into machine shops in place, and gives a game past Industry the Blacksmith (and the Machine Shop, if it

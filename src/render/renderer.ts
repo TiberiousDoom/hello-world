@@ -14,6 +14,7 @@ import {
   EnemyType,
   EXTRACTOR_PERIOD,
   HAND_MINING,
+  HYDRAULIC,
   PLAYER,
   HUB_SIZE,
   NESTS,
@@ -102,6 +103,7 @@ const HEIGHTS: Partial<Record<BuildingType, number>> = {
   crate: 0.35,
   storage: 0.5,
   wall: 0.5,
+  reinforced_wall: 0.5,
   palisade: 0.6,
   turret: 0.55,
   ballista: 0.5,
@@ -1384,7 +1386,7 @@ export class Renderer {
   private spriteKey(world: World, b: Building): string {
     if (b.type === 'tunnel') return world.isTunnelExit(b) ? 'buildings/tunnel_out' : 'buildings/tunnel_in';
     if (TURRETS[b.type]) return `buildings/${b.type}_base`;
-    if (b.type === 'wall' || b.type === 'palisade') {
+    if (b.type === 'wall' || b.type === 'reinforced_wall' || b.type === 'palisade') {
       const key = `buildings/${b.type}${runPiece(world, b)}`;
       return sprite(key) ? key : `buildings/${b.type}`;
     }
@@ -1418,7 +1420,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1500,6 +1502,11 @@ export class Renderer {
       const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
       if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
       if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
+    }
+    // Hydraulic defences (D-117): a flashing blue mark while they have no power and can't fire.
+    if (HYDRAULIC.includes(b.type) && world.powered(b) <= 0) {
+      ctx.fillStyle = `rgba(80,170,255,${0.5 + 0.5 * Math.sin(now / 200)})`;
+      dot(ctx, b.x + 0.3, b.y + 0.3, 0.14);
     }
     // Fuel (D-114): a bar above the progress bar, and a flashing flame mark once it's gone.
     if (burnsFuel(b.type)) {
@@ -1688,7 +1695,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && !turret;
+    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);

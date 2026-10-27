@@ -244,7 +244,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await page.click('.tip-next');
   await expect(page.locator('#tutorial')).toBeHidden();
 
-  // Bugs: the first time a nest is provoked. It waits for Advanced Defense (turrets), researched from the hub once Blacksmith is done.
+  // Bugs: the first time a nest is provoked. It waits for Advanced Defense (turrets), researched from the hub once Hydraulics is done.
   await page.evaluate(() => {
     const w = window.game.world;
     w.state.nests[0].angryUntil = w.state.time + 600;
@@ -255,13 +255,20 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     const w = window.game.world;
     for (const n of w.state.nests) n.angryUntil = 0;
   });
+  // Advanced Defense needs Hydraulics (D-117); a well already built keeps the Water power lesson away.
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.researched.push('hydraulics');
+    w.state.inventory = { ...w.state.inventory, brick: 99, iron_plate: 99, iron_rod: 99 };
+    for (let d = 8; d < 40 && !w.state.buildings.some((b: { type: string }) => b.type === 'well'); d++) w.place('well', w.hub.x - d, w.hub.y - d, 0);
+  });
   await selectHub(page, info);
   await page.click('#info [data-action="research"]');
   await page.click('[data-research="defense"]');
   await expect(page.locator('#research-body')).toContainText('Researching');
   await page.click('#research [data-close]');
   await page.evaluate(() => {
-    window.game.world.state.research.paid.defense = { iron_plate: 999 }; // finish it now
+    window.game.world.state.research.paid.defense = { iron_plate: 999, copper_ingot: 999, rivet: 999, brick: 999 }; // finish it now
   });
   await expect.poll(() => page.evaluate(() => window.game.world.state.researched.includes('defense'))).toBe(true);
   await expect(page.locator('#tutorial')).toBeHidden();

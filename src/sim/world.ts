@@ -53,6 +53,7 @@ import {
   burnsFuel,
   storageRoom,
   POWER,
+  HYDRAULIC,
   CONDUCTS,
 } from './data';
 import { clockAt } from './clock';
@@ -87,8 +88,9 @@ export type { ResearchState };
  * v28 (D-113): furnaces smelt iron ingots; workshops making gears or wire become machine shops.
  * v29 (D-114): furnaces and blacksmiths burn fuel; old ones start with a full store.
  * v30 (D-115) adds ponds, and powered belts: old games get Hydraulics with Logistics, and stock for wells.
+ * v31 (D-117): turrets and cannons need power, and Masonry goes into Advanced Defense.
  */
-export const SAVE_VERSION = 30;
+export const SAVE_VERSION = 31;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -379,6 +381,7 @@ export class World {
     if (state.version === 27) World.migrateV27(state);
     if (state.version === 28) World.migrateV28(state);
     if (state.version === 29) World.migrateV29(state);
+    if (state.version === 30) World.migrateV30(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -399,6 +402,37 @@ export class World {
   }
 
   /**
+   * v30 to v31 (D-117): hydraulic defences. Masonry goes: its brick wall comes with Advanced Defense, so a game
+   * with Masonry (or Field Repair, which needed it) gets Advanced Defense instead, and with it Hydraulics,
+   * which it now needs. Turrets and cannons fire only with power, so a game with any gets stock for enough
+   * wells, and rods for shafts to reach them.
+   */
+  private static migrateV30(state: GameState): void {
+    const done = state.researched;
+    const grant = (id: string) => done.includes(id) || done.push(id);
+    const r = state.research;
+    const masonry = done.includes('masonry') || done.includes('repair') || r.active === 'masonry' || !!r.paid.masonry;
+    if (masonry) grant('defense');
+    if (done.includes('defense')) ['blacksmith', 'hydraulics'].forEach(grant);
+    state.researched = done.filter((id) => id !== 'masonry');
+    if (r.active === 'masonry') r.active = null;
+    const inv = state.inventory;
+    const add = (items: ItemCounts) => {
+      for (const [k, n] of Object.entries(items)) inv[k as ItemId] = (inv[k as ItemId] ?? 0) + n!;
+    };
+    if (r.paid.masonry) add(r.paid.masonry); // what was paid towards it comes back
+    delete r.paid.masonry;
+    const defences = state.buildings.filter((b) => HYDRAULIC.includes(b.type));
+    if (defences.length) {
+      const need = defences.reduce((sum, b) => sum + POWER.uses[b.type]!, 0);
+      const wells = Math.ceil(need / POWER.sources.well!);
+      for (let i = 0; i < wells; i++) add(BUILDINGS.well.cost);
+      inv.iron_rod = (inv.iron_rod ?? 0) + 10 * wells + 4 * defences.length; // shafts to reach them
+    }
+    state.version = 31;
+  }
+
+  /**
    * v29 to v30 (D-115): ponds, and belts that need power. A game with Logistics gets Hydraulics, which it
    * now needs, and enough stock for wells and shafts to keep its belts at full speed.
    */
@@ -407,7 +441,7 @@ export class World {
     if (state.researched.includes('logistics') && !state.researched.includes('hydraulics')) state.researched.push('hydraulics');
     const belts = state.buildings.filter((b) => b.type === 'belt').length;
     if (belts) {
-      const wells = Math.ceil((belts * POWER.belt) / POWER.sources.well!);
+      const wells = Math.ceil((belts * POWER.uses.belt!) / POWER.sources.well!);
       const inv = state.inventory;
       for (const [k, n] of Object.entries(BUILDINGS.well.cost)) inv[k as ItemId] = (inv[k as ItemId] ?? 0) + n! * wells;
       inv.iron_rod = (inv.iron_rod ?? 0) + 10 * wells; // shafts to reach the belts
@@ -803,7 +837,7 @@ export class World {
    */
   freePower = false;
 
-  /** How much of what it needs a belt gets: 1 is full speed, 0 rolls at roller speed. */
+  /** How much of what it needs a belt or hydraulic defence gets: 1 is full speed, 0 rolls at roller speed or doesn't fire. */
   powered(b: Building): number {
     if (this.freePower) return 1;
     const n = this.powerNet(b);
@@ -818,8 +852,8 @@ export class World {
   }
 
   /**
-   * Works out the power networks: every conductor (shafts, sources, belts, splitters and underground belts)
-   * connects to the conductors it touches, and an underground pair to its other end.
+   * Works out the power networks: every conductor (shafts, sources, belts, splitters, underground belts and
+   * hydraulic defences) connects to the conductors it touches, and an underground pair to its other end.
    */
   private refreshPower(): void {
     if (this.netsAt === this.layout) return;
@@ -833,7 +867,7 @@ export class World {
       while (queue.length) {
         const b = queue.pop()!;
         net.supply += POWER.sources[b.type] ?? 0;
-        if (b.type === 'belt') net.demand += POWER.belt;
+        net.demand += POWER.uses[b.type] ?? 0;
         const next: Building[] = [];
         const [fw, fh] = this.footprintOf(b);
         for (let dy = 0; dy < fh; dy++) {
@@ -2157,6 +2191,10 @@ export class World {
     if (!hub) this.supplyFromHub(b);
     b.cooldown = Math.max(0, b.cooldown - dt);
     if (b.cooldown > 0 || (!hub && b.ammo <= 0)) return; // the hub's gun needs no ammo
+    // Hydraulic defences fire only with power, and more slowly when their network runs short (D-117).
+    const power = HYDRAULIC.includes(b.type) ? this.powered(b) : 1;
+    if (power <= 0) return;
+    const reload = 1 / (def.rate * power);
     const [cx, cy] = this.centreOf(b);
     let target: Enemy | undefined;
     let best = def.range * def.range;
@@ -2175,14 +2213,14 @@ export class World {
       const [mx0, my0] = nestCentre(mound);
       if ((mx0 - cx) ** 2 + (my0 - cy) ** 2 < min) return;
       b.ammo--;
-      b.cooldown = 1 / def.rate;
+      b.cooldown = reload;
       damageMound(this, mound, def.damage);
       const [mx, my] = nestCentre(mound);
       this.shots.push({ x1: cx, y1: cy, x2: mx, y2: my, splash: def.splash, age: 0, arc: !!def.chain });
       return;
     }
     if (!hub) b.ammo--;
-    b.cooldown = 1 / def.rate;
+    b.cooldown = reload;
     if (def.splash > 0) {
       for (const e of this.state.enemies) {
         if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > def.splash ** 2) continue;
