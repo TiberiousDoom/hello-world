@@ -463,6 +463,13 @@ export class Hud {
         case 'pickup':
           if (id != null) this.actions.issue({ kind: 'pickup', id });
           break;
+        case 'clear-belts':
+          if (id != null) {
+            const n = this.actions.issue({ kind: 'clear-belts', id });
+            // In co-op the answer comes a few ticks later: no message then.
+            if (n != null) this.toast(n ? `${n} item${n === 1 ? '' : 's'} back in hub stock.` : 'The line is already empty.');
+          }
+          break;
         case 'research':
           this.openResearch();
           break;
@@ -781,7 +788,9 @@ export class Hud {
         // Before belts, finished items are carried to the hub by hand (#38).
         // Your character fetches what it has made, or hands it what you carry (#38, #40).
         if (isBelt(b!.type) || b!.type === 'splitter' || b!.type === 'tunnel') {
-          actions += `<div class="row"><button data-action="pickup" title="Your engineer takes the items off it (#87)">${ico('collect')}<span class="pickup-label">Pick up</span></button></div>`;
+          actions += `<div class="row"><button data-action="pickup" title="Your engineer takes the items off it (#87)">${ico('collect')}<span class="pickup-label">Pick up</span></button>`;
+          if (isBelt(b!.type)) actions += `<button data-action="clear-belts" title="Every item on this whole line goes back to hub stock; the belts stay (D-141)">Clear line</button>`;
+          actions += '</div>';
         }
         const takes = TAKES_ITEMS.includes(b!.type);
         if (canCollect(b!.type) || takes) {

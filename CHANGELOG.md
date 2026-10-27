@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.82.0 · 2026-10-27 · Clear a belt line
+### New
+- **Clear line** on a belt's panel empties every item off the whole line into hub stock. The belts stay where they are.
+
 ## 0.81.0 · 2026-10-27 · Safer co-op
 ### New
 - A dedicated server can have a **password**. Joining asks for it once, and your browser remembers it.

@@ -3435,3 +3435,20 @@ describe('Difficulty settings (D-138)', () => {
     expect(loaded.state.version).toBe(SAVE_VERSION);
   });
 });
+
+describe('Clearing a belt line (D-141)', () => {
+  it('empties every item off a whole line, express belts included, into hub stock, and leaves the belts', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel: 99, iron_plate: 99, gear: 99 });
+    const line = [0, 1, 2].map((i) => placed(w.place('belt', 40 + i, 40, 0)));
+    line.push(placed(w.place('express_belt', 43, 40, 0)));
+    const other = placed(w.place('belt', 40, 45, 0)); // not joined
+    for (const b of [...line, other]) b.belt.push({ item: 'gear', pos: 0.5, lane: 1 });
+    const gears = w.state.inventory.gear!;
+    expect(applyCommand(w, { kind: 'clear-belts', id: line[1].id })).toBe(4);
+    expect(w.state.inventory.gear).toBe(gears + 4);
+    expect(line.every((b) => w.byId.get(b.id) === b && !b.belt.length)).toBe(true);
+    expect(other.belt.length).toBe(1);
+    expect(applyCommand(w, { kind: 'clear-belts', id: line[0].id })).toBe(0);
+  });
+});

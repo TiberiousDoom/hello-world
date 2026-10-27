@@ -86,6 +86,7 @@ const GUEST_KINDS: Record<string, string[]> = {
   research: [],
   'pause-research': [],
   'upgrade-belts': ['x', 'y'],
+  'clear-belts': ['id'],
   upgrade: ['id'],
   launch: [],
   strike: ['id', 'x', 'y'],

@@ -170,7 +170,7 @@ In this order:
 - ✅ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a long press on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
 - ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
 - ✅ **Hub stock only while the hub is selected or pointed at** (D-053), so the map around the hub stays clear
-- ⬜ **Clear a belt line** (owner's note, for later): one action empties every item off a whole belt line (the same line the Express Belt upgrade uses), leaving the belts in place. Where the items go (back into hub stock, or lost) is to be decided (Q-19)
+- ✅ **Clear a belt line** (0.82.0, D-141): Clear line on a belt's panel empties its whole line into hub stock (Q-19), leaving the belts in place
 - ✅ **Research takes one tap (#86, 0.45.3):** the research list updates its numbers in place instead of redrawing under the pointer
 - ✅ **Belt snapping can be overridden (#85, 0.45.3, D-088):** turning a building after it lines up with a belt keeps your facing
 - ✅ **Haptics for mining by hand (#84, 0.46.2):** a short vibration on each tap on phones that support it (a long press already vibrates)

@@ -406,6 +406,8 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
   toolbar (or **I**) opens a small window with the slots, in the place of the building panel.
 - **Pick up:** a selected belt, splitter or underground belt with items on it has **Pick up**: the
   engineer takes the items off it, front first, as many as fit.
+- **Clear line (D-141):** a selected belt, express belt or roller also has **Clear line**: every item on
+  its whole line (the belts joined end to end) goes straight back into hub stock, and the belts stay.
 - **Dropping off:** walking up to the **hub** empties the inventory into it, unless "Drop off at the hub
   when I walk up to it" is switched off in the Inventory window (each player has their own switch).
   **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands that building
