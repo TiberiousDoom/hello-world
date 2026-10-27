@@ -1,7 +1,7 @@
 # The research tree in four ages (planned)
 
 The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood and
-Iron Ages are built, and the Steam Age is next. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
+Iron Ages are built, and the Steam Age is under way. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the
@@ -15,8 +15,8 @@ others are first guesses to test.
   |---|---|---|---|---|
   | **Wood Age** | logs, planks and wooden parts | none: rollers | palisades, spike pits, trebuchets, ballistae | the start |
   | **Iron Age** | iron, copper, brick | water: wells and pumps | hydraulic turrets and cannons | Industry |
-  | **Steam Age** | steel and motors | steam: boilers | Turret Mk.2 (bullets), mortars and artillery (shells) | Engineering |
-  | **Electric Age** | circuits and coils | electricity | tesla, shield pylons, arc fences | Electronics |
+  | **Steam Age** | steel and motors | electricity: boilers, steam turbines, power poles | Turret Mk.2 (bullets), mortars and artillery (shells) | Engineering |
+  | **Electric Age** | circuits and coils | electricity (from the Steam Age), drones | tesla, shield pylons, arc fences | Electronics |
 
 - **Each age has the same parts:** a keystone research, logistics in its own material, a shop for small
   parts, a shop for parts made from parts (Iron Age on), a machine tier, a ship stage, and two defence
@@ -169,24 +169,54 @@ The owner's answers, 2026-10-26. Numbers are first guesses to test.
 |---|---|---|---|
 | **Engineering** (keystone) | Opens the age | 30 motors, 100 gears, 60 bricks | Assembly, Advanced Defense 2 |
 | Steelmaking | Steel recipe | 100 iron plates, 60 charcoal | Engineering, Charcoal |
-| Steam Power | Boiler, steam engine (burn charcoal or logs) | 60 steel, 40 iron rods, 30 bricks | Steelmaking |
-| Express Logistics | Express Belt (steam-driven), Storage Silo | 60 steel, 20 motors | Steam Power |
 | Steel Works | Steel Works (steel beams, bearings) | 80 steel, 40 gears, 20 motors | Steelmaking |
-| Mk2 Machines | Faster extractors and furnaces | 60 steel beams, 40 bearings, 20 motors | Steel Works, Steam Power |
-| Heavy Defense | Turret Mk.2 (fires bullets), Steel Wall; bullets, casings, gunpowder | 60 steel, 30 motors, 50 gears | Steelmaking |
-| Heavy Defense 2 | Mortar and Artillery (fire shells); shells | 100 steel beams, 80 casings, 60 gunpowder | Heavy Defense, Steel Works |
-| Hull | The ship's hull | *to set* (steel, motors) | Engineering |
+| Steam Power | Boiler, Steam Turbine, Power Pole: electricity (D-119) | 60 steel, 40 iron rods, 30 bricks | Steelmaking |
+| Express Logistics | Express Belt (electric), Storage Silo | 60 steel, 20 motors | Steam Power |
+| Mk2 Machines | Extractors and furnaces upgraded in place (electric) | 60 steel beams, 40 bearings, 20 motors | Steel Works, Steam Power |
+| Heavy Defense | Turret Mk.2 (electric, fires bullets), Steel Wall; sulfur, gunpowder (Powder Mill), casings, bullets | 60 steel, 30 motors, 50 gears | Steelmaking, Steam Power |
+| Heavy Defense 2 | Mortar and Artillery (electric, fire shells); shells | 100 steel beams, 80 casings, 60 gunpowder | Heavy Defense, Steel Works |
+| Hull | The ship's hull | *to set* (steel beams, bearings, motors) | Engineering |
+
+### How the Steam Age plays (D-119)
+
+The owner's answers, 2026-10-27. Numbers are first guesses to test.
+
+- **Electricity comes in the Steam Age.** A **Boiler** burns logs or charcoal from a fuel store, like a
+  furnace, and needs water: it goes touching a well or a water wheel. A **Steam Turbine** beside it turns the
+  steam into electricity. One turbine runs many machines, so keeping boilers fed is the age's new job.
+- **Power poles** carry electricity: each pole links to poles within about 6 tiles, and powers buildings
+  within about 2 tiles of it. No lines to lay tile by tile.
+- **What runs on electricity:** the Steam Age's own kit: Mk2 machines, express belts, the Turret Mk.2, the
+  mortar and artillery. Belts and hydraulic defences stay on water power and drive shafts, so an Iron Age
+  base keeps working as it is.
+- **Gunpowder** is charcoal and **sulfur**, a new yellow ore on the map that extractors mine. A **Powder Mill**
+  mixes them; the Steel Works makes **casings**, and the Assembler puts casings and gunpowder together into
+  **bullets** and **shells**.
+- **Mk2 machines upgrade in place:** select an extractor or furnace and tap Upgrade, paying steel beams and
+  bearings. Same footprint, faster, keeps what it holds, needs electricity to run at Mk2 speed.
+- **The Express Belt and the Mortar move into the tree** (Express Logistics and Heavy Defense 2), running on
+  electricity. Games that already have the Express Belt blueprint keep it; the colony offers other blueprints
+  instead.
+- **Order, each playtested:**
+  1. ✅ Engineering, steel and the Steel Works (0.61.0, D-120): the keystone, Steelmaking (the steel recipe
+     needs it now), and the Steel Works with steel beams and bearings.
+  2. Steam Power: the boiler, the steam turbine, power poles and the electric network.
+  3. Express Logistics and Mk2 Machines: the electric express belt, the Storage Silo, and upgrades in place.
+  4. Heavy Defense: sulfur ore, the Powder Mill, casings and bullets, the Turret Mk.2 and the steel wall.
+  5. Heavy Defense 2 and the hull: the mortar, artillery and shells, and the ship's Steam Age stage.
 
 ## Electric Age
+
+Electricity itself now comes with the Steam Age's turbines (D-119), so Electric Power goes; the age brings
+circuits, drones, Mk3 machines and electric defences, all on the Steam Age's power poles.
 
 | Research | Gives | Costs | Needs |
 |---|---|---|---|
 | **Electronics** (keystone) | Opens the age | 100 steel beams, 60 bearings, 40 motors | Mk2 Machines, Heavy Defense 2 |
-| Electric Power | Generator, power poles | 80 steel, 60 wire, 20 motors | Electronics |
 | Circuit Works | Circuit Works (circuit boards, coils) | 80 steel beams, 120 wire, 40 bearings | Electronics |
-| Drone Logistics | Conveyor Drone Pad, logistics network | 60 circuit boards, 40 motors | Electric Power, Circuit Works |
-| Mk3 Machines | Electric extractors, furnaces and assemblers | 80 circuit boards, 40 coils, 60 steel beams | Electric Power, Circuit Works |
-| Electric Defense | Tesla Turret (fed by wire), Floodlights | 60 circuit boards, 100 wire, 30 coils | Electric Power, Circuit Works |
+| Drone Logistics | Conveyor Drone Pad, logistics network | 60 circuit boards, 40 motors | Circuit Works |
+| Mk3 Machines | Faster extractors, furnaces and assemblers | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works |
+| Electric Defense | Tesla Turret (fed by wire), Floodlights | 60 circuit boards, 100 wire, 30 coils | Circuit Works |
 | Electric Defense 2 | Shield Pylon, Arc Fence | 100 circuit boards, 60 coils, 40 bearings | Electric Defense |
 | Ship Systems | The ship's engines, life support and navigation; launch | *to set* (circuits, motors, steel) | Electronics |
 
@@ -222,8 +252,10 @@ Age by age, each playtested before the next:
 3. ✅ **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
    Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), ✅ the Storage Unit (0.58.0), ✅ hydraulic defences (0.59.0), ✅ the
    launch pad (0.60.0). The Iron Age is built.
-4. **Steam Age:** steam, steel parts, gunpowder weapons, the hull.
-5. **Electric Age:** electricity, circuits, drones, electric defences, launch and supply runs.
+4. 🚧 **Steam Age** (decided, D-119; see [How the Steam Age plays](#how-the-steam-age-plays-d-119)): ✅ Engineering,
+   steel and the Steel Works (0.61.0), then steam turbines and electricity, express belts and Mk2 machines,
+   gunpowder weapons, the hull.
+5. **Electric Age:** circuits, drones, electric defences, launch and supply runs.
 
 Each step changes saved games: a save migration grants an age's keystone to a game that already
 researched something in it, and refunds researches that are removed.

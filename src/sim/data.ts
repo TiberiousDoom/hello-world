@@ -30,6 +30,9 @@ export const ITEMS = {
   iron_ingot: { name: 'Iron Ingot', color: '#9aa4ae' },
   iron_rod: { name: 'Iron Rod', color: '#b7c0c9' },
   rivet: { name: 'Rivet', color: '#c9ced4' },
+  // The Steam Age's parts (D-119): the Steel Works rolls steel into them.
+  steel_beam: { name: 'Steel Beam', color: '#8fa3b8' },
+  bearing: { name: 'Bearing', color: '#9aa6b3' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
@@ -38,7 +41,7 @@ export type ItemCounts = Partial<Record<ItemId, number>>;
 // Resource tiles on the map. Index 0 means "no resource".
 export const RESOURCE_ITEMS: (ItemId | null)[] = [null, 'iron_ore', 'copper_ore', 'stone'];
 
-export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop';
+export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works';
 
 export interface Recipe {
   id: string;
@@ -70,7 +73,10 @@ export const RECIPES: Recipe[] = [
   { id: 'stake', machine: 'sawmill', inputs: { plank: 1 }, output: 'stake', count: 3, time: 1.5 },
   { id: 'dowel', machine: 'sawmill', inputs: { plank: 1 }, output: 'dowel', count: 4, time: 1.5 },
   { id: 'charcoal', machine: 'furnace', inputs: { log: 2 }, output: 'charcoal', count: 1, time: 2.5, requires: 'charcoal' },
-  { id: 'steel', machine: 'furnace', inputs: { iron_plate: 2, charcoal: 1 }, output: 'steel', count: 1, time: 3 },
+  { id: 'steel', machine: 'furnace', inputs: { iron_plate: 2, charcoal: 1 }, output: 'steel', count: 1, time: 3, requires: 'steelmaking' },
+  // The Steam Age's parts (D-119).
+  { id: 'steel_beam', machine: 'steel_works', inputs: { steel: 2 }, output: 'steel_beam', count: 1, time: 3 },
+  { id: 'bearing', machine: 'steel_works', inputs: { steel: 1, gear: 1 }, output: 'bearing', count: 2, time: 3 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -98,6 +104,7 @@ export type BuildingType =
   | 'sawmill'
   | 'blacksmith'
   | 'machine_shop'
+  | 'steel_works'
   | 'shaft'
   | 'well'
   | 'water_wheel'
@@ -190,6 +197,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
   blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
   machine_shop: { name: 'Machine Shop', short: 'MS', color: '#4f6a86', hp: 140, size: [2, 2], cost: { iron_plate: 10, rivet: 10, brick: 4 }, blocking: true, description: 'Makes gears from iron plates and wire from copper ingots.' },
+  steel_works: { name: 'Steel Works', short: 'SW', color: '#4b5563', hp: 180, size: [2, 2], cost: { steel: 10, brick: 12, gear: 6 }, blocking: true, description: 'Rolls steel into steel beams, and steel and gears into bearings.' },
   // Water power (D-095, D-113, D-115): sources turn drive shafts, which power belts.
   shaft: { name: 'Drive Shaft', short: '', color: '#7d8794', hp: 30, cost: { iron_rod: 1 }, blocking: false, description: 'Carries power from a well or water wheel to belts and anything touching it. Drag to lay a line.' },
   well: { name: 'Well', short: 'WE', color: '#4f7fa8', hp: 150, size: [2, 2], cost: { brick: 10, iron_plate: 6, iron_rod: 4 }, blocking: true, description: 'Draws groundwater anywhere to turn the drive shafts touching it. A little power.' },
@@ -248,7 +256,7 @@ export const FUEL = {
 };
 export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
 
-export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop'];
+export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
 
 export interface TurretDef {
@@ -455,6 +463,10 @@ export const RESEARCH: Research[] = [
   { id: 'workshop', name: 'Workshops', cost: { plank: 40, log: 20 }, time: 45, requires: ['forestry'], unlocks: ['workshop'], description: 'Workshops make pegs from dowels and rope from logs.' },
   { id: 'carpentry', name: 'Carpentry', cost: { plank: 60, peg: 40, rope: 20 }, time: 60, requires: ['workshop'], unlocks: [], description: 'Workshops can make trusses from planks, pegs and rope.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
+  // The Steam Age (D-119): Engineering opens it, after the Iron Age's top defence.
+  { id: 'engineering', name: 'Engineering', cost: { motor: 30, gear: 100, brick: 60 }, time: 120, requires: ['assembly', 'ordnance'], unlocks: [], description: 'Opens the Steam Age: steel, steam turbines and electricity, and heavy guns.' },
+  { id: 'steelmaking', name: 'Steelmaking', cost: { iron_plate: 100, charcoal: 60 }, time: 60, requires: ['engineering', 'charcoal'], unlocks: [], description: 'Furnaces can make steel from iron plates and charcoal.' },
+  { id: 'steel_works', name: 'Steel Works', cost: { steel: 80, gear: 40, motor: 20 }, time: 90, requires: ['steelmaking'], unlocks: ['steel_works'], description: 'Steel works roll steel into steel beams, and make bearings from steel and gears.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'launch_pad', name: 'Launch Pad', cost: { iron_plate: 60, brick: 60, rivet: 30 }, time: 60, requires: ['blacksmith', 'shipyard'], unlocks: [], description: "The ship's Iron Age stage: a brick and iron launch pad, built in the shipyard after the scaffolding." },

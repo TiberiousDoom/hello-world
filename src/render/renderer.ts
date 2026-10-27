@@ -1448,7 +1448,7 @@ export class Renderer {
     if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
-        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' ? '255,120,50' : '120,190,255';
+        b.type === 'furnace' ? '255,150,60' : b.type === 'extractor' || b.type === 'lumber_camp' ? '160,220,90' : b.type === 'sawmill' ? '230,190,120' : b.type === 'blacksmith' || b.type === 'steel_works' ? '255,120,50' : '120,190,255';
       const [cx, cy] = world.centreOf(b);
       const r = Math.max(fw, fh) * 0.6;
       const g = ctx.createRadialGradient(cx, cy, 0.05, cx, cy, r);

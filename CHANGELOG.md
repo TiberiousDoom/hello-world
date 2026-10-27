@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.61.0 · 2026-10-27 · The Steam Age begins
+### New
+- **Engineering** (after Assembly and Advanced Defense 2) opens the Steam Age.
+- **Steelmaking** (after Engineering and Charcoal): furnaces make steel from iron plates and charcoal. Steel needs this research now.
+- **The Steel Works** (research Steel Works, after Steelmaking): a 2×2 mill that rolls steel into **steel beams**, and makes **bearings** from steel and gears. Beams and bearings are what the rest of the Steam Age is built from.
+- Saved games keep working: a game already making or holding steel gets Engineering and Steelmaking.
+
 ## 0.60.0 · 2026-10-27 · The launch pad
 ### New
 - **The launch pad:** the ship's Iron Age stage, built after the scaffolding from 120 bricks, 80 iron plates, 60 rivets and 40 iron rods. The shipyard takes its parts once you research **Launch Pad** (60 iron plates, 60 bricks, 30 rivets; after Blacksmith and Shipyard), and its panel says so until then. The side view shows the pad under the ship.

@@ -2248,3 +2248,49 @@ describe('Hydraulic defences (D-117)', () => {
     expect(loaded.state.inventory.iron_rod).toBe(wells * (BUILDINGS.well.cost.iron_rod! + 10) + 11 * 4);
   });
 });
+
+describe('The Steam Age: Engineering, steel and the Steel Works (D-119, D-120)', () => {
+  it('Engineering opens the age after Assembly and Advanced Defense 2; steel needs Steelmaking', () => {
+    expect(RESEARCH_BY_ID.engineering.requires.sort()).toEqual(['assembly', 'ordnance']);
+    expect(RESEARCH_BY_ID.steelmaking.requires.sort()).toEqual(['charcoal', 'engineering']);
+    expect(RESEARCH_BY_ID.steel_works.requires).toEqual(['steelmaking']);
+    const w = emptyWorld();
+    w.state.researched = w.state.researched.filter((r) => r !== 'steelmaking');
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    expect(w.recipesFor('furnace').map((r) => r.id)).not.toContain('steel');
+    w.state.researched.push('steelmaking');
+    w.setRecipe(fu.id, 'steel');
+    expect(fu.recipe).toBe('steel');
+  });
+
+  it('the Steel Works rolls steel into beams, and steel and gears into bearings', () => {
+    const w = emptyWorld();
+    w.state.inventory.steel = 99;
+    const sw = placed(w.place('steel_works', 20, 20, 0));
+    expect(w.insert(sw, 'iron_plate', 19, 20)).toBe(false);
+    expect(w.insert(sw, 'steel', 19, 20)).toBe(true);
+    expect(sw.recipe).toBe('steel_beam');
+    w.insert(sw, 'steel', 19, 20);
+    run(w, 4);
+    expect(sw.outputs).toEqual(['steel_beam']);
+    w.setRecipe(sw.id, 'bearing');
+    sw.outputs = [];
+    w.insert(sw, 'steel', 19, 20);
+    w.insert(sw, 'gear', 19, 20);
+    run(w, 4);
+    expect(sw.outputs).toEqual(['bearing', 'bearing']);
+  });
+
+  it('v32 saves already making or holding steel get Steelmaking and Engineering', () => {
+    const w = emptyWorld();
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    fu.recipe = 'steel';
+    const old = JSON.parse(w.toJSON());
+    old.version = 32;
+    old.researched = ['forestry', 'industry', 'charcoal'];
+    expect(World.fromJSON(JSON.stringify(old)).state.researched).toEqual(expect.arrayContaining(['engineering', 'steelmaking']));
+    old.buildings.find((b: Building) => b.id === fu.id).recipe = null;
+    old.inventory = {};
+    expect(World.fromJSON(JSON.stringify(old)).state.researched).not.toContain('steelmaking');
+  });
+});
