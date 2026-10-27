@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, HYDRAULIC, ORE, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, ORE, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -1046,12 +1046,13 @@ describe('Wood in the economy', () => {
 });
 
 describe('Colony blueprints', () => {
-  it('the express belt needs its blueprint, and moves items twice as fast', () => {
+  it('the express belt needs Express Logistics (D-121), and moves items twice as fast', () => {
     const w = emptyWorld();
     const y = w.hub!.y - 8;
     const x = w.hub!.x - 10;
+    w.state.researched = w.state.researched.filter((r) => r !== 'express_logistics');
     expect(w.place('express_belt', x, y, 0)).toBe('locked');
-    w.state.ship.blueprints = ['express_belt'];
+    w.state.researched.push('express_logistics');
     const fast = placed(w.place('express_belt', x, y, 0));
     const slow = placed(w.place('belt', x, y + 2, 0));
     fast.belt.push({ item: 'iron_plate', pos: 0, lane: 1 });
@@ -2292,5 +2293,81 @@ describe('The Steam Age: Engineering, steel and the Steel Works (D-119, D-120)',
     old.buildings.find((b: Building) => b.id === fu.id).recipe = null;
     old.inventory = {};
     expect(World.fromJSON(JSON.stringify(old)).state.researched).not.toContain('steelmaking');
+  });
+});
+
+describe('Electricity (D-119, D-121)', () => {
+  /** A boiler touching a well, a turbine touching the boiler, and a pole by the turbine. */
+  function plant(w: World, x: number, y: number) {
+    w.state.inventory.steel = 999;
+    const well = placed(w.place('well', x, y, 0));
+    const boiler = placed(w.place('boiler', x + 2, y, 0));
+    const turbine = placed(w.place('steam_turbine', x + 4, y, 0));
+    const pole = placed(w.place('power_pole', x + 6, y, 0));
+    return { well, boiler, turbine, pole };
+  }
+
+  it('a boiler with fuel and water makes steam for its turbine, burning fuel; without water or fuel it stops', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    const { boiler, turbine, pole } = plant(w, 20, 20);
+    expect(boiler.ammo).toBe(FUEL.max); // arrives with a full store, like a furnace
+    expect(w.boilerWorks(boiler)).toBe(true);
+    expect(w.steam(turbine)).toBe(1);
+    expect(w.electricSupply(w.electricNet(pole)!)).toBe(ELECTRIC.turbine);
+    run(w, 2);
+    expect(boiler.ammo).toBeCloseTo(FUEL.max - 2, 1);
+    expect(w.insert(boiler, 'iron_plate', 21, 19)).toBe(false); // fuel only
+    expect(w.insert(boiler, 'charcoal', 21, 19)).toBe(false); // no room for 24 s more
+    boiler.ammo = 10;
+    expect(w.insert(boiler, 'charcoal', 21, 19)).toBe(true);
+    boiler.ammo = 0;
+    expect(w.steam(turbine)).toBe(0);
+    boiler.ammo = 10;
+    const dry = emptyWorld();
+    dry.state.inventory.steel = 999;
+    const b2 = placed(dry.place('boiler', 30, 30, 0));
+    placed(dry.place('steam_turbine', 32, 30, 0));
+    expect(dry.hasWater(b2)).toBe(false);
+    expect(dry.boilerWorks(b2)).toBe(false);
+  });
+
+  it('poles link within reach and power express belts near them; a line of express belts passes it along', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    const { pole } = plant(w, 20, 20);
+    const line = [9, 10, 11, 12, 13, 14].map((x) => placed(w.place('express_belt', 20 + x, 20, 0)));
+    expect(w.electrified(line[5])).toBe(0); // out of the first pole's reach
+    expect(w.speedOf(line[5])).toBeCloseTo(ROLLER.speed);
+    const far = placed(w.place('power_pole', 31, 22, 0)); // within 6 tiles of the first, and 2 of the belts
+    expect(w.electricNet(far)).toBe(w.electricNet(pole));
+    expect(w.electrified(line[5])).toBe(1);
+    expect(w.speedOf(line[0])).toBeCloseTo(EXPRESS_BELT_SPEED);
+    expect(w.electricNet(line[0])!.demand).toBeCloseTo(6 * ELECTRIC.uses.express_belt!);
+    // A pole too far from the others is a network of its own, with no turbine.
+    const alone = placed(w.place('power_pole', 60, 60, 0));
+    expect(w.electricNet(alone)).not.toBe(w.electricNet(pole));
+  });
+
+  it('a network short of electricity slows its express belts evenly; a boiler feeding two turbines shares its steam', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    const { boiler, turbine } = plant(w, 20, 20);
+    const second = placed(w.place('steam_turbine', 22, 22, 0)); // below the boiler, touching it too
+    expect(w.touching(boiler).filter((b) => b.type === 'steam_turbine')).toHaveLength(2);
+    expect(w.steam(turbine)).toBeCloseTo(0.5);
+    expect(w.steam(second)).toBeCloseTo(0.5);
+    // 0.5 × 60 = 30 supply, as many belts as use 60.
+    const n = Math.round((2 * 0.5 * ELECTRIC.turbine) / ELECTRIC.uses.express_belt!);
+    for (let i = 0; i < n; i++) placed(w.place('express_belt', 27 + (i % 20), 22 + Math.floor(i / 20), 0)); // the pole reaches the first
+    const b = w.buildingAt(46, 27)!;
+    expect(w.electrified(b)).toBeCloseTo(0.5, 1);
+  });
+
+  it('Steam Power comes after Steelmaking; Express Logistics, with the express belt, after Steam Power', () => {
+    expect(RESEARCH_BY_ID.steam_power.requires).toEqual(['steelmaking']);
+    expect(RESEARCH_BY_ID.steam_power.unlocks.sort()).toEqual(['boiler', 'power_pole', 'steam_turbine']);
+    expect(RESEARCH_BY_ID.express_logistics.requires).toEqual(['steam_power']);
+    expect(RESEARCH_BY_ID.express_logistics.unlocks).toContain('express_belt');
   });
 });

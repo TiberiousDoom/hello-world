@@ -143,6 +143,9 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Wall set | 1×1 each | Near top-down capstones, chosen from neighbours: `wall` (east–west), `wall_v`, corners `wall_nw`, `_ne`, `_sw`, `_se`, gate ends `wall_end_w`, `_end_e` and a lone pier `wall_pier` | 1 | P2 | Upgraded |
 | Steel Works (D-120): a rolling mill, two steel rolls with a glowing billet between them, beams stacked below | 2×2 | Static, plus a 4-frame working strip (rolls turning, billet feeding, glow) | 1 + 4 | P2 | Placeholder (`buildings/steel_works`, `steel_works_working_4f`) |
 | Steel beam and bearing items (D-120) | 16×16 | An I-beam; a ball bearing | 1 each | P3 | Placeholder (`items/steel_beam`, `items/bearing`) |
+| Boiler (D-121): a brick firebox with a riveted steel drum, a fire behind the grate and a smoke stack | 2×2 | Static, plus a 4-frame working strip (fire flickering, glow, smoke) | 1 + 4 | P2 | Placeholder (`buildings/boiler`, `boiler_working_4f`) |
+| Steam Turbine (D-121): a bladed rotor in a steel casing, with a copper generator coil | 2×2 | Static, plus a 4-frame working strip (rotor turning, spark) | 1 + 4 | P2 | Placeholder (`buildings/steam_turbine`, `steam_turbine_working_4f`) |
+| Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Placeholder (`buildings/power_pole`) |
 | Reinforced wall set (D-117) | 1×1 each | The wall set in iron-grey stone with iron straps and rivets, the same pieces (`reinforced_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 

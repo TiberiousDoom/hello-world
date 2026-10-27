@@ -261,7 +261,7 @@ describe('Supply ship', () => {
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
-          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['express_belt', 'tesla'] }
+          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['tesla'] }
           : { stage: 2, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
@@ -275,26 +275,23 @@ describe('Supply ship', () => {
     expect(w.state.ship.delivered.plank).toBe(20);
   });
 
-  it('after each delivery the colony offers two blueprints; the one not picked comes with the next run', () => {
+  it('after a delivery the colony offers blueprints to pick from, or sends the last one left', () => {
     const w = quiet();
     yard(w);
-    expect(w.isUnlocked('express_belt') || w.isUnlocked('tesla')).toBe(false);
-    deliverRun(w);
-    const ship = w.state.ship;
-    expect([...ship.offer!].sort()).toEqual(['express_belt', 'tesla']);
-    expect(pickBlueprint(w, 'shipyard')).toBe(false);
-    expect(pickBlueprint(w, 'express_belt')).toBe(true);
-    expect(ship.offer).toBeNull();
-    expect(w.isUnlocked('express_belt')).toBe(true);
     expect(w.isUnlocked('tesla')).toBe(false);
-    expect(pickBlueprint(w, 'tesla')).toBe(false); // not on offer any more
-    deliverRun(w); // only one left: it's simply sent
+    const ship = w.state.ship;
+    ship.offer = ['tesla']; // as an offer of two would be, with more blueprints in the pool
+    expect(pickBlueprint(w, 'shipyard')).toBe(false);
+    expect(pickBlueprint(w, 'tesla')).toBe(true);
     expect(ship.offer).toBeNull();
     expect(w.isUnlocked('tesla')).toBe(true);
+    ship.blueprints = [];
+    deliverRun(w); // only one left: it's simply sent
+    expect(ship.offer).toBeNull();
     expect(w.events.some((e) => e.includes('Tesla Turret blueprint'))).toBe(true);
     deliverRun(w); // none left
     expect(ship.offer).toBeNull();
-    expect(ship.blueprints).toEqual(['express_belt', 'tesla']);
+    expect(ship.blueprints).toEqual(['tesla']);
   });
 
   it('each run wakes nests further out, up to a limit, as the loaded ship gets heavier', () => {
@@ -326,7 +323,7 @@ describe('Supply ship', () => {
       const loaded = World.fromJSON(JSON.stringify(old));
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship.blueprints).toEqual([]);
-      expect(loaded.state.ship.offer).toEqual(runs ? ['express_belt', 'tesla'] : null);
+      expect(loaded.state.ship.offer).toEqual(runs ? ['tesla'] : null); // the express belt left the pool (D-121)
     }
   });
 
@@ -359,5 +356,22 @@ describe('Supply ship', () => {
       expect(loaded.state.researched.includes('launch_pad')).toBe(stage > 0);
     }
     expect(SHIP.stages.length).toBe(6);
+  });
+
+  it('v33 saves: the Express Belt blueprint becomes Steam Power and Express Logistics, with stock to power its belts', () => {
+    const w = quiet();
+    w.state.researched = w.state.researched.filter((r) => r !== 'steam_power' && r !== 'express_logistics');
+    const old = JSON.parse(w.toJSON());
+    old.version = 33;
+    old.ship.blueprints = ['express_belt'];
+    old.ship.offer = ['express_belt', 'tesla'];
+    old.inventory = {};
+    old.buildings.push({ ...old.buildings[0], id: 9001, type: 'express_belt', x: 3, y: 3, dir: 0 });
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.ship.blueprints).toEqual([]);
+    expect(loaded.state.ship.offer).toEqual(['tesla']);
+    expect(loaded.state.researched).toEqual(expect.arrayContaining(['steam_power', 'express_logistics']));
+    expect(loaded.isUnlocked('express_belt')).toBe(true);
+    expect(loaded.state.inventory.steel).toBe(BUILDINGS.boiler.cost.steel! + BUILDINGS.steam_turbine.cost.steel!);
   });
 });

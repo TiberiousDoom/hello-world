@@ -160,10 +160,10 @@ export const DEMO_SCENES: DemoScene[] = [
 export function createDemoWorld(scene = 0): World {
   const def = DEMO_SCENES[scene % DEMO_SCENES.length];
   const w = World.create(def.seed);
-  w.freePower = true; // the menu shows belts at full speed without laying shafts to every one
+  w.freePower = true; // the menu shows belts at full speed without laying shafts or poles to every one
   const s = w.state;
   s.researched = RESEARCH.map((r) => r.id);
-  s.ship.blueprints = ['express_belt', 'tesla'];
+  s.ship.blueprints = ['tesla'];
   s.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, copper_ingot: 9999, brick: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999, log: 9999, dowel: 9999, peg: 9999, rope: 9999, truss: 9999, stake: 9999, iron_ingot: 9999, iron_rod: 9999, rivet: 9999 };
   const hub = w.hub!;
   const hx = hub.x;

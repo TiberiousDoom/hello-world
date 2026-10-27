@@ -60,6 +60,7 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
       return !front && !world.isTunnelExit(b);
     case 'splitter':
       return world.splitterLanes(b).some((l) => l.x - DX[b.dir] === fromX && l.y - DY[b.dir] === fromY);
+    case 'boiler':
     case 'shipyard':
     case 'repair':
     case 'hub':
