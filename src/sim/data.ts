@@ -92,6 +92,7 @@ export type BuildingType =
   | 'repair'
   | 'port'
   | 'wall'
+  | 'reinforced_wall'
   | 'shipyard'
   | 'lumber_camp'
   | 'sawmill'
@@ -152,8 +153,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { stone: 6 }, blocking: true, description: 'Smelts ore into iron and copper ingots, and stone into bricks.' },
   workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [2, 2], cost: { plank: 10, log: 6 }, blocking: true, description: 'Makes pegs and rope, and trusses after Carpentry.' },
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [3, 3], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
-  turret: { name: 'Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies. Arrives loaded; refill it with iron plates by belt.' },
-  cannon: { name: 'Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, motor: 2 }, blocking: true, description: 'Splash damage. Arrives loaded; refill it with gears by belt.' },
+  turret: { name: 'Hydraulic Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, rivet: 6, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies, but only with power: run a drive shaft to it. Arrives loaded; refill it with iron plates by belt.' },
+  cannon: { name: 'Hydraulic Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, rivet: 10 }, blocking: true, description: 'Splash damage, but only with power: run a drive shaft to it. Arrives loaded; refill it with gears by belt.' },
   tesla: {
     name: 'Tesla Turret',
     short: 'TE',
@@ -174,7 +175,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   },
   repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 10, gear: 4, wire: 6, plank: 4 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates or planks by belt.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
-  wall: { name: 'Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
+  wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
+  reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
   lumber_camp: {
     name: 'Lumber Camp',
     short: 'LC',
@@ -377,15 +379,21 @@ export const EXPRESS_BELT_SPEED = 3; // a colony blueprint (D-049)
 export const ROLLER = { speed: BELT_SPEED / 3, packed: 2 };
 
 /**
- * Water power (D-113, D-115). Sources give power; each belt on a network uses `belt`. A network short of
- * power slows its belts evenly, down to roller speed with none at all.
+ * Water power (D-113, D-115, D-117). Sources give power; each belt, turret and cannon on a network uses
+ * what `uses` says. A network short of power slows them all evenly: belts down to roller speed, and
+ * hydraulic turrets and cannons fire more slowly, and not at all with no power.
  */
 export const POWER = {
   sources: { well: 8, water_wheel: 32 } as Partial<Record<BuildingType, number>>,
-  belt: 0.2,
+  uses: { belt: 0.2, turret: 1, cannon: 2 } as Partial<Record<BuildingType, number>>,
 };
-/** What carries power: shafts and sources to anything touching them, belts to belts beside them. */
-export const CONDUCTS: BuildingType[] = ['shaft', 'well', 'water_wheel', 'belt', 'splitter', 'tunnel'];
+/** Defences that fire only with power (D-117). */
+export const HYDRAULIC: BuildingType[] = ['turret', 'cannon'];
+/**
+ * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
+ * defences too, so a row of turrets shares one shaft.
+ */
+export const CONDUCTS: BuildingType[] = ['shaft', 'well', 'water_wheel', 'belt', 'splitter', 'tunnel', ...HYDRAULIC];
 
 /** Ponds (D-095): small lakes, none closer than `minDist` tiles to the hub's centre. */
 export const PONDS = { count: 16, minDist: 30, radius: [2.2, 4.2] as [number, number] };
@@ -436,20 +444,20 @@ export const RESEARCH: Research[] = [
   { id: 'hydraulics', name: 'Hydraulics', cost: { iron_plate: 80, iron_rod: 40, brick: 20 }, time: 45, requires: ['blacksmith'], unlocks: ['well', 'water_wheel', 'shaft'], description: 'Wells and water wheels turn drive shafts, which power belts.' },
   // The id stays 'logistics' so saves keep it (D-115).
   { id: 'logistics', name: 'Metal Logistics', cost: { iron_plate: 60, iron_rod: 40, brick: 20 }, time: 45, requires: ['hydraulics'], unlocks: ['belt', 'splitter', 'tunnel', 'storage'], description: 'Powered belts, splitters, underground belts and the Storage Unit. A belt without power rolls only at roller speed.' },
-  { id: 'defense', name: 'Advanced Defense', cost: { iron_plate: 20 }, time: 30, requires: ['blacksmith'], unlocks: ['turret'], description: 'Turrets that fire iron plates.' },
+  // The Iron Age's defences (D-113, D-117): hydraulic, so they come after Hydraulics. Ids kept, so saves keep them.
+  { id: 'defense', name: 'Advanced Defense', cost: { iron_plate: 40, copper_ingot: 20, rivet: 20, brick: 20 }, time: 45, requires: ['hydraulics'], unlocks: ['turret', 'wall'], description: 'Hydraulic turrets that fire iron plates, with power from a drive shaft, and brick walls to slow and steer enemies.' },
+  { id: 'ordnance', name: 'Advanced Defense 2', cost: { iron_plate: 100, brick: 80, gear: 50, rivet: 40 }, time: 120, requires: ['defense', 'machine_shop'], unlocks: ['cannon', 'reinforced_wall'], description: 'Hydraulic cannons with splash damage that fire gears, and reinforced walls.' },
   // The Wood Age's defences (D-089, D-107). Ids kept from before, so saves keep them.
   { id: 'palisades', name: 'Basic Defense', cost: { plank: 30, rope: 10 }, time: 30, requires: ['rollers', 'workshop'], unlocks: ['palisade', 'spike_pit'], description: 'Palisades, cheap wooden walls, and spike pits, traps bugs walk over.' },
   { id: 'defense2', name: 'Basic Defense 2', cost: { log: 100, plank: 100, rope: 200, truss: 50 }, time: 120, requires: ['palisades', 'carpentry'], unlocks: ['trebuchet', 'ballista'], description: 'Trebuchets that hurl stone a long way, and ballistae that fire stakes.' },
   { id: 'plating', name: 'Chitin Plating', cost: { chitin: 10, iron_plate: 20 }, time: 45, requires: ['defense'], unlocks: [], effect: 'plating', description: 'Turrets, walls and palisades get half as much health again. Chitin comes from destroyed nests.' },
-  { id: 'masonry', name: 'Masonry', cost: { brick: 12 }, time: 30, requires: ['industry'], unlocks: ['wall'], description: 'Walls to slow and steer enemies.' },
   { id: 'rollers', name: 'Basic Logistics', cost: { log: 20, plank: 20, dowel: 50 }, time: 45, requires: ['forestry'], unlocks: ['roller', 'crate'], description: 'Wooden rollers carry items in single file without power, and storage crates hold 50 of one item.' },
   { id: 'workshop', name: 'Workshops', cost: { plank: 40, log: 20 }, time: 45, requires: ['forestry'], unlocks: ['workshop'], description: 'Workshops make pegs from dowels and rope from logs.' },
   { id: 'carpentry', name: 'Carpentry', cost: { plank: 60, peg: 40, rope: 20 }, time: 60, requires: ['workshop'], unlocks: [], description: 'Workshops can make trusses from planks, pegs and rope.' },
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
-  { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['machine_shop', 'masonry'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
+  { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'shipyard', name: 'Shipyard', cost: { plank: 80, truss: 20, rope: 20 }, time: 90, requires: ['carpentry'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
-  { id: 'ordnance', name: 'Heavy Ordnance', cost: { motor: 10, gear: 30 }, time: 150, requires: ['assembly', 'defense'], unlocks: ['cannon'], description: 'Cannons with splash damage that fire gears.' },
 ];
 export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));
 
@@ -593,7 +601,7 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
 /** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'ballista', 'tesla', 'trebuchet', 'wall', 'palisade'] as BuildingType[] };
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

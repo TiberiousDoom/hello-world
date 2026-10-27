@@ -26,13 +26,13 @@ function setup() {
   w.freePower = true; // power has tests of its own (D-115)
   w.clearWater();
   const s = w.state;
-  s.researched = RESEARCH.map((r) => r.id).filter((r) => r !== 'masonry');
+  s.researched = RESEARCH.map((r) => r.id).filter((r) => r !== 'charcoal');
   s.resources.fill(0);
   s.trees.fill(0);
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999 };
+  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, rivet: 999 };
   const hub = w.hub!;
   const camera = new Camera();
   camera.width = 800;
@@ -173,7 +173,7 @@ describe('Sound effects', () => {
     expect(sfx.played).toEqual([{ sound: 'provoked', gain: 0.35 }]);
 
     sfx.played = [];
-    w.state.researched.push('masonry');
+    w.state.researched.push('charcoal');
     watcher.update(w);
     expect(sfx.names()).toEqual(['research']);
 

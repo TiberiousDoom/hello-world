@@ -70,6 +70,7 @@ describe('Co-op lockstep', () => {
     for (let t = 0; t < 600; t++) {
       if (t === 10) host.submit(0, { kind: 'place', type: 'wall', x: cx - 2, y: cy, dir: 0, replaceBelt: false });
       if (t === 12) guest.submit({ kind: 'place', type: 'turret', x: cx + 1, y: cy, dir: 0, replaceBelt: false });
+      if (t === 13) guest.submit({ kind: 'place', type: 'well', x: cx + 2, y: cy, dir: 0, replaceBelt: false }); // its power (D-117)
       if (t === 30) guest.submit({ kind: 'move', x: cx, y: cy + 3 });
       if (t === 31) host.submit(0, { kind: 'walk', dx: 1, dy: 0 });
       if (t === 200) guest.submit({ kind: 'demolish', id: host.session.world.state.buildings.find((b) => b.type === 'wall')!.id });

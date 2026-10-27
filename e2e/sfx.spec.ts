@@ -23,7 +23,7 @@ test('sound effects: buttons click, building and research sound, the slider mute
 
   // Research is a milestone.
   await clear();
-  await page.evaluate(() => window.game.world.state.researched.push('masonry'));
+  await page.evaluate(() => window.game.world.state.researched.push('charcoal'));
   await expect.poll(log).toContain('research');
 
   // Zero volume: nothing plays.

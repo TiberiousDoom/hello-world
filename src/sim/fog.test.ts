@@ -29,7 +29,7 @@ describe('Fog of war (D-112)', () => {
     expect(explored(s, p.x, far + FOG.player - 2)).toBe(true);
     // A turret sees its range and more.
     s.researched = RESEARCH.map((r) => r.id);
-    s.inventory = { iron_plate: 99, copper_ingot: 99 };
+    s.inventory = { iron_plate: 99, copper_ingot: 99, rivet: 99 };
     const x = Math.floor(p.x) - 40;
     for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) s.trees[w.idx(x + dx, far + dy)] = s.resources[w.idx(x + dx, far + dy)] = 0;
     s.nests = [];

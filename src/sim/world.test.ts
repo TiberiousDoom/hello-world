@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, ORE, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, FUEL, HYDRAULIC, ORE, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -217,10 +217,10 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(false); // smelting comes with Industry (D-093)
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999, dowel: 999, iron_ingot: 999, rivet: 999 };
+    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999, dowel: 999, iron_ingot: 999, rivet: 999, iron_rod: 999 };
     expect(w.researchNow('workshop')).toBe('requires'); // workshops need Forestry
-    expect(w.researchNow('defense')).toBe('requires'); // turrets fire plates, which need a blacksmith (D-113)
-    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'blacksmith', 'machine_shop', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    expect(w.researchNow('defense')).toBe('requires'); // hydraulic turrets need Hydraulics (D-117)
+    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'blacksmith', 'machine_shop', 'hydraulics', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('extractor') && w.isUnlocked('furnace')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
@@ -516,26 +516,26 @@ describe('Bugs', () => {
 describe('Research over time', () => {
   it('draws items from stock over its research time, then unlocks', () => {
     const w = emptyWorld();
-    w.state.researched = ['forestry', 'industry', 'blacksmith'];
-    w.state.inventory = { iron_plate: 100 };
+    w.state.researched = ['forestry', 'industry', 'blacksmith', 'hydraulics'];
+    w.state.inventory = { iron_plate: 100, copper_ingot: 50, rivet: 50, brick: 50 };
     expect(w.startResearch('defense')).toBeNull();
-    run(w, 10);
+    run(w, 15);
     const used = 100 - w.state.inventory.iron_plate!;
-    expect(used).toBeGreaterThan(3);
-    expect(used).toBeLessThan(20);
-    run(w, 25);
+    expect(used).toBeGreaterThan(6);
+    expect(used).toBeLessThan(30);
+    run(w, 35);
     expect(w.state.researched).toContain('defense');
   });
 
   it('stalls when the hub runs out, and keeps progress when switching', () => {
     const w = emptyWorld();
-    w.state.researched = ['forestry', 'industry', 'blacksmith'];
-    w.state.inventory = { iron_plate: 5, brick: 50 };
+    w.state.researched = ['forestry', 'industry', 'blacksmith', 'hydraulics'];
+    w.state.inventory = { iron_plate: 5, log: 50 };
     w.startResearch('defense');
     run(w, 20);
     expect(w.state.research.stalled).toBe(true);
     const progress = w.researchProgress('defense');
-    w.startResearch('masonry');
+    w.startResearch('charcoal');
     run(w, 5);
     w.startResearch('defense');
     expect(w.researchProgress('defense')).toBe(progress);
@@ -2099,7 +2099,7 @@ describe('Ponds and water power (D-115)', () => {
     placed(w.place('shaft', 20, 28, 1));
     placed(w.place('shaft', 20, 29, 1));
     for (const b of line) expect(w.speedOf(b)).toBeCloseTo(BELT_SPEED);
-    expect(w.powerNet(line[4])).toEqual({ supply: POWER.sources.well, demand: 5 * POWER.belt });
+    expect(w.powerNet(line[4])).toEqual({ supply: POWER.sources.well, demand: 5 * POWER.uses.belt! });
     // Items really move faster.
     line[0].belt.push({ item: 'gear', pos: 0, lane: RIGHT });
     run(w, 0.5);
@@ -2110,7 +2110,7 @@ describe('Ponds and water power (D-115)', () => {
     const w = emptyWorld();
     w.freePower = false;
     placed(w.place('well', 10, 10, 0));
-    const n = Math.round((2 * POWER.sources.well!) / POWER.belt); // twice what a well can power
+    const n = Math.round((2 * POWER.sources.well!) / POWER.uses.belt!); // twice what a well can power
     const line: Building[] = [];
     for (let i = 0; i < n; i++) line.push(placed(w.place('belt', 12 + (i % 60), 10 + Math.floor(i / 60) * 4, 0)));
     for (let r = 0; r < Math.ceil(n / 60); r++) for (let y = 11 + r * 4; y < 14 + r * 4; y++) placed(w.place('shaft', 12, y, 1));
@@ -2180,5 +2180,71 @@ describe('The Storage Unit (#87, D-116)', () => {
     stand(w, 19, 20);
     expect(w.collect(su.id)).toBe(3);
     expect(su.outputs).toEqual([]);
+  });
+});
+
+describe('Hydraulic defences (D-117)', () => {
+  it("turrets don't fire without power, fire with it, and fire more slowly when their network runs short", () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    addNest(w, 50, 50, 0);
+    const t = placed(w.place('turret', 57, 54, 0)); // a mound in reach to shoot at
+    t.ammo = 40;
+    run(w, 3);
+    expect(t.ammo).toBe(40);
+    expect(w.powered(t)).toBe(0);
+    placed(w.place('well', 58, 54, 0)); // touching it
+    expect(w.powered(t)).toBe(1);
+    run(w, 3);
+    const full = 40 - t.ammo;
+    expect(full).toBeGreaterThan(0);
+    // Eight more turrets on the same well, in a row touching the first: they share 8 power among 9.
+    for (let y = 55; y < 63; y++) placed(w.place('turret', 57, y, 0));
+    expect(w.powerNet(t)).toEqual({ supply: POWER.sources.well, demand: 9 * POWER.uses.turret! });
+    t.ammo = 40;
+    run(w, 3);
+    expect(40 - t.ammo).toBeLessThan(full);
+    expect(40 - t.ammo).toBeGreaterThan(0);
+  });
+
+  it('cannons need power too; the hub, ballistae and trebuchets do not', () => {
+    expect([...HYDRAULIC].sort()).toEqual(['cannon', 'turret']);
+    const w = emptyWorld();
+    w.freePower = false;
+    const c = placed(w.place('cannon', 20, 20, 0));
+    expect(w.powered(c)).toBe(0);
+    placed(w.place('shaft', 21, 20, 0));
+    placed(w.place('well', 22, 20, 0));
+    expect(w.powered(c)).toBe(1);
+  });
+
+  it('Advanced Defense gives turrets and brick walls after Hydraulics; Advanced Defense 2 cannons and reinforced walls', () => {
+    expect(RESEARCH_BY_ID.defense.requires).toEqual(['hydraulics']);
+    expect(RESEARCH_BY_ID.defense.unlocks.sort()).toEqual(['turret', 'wall']);
+    expect(RESEARCH_BY_ID.ordnance.name).toBe('Advanced Defense 2');
+    expect(RESEARCH_BY_ID.ordnance.requires.sort()).toEqual(['defense', 'machine_shop']);
+    expect(RESEARCH_BY_ID.ordnance.unlocks.sort()).toEqual(['cannon', 'reinforced_wall']);
+    expect(RESEARCH_BY_ID.masonry).toBeUndefined();
+    const w = emptyWorld();
+    const r = placed(w.place('reinforced_wall', 20, 20, 0));
+    expect(w.maxHp(r)).toBeGreaterThan(2 * w.maxHp(placed(w.place('wall', 21, 20, 0))));
+  });
+
+  it('v30 saves trade Masonry for Advanced Defense (with Hydraulics), refund what was paid, and get stock for wells for their turrets', () => {
+    const w = emptyWorld();
+    for (let x = 20; x < 30; x++) placed(w.place('turret', x, 30, 0));
+    placed(w.place('cannon', 20, 32, 0));
+    const old = JSON.parse(w.toJSON());
+    old.version = 30;
+    old.researched = ['forestry', 'industry', 'masonry'];
+    old.research = { active: 'masonry', paid: { masonry: { brick: 5 } }, budget: 0, stalled: false };
+    old.inventory = {};
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.researched.sort()).toEqual(['blacksmith', 'defense', 'forestry', 'hydraulics', 'industry']);
+    expect(loaded.state.research.active).toBeNull();
+    const wells = Math.ceil((10 * POWER.uses.turret! + POWER.uses.cannon!) / POWER.sources.well!);
+    expect(wells).toBe(2);
+    expect(loaded.state.inventory.brick).toBe(5 + wells * BUILDINGS.well.cost.brick!);
+    expect(loaded.state.inventory.iron_rod).toBe(wells * (BUILDINGS.well.cost.iron_rod! + 10) + 11 * 4);
   });
 });

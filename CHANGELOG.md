@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.59.0 · 2026-10-27 · Hydraulic defences
+### New
+- **Turrets and cannons are hydraulic now:** they fire only with power. Lay a drive shaft to them, or place them touching a well, a powered belt or another powered turret. A turret uses 1 power and a cannon 2, so a well runs 8 turrets. Short of power they fire more slowly; with none they don't fire at all, and flash a blue mark. Select one to see its network.
+- **Advanced Defense** now comes after Hydraulics and gives the **Hydraulic Turret** and the **Brick Wall**. Masonry is gone.
+- **Advanced Defense 2** (after Advanced Defense and Machine Shop) replaces Heavy Ordnance: the **Hydraulic Cannon**, which no longer needs motors, and the new **Reinforced Wall** (900 HP, brick bound with iron and rivets).
+- Turrets and cannons cost rivets now.
+- Saved games keep working: a game with Masonry gets Advanced Defense (and Hydraulics) instead, and gets back what it paid towards Masonry. A game with turrets or cannons gets materials in the hub for the wells and shafts to power them. Until those are built, its turrets and cannons are silent.
+
 ## 0.58.0 · 2026-10-26 · The Storage Unit
 ### New
 - **Storage Unit** (Metal Logistics): a 1×2 store with 6 stacks of up to 50 items, mixed. Belts fill it from the back and sides, and a belt leaving its front takes items out in the order they came. Your engineer can Collect from it and Drop off into it.

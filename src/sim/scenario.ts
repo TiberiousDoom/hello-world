@@ -13,7 +13,7 @@ import { World } from './world';
 export function fightingWorld(seed = 7): { w: World; cx: number; cy: number } {
   const w = World.create(seed);
   w.state.researched = RESEARCH.map((r) => r.id).filter((id) => id !== 'assembly');
-  w.state.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, brick: 9999, copper_ingot: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999 };
+  w.state.inventory = { iron_plate: 9999, stone: 9999, iron_ore: 9999, brick: 9999, copper_ingot: 9999, gear: 9999, wire: 9999, motor: 9999, plank: 9999, rivet: 9999, iron_rod: 9999 };
   const hub = w.hub!;
   const n = w.state.nests.slice().sort((a, b) => Math.abs(a.x - hub.x) + Math.abs(a.y - hub.y) - (Math.abs(b.x - hub.x) + Math.abs(b.y - hub.y)))[0];
   n.angryUntil = 1e9;
@@ -32,6 +32,7 @@ export function script(cx: number, cy: number): [number, Command][] {
     [0, { kind: 'place', type: 'wall', x: cx - 2, y: cy, dir: 0, replaceBelt: false }],
     [0, { kind: 'place', type: 'wall', x: cx - 1, y: cy, dir: 0, replaceBelt: false }],
     [0, { kind: 'place', type: 'turret', x: cx + 1, y: cy, dir: 0, replaceBelt: false }],
+    [0, { kind: 'place', type: 'well', x: cx + 2, y: cy, dir: 0, replaceBelt: false }], // the turret's power (D-117)
     [40, { kind: 'research', id: 'assembly' }],
     [100, { kind: 'place', type: 'palisade', x: cx, y: cy - 2, dir: 0, replaceBelt: false }],
     [130, { kind: 'rotate', id: -1, dir: 2 }], // the turret, by id once known

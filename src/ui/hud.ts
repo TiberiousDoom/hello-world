@@ -9,6 +9,7 @@ import {
   GameMode,
   HUB_SIZE,
   HUB_WEAPON,
+  HYDRAULIC,
   ITEMS,
   ITEM_IDS,
   ItemCounts,
@@ -68,13 +69,14 @@ const TOOLBAR: BuildingType[] = [
   'tesla',
   'repair',
   'wall',
+  'reinforced_wall',
   'palisade',
   'spike_pit',
   'trebuchet',
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['well', 'wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['well', 'wall', 'reinforced_wall', 'palisade', 'spike_pit', 'repair', 'turret', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
 const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'spike_pit', 'trebuchet', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'turret', 'ballista', 'cannon', 'tesla', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
@@ -808,14 +810,15 @@ export class Hud {
       const net = world.powerNet(b);
       if (net && (b.type !== 'splitter' && b.type !== 'tunnel')) {
         const p = world.powered(b);
-        const use = `${fmtPower(net.supply)} power, belts use ${fmtPower(net.demand)}`;
+        const use = `${fmtPower(net.supply)} power, it all uses ${fmtPower(net.demand)}`;
+        const hydraulic = HYDRAULIC.includes(b.type);
         stats +=
-          b.type === 'belt'
+          b.type === 'belt' || hydraulic
             ? p >= 1
               ? `<br>Powered (${use})`
               : p > 0
-                ? `<br>Short of power: ${Math.round(p * 100)}% (${use}). Belts slow down`
-                : '<br><b>No power:</b> it rolls only at roller speed. Lay drive shafts from a well or water wheel'
+                ? `<br>Short of power: ${Math.round(p * 100)}% (${use}). ${hydraulic ? 'It fires more slowly' : 'Belts slow down'}`
+                : `<br><b>No power:</b> ${hydraulic ? "it can't fire" : 'it rolls only at roller speed'}. Lay drive shafts from a well or water wheel`
             : `<br>Network: ${use}`;
       }
       if (burnsFuel(b.type)) {
