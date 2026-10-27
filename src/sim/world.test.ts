@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2428,5 +2428,66 @@ describe('Mk2 machines and the Storage Silo (D-122)', () => {
     expect(w.insert(si, 'brick', 19, 20)).toBe(false);
     expect(RESEARCH_BY_ID.express_logistics.unlocks).toContain('storage_silo');
     expect(RESEARCH_BY_ID.mk2.requires.sort()).toEqual(['steam_power', 'steel_works']);
+  });
+});
+
+describe('Gunpowder weapons: sulfur, the Powder Mill and the Turret Mk.2 (D-123)', () => {
+  it('new maps have sulfur deposits far from the hub, the same for the same seed; v34 saves get them on free ground', () => {
+    const w = World.create(5);
+    const hub = w.hub!;
+    const [cx, cy] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
+    const sulfur = w.state.resources.flatMap((r, i) => (r === 4 ? [i] : []));
+    expect(sulfur.length).toBeGreaterThan(SULFUR.count * 4);
+    for (const i of sulfur) {
+      const [x, y] = [i % w.state.width, Math.floor(i / w.state.width)];
+      expect(Math.hypot(x - cx, y - cy)).toBeGreaterThanOrEqual(SULFUR.minDist - 1);
+      expect(w.resourceAt(x, y)).toBe('sulfur');
+    }
+    expect(World.create(5).state.resources).toEqual(w.state.resources);
+    const old = JSON.parse(w.toJSON());
+    old.version = 34;
+    old.resources = old.resources.map((r: number) => (r === 4 ? 0 : r));
+    const loaded = World.fromJSON(JSON.stringify(old));
+    const again = loaded.state.resources.filter((r) => r === 4).length;
+    expect(again).toBeGreaterThan(SULFUR.count * 4);
+    for (const b of loaded.state.buildings) expect(loaded.resourceAt(b.x, b.y)).not.toBe('sulfur');
+  });
+
+  it('powder mills make gunpowder, the Steel Works casings and the assembler bullets, after Heavy Defense', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel: 99 });
+    const pm = placed(w.place('powder_mill', 20, 20, 0));
+    expect(w.insert(pm, 'sulfur', 19, 20)).toBe(true);
+    w.insert(pm, 'charcoal', 19, 20);
+    run(w, 3.2);
+    expect(pm.outputs).toEqual(['gunpowder', 'gunpowder']);
+    expect(w.recipesFor('steel_works').map((r) => r.id)).toContain('casing');
+    expect(w.recipesFor('assembler').map((r) => r.id)).toContain('bullet');
+    w.state.researched = w.state.researched.filter((r) => r !== 'heavy_defense');
+    expect(w.recipesFor('assembler').map((r) => r.id)).not.toContain('bullet');
+    expect(RESEARCH_BY_ID.heavy_defense.requires.sort()).toEqual(['steam_power', 'steelmaking']);
+    expect(RESEARCH_BY_ID.heavy_defense.unlocks.sort()).toEqual(['powder_mill', 'steel_wall', 'turret2']);
+  });
+
+  it("the Turret Mk.2 fires bullets with electricity, and doesn't without", () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    Object.assign(w.state.inventory, { steel: 999, steel_beam: 99 });
+    addNest(w, 50, 50, 0);
+    const t = placed(w.place('turret2', 57, 54, 0)); // a mound in reach
+    t.ammo = 60;
+    run(w, 2);
+    expect(t.ammo).toBe(60);
+    expect(w.insert(t, 'iron_plate', 58, 54)).toBe(false);
+    placed(w.place('well', 57, 57, 0));
+    placed(w.place('boiler', 59, 57, 0));
+    placed(w.place('steam_turbine', 61, 57, 0));
+    placed(w.place('power_pole', 59, 55, 0)); // within reach of the turret and the turbine
+    expect(w.electrified(t)).toBe(1);
+    run(w, 2);
+    expect(t.ammo).toBeLessThan(60);
+    const wall = placed(w.place('steel_wall', 70, 70, 0));
+    expect(wall.hp).toBe(w.maxHp(wall)); // Chitin Plating counts it too
+    expect(BUILDINGS.steel_wall.hp).toBeGreaterThan(BUILDINGS.reinforced_wall.hp);
   });
 });

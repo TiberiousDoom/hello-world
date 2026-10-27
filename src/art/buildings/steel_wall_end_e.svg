@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><g id="swSlabC"><rect x="0" y="0" width="25" height="25" rx="2" fill="#7a8592" /><path d="M1.6 1.6 H23.4 M1.6 2 V23.4" stroke="#b8c2cd" stroke-width="1.3" stroke-linecap="round" /><path d="M23.6 2.5 V23.6 H2.5" stroke="#465059" stroke-width="1.3" fill="none" stroke-linecap="round" /><rect x="8" y="8" width="9" height="9" rx="1" fill="none" stroke="#5a6571" stroke-width="1" /></g>
+      <linearGradient id="swFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d6874" /><stop offset="1" stop-color="#404951" /></linearGradient>
+      <g id="swSlabH"><rect x="0" y="0" width="14" height="25" rx="1.5" fill="#6f7a87" /><path d="M1.6 1.5 V23.5 M2 1.5 H12.5" stroke="#aeb8c4" stroke-width="1.2" stroke-linecap="round" /><path d="M2 23.7 H12.8 V2.5" stroke="#465059" stroke-width="1.3" fill="none" stroke-linecap="round" /></g>
+      </defs><g>
+        <rect x="46" y="50" width="18" height="7" fill="#0a1a0c" opacity="0.3" /><rect x="21" y="50" width="25" height="7" fill="#0a1a0c" opacity="0.3" />
+        <rect x="18" y="18" width="46" height="28" fill="#2f3640" />
+        <use href="#swSlabC" x="19.5" y="19.5" /><use href="#swSlabH" x="49" y="19.5" />
+        <rect x="18" y="46" width="46" height="4" fill="url(#swFace)" /><path d="M28 46 V50 M40 46 V50 M56 46 V50" stroke="#2f3640" stroke-width="1" />
+        <path d="M64 18 H18 V50 H64 M18 46 H64" fill="none" stroke="#0f1a2e" stroke-width="2" />
+      </g>
+      </svg>

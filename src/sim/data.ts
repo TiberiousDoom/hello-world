@@ -33,15 +33,22 @@ export const ITEMS = {
   // The Steam Age's parts (D-119): the Steel Works rolls steel into them.
   steel_beam: { name: 'Steel Beam', color: '#8fa3b8' },
   bearing: { name: 'Bearing', color: '#9aa6b3' },
+  // Gunpowder weapons (D-119, D-123).
+  sulfur: { name: 'Sulfur', color: '#e8d23a' },
+  gunpowder: { name: 'Gunpowder', color: '#c2a46b' },
+  casing: { name: 'Casing', color: '#d9a63a' },
+  bullet: { name: 'Bullets', color: '#b8862a' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 export type ItemCounts = Partial<Record<ItemId, number>>;
 
 // Resource tiles on the map. Index 0 means "no resource".
-export const RESOURCE_ITEMS: (ItemId | null)[] = [null, 'iron_ore', 'copper_ore', 'stone'];
+export const RESOURCE_ITEMS: (ItemId | null)[] = [null, 'iron_ore', 'copper_ore', 'stone', 'sulfur'];
+/** The resource index of sulfur (D-123), placed in deposits of its own rather than by the ore noise. */
+export const SULFUR_RESOURCE = 4;
 
-export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works';
+export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works' | 'powder_mill';
 
 export interface Recipe {
   id: string;
@@ -77,6 +84,10 @@ export const RECIPES: Recipe[] = [
   // The Steam Age's parts (D-119).
   { id: 'steel_beam', machine: 'steel_works', inputs: { steel: 2 }, output: 'steel_beam', count: 1, time: 3 },
   { id: 'bearing', machine: 'steel_works', inputs: { steel: 1, gear: 1 }, output: 'bearing', count: 2, time: 3 },
+  // Gunpowder weapons (D-123).
+  { id: 'gunpowder', machine: 'powder_mill', inputs: { sulfur: 1, charcoal: 1 }, output: 'gunpowder', count: 2, time: 3 },
+  { id: 'casing', machine: 'steel_works', inputs: { steel: 1 }, output: 'casing', count: 4, time: 2, requires: 'heavy_defense' },
+  { id: 'bullet', machine: 'assembler', inputs: { casing: 1, gunpowder: 1 }, output: 'bullet', count: 1, time: 2, requires: 'heavy_defense' },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -105,6 +116,9 @@ export type BuildingType =
   | 'blacksmith'
   | 'machine_shop'
   | 'steel_works'
+  | 'powder_mill'
+  | 'turret2'
+  | 'steel_wall'
   | 'boiler'
   | 'steam_turbine'
   | 'power_pole'
@@ -171,6 +185,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [3, 3], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
   turret: { name: 'Hydraulic Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, rivet: 6, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies, but only with power: run a drive shaft to it. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Hydraulic Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, rivet: 10 }, blocking: true, description: 'Splash damage, but only with power: run a drive shaft to it. Arrives loaded; refill it with gears by belt.' },
+  turret2: { name: 'Turret Mk.2', short: 'T2', color: '#3a5a7a', hp: 260, cost: { steel: 12, steel_beam: 4, motor: 2 }, blocking: true, description: 'Fires bullets fast, but only with electricity from a power pole. Arrives loaded; refill it with bullets by belt.' },
   tesla: {
     name: 'Tesla Turret',
     short: 'TE',
@@ -193,6 +208,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
+  steel_wall: { name: 'Steel Wall', short: '', color: '#4a5562', hp: 1600, cost: { steel: 4, steel_beam: 2 }, blocking: true, description: 'Steel plate on beams: the toughest wall.' },
   lumber_camp: {
     name: 'Lumber Camp',
     short: 'LC',
@@ -207,6 +223,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
   machine_shop: { name: 'Machine Shop', short: 'MS', color: '#4f6a86', hp: 140, size: [2, 2], cost: { iron_plate: 10, rivet: 10, brick: 4 }, blocking: true, description: 'Makes gears from iron plates and wire from copper ingots.' },
   steel_works: { name: 'Steel Works', short: 'SW', color: '#4b5563', hp: 180, size: [2, 2], cost: { steel: 10, brick: 12, gear: 6 }, blocking: true, description: 'Rolls steel into steel beams, and steel and gears into bearings.' },
+  powder_mill: { name: 'Powder Mill', short: 'PM', color: '#6b5a3a', hp: 160, size: [2, 2], cost: { steel: 10, brick: 10, gear: 6 }, blocking: true, description: 'Grinds sulfur and charcoal into gunpowder.' },
   // Water power (D-095, D-113, D-115): sources turn drive shafts, which power belts.
   shaft: { name: 'Drive Shaft', short: '', color: '#7d8794', hp: 30, cost: { iron_rod: 1 }, blocking: false, description: 'Carries power from a well or water wheel to belts and anything touching it. Drag to lay a line.' },
   well: { name: 'Well', short: 'WE', color: '#4f7fa8', hp: 150, size: [2, 2], cost: { brick: 10, iron_plate: 6, iron_rod: 4 }, blocking: true, description: 'Draws groundwater anywhere to turn the drive shafts touching it. A little power.' },
@@ -270,7 +287,7 @@ export const FUEL = {
 };
 export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
 
-export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works'];
+export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
 
 export interface TurretDef {
@@ -294,6 +311,7 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   // Range and blind spot doubled from the decisions page at the owner's note (D-093).
   trebuchet: { ammoItem: 'stone', shotsPerItem: 1, maxShots: 12, range: 24, minRange: 6, rate: 0.25, damage: 40, splash: 2 },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
+  turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0 },
   tesla: { ammoItem: 'wire', shotsPerItem: 2, maxShots: 30, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
 
@@ -418,7 +436,7 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
@@ -439,11 +457,16 @@ export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
 
 /** Defences that fire only with power (D-117). */
 export const HYDRAULIC: BuildingType[] = ['turret', 'cannon'];
+/** Defences that fire only with electricity (D-123). */
+export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2'];
 /**
  * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
  * defences too, so a row of turrets shares one shaft.
  */
 export const CONDUCTS: BuildingType[] = ['shaft', 'well', 'water_wheel', 'belt', 'splitter', 'tunnel', ...HYDRAULIC];
+
+/** Sulfur (D-123): small deposits, none closer than `minDist` tiles to the hub's centre. */
+export const SULFUR = { count: 18, minDist: 45, radius: [1.6, 2.8] as [number, number] };
 
 /** Ponds (D-095): small lakes, none closer than `minDist` tiles to the hub's centre. */
 export const PONDS = { count: 16, minDist: 30, radius: [2.2, 4.2] as [number, number] };
@@ -511,6 +534,7 @@ export const RESEARCH: Research[] = [
   { id: 'steel_works', name: 'Steel Works', cost: { steel: 80, gear: 40, motor: 20 }, time: 90, requires: ['steelmaking'], unlocks: ['steel_works'], description: 'Steel works roll steel into steel beams, and make bearings from steel and gears.' },
   { id: 'steam_power', name: 'Steam Power', cost: { steel: 60, iron_rod: 40, brick: 30 }, time: 90, requires: ['steelmaking'], unlocks: ['boiler', 'steam_turbine', 'power_pole'], description: 'Boilers and steam turbines make electricity, and power poles carry it.' },
   { id: 'express_logistics', name: 'Express Logistics', cost: { steel: 60, motor: 20 }, time: 90, requires: ['steam_power'], unlocks: ['express_belt', 'storage_silo'], description: 'Express belts, twice as fast as belts, run on electricity. The Storage Silo holds twelve stacks of 100.' },
+  { id: 'heavy_defense', name: 'Heavy Defense', cost: { steel: 60, motor: 30, gear: 50 }, time: 120, requires: ['steelmaking', 'steam_power'], unlocks: ['powder_mill', 'turret2', 'steel_wall'], description: 'The Turret Mk.2, which fires bullets with electricity, and steel walls. Powder mills grind sulfur and charcoal into gunpowder; casings come from the Steel Works and bullets from the Assembler.' },
   { id: 'mk2', name: 'Mk2 Machines', cost: { steel_beam: 60, bearing: 40, motor: 20 }, time: 120, requires: ['steel_works', 'steam_power'], unlocks: [], description: 'Upgrade extractors and furnaces in place: with electricity, they work twice as fast.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
@@ -661,7 +685,7 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
 /** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'steel_wall', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

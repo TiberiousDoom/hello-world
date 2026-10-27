@@ -70,7 +70,7 @@ const TAP_SLOP = 8; // px a pointer may move and still count as a tap
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 const LONG_PRESS = 450; // ms a finger rests on a building to pick it
 /** Tools drawn out as lines by dragging; everything else is dragged into place. */
-const LINE_TOOLS: readonly string[] = ['belt', 'express_belt', 'roller', 'wall', 'reinforced_wall', 'palisade', 'shaft'];
+const LINE_TOOLS: readonly string[] = ['belt', 'express_belt', 'roller', 'wall', 'reinforced_wall', 'steel_wall', 'palisade', 'shaft'];
 
 export class Input {
   private pointers = new Map<number, { x: number; y: number }>();
