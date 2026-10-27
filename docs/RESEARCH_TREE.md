@@ -242,7 +242,8 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
 - **Ship Systems**, one research, gates the engines, life support and navigation, whose parts change to
   circuits, coils and steel. So the first launch needs the Electric Age.
 - **Supply runs** reward **special buildings** outside the tree once the Tesla has moved into it. The owner
-  chose three (D-131): the **Teleporter Pad**, the **Orbital Strike Beacon** and the **Greenhouse**.
+  chose three (D-131): the **Teleporter Pad**, the **Orbital Strike Beacon** and the **Greenhouse**. The
+  **Tree Nursery** joined them with the forests (D-134).
 - **Order, each playtested:**
   1. ✅ Electronics and the Circuit Works (0.66.0): the keystone, circuit boards and coils.
   2. ✅ Electric Defense (0.67.0, D-126): the electric Tesla, the Arc Fence and Floodlights.

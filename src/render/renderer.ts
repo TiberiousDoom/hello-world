@@ -1542,7 +1542,7 @@ export class Renderer {
     const def = BUILDINGS[b.type];
     const [fw, fh] = world.footprintOf(b);
     const big = fw * fh > 1;
-    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'arc_fence' && b.type !== 'floodlight' && b.type !== 'shield_pylon' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
+    const directional = b.type !== 'hub' && b.type !== 'shipyard' && b.type !== 'wall' && b.type !== 'reinforced_wall' && b.type !== 'steel_wall' && b.type !== 'arc_fence' && b.type !== 'floodlight' && b.type !== 'shield_pylon' && b.type !== 'tree_nursery' && b.type !== 'palisade' && b.type !== 'repair' && b.type !== 'spike_pit' && b.type !== 'well' && b.type !== 'boiler' && b.type !== 'steam_turbine' && b.type !== 'power_pole' && !TURRETS[b.type];
     // A launching ship shakes the whole shipyard.
     const shake = b.type === 'shipyard' && launching(world) ? 0.03 * Math.sin(now / 23) : 0;
     if (shake) ctx.translate(shake, 0);
@@ -1860,7 +1860,7 @@ export class Renderer {
     const [fw, fh] = footprint(tool, dir);
     const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
     const turret = !!TURRETS[tool];
-    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'arc_fence' && tool !== 'floodlight' && tool !== 'shield_pylon' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
+    const directional = tool !== 'wall' && tool !== 'reinforced_wall' && tool !== 'steel_wall' && tool !== 'arc_fence' && tool !== 'floodlight' && tool !== 'shield_pylon' && tool !== 'tree_nursery' && tool !== 'palisade' && tool !== 'repair' && tool !== 'port' && tool !== 'shipyard' && tool !== 'spike_pit' && tool !== 'boiler' && tool !== 'steam_turbine' && tool !== 'power_pole' && !turret;
     const key = tool === 'tunnel' ? (opts.exit || world.findTunnelEntrance(x, y, dir) ? 'buildings/tunnel_out' : 'buildings/tunnel_in') : turret ? `buildings/${tool}_base` : `buildings/${tool}`;
     ctx.globalAlpha = 0.6;
     const drawn = this.drawSpriteRect(key, x, y, fw, fh, directional ? dir : 0);

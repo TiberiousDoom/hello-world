@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs>
+            <filter id="tnSh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="2.5" dy="4" stdDeviation="2.5" flood-color="#0a1322" flood-opacity="0.5" /></filter>
+            <radialGradient id="tnLeaf" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#8fd46e" /><stop offset="0.6" stop-color="#4f9a42" /><stop offset="1" stop-color="#2c6a2e" /></radialGradient>
+          </defs>
+          <g filter="url(#tnSh)"><rect x="8" y="8" width="112" height="112" rx="8" fill="#5a4026" stroke="#0f1a2e" stroke-width="4" /></g>
+          <rect x="14" y="14" width="100" height="100" rx="5" fill="#6b4a2c" />
+          <g stroke="#4e341e" stroke-width="2" opacity="0.7"><path d="M18 40 H110 M18 72 H110 M18 102 H110" /></g>
+          <g stroke="#3a2614" stroke-width="2" stroke-linecap="round"><path d="M34 40 V28 M64 40 V24 M94 40 V28 M34 72 V60 M64 72 V58 M94 72 V60 M34 102 V94 M64 102 V92 M94 102 V94" /></g>
+          <g fill="url(#tnLeaf)" stroke="#1f4a22" stroke-width="1.6">
+            <circle cx="34" cy="26" r="9" /><circle cx="64" cy="21" r="11" /><circle cx="94" cy="26" r="9" />
+            <circle cx="34" cy="58" r="7" /><circle cx="64" cy="55" r="8" /><circle cx="94" cy="58" r="7" />
+            <circle cx="34" cy="92" r="5" /><circle cx="64" cy="90" r="5.5" /><circle cx="94" cy="92" r="5" />
+          </g>
+          <g fill="none" stroke="#c9a06a" stroke-width="3" stroke-linecap="round"><path d="M8 8 H120 V120 H8 Z" opacity="0.9" /></g>
+          <g fill="#c9a06a" stroke="#0f1a2e" stroke-width="1.5"><rect x="4" y="4" width="10" height="10" rx="2" /><rect x="114" y="4" width="10" height="10" rx="2" /><rect x="4" y="114" width="10" height="10" rx="2" /><rect x="114" y="114" width="10" height="10" rx="2" /></g>
+          <g transform="translate(96 104)" stroke="#0f1a2e" stroke-width="1.5"><path d="M-10 -6 h14 v10 h-14 z" fill="#5a8ab8" /><path d="M4 -4 l8 -6" stroke="#5a8ab8" stroke-width="3" /><path d="M-10 -6 q-6 2 -2 8" fill="none" /></g>
+        </svg>

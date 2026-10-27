@@ -3,6 +3,8 @@
 
 import {
   BELT_SPACING,
+  FOREST,
+  NURSERY,
   BELT_SPEED,
   CRATE_SIZE,
   DRONES,
@@ -76,7 +78,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generatePonds, generateResources, generateSulfur, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
 import { explored, newFog, revealBuilding, tickFog } from './fog';
-import { Nest, announceThreat, anyAngry, broodFor, checkBuiltOver, startRaids, damageMound, indexNests, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, spotIn, tickBreeding, tickBugs, tickMerge, tickSpread } from './nests';
+import { Nest, announceThreat, anyAngry, broodFor, checkBuiltOver, startRaids, damageMound, indexNests, moundAt, moundInRange, nestAt, nestCentre, onBugHurt, provoke, onBuilt, spotIn, tickBreeding, tickBugs, tickMerge, tickSpread } from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -2274,6 +2276,9 @@ export class World {
         case 'strike_beacon':
           b.ammo = Math.min(STRIKE.charge, b.ammo + dt * this.electrified(b)); // charging (D-131)
           break;
+        case 'tree_nursery':
+          this.tickNursery(b, dt);
+          break;
         case 'shield_pylon':
           b.ammo = Math.min(SHIELD.max, b.ammo + SHIELD.recharge * this.electrified(b) * dt); // its shield (D-129)
           break;
@@ -2336,7 +2341,39 @@ export class World {
       delete s.regrow[i];
       if (s.trees[i] === STUMP) s.trees[i] = TREE;
       this.layout++;
+      this.markFlowDirty(); // trees slow bugs' paths (D-134)
     }
+  }
+
+  /**
+   * A Tree Nursery (D-134): every NURSERY.period seconds it plants a tree on a random open tile within
+   * NURSERY.range of its centre (bare ground or a stump; not on a building, ore, water, a mound or the
+   * shipyard's site). A planted tree can be cut LUMBER.regrowths more times before it's gone.
+   */
+  private tickNursery(b: Building, dt: number): void {
+    b.cooldown -= dt;
+    if (b.cooldown > 0) return;
+    b.cooldown = NURSERY.period;
+    const [cx, cy] = this.centreOf(b);
+    const r = NURSERY.range;
+    const site = this.state.shipSite;
+    const open: number[] = [];
+    for (let y = Math.floor(cy - r); y <= cy + r; y++) {
+      for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+        if (!this.inBounds(x, y) || hypot(x + 0.5 - cx, y + 0.5 - cy) > r) continue;
+        const i = this.idx(x, y);
+        if (this.state.trees[i] === TREE || this.tiles[i] || this.wet[i] || this.state.resources[i] || moundAt(this, x, y)) continue;
+        if (site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5) continue;
+        open.push(i);
+      }
+    }
+    if (!open.length) return;
+    const i = open[Math.floor(this.random() * open.length)];
+    this.state.trees[i] = TREE;
+    delete this.state.regrow[i];
+    if (this.state.cuts) delete this.state.cuts[i];
+    this.layout++;
+    this.markFlowDirty();
   }
 
   /**
@@ -2347,6 +2384,10 @@ export class World {
     const s = this.state;
     const cuts = (s.cuts ??= {});
     this.layout++;
+    this.markFlowDirty(); // trees slow bugs' paths (D-134)
+    // Cutting a tree in a live territory provokes its nest (D-134).
+    const nest = nestAt(this, i % s.width, Math.floor(i / s.width));
+    if (nest && !nest.destroyed) provoke(this, nest);
     this.felled.push({ x: i % s.width, y: Math.floor(i / s.width), age: 0 });
     cuts[i] = (cuts[i] ?? 0) + 1;
     if (cuts[i] > LUMBER.regrowths) {
@@ -2938,7 +2979,7 @@ export class World {
   /** Cost for a bug to step onto a tile; blocking buildings must be chewed through. */
   private enterCost(i: number): number {
     const id = this.tiles[i];
-    if (!id) return this.wet[i] ? 4 : 1; // bugs wade through ponds, slowly (D-115)
+    if (!id) return this.wet[i] ? 4 : this.state.trees[i] === TREE ? FOREST.bugCost : 1; // bugs wade through ponds, slowly (D-115), and push through trees (D-134)
     const b = this.byId.get(id)!;
     if (!BUILDINGS[b.type].blocking) return 1;
     return 1 + BUILDINGS[b.type].hp / 25;

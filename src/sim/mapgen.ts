@@ -5,7 +5,7 @@
 
 import { FOREST, NESTS, ORE, PONDS, QUEENS, SULFUR, nestKindFor } from './data';
 import { hypot } from './math';
-import { Nest, nearHub, newNest, populate } from './nests';
+import { Nest, moundTile, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
 
 /** Smooth value noise in [0, 1), from a lattice of random values. */
@@ -183,6 +183,20 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
   for (let k = 0; k < count && edge.length; k++) {
     const [n] = edge.splice(Math.floor(w.random() * edge.length), 1);
     nests[n.id] = { ...newNest(n.id, n.x, n.y, hypot(n.x + c / 2 - hubCx, n.y + c / 2 - hubCy), 1, 'queen'), age: n.age };
+  }
+  // Some nests lie deep in forest (D-134): trees over most of the open ground of their cell. Every mound
+  // and the ring around it stay clear of trees.
+  const s = w.state;
+  for (const n of nests) {
+    const [mx, my] = moundTile(n);
+    const deep = w.random() < FOREST.nestShare;
+    for (let y = n.y; y < n.y + c; y++) {
+      for (let x = n.x; x < n.x + c; x++) {
+        const i = w.idx(x, y);
+        if (x >= mx - 1 && x <= mx + 2 && y >= my - 1 && y <= my + 2) s.trees[i] = 0;
+        else if (deep && !s.resources[i] && !w.isWater(x, y) && w.random() < FOREST.nestDensity) s.trees[i] = 1;
+      }
+    }
   }
   for (const nest of nests) populate(w, nest, hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy));
   return nests;

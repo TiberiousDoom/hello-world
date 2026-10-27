@@ -276,26 +276,28 @@ describe('Supply ship', () => {
     expect(w.state.ship.delivered.plank).toBe(20);
   });
 
-  it('after a delivery the colony offers two of its special buildings to pick from, then sends the last one (D-131)', () => {
+  it('after a delivery the colony offers two of its special buildings to pick from, then sends the last one (D-131, D-134)', () => {
     const w = quiet();
     yard(w);
-    expect(BLUEPRINTS.map((b) => b.id).sort()).toEqual(['greenhouse', 'strike_beacon', 'teleporter']);
-    for (const t of ['teleporter', 'strike_beacon', 'greenhouse'] as const) expect(w.isUnlocked(t)).toBe(false); // never researched
+    expect(BLUEPRINTS.map((b) => b.id).sort()).toEqual(['greenhouse', 'strike_beacon', 'teleporter', 'tree_nursery']);
+    for (const t of ['teleporter', 'strike_beacon', 'greenhouse', 'tree_nursery'] as const) expect(w.isUnlocked(t)).toBe(false); // never researched
     const ship = w.state.ship;
-    deliverRun(w); // three left: an offer of two
+    deliverRun(w); // four left: an offer of two
     expect(ship.offer).toHaveLength(2);
     expect(pickBlueprint(w, 'shipyard')).toBe(false);
     const first = ship.offer![0];
     expect(pickBlueprint(w, first)).toBe(true);
     expect(ship.offer).toBeNull();
     expect(w.isUnlocked(BLUEPRINT_BY_ID[first].unlocks[0])).toBe(true);
+    deliverRun(w); // three left: an offer of two again
+    expect(ship.offer).toHaveLength(2);
+    pickBlueprint(w, ship.offer![0]);
     deliverRun(w); // two left: both on offer
-    expect([...ship.offer!].sort()).toEqual(BLUEPRINTS.map((b) => b.id).filter((id) => id !== first).sort());
-    const second = ship.offer![1];
-    pickBlueprint(w, second);
+    expect([...ship.offer!].sort()).toEqual(BLUEPRINTS.map((b) => b.id).filter((id) => !ship.blueprints.includes(id)).sort());
+    pickBlueprint(w, ship.offer![1]);
     deliverRun(w); // only one left: it's simply sent
     expect(ship.offer).toBeNull();
-    expect(ship.blueprints).toHaveLength(3);
+    expect(ship.blueprints).toHaveLength(4);
     expect(w.events.some((e) => e.includes('blueprint'))).toBe(true);
     deliverRun(w); // none left
     expect(ship.offer).toBeNull();

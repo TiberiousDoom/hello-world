@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
+import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
 import { Nest, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -3132,5 +3132,79 @@ describe('Hardcore nests (D-133)', () => {
     expect(gap('standard', false)).toBeGreaterThanOrEqual(NESTS.breedEvery[0] - 1.1);
     expect(gap('hardcore', false)).toBeLessThanOrEqual(NESTS.breedEvery[1] / HARDCORE_NESTS.faster);
     expect(gap('hardcore', true)).toBeLessThanOrEqual(NESTS.breedEvery[1] / HARDCORE_NESTS.faster / HARDCORE_NESTS.builtOver);
+  });
+});
+
+describe('Forests and bugs (D-134)', () => {
+  it('cutting a tree inside a live territory provokes its nest; outside, it does not', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 3);
+    const p = w.state.players[0];
+    for (const [x, y] of [[40, 52], [52, 52]] as const) {
+      w.state.trees[w.idx(x, y)] = TREE;
+      [p.x, p.y] = [x - 0.5, y + 0.5];
+      for (let k = 0; k < HAND_MINING.taps; k++) w.mineByHand(x, y);
+      expect(w.treeAt(x, y)).toBe(STUMP);
+      expect(isAngry(w, n)).toBe(x === 52);
+    }
+  });
+
+  it("trees slow bugs, and cost more on a bug's path, so paths go round forest", () => {
+    const w = emptyWorld();
+    placed(w.place('wall', 50, 50, 0));
+    w.computeFlow();
+    const open = w.flow[w.idx(50, 60)];
+    for (let y = 52; y < 59; y++) for (let x = 47; x < 54; x++) w.state.trees[w.idx(x, y)] = TREE;
+    w.computeFlow();
+    expect(w.flow[w.idx(50, 60)]).toBeGreaterThan(open); // it goes round, or pushes through slowly
+    // A chasing bug among trees moves at FOREST.bugSlow of its speed.
+    const n = addNest(w, 80, 80, 0);
+    const bug = w.spawnBug('crawler', n, 1);
+    [bug.x, bug.y] = [50.5, 55.5];
+    n.angryUntil = 1e9;
+    const y0 = bug.y;
+    w.tick();
+    expect(y0 - bug.y).toBeCloseTo(ENEMIES.crawler.speed * FOREST.bugSlow * TICK, 5);
+  });
+
+  it.each([42, 1, 7])('a new map has nests deep in forest, and every mound and its ring clear of trees, seed %i', (seed) => {
+    const w = World.create(seed);
+    const s = w.state;
+    const wooded = s.nests.filter((n) => {
+      let trees = 0;
+      for (let y = n.y; y < n.y + NESTS.cell; y++) for (let x = n.x; x < n.x + NESTS.cell; x++) if (s.trees[w.idx(x, y)] === TREE) trees++;
+      return trees >= 40;
+    });
+    expect(wooded.length).toBeGreaterThan(0);
+    for (const n of s.nests) {
+      const [mx, my] = moundTile(n);
+      for (let y = my - 1; y <= my + 2; y++) for (let x = mx - 1; x <= mx + 2; x++) expect(s.trees[w.idx(x, y)]).not.toBe(TREE);
+    }
+  });
+
+  it('a Tree Nursery plants a tree on open ground nearby every so often, never on buildings or ore', () => {
+    const w = emptyWorld();
+    w.state.ship.blueprints.push('tree_nursery');
+    Object.assign(w.state.inventory, { steel: 99 });
+    const b = placed(w.place('tree_nursery', 60, 60, 0));
+    placed(w.place('wall', 63, 61, 0));
+    w.state.resources[w.idx(58, 61)] = 1;
+    w.state.trees[w.idx(59, 60)] = STUMP;
+    w.state.cuts = { [w.idx(59, 60)]: 3 };
+    run(w, NURSERY.period * 90 + 1); // long enough to fill every open tile in range
+    const [cx, cy] = w.centreOf(b);
+    let planted = 0;
+    for (let y = 50; y < 72; y++) {
+      for (let x = 50; x < 72; x++) {
+        if (w.state.trees[w.idx(x, y)] !== TREE) continue;
+        planted++;
+        expect(Math.hypot(x + 0.5 - cx, y + 0.5 - cy)).toBeLessThanOrEqual(NURSERY.range);
+        expect(w.buildingAt(x, y)).toBeUndefined();
+        expect(w.state.resources[w.idx(x, y)]).toBe(0);
+      }
+    }
+    expect(planted).toBeGreaterThan(20);
+    expect(w.state.trees[w.idx(59, 60)]).toBe(TREE); // a stump grows anew
+    expect(w.state.cuts?.[w.idx(59, 60)]).toBeUndefined(); // with its cuts reset
   });
 });
