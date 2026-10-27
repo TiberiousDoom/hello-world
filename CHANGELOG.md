@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.73.0 · 2026-10-27 · Belt pieces
+### New
+- Belt corners, end bumpers, start lips and the flanges where belts meet buildings are drawn from new art. Express belt corners have their yellow rails.
+
 ## 0.72.0 · 2026-10-27 · Gifts from the colony
 ### New
 - Supply runs bring three **special buildings** from the colony. After each delivery, it offers two and you pick one.

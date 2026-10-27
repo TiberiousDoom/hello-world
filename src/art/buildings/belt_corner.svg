@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="cRail" cx="0" cy="64" r="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5a6478" /><stop offset="0.2" stop-color="#c9d2de" /><stop offset="0.8" stop-color="#5a6478" /><stop offset="1" stop-color="#c9d2de" /></radialGradient>
+            </defs><path d="M0 6 A58 58 0 0 1 58 64 L6 64 A6 6 0 0 0 0 58 Z" fill="#262b35" />
+              <path d="M0 10 A54 54 0 0 1 54 64 L46 64 A46 46 0 0 0 0 18 Z" fill="#000000" opacity="0.25" />
+              <path d="M0 2 A62 62 0 0 1 62 64 L53 64 A53 53 0 0 0 0 11 Z" fill="url(#cRail)" stroke="#0f1a2e" stroke-width="1.5" />
+              <path d="M0 53 A11 11 0 0 1 11 64 L2 64 A2 2 0 0 0 0 62 Z" fill="url(#cRail)" stroke="#0f1a2e" stroke-width="1.5" />
+            </svg>

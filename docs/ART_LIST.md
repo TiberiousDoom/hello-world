@@ -24,7 +24,7 @@ built from their sprites by `node art/working.mjs`; run it again after redrawing
 
 **Art review 2 (2026-10-23, for 0.39.0):** every sprite as it was then, with 5 new and 23 changed since round 1 tagged, and new screenshots (including the engineer by a nest, and night). Round 1's marks were cleared. **Out of date since the art upgrade (0.40.0):** its sprites and screenshots show the art from before it. To do later, when the owner asks: rebuild the page from `src/art` and retake the screenshots (the build and screenshot scripts work from scene saves made by the game's own rules).
 **Art upgrade (0.40.0, D-075):** every sprite was redrawn with one light source (top-left), soft contact shadows, one ink outline and glossy bugs; terrain got a lighter touch so the clearing keeps its look. Walls and palisades became sets that join into runs, nests became burrow entrances, and the animation strips, effects and seasonal trees are reference art in `docs/art-upgrade/` (see its README).
-**Animated art (0.43.0, D-082):** the strips, effects and seasonal ground and trees from the art upgrade are in the game, and every machine that works has a working animation. Still reference only: the belt pieces (planned, see ROADMAP) and the tesla bolt, which stays a guide for the code (`docs/art-upgrade/`).
+**Animated art (0.43.0, D-082):** the strips, effects and seasonal ground and trees from the art upgrade are in the game, and every machine that works has a working animation. The belt pieces are in the game too (0.73.0). Still reference only: the tesla bolt, which stays a guide for the code (`docs/art-upgrade/`).
 
 Open `src/art/*/*.svg` in a browser or vector editor to see the placeholders up close.
 They show the intended size, facing and silhouette.
@@ -108,8 +108,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Spike pit (D-107): a dug pit bristling with sharpened stakes | 1×1 | A charge bar shows its wear | 1 | P2 | Placeholder (`buildings/spike_pit`) |
 | Trebuchet (D-107): a wooden frame, and its throwing arm with a counterweight and sling | 2×2 | Base and arm (`_base`, `_barrel`), the arm turning to aim like a turret's barrel | 1 | P2 | Placeholder (`buildings/trebuchet_base`, `buildings/trebuchet_barrel`) |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Upgraded |
-| Belt (corner) | 1×1 | Drawn in code (quarter turn, matching the straight sprite's rails). To become a sprite of the rails and bed, with the chevrons still moving over it in code | 8 | P3 | Code; Reference sprite `pieces/belt_corner`, planned (ROADMAP) |
-| Belt end cap, join flange | 1×1 | Drawn in code: a hazard bumper where a line stops, a metal flange where a belt meets a building | 1 | P3 | Code; Reference sprites `pieces/belt_end`, `belt_flange`, planned (ROADMAP) |
+| Belt (corner) | 1×1 | A quarter turn of the rails and bed, coming in from the west and leaving south. Other turns rotate it, and left turns mirror it. The slats moving round the bend are drawn in code over it | 1 | P3 | Upgraded (`buildings/belt_corner`, `express_belt_corner`) |
+| Belt end cap, start lip, join flange | 1×1, facing east, transparent but for the piece | Drawn over a belt: a hazard bumper on the east edge where a line stops, a rail lip on the west edge where it starts, a metal flange on the east edge where a belt meets a building (turned to that side) | 1 | P3 | Upgraded (`buildings/belt_end`, `belt_start`, `express_belt_start`, `belt_flange`) |
 | Extractor | 2×2 (128×128) | Drill, facing east. The game draws an output port at the middle of the east edge. Working: the rotor turns, chips fly | 1 + 4 working | P1 | Upgraded; working strip `extractor_working_4f` |
 | Furnace | 2×2 (128×128) | Idle and working, facing east. Working: flames, embers, smoke from the chimney | 1 + 4 | P1 | Upgraded; working strip `furnace_working_4f` |
 | Workshop | 2×2 (128×128) | Idle and working, facing east. Working: the gears turn, the lamp blinks | 1 + 4 | P2 | Upgraded; working strip `workshop_working_4f` |
@@ -134,7 +134,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Sawmill | 2×2 (128×128) | A saw bench, logs in and planks out, facing east. Working: the saw spins, the log feeds in, sawdust flies | 1 + 4 working | P2 | Upgraded; working strip `sawmill_working_4f` |
 | Palisade set | 1×1 each | Chosen from neighbours: east–west runs seen from above as log tops (`palisade`), north–south runs in side view (`palisade_v`), corners `palisade_nw`, `_ne`, `_sw`, `_se`, gate ends `palisade_end_w`, `_end_e` and a lone post `palisade_post` | 1 | P2 | Upgraded |
 | Leaf burst when a tree is cut | 64×64 | 4 | P3 | Upgraded (`effects/leaf_burst_4f`) |
-| Express belt (straight) | 1×1 | Like the belt, with hazard-yellow rails so it reads as faster. Corners are drawn in code with yellow rails | 8 | P2 | Upgraded (`buildings/express_belt`) |
+| Express belt (straight) | 1×1 | Like the belt, with hazard-yellow rails so it reads as faster. Its corner and start lip are sprites with the same rails | 8 | P2 | Upgraded (`buildings/express_belt`) |
 | Ballista base | 1×1 | A wooden platform | 1 | P2 | Upgraded (`buildings/ballista_base`) |
 | Ballista bow | 1×1 | Separate layer that turns to aim: the bow at the front of the stock, string drawn back, no arrow; centred pivot | 1 | P2 | Upgraded (`buildings/ballista_barrel`) |
 | Tesla base | 1×1 | Static | 1 | P2 | Upgraded (`buildings/tesla_base`) |
