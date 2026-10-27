@@ -113,6 +113,9 @@ export async function uncoveredTile(page: Page, tx: number, ty: number): Promise
       [tx, ty, ox, oy] as const,
     );
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    // A lesson's card glides after its target when the camera moves: let it arrive before looking.
+    const tip = page.locator('#tutorial .tip');
+    if (await tip.isVisible()) await settled(tip);
     if ((await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.id, pt)) === 'game') return pt;
   }
   throw new Error(`tile ${tx},${ty} is covered wherever the camera puts it`);
