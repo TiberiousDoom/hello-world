@@ -126,6 +126,8 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Tesla Turret | 1×1, needs electricity | 8 steel, 4 circuit boards, 4 coils | 160 | Electric Defense |
 | Arc Fence | 1×1 wall, needs electricity to shock | 2 steel, 1 coil, 2 wire | 700 | Electric Defense |
 | Floodlight | 1×1, bugs walk past it; needs electricity | 1 circuit board, 4 iron rods, 4 wire | 80 | Electric Defense |
+| Shield Pylon | 1×1, needs electricity to recharge | 6 circuit boards, 6 coils, 4 steel beams | 220 | Electric Defense 2 |
+| Railgun | 2×2, needs electricity | 20 steel beams, 10 circuit boards, 10 coils, 6 bearings | 450 | Electric Defense 2 |
 | Drone Pad | 1×1, needs electricity | 4 circuit boards, 2 motors, 2 steel beams | 160 | Drone Logistics |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
@@ -331,6 +333,7 @@ runs, have none to offer until the Electric Age's special buildings (D-126). **S
 | Electronics | 100 steel beams, 60 bearings, 40 motors | 150 s | Mk2 Machines, Heavy Defense 2 | Opens the Electric Age |
 | Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
 | Drone Logistics | 60 circuit boards, 40 motors | 120 s | Circuit Works | Drone Pad |
+| Electric Defense 2 | 100 circuit boards, 60 coils, 40 bearings | 150 s | Electric Defense | Shield Pylon, Railgun |
 | Mk3 Machines | 80 circuit boards, 40 coils, 60 steel beams | 150 s | Circuit Works, Mk2 Machines | Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3 |
 | Electric Defense | 60 circuit boards, 100 wire, 30 coils | 120 s | Circuit Works | Tesla Turret, Arc Fence, Floodlight |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
@@ -444,8 +447,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    Heavy Defense 2) opens it. The **Circuit Works** makes **circuit boards** and **coils** from wire, and works only
    with electricity. **Electric Defense** brings the **Tesla Turret** (no ammunition, only electricity), the
    **Arc Fence** and **Floodlights**; **Mk3 Machines** makes extractors, furnaces and assemblers three times as
-   fast. **Drone Logistics** brings **drone pads**, which fly items between pads without belts. Electric Defense 2
-   and the ship's last stages follow.
+   fast. **Drone Logistics** brings **drone pads**, which fly items between pads without belts. **Electric Defense 2**
+   brings **Shield Pylons** and the **Railgun**. The ship's last stages follow.
 
 ## Bugs
 
@@ -535,11 +538,12 @@ Turrets hold ammo as shots, and arrive fully loaded. You refill them with items 
 | Mortar | shell | 1 | 12 | 13, nothing closer than 3 | 0.5/s | 45, splash radius 1.8 |
 | Artillery (2×2) | shell | 1 | 10 | 30, nothing closer than 8 | 0.2/s | 100, splash radius 2.6 |
 | Tesla Turret | none: electricity | — | — | 5 | 1/s | 12, then arcs on to up to 2 more bugs, each within 2 tiles of the last |
+| Railgun (2×2) | none: electricity | — | — | 18, nothing closer than 2 | 0.4/s | 120 to every bug within 0.6 tiles of its line, out to its full range |
 
 The **Hydraulic Turret** and **Hydraulic Cannon** (D-117) fire only with power (see Water power): lay a
 drive shaft to them, or place them touching a well, a powered belt or another powered turret. The **Turret
 Mk.2** (D-123) fires only with electricity, using 2: put a power pole within 2 tiles of it. So do the
-**Mortar** (2) and **Artillery** (4) (D-124), and the **Tesla Turret** (3, D-126), which needs no ammunition at all. Short of
+**Mortar** (2) and **Artillery** (4) (D-124), the **Tesla Turret** (3, D-126) and the **Railgun** (6, D-129), which need no ammunition at all. Short of
 power they fire more slowly, and with none they don't fire at all, so a cut shaft leaves a gap.
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
@@ -549,6 +553,11 @@ Turrets fire at any bug in range, calm or not, so a turret near a territory prov
 its electricity (it uses 0.25); without electricity it's just a wall. A **Floodlight** (it uses 1) lights the ground
 **7 tiles** around it at night, and bugs in its light move at **60%** speed. It sees 14 tiles into the fog when
 built, and bugs walk past it.
+
+**The Shield Pylon** (D-129) takes the bites on every building within **5 tiles** of it (itself too): they come off
+its shield first, up to **600**, and only what's left gets through. It arrives empty and recharges **10 a second**
+with electricity (it uses 4); a dome over what it covers fades as the shield runs down. Where pylons overlap, the
+first built takes the bite first.
 
 **Spike pits** (1×1, D-107) are traps bugs walk over: they don't block, and bugs don't go for them. A
 bug on a pit takes **15 damage a second** and moves at **half speed**. A pit holds **60 seconds** of

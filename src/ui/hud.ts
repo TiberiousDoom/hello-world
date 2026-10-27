@@ -13,6 +13,7 @@ import {
   ARC_FENCE,
   ELECTRIC,
   FLOODLIGHT,
+  SHIELD,
   ELECTRIC_DEFENCES,
   MK2,
   MK3,
@@ -86,6 +87,8 @@ const TOOLBAR: BuildingType[] = [
   'mortar',
   'artillery',
   'tesla',
+  'railgun',
+  'shield_pylon',
   'repair',
   'wall',
   'reinforced_wall',
@@ -98,7 +101,7 @@ const TOOLBAR: BuildingType[] = [
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'railgun', 'shield_pylon', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
 const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'drone_pad', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
@@ -886,6 +889,9 @@ export class Hud {
       if (b.type === 'arc_fence') {
         const e = world.electrified(b);
         stats += e > 0 ? `<br>Shocks each bug biting it for ${Math.round(ARC_FENCE.dps * e)} damage a second` : "<br><b>No electricity:</b> it doesn't shock. Put a power pole near it";
+      }
+      if (b.type === 'shield_pylon') {
+        stats += `<br>Shield ${Math.floor(b.ammo)} / ${SHIELD.max}: takes the bites on buildings within ${SHIELD.radius} tiles${world.electrified(b) > 0 ? `, recharging ${Math.round(SHIELD.recharge * world.electrified(b))} a second` : '. <b>No electricity:</b> it doesn\'t recharge. Put a power pole near it'}`;
       }
       if (b.type === 'floodlight') {
         stats += world.electrified(b) > 0

@@ -517,9 +517,9 @@ function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolea
   return true;
 }
 
-/** Damage a building; a nest stays angry while it's busy biting (raiders leave it be). An arc fence bites back (D-126). */
+/** Damage a building, through any shield (D-129); a nest stays angry while it's busy biting (raiders leave it be). An arc fence bites back (D-126). */
 function bite(w: World, b: Building, n: Nest, amount: number, angers: boolean, e: Enemy, dt: number): void {
-  b.hp -= amount;
+  b.hp -= w.shielded(b, amount); // shield pylons take what they can (D-129)
   if (b.type === 'arc_fence') {
     const shock = ARC_FENCE.dps * w.electrified(b) * dt;
     if (shock > 0) {

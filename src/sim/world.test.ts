@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DRONES, FLOODLIGHT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { ARC_FENCE, DRONES, FLOODLIGHT, SHIELD, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2770,5 +2770,89 @@ describe('Drone pads (D-128)', () => {
     old.version = 37;
     delete old.drones;
     expect(World.fromJSON(JSON.stringify(old)).state.drones).toEqual([]);
+  });
+});
+
+describe('Electric Defense 2: the Shield Pylon and the Railgun (D-129)', () => {
+  it('Electric Defense 2 comes after Electric Defense, with the shield pylon and railgun', () => {
+    expect(RESEARCH_BY_ID.electric_defense2.requires).toEqual(['electric_defense']);
+    expect(RESEARCH_BY_ID.electric_defense2.unlocks.sort()).toEqual(['railgun', 'shield_pylon']);
+  });
+
+  it('a shield pylon charges with electricity and takes the bites on buildings near it until its shield is gone', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, coil: 99, steel_beam: 99, steel: 999 });
+    const hub = w.hub!;
+    const pylon = placed(w.place('shield_pylon', hub.x - 8, hub.y + 2, 0));
+    expect(pylon.ammo).toBe(0); // it arrives empty
+    run(w, 2);
+    expect(pylon.ammo).toBeCloseTo(2 * SHIELD.recharge, 0);
+    const wall = placed(w.place('steel_wall', hub.x - 10, hub.y + 2, 0)); // within reach
+    const far = placed(w.place('steel_wall', hub.x - 20, hub.y + 2, 0));
+    pylon.ammo = 30;
+    const hp = wall.hp;
+    expect(w.shielded(wall, 20)).toBe(0);
+    expect(pylon.ammo).toBe(10);
+    expect(w.shielded(wall, 20)).toBe(10); // what the shield can't take gets through
+    expect(pylon.ammo).toBe(0);
+    expect(wall.hp).toBe(hp); // shielded() only works out the damage; the bite takes it
+    pylon.ammo = 30;
+    expect(w.shielded(far, 20)).toBe(20); // out of reach
+    w.freePower = false;
+    pylon.ammo = 0;
+    run(w, 1);
+    expect(pylon.ammo).toBe(0); // no electricity: no recharge
+  });
+
+  it('a bug biting a shielded wall wears down the shield before the wall', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, coil: 99, steel_beam: 999, steel: 999 });
+    const hub = w.hub!;
+    const y = hub.y + 2;
+    for (let dy = -12; dy <= 12; dy++) placed(w.place('steel_wall', hub.x - 6, y + dy, 0));
+    const pylon = placed(w.place('shield_pylon', hub.x - 4, y, 0));
+    pylon.ammo = SHIELD.max;
+    w.freePower = false; // no recharge, so the bites show on the shield
+    const n = addNest(w, 0, 0, 0);
+    n.angryUntil = 1e9;
+    const e = w.spawnBug('crawler', n, 1);
+    Object.assign(e, { x: hub.x - 7.5, y: y + 0.5, hp: 1e6, maxHp: 1e6 });
+    w.rebuildPaths();
+    run(w, 3);
+    const wall = w.buildingAt(hub.x - 6, y)!;
+    expect(wall.hp).toBe(w.maxHp(wall));
+    expect(pylon.ammo).toBeLessThan(SHIELD.max);
+  });
+
+  it('a railgun slug goes through every bug near its line, up to its range, and needs electricity', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, coil: 99, steel_beam: 99, bearing: 99 });
+    const rg = placed(w.place('railgun', w.hub!.x - 40, w.hub!.y - 20, 0));
+    const [cx, cy] = w.centreOf(rg);
+    const n = addNest(w, 0, 0, 0);
+    const def = TURRETS.railgun!;
+    // Three in a line east of it, one beside the line, one past its range.
+    const at = (dx: number, dy: number) => {
+      const e = w.spawnBug('crawler', n, 1);
+      Object.assign(e, { x: cx + dx, y: cy + dy, hp: 1000, maxHp: 1000 });
+      return e;
+    };
+    const line = [at(4, 0), at(9, 0.3), at(15, -0.4)];
+    const beside = at(9, 3);
+    const past = at(def.range + 2, 0);
+    w.tick();
+    expect(line.map((e) => e.hp)).toEqual([1000 - def.damage, 1000 - def.damage, 1000 - def.damage]);
+    expect(beside.hp).toBe(1000);
+    expect(past.hp).toBe(1000);
+    expect(w.shots.some((s) => s.beam)).toBe(true);
+    const dark = emptyWorld();
+    dark.freePower = false;
+    Object.assign(dark.state.inventory, { circuit: 99, coil: 99, steel_beam: 99, bearing: 99 });
+    const r2 = placed(dark.place('railgun', dark.hub!.x - 40, dark.hub!.y - 20, 0));
+    const [x2, y2] = dark.centreOf(r2);
+    const e2 = dark.spawnBug('crawler', addNest(dark, 0, 0, 0), 1);
+    Object.assign(e2, { x: x2 + 5, y: y2, hp: 1000, maxHp: 1000 });
+    dark.tick();
+    expect(e2.hp).toBe(1000);
   });
 });

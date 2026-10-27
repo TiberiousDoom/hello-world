@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.70.0 · 2026-10-27 · Shields and railguns
+### New
+- **Electric Defense 2** (after Electric Defense) brings two new defences:
+  - The **Shield Pylon** takes the bites for every building within 5 tiles, from a 600-point shield that recharges with electricity.
+  - The **Railgun** (2×2) fires a slug that goes through every bug in a long line. It needs no ammunition, only electricity.
+
 ## 0.69.0 · 2026-10-27 · Drones
 ### New
 - **Drone Logistics** (after Circuit Works) brings the **Drone Pad**:
