@@ -1,4 +1,4 @@
-// Copy and paste for sections of a factory (D-143). Copying reads the world; pasting is a command
+// Copy and paste for sections of a factory (D-144). Copying reads the world; pasting is a command
 // (`paste`), so it works in co-op and can be undone.
 
 import { BuildingType, Dir, footprint } from '../sim/data';

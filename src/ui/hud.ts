@@ -210,7 +210,7 @@ export interface HudActions {
   toMainMenu(): void;
   hasGame(): boolean;
   rotatePlan(): void;
-  /** Undoes the last building or demolishing (D-143). */
+  /** Undoes the last building or demolishing (D-144). */
   undo(): void;
   /** Starts or stops copying an area. */
   toggleCopy(): void;

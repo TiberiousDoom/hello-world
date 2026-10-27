@@ -1,4 +1,4 @@
-// Lint (D-143): the recommended rules for JavaScript and TypeScript, plus the project's own:
+// Lint (D-144): the recommended rules for JavaScript and TypeScript, plus the project's own:
 // no `any`, and no Math.random or Math.hypot in the rules (co-op games must compute the same numbers).
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';

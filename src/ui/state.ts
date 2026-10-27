@@ -37,7 +37,7 @@ export interface UIState {
   moving: number | null;
   /** A charged strike beacon whose target the next tap on the map picks (D-131). */
   aiming: number | null;
-  /** The copied section of a factory (D-143), kept until something else is copied. */
+  /** The copied section of a factory (D-144), kept until something else is copied. */
   clip: Clip | null;
   /** Copying: a drag picks an area. Pasting: a tap puts the copy down. */
   clipMode: 'copy' | 'paste' | null;

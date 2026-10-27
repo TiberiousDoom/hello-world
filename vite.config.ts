@@ -8,7 +8,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 const PUBLIC_KEPT = ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
 /**
- * Writes sw.js (D-143): pwa/sw.js with the build's files to keep for offline play, and a version
+ * Writes sw.js (D-144): pwa/sw.js with the build's files to keep for offline play, and a version
  * that changes whenever they do, so a new build replaces the old copies.
  */
 function serviceWorker(): Plugin {

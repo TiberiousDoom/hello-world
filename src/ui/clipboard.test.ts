@@ -14,7 +14,7 @@ function open() {
   return { w, cx, cy };
 }
 
-describe('Copy and paste (D-143)', () => {
+describe('Copy and paste (D-144)', () => {
   it('copies the buildings inside an area with their settings, and pastes them elsewhere', () => {
     const { w, cx, cy } = open();
     const furnace = w.place('furnace', cx - 8, cy - 8, 0);
@@ -93,7 +93,7 @@ describe('Copy and paste (D-143)', () => {
   });
 });
 
-describe('Undo (D-143)', () => {
+describe('Undo (D-144)', () => {
   it('groups changes made close together into one step, and keeps the last fifty', () => {
     const u = new UndoStack();
     u.record({ kind: 'demolish', id: 1 }, 0);
@@ -124,7 +124,7 @@ describe('Undo (D-143)', () => {
   });
 });
 
-describe('Keys (D-143)', () => {
+describe('Keys (D-144)', () => {
   it('rebinds an action, swapping with whatever had the key, and refuses keys that have jobs', () => {
     resetKeys();
     expect(bindKey('rotate', 't')).toBe(true);

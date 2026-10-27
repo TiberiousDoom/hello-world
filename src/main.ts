@@ -69,7 +69,7 @@ interface Profile {
   sfxVolume: number; // 0–1
   lastSeenVersion: string; // the newest version whose What's new this player has opened
   batterySaver: boolean; // draw at normal resolution and 30 frames a second
-  uiScale: number; // the size of text and buttons, 0.8–1.4 (D-143)
+  uiScale: number; // the size of text and buttons, 0.8–1.4 (D-144)
   reducedMotion: boolean | null; // null: as the system says
 }
 
@@ -170,7 +170,7 @@ const serverRoom = (params.get('server') ?? SERVER_ROOM).toUpperCase();
  */
 function issue<C extends Command>(command: C): ResultOf<C> | undefined {
   if (inMenu || !session) return applyCommand(active(), command);
-  // What a demolish takes down, captured before it goes, so undo can build it again (D-143).
+  // What a demolish takes down, captured before it goes, so undo can build it again (D-144).
   const gone = command.kind === 'demolish' ? game?.byId.get(command.id) : undefined;
   const back = gone ? rebuild(gone) : null;
   let result: ResultOf<C> | undefined;
@@ -185,7 +185,7 @@ function issue<C extends Command>(command: C): ResultOf<C> | undefined {
   return result;
 }
 
-/** Building and demolishing that can be undone (D-143), newest last. In co-op, each player undoes their own. */
+/** Building and demolishing that can be undone (D-144), newest last. In co-op, each player undoes their own. */
 const undo = new UndoStack();
 let undoing = false;
 /** In co-op, undo's own commands come back late: these aren't recorded as new changes. */
@@ -474,7 +474,7 @@ saverToggle.addEventListener('change', () => {
   saveProfile();
 });
 
-// Settings (D-143): the size of the interface, motion, and the keys.
+// Settings (D-144): the size of the interface, motion, and the keys.
 const uiScale = document.getElementById('ui-scale') as HTMLInputElement;
 const showUiScale = () => {
   profile.uiScale = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, profile.uiScale || 1));
@@ -680,7 +680,7 @@ renderer.resize();
 showMainMenu();
 const artLoaded = loadArt(); // sprites appear as they finish loading; shapes are drawn until then
 
-// Offline play and installing to the home screen (D-143). Not in the single-file build, which has no sw.js.
+// Offline play and installing to the home screen (D-144). Not in the single-file build, which has no sw.js.
 if (import.meta.env.PROD && import.meta.env.MODE !== 'single' && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch((err) => console.warn('No offline play:', err));
 }

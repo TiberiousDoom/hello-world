@@ -1,4 +1,4 @@
-// Foundry Front's service worker (D-143): the game plays offline once it has been opened.
+// Foundry Front's service worker (D-144): the game plays offline once it has been opened.
 // Built by vite.config.ts, which fills in the version and the files to keep. Music isn't kept
 // (it's large, and plays in a streaming <audio> element); offline, the game is silent.
 const CACHE = 'foundry-front-__VERSION__';

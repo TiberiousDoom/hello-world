@@ -123,7 +123,7 @@ export function validCommand(c: unknown): c is Command {
   return true;
 }
 
-/** One building of a paste (D-143), checked like a place command and the settings commands. */
+/** One building of a paste (D-144), checked like a place command and the settings commands. */
 function validPasteItem(it: unknown): boolean {
   if (!it || typeof it !== 'object') return false;
   const o = it as Record<string, unknown>;

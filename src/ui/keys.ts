@@ -1,4 +1,4 @@
-// Key bindings (D-143): the keyboard shortcuts, which the player can change in Settings. Kept in this
+// Key bindings (D-144): the keyboard shortcuts, which the player can change in Settings. Kept in this
 // browser. Walking (WASD and the arrows), Esc, Enter, Ctrl+Z and the number keys stay as they are.
 
 export type KeyAction = 'rotate' | 'demolish' | 'cancel' | 'inventory' | 'pause' | 'ping' | 'undo' | 'copy' | 'paste';

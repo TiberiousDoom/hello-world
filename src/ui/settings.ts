@@ -1,4 +1,4 @@
-// The Settings screen's own parts (D-143): the size of text and buttons, reduced motion and the key list.
+// The Settings screen's own parts (D-144): the size of text and buttons, reduced motion and the key list.
 // The volumes and toggles are wired in main.ts, next to what they control.
 
 import { KEY_ACTIONS, KeyAction, bindKey, keyFor, keyName, resetKeys } from './keys';

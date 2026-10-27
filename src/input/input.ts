@@ -55,7 +55,7 @@ export interface InputCallbacks {
   onNotice(text: string): void;
   /** Points at a tile for the other players (co-op, D-080). False when there's no one to point for. */
   ping(x: number, y: number): boolean;
-  /** Undoes the last building or demolishing (D-143). */
+  /** Undoes the last building or demolishing (D-144). */
   undo(): void;
   onChange(): void; // UI state (selection, tool, direction) changed
 }
@@ -197,7 +197,7 @@ export class Input {
     } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
     } else if (this.ui.clipMode === 'copy') {
-      // Copying (D-143): the drag picks the area.
+      // Copying (D-144): the drag picks the area.
       this.mode = 'select';
       this.ui.selecting = { from: this.ui.hover, to: this.ui.hover };
       this.cb.onChange();
@@ -687,7 +687,7 @@ export class Input {
     this.cb.onChange();
   }
 
-  // ------------------------------------------------------------- copy and paste (D-143)
+  // ------------------------------------------------------------- copy and paste (D-144)
 
   /** Starts copying an area (nothing in hand), or stops copying or pasting. */
   toggleCopy(): void {

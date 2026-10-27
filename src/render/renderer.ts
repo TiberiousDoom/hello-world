@@ -198,7 +198,7 @@ export class Renderer {
   private dpr = 1;
   /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
   maxDpr = 2;
-  /** No drifting fireflies or leaves: the player or their system asked for less motion (D-143). */
+  /** No drifting fireflies or leaves: the player or their system asked for less motion (D-144). */
   reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private ground = newLayer();
   private canopy = newLayer();
@@ -1916,7 +1916,7 @@ export class Renderer {
     this.drawItem(item, x + 0.8, y + 0.2, 0.28);
   }
 
-  /** Copy and paste (D-143): the area being selected, or the copy under the pointer where a tap puts it. */
+  /** Copy and paste (D-144): the area being selected, or the copy under the pointer where a tap puts it. */
   private drawClip(world: World, ui: UIState, z: number): void {
     const ctx = this.ctx;
     const sel = ui.selecting;

@@ -1,4 +1,4 @@
-// Undo for building and demolishing (D-143). Each step holds the commands that put things back as they
+// Undo for building and demolishing (D-144). Each step holds the commands that put things back as they
 // were. It lives in this browser only: in co-op, undoing sends ordinary commands, like any other change.
 
 import type { Command, PasteItem } from '../sim/commands';

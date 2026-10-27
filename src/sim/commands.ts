@@ -27,7 +27,7 @@ export type Command =
   | { kind: 'upgrade-belts'; x: number; y: number }
   // Empties a whole belt line into hub stock (D-141).
   | { kind: 'clear-belts'; id: number }
-  // Builds a copied section of a factory with its corner at (x, y) (D-143).
+  // Builds a copied section of a factory with its corner at (x, y) (D-144).
   | { kind: 'paste'; x: number; y: number; items: PasteItem[] }
   // An extractor or furnace to Mk2 (D-122).
   | { kind: 'upgrade'; id: number }
@@ -81,7 +81,7 @@ export interface CommandResults {
 
 export type ResultOf<C extends Command> = CommandResults[C['kind']];
 
-/** One building of a copied section (D-143): where it sits from the section's corner, and its settings. */
+/** One building of a copied section (D-144): where it sits from the section's corner, and its settings. */
 export interface PasteItem {
   type: BuildingType;
   dx: number;

@@ -1722,7 +1722,7 @@ body:not(.in-menu) #demo-fade {
   opacity: 0.8;
 }
 
-/* ---------------------------------------------------- settings (D-143) */
+/* ---------------------------------------------------- settings (D-144) */
 
 .toggle.volume.scale {
   grid-template-columns: 8.5em 1fr 3em;
@@ -1768,7 +1768,7 @@ body.reduce-motion *::after {
   transition: none !important;
 }
 
-/* Fingers need room (D-143): on touch screens, buttons are at least 44 px each way. */
+/* Fingers need room (D-144): on touch screens, buttons are at least 44 px each way. */
 @media (pointer: coarse) {
   button,
   .tool,
