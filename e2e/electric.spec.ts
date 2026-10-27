@@ -113,6 +113,7 @@ test('a charged strike beacon calls a strike on the spot tapped next (D-131)', a
     Object.assign(s.inventory, { circuit: 40, coil: 20, steel: 40 });
     const [x, y] = [w.hub.x - 10, w.hub.y + 2];
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    s.trees[w.idx(x - 6, y)] = 1; // the target is a tree: tapping it strikes instead of chopping
     const b = w.place('strike_beacon', x, y, 0);
     b.ammo = 540; // charged
     window.game.ui.selected = b.id;

@@ -228,7 +228,8 @@ export class Input {
       this.reportedError = false;
       this.lastTile = this.ui.hover;
       this.paintTile(this.ui.hover, this.ui.dir, true);
-    } else if (this.canMine(this.ui.hover)) {
+    } else if (this.ui.aiming == null && this.canMine(this.ui.hover)) {
+      // While aiming a strike, a tree or ore is a target like any other tile (D-131).
       this.mode = 'mine';
       this.startMining(this.ui.hover);
     } else {
