@@ -15,6 +15,7 @@ import {
   FLOODLIGHT,
   ELECTRIC_DEFENCES,
   MK2,
+  MK3,
   ITEMS,
   ITEM_IDS,
   ItemCounts,
@@ -42,7 +43,7 @@ import { threatAt } from '../sim/nests';
 import { artUrl, icon } from '../art';
 import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, stageNeeds, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
-import { PlaceError, World, canCollect } from '../sim/world';
+import { PlaceError, World, canCollect, nextTier } from '../sim/world';
 import { Player, held } from '../sim/player';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
@@ -706,7 +707,7 @@ export class Hud {
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.tier ?? 1}:${world.state.researched.includes('mk2')}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.tier ?? 1}:${world.state.researched.includes('mk2')}:${world.state.researched.includes('mk3')}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
@@ -753,12 +754,14 @@ export class Hud {
           actions += '</div>';
         }
         if (b!.type === 'shipyard') actions += `<div class="row"><button data-action="ship-view">Side view</button></div>`;
-        // Mk2 (D-122): upgrade an extractor or furnace in place.
-        if (MK2.types.includes(b!.type) && b!.tier !== 2 && world.state.researched.includes('mk2')) {
-          const cost = Object.entries(MK2.cost)
+        // Mk2 and Mk3 (D-122, D-127): upgrade a machine in place.
+        const next = nextTier(b!);
+        if (next && world.state.researched.includes(next.research)) {
+          const cost = Object.entries(next.cost)
             .map(([k, n]) => `${swatch(k as ItemId)}${n}`)
             .join(' ');
-          actions += `<div class="row"><button data-action="upgrade" title="Twice as fast with electricity from a power pole">⬆ Upgrade to Mk2 ${cost}</button></div>`;
+          const fast = next.speed === 2 ? 'Twice' : `${next.speed} times`;
+          actions += `<div class="row"><button data-action="upgrade" title="${fast} as fast with electricity from a power pole">⬆ Upgrade to Mk${next.tier} ${cost}</button></div>`;
         }
         if (b!.type === 'shipyard' && checkLaunch(world) === null) {
           actions += `<div class="row"><button data-action="launch" class="primary launch">🚀 Launch</button></div>`;
@@ -889,9 +892,10 @@ export class Hud {
               ? '<br>Making steam'
               : '';
       }
-      if (b.tier === 2) {
+      if (b.tier === 2 || b.tier === 3) {
         const e = world.electrified(b);
-        stats += `<br>Mk2: ${e >= 1 ? `${MK2.speed}× speed` : e > 0 ? `${(1 + (MK2.speed - 1) * e).toFixed(1)}× speed, short of electricity` : '<b>no electricity:</b> Mk1 speed. Put a power pole near it'}`;
+        const top = b.tier === 3 ? MK3.speed : MK2.speed;
+        stats += `<br>Mk${b.tier}: ${e >= 1 ? `${top}× speed` : e > 0 ? `${world.speedUp(b).toFixed(1)}× speed, short of electricity` : '<b>no electricity:</b> Mk1 speed. Put a power pole near it'}`;
       }
       if (burnsFuel(b.type)) {
         const fuels = Object.entries(FUEL.burns)

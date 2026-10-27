@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.68.0 · 2026-10-27 · Mk3 machines
+### New
+- **Mk3 Machines** (after Circuit Works and Mk2 Machines): upgrade a Mk2 extractor or furnace, or an assembler, to **Mk3** from its panel.
+  - It costs 6 circuit boards, 4 coils and 4 steel beams.
+  - With electricity it works **three times as fast**; without it, at Mk1 speed.
+  - A blue plate with three chevrons marks it.
+
 ## 0.67.0 · 2026-10-27 · Electric Defense
 ### New
 - **Electric Defense** (after Circuit Works) brings three new defences:
