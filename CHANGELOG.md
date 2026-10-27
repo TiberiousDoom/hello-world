@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.84.0 · 2026-10-27 · Stock by name
+### New
+- The hub's panel lists everything in stock **by name**, with its icon and count. Handy on phones, where you can't hover an icon to see what it is.
+
 ## 0.83.0 · 2026-10-27 · Defence tiers
 ### New
 - **Defence tiers.** Every turret, wall and fence upgrades from Tier 1 to Tier 4 from its panel, using its own materials and chitin. Each tier adds 25% health, and turrets hit 20% harder and reach 10% further.

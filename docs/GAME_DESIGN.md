@@ -43,6 +43,8 @@ How the game works on `master` today. Balance numbers live in
 - Hub stock is shown just above the hub, as part of the map, **only while the hub is selected or the
   mouse is over it** (D-053); it scrolls away with the hub. While the mouse is over the panel itself (or a
   finger is down on it), it fades almost completely, so it never hides the map above the hub.
+- The hub's own panel lists the same stock **by name**, with icons and counts, since the chips above the
+  hub show only icons and a finger can't hover them for a name.
 
 ## Items and recipes
 

@@ -1020,6 +1020,9 @@ export class Hud {
           ? `<br>Researching ${esc(RESEARCH.find((r) => r.id === rs.active)!.name)}: ${rs.stalled ? 'stalled, out of an item' : Math.floor(world.researchProgress(rs.active) * 100) + '%'}`
           : `<br>${world.availableResearch().length} research available`;
         stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
+        // Stock by name: the chips above the hub show only icons, and touch can't hover them for a name.
+        const stock = ITEM_IDS.filter((i) => (world.state.inventory[i] ?? 0) > 0);
+        if (stock.length) stats += `<span class="stock-list" aria-label="Hub stock">${stock.map((i) => `<span>${swatch(i)}${esc(ITEMS[i].name)} <b>${world.state.inventory[i]}</b></span>`).join('')}</span>`;
       }
       if (b.type === 'shipyard') stats += shipStats(world);
       if (isBelt(b.type)) stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;

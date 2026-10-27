@@ -191,6 +191,26 @@ body.in-menu #toasts {
   pointer-events: none;
   will-change: transform;
 }
+/* The hub's panel lists its stock by name (the chips above it show only icons). */
+.stock-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 2px 10px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.stock-list > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stock-list b {
+  margin-left: auto;
+}
 #inventory:empty {
   display: none;
 }
