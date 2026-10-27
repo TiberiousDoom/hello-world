@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.77.0 · 2026-10-27 · Wasps and beetles
+### New
+- **Wasps** live in far hives. They fly straight over walls, trees and ponds to your buildings. Turrets have to stop them: trebuchets, mortars and artillery can't hit them, and spike pits don't touch them.
+- **Beetles** live in far dens. Their armour takes 6 off every hit, so small turrets barely scratch them. Use cannons, ballistas or the railgun.
+
 ## 0.76.0 · 2026-10-27 · Forests and bugs
 ### New
 - Some nests lie **deep in forest**. Trees slow bugs down, and bugs go round forest when they can, so clearing it opens paths for them.

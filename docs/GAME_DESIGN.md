@@ -524,12 +524,12 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   mix. Each kind is mostly its own bug, and further out is bigger and tougher (*d* is the distance from the
   hub in tiles):
 
-  | Kind | Crawlers | Runners | Brutes |
-  |---|---|---|---|
-  | Warren | 3, plus 1 per 45 tiles of *d* | none | none |
-  | Hive | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none |
-  | Den | 2, plus 1 per 60 tiles of *d* | none | 1, plus 1 per 50 tiles beyond 100 |
-  | Queen | 3, plus 1 per 45 tiles of *d* | 2, plus 1 per 60 tiles of *d* | 2, plus 1 per 80 tiles of *d* |
+  | Kind | Crawlers | Runners | Brutes | Wasps (D-135) | Beetles (D-135) |
+  |---|---|---|---|---|---|
+  | Warren | 3, plus 1 per 45 tiles of *d* | none | none | none | none |
+  | Hive | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none | none within 80 tiles; then 1, plus 1 per 50 tiles beyond 80 | none |
+  | Den | 2, plus 1 per 60 tiles of *d* | none | 1, plus 1 per 50 tiles beyond 100 | none | none within 120 tiles; then 1, plus 1 per 60 tiles beyond 120 |
+  | Queen | 3, plus 1 per 45 tiles of *d* | 2, plus 1 per 60 tiles of *d* | 2, plus 1 per 80 tiles of *d* | 1, plus 1 per 100 tiles of *d* | 1, plus 1 per 100 tiles of *d* |
 
   Bug HP is +1% per 1.5 tiles of *d* (double at 150 tiles), for every kind.
 - **Queens (D-132).** A new map has **1 to 3 queen nests**, in cells within 20 tiles of the map edge. A
@@ -557,6 +557,16 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 | Crawler | 18 | 1.1 | 8/s |
 | Runner | 10 | 2.2 | 5/s |
 | Brute | 110 | 0.55 | 30/s |
+| Wasp (flies) | 12 | 1.6 | 6/s |
+| Beetle (armour 6) | 70 | 0.7 | 14/s |
+
+**Wasps fly (D-135):** an angry wasp heads straight for the nearest building it can't fly over, over walls,
+palisades, fences, spike pits, trees and ponds, and bites it on landing. Walls don't stop it, so turrets
+have to. Lobbed shots (the trebuchet, mortar and artillery) can't hit it, and spike pits don't touch it;
+floodlights still slow it. Wasps are drawn above the trees, with a shadow on the ground.
+
+**Beetles are armoured (D-135):** every hit does **6** less damage, down to 1. A turret's 5 does 1, a
+ballista's 14 does 8, a cannon's 30 does 24: heavy weapons and the railgun deal with beetles best.
 
 The runner is drawn as a long centipede, about three times its old length, whose body follows the way it
 came and sways as it goes (#96). Only the drawing is long: it is hit, and bites, at its head.

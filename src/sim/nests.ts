@@ -22,7 +22,7 @@
 //
 // In Hardcore (D-133) a mound can't be shot down: covering it and a ring around it with buildings destroys it.
 
-import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, FOREST, GameMode, HARDCORE_NESTS, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
+import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, FLY_OVER, FOREST, GameMode, HARDCORE_NESTS, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import { TREE } from './world';
@@ -62,7 +62,7 @@ export function newNest(id: number, x: number, y: number, distance: number, shar
 export function broodFor(distance: number, share = 1, kind?: NestKind): Brood {
   const comp = nestComposition(distance, kind);
   const count = (k: number) => Math.round(k * share);
-  return { crawler: Math.max(share < 1 ? 2 : 0, count(comp.crawlers)), runner: count(comp.runners), brute: count(comp.brutes) };
+  return { crawler: Math.max(share < 1 ? 2 : 0, count(comp.crawlers)), runner: count(comp.runners), brute: count(comp.brutes), wasp: count(comp.wasps), beetle: count(comp.beetles) };
 }
 
 const C = NESTS.cell;
@@ -245,7 +245,13 @@ export function announceThreat(w: World, before: number, now: number): void {
   if (t > threatAt(before, w.state.mode)) w.events.push(`Threat level ${t}: new bugs are tougher, and territories spread sooner.`);
 }
 
-const BUG_TYPES: EnemyType[] = ['crawler', 'runner', 'brute'];
+const BUG_TYPES: EnemyType[] = ['crawler', 'runner', 'brute', 'wasp', 'beetle'];
+
+/** No bugs of any kind. */
+const noBugs = (): Brood => ({ crawler: 0, runner: 0, brute: 0, wasp: 0, beetle: 0 });
+
+/** How many bugs a brood holds. */
+export const broodSize = (b: Brood): number => BUG_TYPES.reduce((n, t) => n + b[t], 0);
 
 /**
  * Breeding (D-065). A calm nest with fewer bugs than its brood hatches one every 60–90 s, of a kind it's
@@ -259,7 +265,7 @@ export function tickBreeding(w: World, dt: number): void {
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
     let b = have.get(e.nest);
-    if (!b) have.set(e.nest, (b = { crawler: 0, runner: 0, brute: 0 }));
+    if (!b) have.set(e.nest, (b = noBugs()));
     b[e.type]++;
   }
   for (const n of s.nests) {
@@ -268,9 +274,8 @@ export function tickBreeding(w: World, dt: number): void {
       continue;
     }
     growNest(w, n);
-    const got = have.get(n.id) ?? { crawler: 0, runner: 0, brute: 0 };
-    const total = (b: Brood) => b.crawler + b.runner + b.brute;
-    if (total(got) >= total(n.brood)) n.nextBreed = 0;
+    const got = have.get(n.id) ?? noBugs();
+    if (broodSize(got) >= broodSize(n.brood)) n.nextBreed = 0;
     else if (!n.nextBreed) n.nextBreed = s.time + (NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0])) / breedRate(w, n);
     else if (s.time >= n.nextBreed) {
       const distance = hubDistance(w, n);
@@ -327,8 +332,7 @@ export function tickMerge(w: World): void {
   }
   if (!pairs.length) return;
   const [p, q] = pairs[Math.floor(w.random() * pairs.length)];
-  const total = (n: Nest) => n.brood.crawler + n.brood.runner + n.brood.brute;
-  const [into, from] = total(q) > total(p) ? [q, p] : [p, q];
+  const [into, from] = broodSize(q.brood) > broodSize(p.brood) ? [q, p] : [p, q];
   into.cells = [...(into.cells ?? []), ...territory(from)];
   for (const t of BUG_TYPES) into.brood[t] += from.brood[t];
   into.hp += from.hp;
@@ -595,6 +599,7 @@ function targetNear(w: World, e: Enemy, reach: number): boolean {
 
 /** How fast a bug moves now: slower on a working spike pit (D-107), in a floodlight's light at night (D-126) and among trees (D-134). */
 function speedOf(w: World, e: Enemy): number {
+  if (ENEMIES[e.type].flies) return ENEMIES[e.type].speed * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1); // above spikes and trees (D-135)
   const b = w.buildingAt(Math.floor(e.x), Math.floor(e.y));
   const spikes = b?.type === 'spike_pit' && b.ammo > 0 ? SPIKES.slow : 1;
   const trees = w.treeAt(Math.floor(e.x), Math.floor(e.y)) === TREE ? FOREST.bugSlow : 1;
@@ -604,6 +609,7 @@ function speedOf(w: World, e: Enemy): number {
 /** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
 function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, angers = true): void {
   const def = ENEMIES[e.type];
+  if (def.flies) return fly(w, e, n, dt, flow === w.shipFlow, angers);
   const p = playerNear(w, e.x, e.y, PLAYER.notice);
   if (p && hunt(w, e, n, p, dt, angers)) return;
   const tx = Math.floor(e.x);
@@ -645,8 +651,43 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
 }
 
 /**
+ * A flying bug (D-135) heads straight for the nearest building it can't fly over (only the shipyard, when
+ * a launch woke it), picked again a few times a second, over walls, trees and water, and bites it on
+ * landing. An engineer close by comes first, as for any bug.
+ */
+function fly(w: World, e: Enemy, n: Nest, dt: number, ship: boolean, angers: boolean): void {
+  const def = ENEMIES[e.type];
+  const wanted = (b: Building) => (ship ? b.type === 'shipyard' : !FLY_OVER.includes(b.type));
+  const p = playerNear(w, e.x, e.y, PLAYER.notice);
+  if (p && hunt(w, e, n, p, dt, angers)) return;
+  const here = w.buildingAt(Math.floor(e.x), Math.floor(e.y));
+  if (here && wanted(here)) {
+    bite(w, here, n, def.dps * strength(w, e) * dt, angers, e, dt);
+    return;
+  }
+  const s = w.state;
+  if (Math.floor(s.time * 4) !== Math.floor((s.time - dt) * 4)) {
+    // The nearest point of the nearest such building.
+    let best = Infinity;
+    for (const b of s.buildings) {
+      if (!wanted(b)) continue;
+      const [bw, bh] = w.footprintOf(b);
+      const x = Math.max(b.x + 0.3, Math.min(e.x, b.x + bw - 0.3));
+      const y = Math.max(b.y + 0.3, Math.min(e.y, b.y + bh - 0.3));
+      const d = (x - e.x) ** 2 + (y - e.y) ** 2;
+      if (d < best) [best, e.tx, e.ty] = [d, x, y];
+    }
+  }
+  const d = hypot(e.tx - e.x, e.ty - e.y);
+  if (d < 0.01) return;
+  const step = Math.min(d, speedOf(w, e) * dt);
+  e.x += ((e.tx - e.x) / d) * step;
+  e.y += ((e.ty - e.y) / d) * step;
+}
+
+/**
  * Go straight for an engineer close by (D-074), and bite it once in reach. Returns false when the way is
- * blocked by a building, so the bug follows its path field instead.
+ * blocked by a building, so the bug follows its path field instead. A flying bug is never blocked.
  */
 function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolean): boolean {
   const def = ENEMIES[e.type];
@@ -660,7 +701,7 @@ function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolea
   const mx = e.x + ((p.x - e.x) / dist) * step;
   const my = e.y + ((p.y - e.y) / dist) * step;
   const blocker = w.buildingAt(Math.floor(mx), Math.floor(my));
-  if (blocker && BUILDINGS[blocker.type].blocking) return false;
+  if (blocker && BUILDINGS[blocker.type].blocking && !def.flies) return false;
   e.x = mx;
   e.y = my;
   return true;

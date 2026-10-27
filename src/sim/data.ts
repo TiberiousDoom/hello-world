@@ -336,6 +336,8 @@ export interface TurretDef {
   splash: number; // radius in tiles, 0 for single target
   /** Can't hit anything closer than this (the trebuchet, D-107). */
   minRange?: number;
+  /** Lobs its shots, so it can't hit a flying bug (D-135). */
+  lobbed?: boolean;
   /** Railgun (D-129): the shot goes on to its full range, hitting every bug within this many tiles of its line. */
   pierce?: number;
   /** Tesla: each shot jumps on to up to this many more bugs, each within `chainRange` tiles of the last. */
@@ -347,11 +349,11 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   turret: { ammoItem: 'iron_plate', shotsPerItem: 4, maxShots: 40, range: 5, rate: 3, damage: 5, splash: 0 },
   ballista: { ammoItem: 'stake', shotsPerItem: 1, maxShots: 20, range: 6.5, rate: 0.8, damage: 14, splash: 0 },
   // Range and blind spot doubled from the decisions page at the owner's note (D-093).
-  trebuchet: { ammoItem: 'stone', shotsPerItem: 1, maxShots: 12, range: 24, minRange: 6, rate: 0.25, damage: 40, splash: 2 },
+  trebuchet: { ammoItem: 'stone', shotsPerItem: 1, maxShots: 12, range: 24, minRange: 6, rate: 0.25, damage: 40, splash: 2, lobbed: true },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
   turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0 },
-  mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8 },
-  artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6 },
+  mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8, lobbed: true },
+  artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6, lobbed: true },
   railgun: { shotsPerItem: 0, maxShots: 0, range: 18, minRange: 2, rate: 0.4, damage: 120, splash: 0, pierce: 0.6 },
   tesla: { shotsPerItem: 0, maxShots: 0, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
@@ -564,7 +566,7 @@ export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EX
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
 export const OUTPUT_BUFFER = 3;
 
-export type EnemyType = 'crawler' | 'runner' | 'brute';
+export type EnemyType = 'crawler' | 'runner' | 'brute' | 'wasp' | 'beetle';
 export interface EnemyDef {
   name: string;
   hp: number;
@@ -572,12 +574,21 @@ export interface EnemyDef {
   dps: number; // damage to buildings per second
   radius: number;
   color: string;
+  /** Flies (D-135): straight over walls, trees and water to the nearest building past them; lobbed shots and spike pits miss it. */
+  flies?: boolean;
+  /** Armoured (D-135): each hit does this much less damage, down to 1. */
+  armour?: number;
 }
 export const ENEMIES: Record<EnemyType, EnemyDef> = {
   crawler: { name: 'Crawler', hp: 18, speed: 1.1, dps: 8, radius: 0.22, color: '#e0445a' },
   runner: { name: 'Runner', hp: 10, speed: 2.2, dps: 5, radius: 0.17, color: '#ff9a3c' },
   brute: { name: 'Brute', hp: 110, speed: 0.55, dps: 30, radius: 0.36, color: '#a8203a' },
+  wasp: { name: 'Wasp', hp: 12, speed: 1.6, dps: 6, radius: 0.24, color: '#e0b030', flies: true },
+  beetle: { name: 'Beetle', hp: 70, speed: 0.7, dps: 14, radius: 0.32, color: '#3a5a7a', armour: 6 },
 };
+
+/** What a flying bug passes over to reach what's behind (D-135): walls, fences and spike pits. */
+export const FLY_OVER: BuildingType[] = ['wall', 'reinforced_wall', 'steel_wall', 'palisade', 'arc_fence', 'spike_pit'];
 
 /** Buildings available at the start; everything else is researched. The Wood Age starts with none (D-093). */
 export const STARTING_BUILDINGS: BuildingType[] = [];
@@ -769,6 +780,8 @@ export const NESTS = {
   // within kindBlend tiles either side of each line.
   hiveFrom: 60,
   denFrom: 100,
+  waspsFrom: 80, // hives this far out hold wasps too (D-135)
+  beetlesFrom: 120, // and dens beetles
   kindBlend: 12,
   // Growing (D-132): a calm nest moves up a stage after this many seconds of calm (3 days), up to stageMax.
   // Each stage brings a bigger brood and a tougher mound: stage s holds (s + 1) / 2 of stage 1.
@@ -843,17 +856,22 @@ export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mor
  * What lives in a nest `distance` tiles from the hub: further out is more dangerous. Each kind is mostly its
  * own bug (D-132); with no kind, the mix nests had before kinds (for migrating old saves).
  */
-export function nestComposition(distance: number, kind?: NestKind): { crawlers: number; runners: number; brutes: number; hpMult: number } {
+export function nestComposition(distance: number, kind?: NestKind): { crawlers: number; runners: number; brutes: number; wasps: number; beetles: number; hpMult: number } {
   const f = Math.floor;
   const hpMult = 1 + distance / 150;
-  if (kind === 'warren') return { crawlers: 3 + f(distance / 45), runners: 0, brutes: 0, hpMult };
-  if (kind === 'hive') return { crawlers: 1 + f(distance / 120), runners: 2 + f(Math.max(0, distance - NESTS.hiveFrom) / 40), brutes: 0, hpMult };
-  if (kind === 'den') return { crawlers: 2 + f(distance / 60), runners: 0, brutes: 1 + f(Math.max(0, distance - NESTS.denFrom) / 50), hpMult };
-  if (kind === 'queen') return { crawlers: 3 + f(distance / 45), runners: 2 + f(distance / 60), brutes: 2 + f(distance / 80), hpMult };
+  // Wasps join hives far out, and beetles dens (D-135).
+  const wasps = distance > NESTS.waspsFrom ? 1 + f((distance - NESTS.waspsFrom) / 50) : 0;
+  const beetles = distance > NESTS.beetlesFrom ? 1 + f((distance - NESTS.beetlesFrom) / 60) : 0;
+  if (kind === 'warren') return { crawlers: 3 + f(distance / 45), runners: 0, brutes: 0, wasps: 0, beetles: 0, hpMult };
+  if (kind === 'hive') return { crawlers: 1 + f(distance / 120), runners: 2 + f(Math.max(0, distance - NESTS.hiveFrom) / 40), brutes: 0, wasps, beetles: 0, hpMult };
+  if (kind === 'den') return { crawlers: 2 + f(distance / 60), runners: 0, brutes: 1 + f(Math.max(0, distance - NESTS.denFrom) / 50), wasps: 0, beetles, hpMult };
+  if (kind === 'queen') return { crawlers: 3 + f(distance / 45), runners: 2 + f(distance / 60), brutes: 2 + f(distance / 80), wasps: 1 + f(distance / 100), beetles: 1 + f(distance / 100), hpMult };
   return {
     crawlers: 3 + Math.floor(distance / 45),
     runners: distance > 60 ? 1 + Math.floor((distance - 60) / 40) : 0,
     brutes: distance > 100 ? 1 + Math.floor((distance - 100) / 50) : 0,
-    hpMult: 1 + distance / 150,
+    wasps: 0,
+    beetles: 0,
+    hpMult,
   };
 }

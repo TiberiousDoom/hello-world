@@ -135,7 +135,7 @@ In this order:
 - ✅ Faster belts: the Express Belt, a colony blueprint (D-049, D-050)
 - ⬜ A mk2 tier for each machine, made with steel (D-044); the Steel Extractor and Blast Furnace come first, as colony blueprints (D-055)
 - ✅ Item filters on splitters: every splitter sorts one item to a side (#62, D-069; the Sorting Splitter blueprint was dropped)
-- ⬜ More enemy types: flying (ignores walls) and armoured (resists turrets)
+- ✅ More enemy types (0.77.0, D-135): wasps that fly over walls (in far hives) and armoured beetles (in far dens)
 - ✅ A tesla turret fed by wire (a colony blueprint, D-050) and the Ballista, firing stakes (D-054)
 - ⬜ More defence as colony blueprints: the Mortar, Shield Pylon and Floodlights (D-055)
 - ⬜ Better ammo as optional upgrades (D-006, option D)
