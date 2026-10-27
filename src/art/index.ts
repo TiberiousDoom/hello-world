@@ -46,6 +46,7 @@ const TILES: Record<string, [number, number]> = {
   'buildings/trebuchet_barrel': [2, 2],
   'buildings/shipyard': [5, 5],
   'buildings/ship_scaffold': [5, 5],
+  'buildings/ship_pad': [5, 5],
   'buildings/ship_hull': [5, 5],
   'buildings/ship_engine': [5, 5],
   'buildings/ship_life': [5, 5],

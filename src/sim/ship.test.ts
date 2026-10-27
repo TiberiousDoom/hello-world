@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, ItemId, NESTS, RESEARCH, SHIP, SHIP_SITE, cargoFor } from './data';
+import { BUILDINGS, ItemId, NESTS, RESEARCH, RESEARCH_BY_ID, SHIP, SHIP_SITE, cargoFor } from './data';
 import { Nest, cellKey, isAngry, newNest } from './nests';
-import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, wakeRadius } from './ship';
+import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, stageNeeds, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
 function run(w: World, seconds: number) {
@@ -25,7 +25,7 @@ function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, truss: 999, rope: 999 };
+  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, truss: 999, rope: 999, rivet: 999, iron_rod: 999 };
   return w;
 }
 
@@ -103,7 +103,7 @@ describe('Supply ship', () => {
     const loaded = World.fromJSON(JSON.stringify(old));
     expect(shipyard(loaded)).toBeUndefined();
     expect(loaded.state.inventory).toEqual({ brick: 30, iron_plate: 30, plank: 20 });
-    expect(loaded.state.ship.stage).toBe(2); // scaffolding and hull done; the engine next
+    expect(loaded.state.ship.stage).toBe(3); // scaffolding, launch pad and hull done; the engine next
     expect(loaded.state.shipSite).toBeDefined();
     expect(loaded.checkPlace('shipyard', loaded.state.shipSite!.x, loaded.state.shipSite!.y, 0)).toBe('cost');
   });
@@ -116,11 +116,15 @@ describe('Supply ship', () => {
     for (const [item, n] of Object.entries(SHIP.stages[0].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
     expect(w.state.ship.stage).toBe(1);
     expect(w.events.some((e) => e.includes('Scaffolding done'))).toBe(true);
+    expect(w.insert(b, 'motor', ...from)).toBe(false); // the launch pad comes next
+    for (const [item, n] of Object.entries(SHIP.stages[1].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
+    expect(w.state.ship.stage).toBe(2);
+    expect(w.events.some((e) => e.includes('Launch pad done'))).toBe(true);
     expect(w.insert(b, 'motor', ...from)).toBe(false); // the hull comes next
     for (let i = 0; i < 150; i++) w.insert(b, 'iron_plate', ...from);
     expect(w.insert(b, 'iron_plate', ...from)).toBe(false); // enough plates
     for (let i = 0; i < 80; i++) w.insert(b, 'brick', ...from);
-    expect(w.state.ship.stage).toBe(2);
+    expect(w.state.ship.stage).toBe(3);
     expect(w.events.some((e) => e.includes('Hull done'))).toBe(true);
     expect(w.insert(b, 'motor', ...from)).toBe(true); // now the engine
   });
@@ -251,14 +255,14 @@ describe('Supply ship', () => {
       yard(w);
       const old = JSON.parse(w.toJSON());
       old.version = 9;
-      // Before the scaffolding (D-109), the ship had one stage fewer and began with the hull.
-      old.ship = { stage: escaped ? SHIP.stages.length - 1 : 0, delivered: { iron_plate: 20 }, launchAt: null, escaped, endless: escaped };
+      // Before the scaffolding (D-109) and the launch pad (D-118), the ship had two stages fewer and began with the hull.
+      old.ship = { stage: escaped ? SHIP.stages.length - 2 : 0, delivered: { iron_plate: 20 }, launchAt: null, escaped, endless: escaped };
       const loaded = World.fromJSON(JSON.stringify(old));
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
           ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['express_belt', 'tesla'] }
-          : { stage: 1, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
+          : { stage: 2, delivered: { iron_plate: 20 }, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
   });
@@ -324,5 +328,36 @@ describe('Supply ship', () => {
       expect(loaded.state.ship.blueprints).toEqual([]);
       expect(loaded.state.ship.offer).toEqual(runs ? ['express_belt', 'tesla'] : null);
     }
+  });
+
+  it('the launch pad (D-118) comes after the scaffolding and waits for its research', () => {
+    const w = quiet();
+    w.state.researched = w.state.researched.filter((r) => r !== 'launch_pad');
+    const b = yard(w);
+    const from = [b.x - 1, b.y] as const;
+    for (const [item, n] of Object.entries(SHIP.stages[0].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
+    expect(SHIP.stages[1].id).toBe('pad');
+    expect(stageNeeds(w)).toBe('launch_pad');
+    expect(w.insert(b, 'brick', ...from)).toBe(false);
+    expect(RESEARCH_BY_ID.launch_pad.requires.sort()).toEqual(['blacksmith', 'shipyard']);
+    w.state.researched.push('launch_pad');
+    expect(stageNeeds(w)).toBeNull();
+    expect(w.insert(b, 'brick', ...from)).toBe(true);
+  });
+
+  it('v31 saves: a ship past the scaffolding counts the launch pad as built and keeps its stage going', () => {
+    for (const [stage, after] of [[0, 0], [1, 2], [5, 6]]) {
+      const w = quiet();
+      w.state.researched = w.state.researched.filter((r) => r !== 'launch_pad');
+      const old = JSON.parse(w.toJSON());
+      old.version = 31;
+      old.ship.stage = stage;
+      old.ship.delivered = { iron_plate: 7 };
+      const loaded = World.fromJSON(JSON.stringify(old));
+      expect(loaded.state.ship.stage).toBe(after);
+      expect(loaded.state.ship.delivered).toEqual({ iron_plate: 7 });
+      expect(loaded.state.researched.includes('launch_pad')).toBe(stage > 0);
+    }
+    expect(SHIP.stages.length).toBe(6);
   });
 });

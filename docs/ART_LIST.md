@@ -104,6 +104,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Storage crate (D-106): a wooden crate, its front marked | 1×1 | | 1 | P2 | Placeholder (`buildings/crate`) |
 | Storage Unit (D-116): a steel cabinet of six compartments, its front marked | 1×2 (64×128), facing east | Sends out of its top tile's front | 1 | P2 | Placeholder (`buildings/storage`) |
 | Ship scaffolding (D-109): a wooden lattice around the pad, seen from above | 5×5 | The ship's first stage on the map (`buildings/ship_scaffold`); the shipyard and the other ship stages are drawn at 5×5 too (3×3 before D-109) | 1 | P2 | Placeholder |
+| Ship launch pad (D-118): a brick slab with a riveted iron blast plate in the middle, seen from above | 5×5 | The ship's Iron Age stage (`buildings/ship_pad`), drawn under the scaffolding and the ship | 1 | P2 | Placeholder |
 | Spike pit (D-107): a dug pit bristling with sharpened stakes | 1×1 | A charge bar shows its wear | 1 | P2 | Placeholder (`buildings/spike_pit`) |
 | Trebuchet (D-107): a wooden frame, and its throwing arm with a counterweight and sling | 2×2 | Base and arm (`_base`, `_barrel`), the arm turning to aim like a turret's barrel | 1 | P2 | Placeholder (`buildings/trebuchet_base`, `buildings/trebuchet_barrel`) |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Upgraded |
