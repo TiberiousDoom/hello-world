@@ -42,6 +42,8 @@ import {
   STORES,
   FUEL,
   burnsFuel,
+  DIFFICULTY,
+  Difficulty,
 } from '../sim/data';
 import { clockAt } from '../sim/clock';
 import { threatAt } from '../sim/nests';
@@ -138,7 +140,7 @@ export interface HudActions {
   /** Changes the world (D-058); the world itself is only read here. */
   /** Undefined in co-op: the command is on its way, and applies a few ticks later (D-078). */
   issue<C extends Command>(command: C): ResultOf<C> | undefined;
-  newGame(mode: GameMode, tutorial: boolean): void;
+  newGame(mode: GameMode, tutorial: boolean, difficulty: Difficulty): void;
   /** Whether the Essentials lesson has been shown on this device. */
   essentialsSeen(): boolean;
   save(): void;
@@ -376,9 +378,14 @@ export class Hud {
       this.toast('Tutorials reset. Each lesson will show again when its moment comes.');
     });
     $('newgame').addEventListener('click', (e) => {
+      const level = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-difficulty]');
+      if (level) {
+        this.pickDifficulty(level.dataset.difficulty as Difficulty);
+        return;
+      }
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
       if (!btn || btn.disabled) return;
-      actions.newGame(btn.dataset.mode as GameMode, $<HTMLInputElement>('newgame-tutorial').checked);
+      actions.newGame(btn.dataset.mode as GameMode, $<HTMLInputElement>('newgame-tutorial').checked, this.difficulty);
       this.closeModals();
     });
     for (const el of document.querySelectorAll<HTMLElement>('.modal [data-close]')) {
@@ -979,7 +986,7 @@ export class Hud {
           : '<br>Items go out of each side in turn.';
       }
       if (b.type === 'hub') {
-        stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : 'Standard'}`;
+        stats += `<br>Mode: ${world.state.mode === 'hardcore' ? 'Hardcore (losing the hub ends the run)' : `Standard, ${DIFFICULTY[world.state.difficulty].name}`}`;
         if (world.state.breaches) stats += `<br>Breached ${world.state.breaches}×`;
         const rs = world.state.research;
         stats += rs.active
@@ -1109,7 +1116,24 @@ export class Hud {
       ? 'Losing the hub ends the run.'
       : 'Locked: deliver a supply run in Standard to unlock.';
     $('standard-note').textContent = `If the hub falls, the bugs go home but you lose ${BREACH.stockLost * 100}% of hub stock.`;
+    this.pickDifficulty(this.difficulty);
     this.openModal('newgame');
+  }
+
+  /** Standard's difficulty for the next new game (D-138). */
+  private difficulty: Difficulty = 'normal';
+
+  private pickDifficulty(d: Difficulty): void {
+    this.difficulty = d;
+    for (const b of document.querySelectorAll<HTMLButtonElement>('#newgame [data-difficulty]')) {
+      const on = b.dataset.difficulty === d;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    }
+    const { nests, toughness } = DIFFICULTY[d];
+    const pct = (f: number): string => (f === 1 ? 'usual' : `${f < 1 ? '' : '+'}${Math.round((f - 1) * 100)}%`);
+    $('difficulty-note').textContent =
+      d === 'normal' ? 'The usual number of nests and bug health.' : `Nests: ${pct(nests)}. Bug health: ${pct(toughness)}. Hardcore is always Normal.`;
   }
 
   /** The season, the day and whether it's night, in the top bar (#42). */

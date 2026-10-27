@@ -6,7 +6,7 @@ import { Input } from './input/input';
 import { Camera } from './render/camera';
 import { Renderer } from './render/renderer';
 import { loadArt } from './art';
-import { BLUEPRINTS, BLUEPRINT_BY_ID, HUB_SIZE } from './sim/data';
+import { BLUEPRINTS, BLUEPRINT_BY_ID, DIFFICULTY, HUB_SIZE } from './sim/data';
 import { Command, ResultOf, applyCommand } from './sim/commands';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './sim/demo';
 import { runScenario } from './sim/scenario';
@@ -245,7 +245,7 @@ function refreshMainMenu(): void {
   btn.hidden = !saved;
   if (saved) {
     const s = saved.state;
-    const mode = s.mode === 'hardcore' ? 'Hardcore' : 'Standard';
+    const mode = s.mode === 'hardcore' ? 'Hardcore' : s.difficulty === 'normal' ? 'Standard' : `Standard (${DIFFICULTY[s.difficulty].name})`;
     const mins = Math.floor(s.time / 60);
     const runs = s.ship.runs;
     const where = runs ? `${runs} supply run${runs === 1 ? '' : 's'} delivered` : `${mins} min played`;
@@ -337,8 +337,8 @@ const hud = new Hud(ui, {
     music.setMood('game');
     save();
   },
-  newGame: (mode, withTutorial) => {
-    play(World.create(undefined, mode));
+  newGame: (mode, withTutorial, difficulty) => {
+    play(World.create(undefined, mode, difficulty));
     save();
     // Ticked: show the basics even if they were seen (or lessons are off). Unticked: skip them.
     if (withTutorial) tutorial.start('essentials');

@@ -1,4 +1,4 @@
-import { calm, expect, isTouch, newGame, selectHub, test } from './helpers';
+import { ALL_LESSONS, calm, expect, isTouch, newGame, selectHub, setProfile, test } from './helpers';
 
 test('the top bar has only speed, the clock and the menu; hub stock shows above the selected hub and scrolls away with it', async ({ page }, info) => {
   await newGame(page);
@@ -145,4 +145,17 @@ test('Send feedback builds a report with diagnostics, opens GitHub, copies it an
   const download = page.waitForEvent('download');
   await page.click('#fb-save');
   expect((await download).suggestedFilename()).toMatch(/^foundry-front-.*-save\.json$/);
+});
+
+test('a new Standard game can be Easy or Hard; the game keeps the choice (D-138)', async ({ page }) => {
+  await setProfile(page, { lessonsSeen: ALL_LESSONS });
+  await page.goto('/');
+  await page.click('#mm-new');
+  await expect(page.locator('[data-difficulty="normal"]')).toHaveClass(/active/);
+  await page.click('[data-difficulty="hard"]');
+  await expect(page.locator('[data-difficulty="hard"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#difficulty-note')).toContainText('+40%');
+  await page.click('[data-mode="standard"]');
+  await expect(page.locator('#mainmenu')).toBeHidden();
+  expect(await page.evaluate(() => window.game.world.state.difficulty)).toBe('hard');
 });

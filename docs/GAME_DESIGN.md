@@ -714,6 +714,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 | Hub reaches 0 HP | **Breach:** every nest calms down and its bugs go home (raiders too), 25% of every item in stock is lost, and the hub is restored to 50% HP | Run over |
 | Nests | See Bugs | Threat starts at 2; faster breeding, spreading and growing; a raid every night; mounds destroyed only by building over them (D-133) |
 | Availability | Always | Unlocked by delivering a supply run in Standard |
+| Difficulty (D-138) | **Easy** (60% of the nests, bugs at 70% health), **Normal**, or **Hard** (140% of the nests, bugs at 130% health), picked in New game | Always Normal |
 
 The hardcore unlock is stored in the browser's profile, separate from the save file.
 

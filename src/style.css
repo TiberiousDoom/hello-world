@@ -734,6 +734,18 @@ body.coop-guest #speed {
   display: none;
 }
 
+.difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.difficulty > span {
+  margin-right: 4px;
+}
+.difficulty button {
+  min-width: 72px;
+}
 .modes {
   display: grid;
   gap: 8px;
