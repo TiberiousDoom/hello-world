@@ -328,7 +328,7 @@ which come as blueprints from supply runs (D-131). **Select the hub** and press 
 | Basic Defense | 30 planks, 10 rope | 30 s | Basic Logistics, Workshops | Palisade, Spike Pit |
 | Basic Defense 2 | 100 logs, 100 planks, 200 rope, 50 trusses | 120 s | Basic Defense, Carpentry | Trebuchet, Ballista |
 | Basic Logistics | 20 logs, 20 planks, 50 dowels | 45 s | Forestry | Wooden Roller, Storage Crate |
-| Chitin Plating | 10 chitin, 20 iron plates | 45 s | Advanced Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
+| Chitin Plating | 10 chitin, 20 iron plates | 45 s | Advanced Defense | Defence Tier 2 (D-142) |
 | Distribution | 25 iron plates, 10 copper | 60 s | Advanced Defense | Hub Port |
 | Assembly | 30 gears, 30 wire | 120 s | Machine Shop | Assembler |
 | Engineering | 30 motors, 100 gears, 60 bricks | 120 s | Assembly, Advanced Defense 2 | Opens the Steam Age |
@@ -610,6 +610,20 @@ stock first.
 |---|---|---|
 | AP bullets | Turret Mk.2 | ×1.5 damage (10.5), and through a beetle's armour |
 | Explosive shells | Mortar, Artillery | ×1.5 damage, ×1.4 splash radius |
+
+**Defence tiers (D-142).** Every turret, wall, fence, palisade and shield pylon upgrades in place from
+Tier 1 to Tier 4, from its panel. Each tier above 1 adds **25%** of its base health, and for a turret
+**20%** damage and **10%** range (Tier 4: +75% health, +60% damage, +30% range). Reaching a tier costs the
+building's own materials times the tier, plus chitin, from hub stock:
+
+| Tier | Needs | Cost |
+|---|---|---|
+| 2 | Chitin Plating | its cost ×2, 5 chitin |
+| 3 | Heavy Defense | its cost ×3, 10 chitin |
+| 4 | Electric Defense | its cost ×4, 20 chitin |
+
+Green pips in a defence's corner show its tier. Demolishing one gives back its tiers' cost too, by its
+health like any building. Saves from before tiers: plated defences become Tier 3, which has the same health.
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
 **trebuchet** (D-107) can't hit anything within 6 tiles, so it needs other defences close in.

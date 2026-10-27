@@ -50,7 +50,7 @@ import {
   TUNNEL_RANGE,
   TURRETS,
   HAND_MINING,
-  PLATING,
+  DEFENCE_TIERS,
   PLAYER,
   footprint,
   moundHp,
@@ -117,7 +117,7 @@ export type { ResearchState };
  * v38 (D-128) adds drones in flight.
  * v39 (D-130): the engines, life support and navigation are Electric Age stages, after Ship Systems.
  */
-export const SAVE_VERSION = 42;
+export const SAVE_VERSION = 43;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -177,7 +177,9 @@ const sumCounts = (a: ItemCounts, b: ItemCounts): ItemCounts => {
 };
 
 /** The electricity a building uses (D-121, D-122): express belts, and Mk2 machines. */
-export const electricUse = (b: Building): number => ELECTRIC.uses[b.type] ?? (b.tier === 3 ? MK3.uses : b.tier === 2 ? MK2.uses : 0);
+export const electricUse = (b: Building): number => ELECTRIC.uses[b.type] ?? (isDefence(b) ? 0 : b.tier === 3 ? MK3.uses : b.tier === 2 ? MK2.uses : 0);
+/** Defences have tiers of their own (D-142), not Mk2 and Mk3. */
+const isDefence = (b: Building): boolean => DEFENCE_TIERS.types.includes(b.type);
 
 /** The upgrade a building can take next (D-122, D-127): its tier, cost and research, or null. */
 export function nextTier(b: Building): { tier: number; cost: ItemCounts; research: string; speed: number } | null {
@@ -187,9 +189,34 @@ export function nextTier(b: Building): { tier: number; cost: ItemCounts; researc
   return null;
 }
 
-/** What a building's upgrades cost all told, which demolishing it gives back too (D-122, D-127). */
+/** A defence's tier (D-142): 1 to DEFENCE_TIERS.max. Anything else is tier 1. */
+export function defenceTier(b: Building): number {
+  return DEFENCE_TIERS.types.includes(b.type) ? (b.tier ?? 1) : 1;
+}
+
+/** What taking a defence up to tier `tier` costs (D-142): its own cost times the tier, plus chitin. */
+export function defenceTierCost(type: BuildingType, tier: number): ItemCounts {
+  const cost: ItemCounts = {};
+  for (const [item, n] of Object.entries(BUILDINGS[type].cost)) cost[item as ItemId] = n! * tier;
+  cost.chitin = (cost.chitin ?? 0) + DEFENCE_TIERS.chitin[tier];
+  return cost;
+}
+
+/** A defence's next tier (D-142): what it costs and the research it needs, or null at the top or for anything else. */
+export function nextDefenceTier(b: Building): { tier: number; cost: ItemCounts; research: string } | null {
+  if (!DEFENCE_TIERS.types.includes(b.type)) return null;
+  const tier = (b.tier ?? 1) + 1;
+  if (tier > DEFENCE_TIERS.max) return null;
+  return { tier, cost: defenceTierCost(b.type, tier), research: DEFENCE_TIERS.research[tier] };
+}
+
+/** What a building's upgrades cost all told, which demolishing it gives back too (D-122, D-127, D-142). */
 function upgradesCost(b: Building): ItemCounts {
   let cost: ItemCounts = {};
+  if (DEFENCE_TIERS.types.includes(b.type)) {
+    for (let t = 2; t <= (b.tier ?? 1); t++) cost = sumCounts(cost, defenceTierCost(b.type, t));
+    return cost;
+  }
   if ((b.tier ?? 1) >= 2 && MK2.types.includes(b.type)) cost = sumCounts(cost, MK2.cost);
   if (b.tier === 3) cost = sumCounts(cost, MK3.cost);
   return cost;
@@ -502,6 +529,12 @@ export class World {
     if (state.version === 41) {
       state.difficulty = 'normal'; // v42 (D-138): difficulty settings
       state.version = 42;
+    }
+    if (state.version === 42) {
+      // v43 (D-142): defence tiers replace Chitin Plating's +50% health. Plated defences become Tier 3,
+      // which has exactly that much, so nothing built loses health.
+      if (state.researched.includes('plating')) for (const b of state.buildings) if (DEFENCE_TIERS.types.includes(b.type)) b.tier = Math.max(b.tier ?? 1, 3);
+      state.version = 43;
     }
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
@@ -1223,6 +1256,17 @@ export class World {
   /** Upgrades a machine to its next tier in place (D-122, D-127), keeping what it holds. */
   upgradeMachine(id: number): PlaceError | null {
     const b = this.byId.get(id);
+    // A defence goes up a tier (D-142): its health rises by what the tier adds.
+    const up = b && nextDefenceTier(b);
+    if (b && up) {
+      if (!this.state.researched.includes(up.research)) return 'locked';
+      if (!this.canAfford(up.cost)) return 'cost';
+      this.pay(up.cost);
+      const before = this.maxHp(b);
+      b.tier = up.tier;
+      b.hp += this.maxHp(b) - before;
+      return null;
+    }
     const next = b && nextTier(b);
     if (!b || !next) return 'occupied';
     if (!this.state.researched.includes(next.research)) return 'locked';
@@ -1421,14 +1465,13 @@ export class World {
     return e;
   }
 
-  /** A building's full health: its base health, more with Chitin Plating for turrets and walls (D-065). */
-  maxHpFor(type: BuildingType): number {
-    const hp = BUILDINGS[type].hp;
-    return PLATING.types.includes(type) && this.state.researched.includes('plating') ? Math.round(hp * PLATING.bonus) : hp;
+  /** A building's full health: its base health, more for a defence at a higher tier (D-142). */
+  maxHpFor(type: BuildingType, tier = 1): number {
+    return Math.round(BUILDINGS[type].hp * (1 + DEFENCE_TIERS.hp * (tier - 1)));
   }
 
   maxHp(b: Building): number {
-    return this.maxHpFor(b.type);
+    return this.maxHpFor(b.type, defenceTier(b));
   }
 
   get hub(): Building | undefined {
@@ -1495,10 +1538,7 @@ export class World {
     const rs = this.state.research;
     delete rs.paid[id];
     if (rs.active === id) this.pauseResearch();
-    const before = r.effect === 'plating' ? new Map(this.state.buildings.map((b) => [b.id, this.maxHp(b)])) : null;
     this.state.researched.push(id);
-    // Plating adds its extra health to what's already built, too.
-    if (before) for (const b of this.state.buildings) b.hp += this.maxHp(b) - before.get(b.id)!;
     this.events.push(r.unlocks.length ? `Researched ${r.name}: ${r.unlocks.map((t) => BUILDINGS[t].name).join(', ')} unlocked` : `Researched ${r.name}`);
   }
 
@@ -2883,7 +2923,11 @@ export class World {
     const ammo = !hub && !!def.ammoItem; // the hub's gun and the tesla (D-126) need none
     const better = ammo && (b.better ?? 0) > 0 ? def.better : undefined; // fired first (D-136)
     if (b.cooldown > 0 || (ammo && b.ammo <= 0 && !better)) return;
-    const damage = def.damage * (better?.damage ?? 1);
+    // A defence's tier (D-142) adds to its damage and reach; the hub's gun has none.
+    const tier = defenceTier(b) - 1;
+    const range = def.range * (1 + DEFENCE_TIERS.range * tier);
+    const strike = def.damage * (1 + DEFENCE_TIERS.damage * tier);
+    const damage = strike * (better?.damage ?? 1);
     const splash = def.splash * (better?.splash ?? 1);
     const piercing = !!better?.piercing;
     const spend = (): void => {
@@ -2896,7 +2940,7 @@ export class World {
     const reload = 1 / (def.rate * power);
     const [cx, cy] = this.centreOf(b);
     let target: Enemy | undefined;
-    let best = def.range * def.range;
+    let best = range * range;
     const min = (def.minRange ?? 0) ** 2; // the trebuchet's blind spot
     for (const e of this.state.enemies) {
       if (def.lobbed && ENEMIES[e.type].flies) continue; // lobbed shots can't hit a flying bug (D-135)
@@ -2908,7 +2952,7 @@ export class World {
     }
     if (!target) {
       // With no bugs in reach, a turret shoots a nest's mound (D-065). The hub's gun only defends.
-      const mound = hub ? undefined : moundInRange(this, cx, cy, def.range);
+      const mound = hub ? undefined : moundInRange(this, cx, cy, range);
       if (!mound) return;
       const [mx0, my0] = nestCentre(mound);
       if ((mx0 - cx) ** 2 + (my0 - cy) ** 2 < min) return;
@@ -2926,14 +2970,14 @@ export class World {
       const len = Math.sqrt(best) || 1;
       const ux = (target.x - cx) / len;
       const uy = (target.y - cy) / len;
-      const ex = cx + ux * def.range;
-      const ey = cy + uy * def.range;
+      const ex = cx + ux * range;
+      const ey = cy + uy * range;
       for (const e of this.state.enemies) {
         const along = (e.x - cx) * ux + (e.y - cy) * uy;
-        if (along < 0 || along > def.range) continue;
+        if (along < 0 || along > range) continue;
         const off = (e.x - cx) * uy - (e.y - cy) * ux;
         if (off * off > def.pierce * def.pierce) continue;
-        this.shoot(e, def.damage, false, b);
+        this.shoot(e, strike, false, b);
       }
       this.shots.push({ x1: cx, y1: cy, x2: ex, y2: ey, splash: 0, age: 0, beam: true });
       return;
@@ -2963,7 +3007,7 @@ export class World {
         }
       }
       if (!next) break;
-      this.shoot(next, def.damage, false, b);
+      this.shoot(next, strike, false, b);
       this.shots.push({ x1: last.x, y1: last.y, x2: next.x, y2: next.y, splash: 0, age: 0, arc: true, jump: true });
       hit.add(next);
       last = next;

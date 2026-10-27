@@ -127,7 +127,7 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 - **Wells and pumps work anywhere**, drawing groundwater. Ponds (30+ tiles from the hub) take a Water Wheel,
   a stronger source (D-095).
 - **Ore runs out** (D-096): each ore tile holds 1200; extractors over more ore tiles make more.
-- Masonry goes: the brick wall comes with Advanced Defense. Chitin Plating goes (see tiers).
+- Masonry goes: the brick wall comes with Advanced Defense. Chitin Plating goes (see tiers). Built (D-142): Chitin Plating stays as the research that opens Tier 2; Heavy Defense opens Tier 3 and Electric Defense Tier 4.
 
 ### How the Iron Age plays (D-113)
 

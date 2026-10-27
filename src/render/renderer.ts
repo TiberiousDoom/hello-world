@@ -15,6 +15,7 @@ import {
   EXTRACTOR_PERIOD,
   HAND_MINING,
   HYDRAULIC,
+  DEFENCE_TIERS,
   ELECTRIC,
   ELECTRIC_MACHINES,
   FLOODLIGHT,
@@ -42,7 +43,7 @@ import {
   burnsFuel,
   type Season,
 } from '../sim/data';
-import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, outOfFuel } from '../sim/world';
+import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, defenceTier, outOfFuel } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
@@ -423,7 +424,8 @@ export class Renderer {
       roundRect(ctx, sel.x - 0.04, sel.y - 0.04, fw + 0.08, fh + 0.08, 0.12);
       ctx.stroke();
       const range =
-        TURRETS[sel.type]?.range ?? (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : sel.type === 'lumber_camp' ? LUMBER.range : 0);
+        (TURRETS[sel.type]?.range ?? 0) * (1 + DEFENCE_TIERS.range * (defenceTier(sel) - 1)) ||
+        (sel.type === 'repair' ? REPAIR.range : sel.type === 'hub' ? HUB_WEAPON.range : sel.type === 'lumber_camp' ? LUMBER.range : 0);
       if (range) rangeCircle(ctx, sel.x + fw / 2, sel.y + fh / 2, range, z);
       if (sel.type === 'power_pole') reachSquare(ctx, sel.x, sel.y, z);
       const partner = sel.link != null ? world.byId.get(sel.link) : undefined;
@@ -1663,8 +1665,17 @@ export class Renderer {
       const item = b.filter ?? b.outputs[0];
       if (item) this.drawBadge(item, b.x, b.y);
     }
+    // Defence tiers (D-142): a chitin-green plate with one pip per tier above 1, in the bottom-left corner.
+    const tier = defenceTier(b);
+    if (tier > 1) {
+      ctx.fillStyle = '#0f1a2e';
+      roundRect(ctx, b.x + 0.08, b.y + fh - 0.3, 0.1 + 0.13 * (tier - 1), 0.22, 0.06);
+      ctx.fill();
+      ctx.fillStyle = '#9fd35a';
+      for (let k = 0; k < tier - 1; k++) dot(ctx, b.x + 0.19 + 0.13 * k, b.y + fh - 0.19, 0.045);
+    }
     // Mk2 machines (D-122): a gold plate with two chevrons in the bottom-left corner; Mk3 (D-127) a blue one with three.
-    if (b.tier === 2 || b.tier === 3) {
+    if ((b.tier === 2 || b.tier === 3) && !DEFENCE_TIERS.types.includes(b.type)) {
       const mk3 = b.tier === 3;
       ctx.fillStyle = '#0f1a2e';
       roundRect(ctx, b.x + 0.1, b.y + fh - 0.5, 0.42, 0.36, 0.06);

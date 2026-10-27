@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DIFFICULTY, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
+import { ARC_FENCE, DEFENCE_TIERS, DIFFICULTY, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
 import { Nest, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
-import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
+import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, defenceTierCost, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
 import { blocked, emptySlots, held, heldOf, isDown } from './player';
@@ -1351,17 +1351,16 @@ describe('Nest mounds and chitin (D-065)', () => {
     expect(far.hp).toBeLessThan(w.maxHp(far));
   });
 
-  it('Chitin Plating gives turrets and walls more health, including ones already built', () => {
+  it('Chitin Plating opens Tier 2 for defences instead of adding health to them (D-142)', () => {
     const w = emptyWorld();
     w.state.researched = w.state.researched.filter((r) => r !== 'plating');
     const wall = placed(w.place('wall', 20, 20, 0));
-    const furnace = placed(w.place('furnace', 30, 20, 0));
-    expect(wall.hp).toBe(BUILDINGS.wall.hp);
-    w.state.inventory.chitin = 10;
+    w.state.inventory.chitin = 100;
+    expect(w.upgradeMachine(wall.id)).toBe('locked');
     expect(w.researchNow('plating')).toBe(null);
-    expect(wall.hp).toBe(BUILDINGS.wall.hp * 1.5);
-    expect(w.maxHp(furnace)).toBe(BUILDINGS.furnace.hp);
-    expect(placed(w.place('wall', 21, 20, 0)).hp).toBe(BUILDINGS.wall.hp * 1.5);
+    expect(wall.hp).toBe(BUILDINGS.wall.hp); // no flat bonus any more
+    expect(w.upgradeMachine(wall.id)).toBe(null);
+    expect(wall.tier).toBe(2);
   });
 
   it('v15 saves give nests mounds; nests with no bugs left count as destroyed', () => {
@@ -3450,5 +3449,77 @@ describe('Clearing a belt line (D-141)', () => {
     expect(line.every((b) => w.byId.get(b.id) === b && !b.belt.length)).toBe(true);
     expect(other.belt.length).toBe(1);
     expect(applyCommand(w, { kind: 'clear-belts', id: line[0].id })).toBe(0);
+  });
+});
+
+describe('Defence tiers (D-142)', () => {
+  it('a defence goes up to Tier 4, each tier costing its own materials times the tier and chitin, with more health; demolishing gives it all back', () => {
+    const w = emptyWorld();
+    w.state.inventory = { ...Object.fromEntries(Object.keys(BUILDINGS.wall.cost).map((k) => [k, 999])), chitin: 99 };
+    const wall = placed(w.place('wall', 20, 20, 0));
+    const stock = { ...w.state.inventory };
+    wall.hp -= 10;
+    for (const t of [2, 3, 4]) {
+      expect(w.upgradeMachine(wall.id)).toBe(null);
+      expect(wall.tier).toBe(t);
+      expect(w.maxHp(wall)).toBe(Math.round(BUILDINGS.wall.hp * (1 + DEFENCE_TIERS.hp * (t - 1))));
+    }
+    expect(wall.hp).toBe(w.maxHp(wall) - 10); // each tier's health added, the damage kept
+    expect(w.upgradeMachine(wall.id)).toBe('occupied'); // the top
+    const paid = [2, 3, 4].reduce((n, t) => n + defenceTierCost('wall', t).chitin!, 0);
+    expect(stock.chitin! - w.state.inventory.chitin!).toBe(paid);
+    expect(defenceTierCost('wall', 3)).toEqual({ ...Object.fromEntries(Object.entries(BUILDINGS.wall.cost).map(([k, n]) => [k, n! * 3])), chitin: DEFENCE_TIERS.chitin[3] });
+    expect(electricUse(wall)).toBe(0); // not a Mk2 machine
+    wall.hp = w.maxHp(wall);
+    w.demolish(wall.id);
+    expect(w.state.inventory.chitin).toBe(stock.chitin! + (BUILDINGS.wall.cost.chitin ?? 0));
+  });
+
+  it('each tier needs its research: Heavy Defense for Tier 3, Electric Defense for Tier 4; poor stock refuses', () => {
+    const w = emptyWorld();
+    w.state.researched = w.state.researched.filter((r) => r !== 'heavy_defense' && r !== 'electric_defense');
+    w.state.inventory = { ...Object.fromEntries(Object.keys(BUILDINGS.wall.cost).map((k) => [k, 999])), chitin: 4 };
+    const wall = placed(w.place('wall', 20, 20, 0));
+    expect(w.upgradeMachine(wall.id)).toBe('cost');
+    w.state.inventory.chitin = 99;
+    expect(w.upgradeMachine(wall.id)).toBe(null);
+    expect(w.upgradeMachine(wall.id)).toBe('locked');
+  });
+
+  it('a turret at a higher tier hits harder and reaches further', () => {
+    const shot = (tier: number, at: number) => {
+      const w = emptyWorld();
+      const n = addNest(w, 80, 80, 0);
+      const t = placed(w.place('turret', 50, 50, 0));
+      t.tier = tier;
+      t.ammo = 10;
+      const bug = w.spawnBug('brute', n, 1);
+      [bug.x, bug.y] = [50.5 + at, 50.5];
+      const hp = bug.hp;
+      w.tick();
+      return hp - bug.hp;
+    };
+    const base = TURRETS.turret!;
+    expect(shot(1, 3)).toBe(base.damage);
+    expect(shot(3, 3)).toBeCloseTo(base.damage * (1 + 2 * DEFENCE_TIERS.damage));
+    expect(shot(1, base.range + 0.4)).toBe(0);
+    expect(shot(4, base.range + 0.4)).toBeGreaterThan(0);
+  });
+
+  it('v42 saves: plated defences become Tier 3, keeping their health; without plating they stay Tier 1', () => {
+    for (const plated of [true, false]) {
+      const w = emptyWorld();
+      const wall = placed(w.place('wall', 20, 20, 0));
+      const furnace = placed(w.place('furnace', 30, 20, 0));
+      const old = JSON.parse(w.toJSON());
+      old.version = 42;
+      old.researched = old.researched.filter((r: string) => plated || r !== 'plating');
+      for (const b of old.buildings) if (b.id === wall.id) b.hp = Math.round(BUILDINGS.wall.hp * (plated ? 1.5 : 1));
+      const loaded = World.fromJSON(JSON.stringify(old));
+      const lw = loaded.byId.get(wall.id)!;
+      expect(lw.tier ?? 1).toBe(plated ? 3 : 1);
+      expect(loaded.maxHp(lw)).toBe(lw.hp);
+      expect(loaded.byId.get(furnace.id)!.tier).toBeUndefined();
+    }
   });
 });

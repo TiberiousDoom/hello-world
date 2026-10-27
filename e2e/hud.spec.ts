@@ -159,3 +159,25 @@ test('a new Standard game can be Easy or Hard; the game keeps the choice (D-138)
   await expect(page.locator('#mainmenu')).toBeHidden();
   expect(await page.evaluate(() => window.game.world.state.difficulty)).toBe('hard');
 });
+
+test("a wall's panel upgrades it a tier (D-142)", async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  const id = await page.evaluate(() => {
+    const w = window.game.world;
+    const h = w.hub!;
+    const [x, y] = [h.x - 3, h.y + 7];
+    w.state.trees[w.idx(x, y)] = 0;
+    w.state.resources[w.idx(x, y)] = 0;
+    for (const r of ['defense', 'plating']) if (!w.state.researched.includes(r)) w.state.researched.push(r);
+    Object.assign(w.state.inventory, { chitin: 50, stone: 200, iron_plate: 200, brick: 200, log: 200, plank: 200 });
+    const b = w.place('wall', x, y, 0, false);
+    if (typeof b === 'string') throw new Error(b);
+    window.game.ui.selected = b.id;
+    return b.id;
+  });
+  await expect(page.locator('#info')).toContainText('Tier 1 of 4');
+  await page.locator('#info [data-action="upgrade"]').click();
+  await expect(page.locator('#info')).toContainText('Tier 2 of 4');
+  expect(await page.evaluate((i) => window.game.world.byId.get(i)!.tier, id)).toBe(2);
+});
