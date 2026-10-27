@@ -818,6 +818,8 @@ export class Hud {
       }
       const t = TURRETS[b.type];
       if (t?.ammoItem) stats += `<br>Ammo ${b.ammo} / ${t.maxShots} ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name}`;
+      if (t?.better && world.state.researched.includes('better_ammo'))
+        stats += `<br>${ITEMS[t.better.item].name} ${b.better ?? 0} shots ${swatch(t.better.item)}fired first: ×${t.better.damage} damage${t.better.piercing ? ', through armour' : `, ×${t.better.splash} blast`}`;
       else if (t) stats += '<br>No ammunition needed: it fires on electricity';
       if (b.type === 'extractor') {
         const ore = b.recipe as ItemId | null;

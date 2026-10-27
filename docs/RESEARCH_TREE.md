@@ -222,6 +222,7 @@ circuits, drones, Mk3 machines and electric defences, all on the Steam Age's pow
 | Mk3 Machines | Mk2 extractors and furnaces, and assemblers, upgraded in place to Mk3 (electric) | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works, Mk2 Machines |
 | Electric Defense | Tesla Turret (electric, no ammunition), Arc Fence, Floodlights | 60 circuit boards, 100 wire, 30 coils | Circuit Works |
 | Electric Defense 2 | Shield Pylon, Railgun | 100 circuit boards, 60 coils, 40 bearings | Electric Defense |
+| Better Ammo | AP bullets and explosive shells, optional ammo fired first (D-136) | 40 circuit boards, 120 bullets, 30 shells | Electric Defense, Heavy Defense 2 |
 | Ship Systems | The ship's engines, life support and navigation; launch | 120 circuit boards, 60 coils, 40 motors, 100 steel (D-130) | Electronics, Hull |
 
 ### How the Electric Age plays (D-125)

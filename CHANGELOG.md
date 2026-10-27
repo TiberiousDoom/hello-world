@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.78.0 · 2026-10-27 · Better ammo
+### New
+- New research, **Better Ammo**: the Assembler makes **AP bullets** and **explosive shells**.
+- AP bullets hit half again as hard in the Turret Mk.2 and go straight through a beetle's armour. Explosive shells hit half again as hard in mortars and artillery, over a wider blast.
+- A turret takes better ammo as well as its usual ammo and fires it first. Turrets by the hub take it from stock first.
+
 ## 0.77.0 · 2026-10-27 · Wasps and beetles
 ### New
 - **Wasps** live in far hives. They fly straight over walls, trees and ponds to your buildings. Turrets have to stop them: trebuchets, mortars and artillery can't hit them, and spike pits don't touch them.
