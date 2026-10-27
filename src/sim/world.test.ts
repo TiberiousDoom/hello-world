@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
 import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
-import { Nest, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
+import { Nest, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
@@ -1690,7 +1690,7 @@ describe('Nests breed (D-065)', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 1); // a nest this close starts with 3 crawlers
     const bugs = () => w.state.enemies.filter((e) => e.nest === n.id); // territories may spread meanwhile
-    expect(n.brood).toEqual({ crawler: 3, runner: 0, brute: 0 });
+    expect(n.brood).toEqual({ crawler: 3, runner: 0, brute: 0, wasp: 0, beetle: 0 });
     run(w, NESTS.breedEvery[0] - 2);
     expect(bugs().length).toBe(1);
     run(w, NESTS.breedEvery[1] - NESTS.breedEvery[0] + 4);
@@ -1762,7 +1762,7 @@ describe('Threat (D-065)', () => {
   it('makes newly bred bugs tougher, and more often runners or brutes, without growing the nest', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 0);
-    n.brood = { crawler: 40, runner: 0, brute: 0 };
+    n.brood = { crawler: 40, runner: 0, brute: 0, wasp: 0, beetle: 0 };
     w.state.time = NESTS.threatEvery * 6; // level 6: 48% of crawlers hatch as runners
     w.state.nextSpread = Infinity;
     for (let i = 0; i < 40; i++) {
@@ -2951,7 +2951,7 @@ describe('Nest kinds, growth and merging (D-132)', () => {
     }
     expect(s.nests.some((n) => n.kind === 'hive')).toBe(true);
     // Every nest's bugs are there, all of its brood.
-    for (const n of s.nests) expect(s.enemies.filter((e) => e.nest === n.id).length).toBe(n.brood.crawler + n.brood.runner + n.brood.brute);
+    for (const n of s.nests) expect(s.enemies.filter((e) => e.nest === n.id).length).toBe(broodSize(n.brood));
   });
 
   it('kinds mix where zones meet', () => {
@@ -3206,5 +3206,81 @@ describe('Forests and bugs (D-134)', () => {
     expect(planted).toBeGreaterThan(20);
     expect(w.state.trees[w.idx(59, 60)]).toBe(TREE); // a stump grows anew
     expect(w.state.cuts?.[w.idx(59, 60)]).toBeUndefined(); // with its cuts reset
+  });
+});
+
+describe('Wasps and beetles (D-135)', () => {
+  it('a wasp flies over a wall to the building behind it, where a crawler has to chew through the wall', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 80, 50, 0);
+    n.angryUntil = 1e9;
+    const target = placed(w.place('palisade', 60, 55, 0));
+    for (let y = 50; y < 61; y++) placed(w.place('wall', 63, y, 0));
+    const wasp = w.spawnBug('wasp', n, 1);
+    const crawler = w.spawnBug('crawler', n, 1);
+    [wasp.x, wasp.y, crawler.x, crawler.y] = [70.5, 55.5, 70.5, 55.5];
+    w.markFlowDirty();
+    // The palisade is a wall too: give the wasp a target past it.
+    const crate = placed(w.place('crate', 60, 57, 0));
+    run(w, 12);
+    expect(Math.floor(wasp.x)).toBe(60);
+    expect(crate.hp).toBeLessThan(w.maxHp(crate)); // landed and biting
+    expect(target.hp).toBe(w.maxHp(target)); // walls are flown over
+    expect(crawler.x).toBeGreaterThan(63); // still at the wall
+  });
+
+  it("lobbed shots can't hit a wasp, and spike pits don't touch it; turrets can", () => {
+    const w = emptyWorld();
+    const n = addNest(w, 80, 80, 0);
+    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, bearing: 99 });
+    const mortar = placed(w.place('mortar', 50, 50, 0));
+    mortar.ammo = 10;
+    const wasp = w.spawnBug('wasp', n, 1);
+    [wasp.x, wasp.y] = [56.5, 50.5];
+    const spikes = placed(w.place('spike_pit', 56, 50, 0));
+    spikes.ammo = 10;
+    const hp = wasp.hp;
+    w.tick();
+    expect(wasp.hp).toBe(hp);
+    expect(mortar.ammo).toBe(10);
+    const t = placed(w.place('turret', 53, 50, 0));
+    t.ammo = 10;
+    run(w, 1);
+    expect(wasp.hp).toBeLessThan(hp);
+  });
+
+  it('a beetle shrugs off small shots: each hit does its armour less, down to 1', () => {
+    for (const [type, dealt] of [['turret', 1], ['cannon', 30 - ENEMIES.beetle.armour!]] as const) {
+      const w = emptyWorld();
+      const n = addNest(w, 80, 80, 0);
+      const t = placed(w.place(type, 50, 50, 0));
+      t.ammo = 10;
+      const beetle = w.spawnBug('beetle', n, 1);
+      [beetle.x, beetle.y] = [53.5, 50.5];
+      const hp = beetle.hp;
+      w.tick();
+      expect(hp - beetle.hp).toBe(dealt);
+    }
+  });
+
+  it('far hives hold wasps and far dens beetles; queens some of each', () => {
+    expect(nestComposition(NESTS.waspsFrom - 1, 'hive').wasps).toBe(0);
+    expect(nestComposition(NESTS.waspsFrom + 1, 'hive').wasps).toBe(1);
+    expect(nestComposition(200, 'warren').wasps + nestComposition(200, 'warren').beetles).toBe(0);
+    expect(nestComposition(NESTS.beetlesFrom + 1, 'den').beetles).toBe(1);
+    expect(nestComposition(200, 'den').wasps).toBe(0);
+    const q = nestComposition(120, 'queen');
+    expect(q.wasps).toBeGreaterThan(0);
+    expect(q.beetles).toBeGreaterThan(0);
+  });
+
+  it('v40 saves: nests get no wasps or beetles of their own', () => {
+    const w = emptyWorld();
+    addNest(w, 50, 50, 3);
+    const old = JSON.parse(w.toJSON());
+    old.version = 40;
+    old.nests[0].brood = { crawler: 3, runner: 1, brute: 0 };
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.nests[0].brood).toEqual({ crawler: 3, runner: 1, brute: 0, wasp: 0, beetle: 0 });
   });
 });

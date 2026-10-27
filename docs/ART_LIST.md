@@ -188,6 +188,8 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Crawler: long, flat and segmented, six legs, dark orange | ~28 px (fits a 32×32 frame) | 4 walk, 4 attack | P1 | Upgraded (`crawler_walk_4f`, `crawler_attack_4f`; `crawler`, `crawler_b`; redrawn after the art review) |
 | Runner: glossy black, centipede-like, many legs | ~22 px (32×32); in play drawn about 3× as long | 4 walk, 4 attack | P2 | Upgraded (`runner_walk_4f`, `runner_attack_4f`; `runner`, `runner_b`; redrawn after the art review). In play it's drawn in code since #96: a long segmented body that follows its trail and sways; the sprites remain for the menu and fallbacks |
 | Brute: four-legged and centaur-like (no human top): a heavy rear body, a raised front body with two hooked claws; very dark red | ~46 px (64×64) | 4 walk, 4 attack | P2 | Upgraded (`brute_walk_4f`, `brute_attack_4f`; `brute`, `brute_b`; redrawn after the art review) |
+| Wasp (D-135): striped yellow and black, four see-through wings, red eyes | ~28 px (64×64) | 2 wingbeats | P2 | Placeholder (`wasp`, `wasp_b`; drawn above the trees, with a ground shadow) |
+| Beetle (D-135): a domed blue-black shell split down the middle, six legs, glowing eyes | ~40 px (64×64) | 2 walk | P2 | Placeholder (`beetle`, `beetle_b`) |
 | Young crawler, runner and brute (D-065, D-071): smaller, duller versions that grow into the adults | about 60% of the adult | 2 walk each | P2 | Code (the adult sprites drawn smaller, duller and a little darker, D-075) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Upgraded (`effects/death_splat_4f`) |
 

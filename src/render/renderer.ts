@@ -344,8 +344,9 @@ export class Renderer {
 
     if (ui) this.drawPlayers(world, now, z);
 
-    for (const e of s.enemies) {
-      if (!visible(e.x - 1, e.y - 1, 2)) continue;
+    // Bugs, walking ones under the trees; flying ones (D-135) after the canopy, over everything.
+    const drawBug = (e: Enemy) => {
+      if (!visible(e.x - 1, e.y - 1, 2)) return;
       const def = ENEMIES[e.type];
       const track = this.enemies.get(e.id);
       const angle = track?.angle ?? 0;
@@ -353,7 +354,8 @@ export class Renderer {
       // Walk cycle: a step every short stride, so bugs only scuttle while moving. Standing at a building
       // or an engineer while angry, they bite (D-082).
       const stride = def.radius * 0.7;
-      const step = Math.floor((track?.walked ?? 0) / stride + e.id);
+      // A wasp's wings beat all the time (D-135).
+      const step = def.flies ? Math.floor(now / 50 + e.id) : Math.floor((track?.walked ?? 0) / stride + e.id);
       const biting = !!track && s.time - track.movedAt > 0.15 && this.biting(world, e, def.radius);
       const frame = step % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
@@ -376,7 +378,8 @@ export class Renderer {
       if (grown < 1) ctx.filter = 'none';
       const full = e.maxHp * grown;
       if (e.hp < full - 0.5) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / full, '#e0445a');
-    }
+        };
+    for (const e of s.enemies) if (!ENEMIES[e.type].flies) drawBug(e);
 
     // Engineers and bugs walk under the trees (#95); a faint engineer shows through so it isn't lost.
     // The trees' shadows turn with the sun, so the canopy is repainted as it moves.
@@ -391,6 +394,15 @@ export class Renderer {
     });
 
     if (ui) this.drawUnderCanopy(world);
+    for (const e of s.enemies) {
+      if (!ENEMIES[e.type].flies) continue;
+      // A shadow on the ground below it.
+      ctx.fillStyle = 'rgba(10,19,34,0.25)';
+      ctx.beginPath();
+      ctx.ellipse(e.x + 0.25, e.y + 0.35, 0.22, 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawBug(e);
+    }
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);

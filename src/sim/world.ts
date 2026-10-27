@@ -115,7 +115,7 @@ export type { ResearchState };
  * v38 (D-128) adds drones in flight.
  * v39 (D-130): the engines, life support and navigation are Electric Age stages, after Ship Systems.
  */
-export const SAVE_VERSION = 40;
+export const SAVE_VERSION = 41;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -489,6 +489,10 @@ export class World {
     }
     if (state.version === 38) World.migrateV38(state);
     if (state.version === 39) World.migrateV39(state);
+    if (state.version === 40) {
+      for (const n of state.nests) Object.assign(n.brood, { wasp: n.brood.wasp ?? 0, beetle: n.brood.beetle ?? 0 }); // v41 (D-135): wasps and beetles
+      state.version = 41;
+    }
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -2858,6 +2862,7 @@ export class World {
     let best = def.range * def.range;
     const min = (def.minRange ?? 0) ** 2; // the trebuchet's blind spot
     for (const e of this.state.enemies) {
+      if (def.lobbed && ENEMIES[e.type].flies) continue; // lobbed shots can't hit a flying bug (D-135)
       const d = (e.x - cx) ** 2 + (e.y - cy) ** 2;
       if (d <= best && d >= min) {
         best = d;
@@ -2891,8 +2896,7 @@ export class World {
         if (along < 0 || along > def.range) continue;
         const off = (e.x - cx) * uy - (e.y - cy) * ux;
         if (off * off > def.pierce * def.pierce) continue;
-        e.hp -= def.damage;
-        onBugHurt(this, e);
+        this.shoot(e, def.damage);
       }
       this.shots.push({ x1: cx, y1: cy, x2: ex, y2: ey, splash: 0, age: 0, beam: true });
       return;
@@ -2900,12 +2904,11 @@ export class World {
     if (def.splash > 0) {
       for (const e of this.state.enemies) {
         if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > def.splash ** 2) continue;
-        e.hp -= def.damage;
-        onBugHurt(this, e);
+        if (def.lobbed && ENEMIES[e.type].flies) continue;
+        this.shoot(e, def.damage);
       }
     } else {
-      target.hp -= def.damage;
-      onBugHurt(this, target);
+      this.shoot(target, def.damage);
     }
     this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0, arc: !!def.chain });
     // Tesla: the arc jumps on to the nearest bug it hasn't hit yet, within reach of the last.
@@ -2923,12 +2926,17 @@ export class World {
         }
       }
       if (!next) break;
-      next.hp -= def.damage;
-      onBugHurt(this, next);
+      this.shoot(next, def.damage);
       this.shots.push({ x1: last.x, y1: last.y, x2: next.x, y2: next.y, splash: 0, age: 0, arc: true, jump: true });
       hit.add(next);
       last = next;
     }
+  }
+
+  /** A shot hits a bug: an armoured one takes that much less, down to 1 (D-135). */
+  private shoot(e: Enemy, damage: number): void {
+    e.hp -= Math.max(1, damage - (ENEMIES[e.type].armour ?? 0));
+    onBugHurt(this, e);
   }
 
   /**
@@ -2938,7 +2946,7 @@ export class World {
   private tickSpikes(b: Building, dt: number): void {
     if (b.ammo <= 0) return;
     for (const e of this.state.enemies) {
-      if (Math.floor(e.x) !== b.x || Math.floor(e.y) !== b.y) continue;
+      if (Math.floor(e.x) !== b.x || Math.floor(e.y) !== b.y || ENEMIES[e.type].flies) continue; // wasps fly over (D-135)
       e.hp -= SPIKES.dps * dt;
       onBugHurt(this, e);
       b.ammo = Math.max(0, b.ammo - dt);
