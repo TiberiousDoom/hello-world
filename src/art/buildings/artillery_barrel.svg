@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs>
+            <linearGradient id="abTube" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6ddd0" /><stop offset="1" stop-color="#56634f" /></linearGradient>
+            <radialGradient id="abTurret" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#8fa085" /><stop offset="1" stop-color="#34402f" /></radialGradient>
+          </defs>
+          <rect x="60" y="56" width="62" height="16" rx="4" fill="url(#abTube)" stroke="#0f1a2e" stroke-width="3.5" />
+          <rect x="108" y="52" width="16" height="24" rx="4" fill="#4a5844" stroke="#0f1a2e" stroke-width="3" />
+          <path d="M66 60 H104" stroke="#eef2ea" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+          <path d="M78 56 V72 M92 56 V72" stroke="#3a4636" stroke-width="2.5" />
+          <rect x="34" y="38" width="44" height="52" rx="10" fill="url(#abTurret)" stroke="#0f1a2e" stroke-width="4" />
+          <rect x="22" y="48" width="14" height="32" rx="4" fill="#3a4636" stroke="#0f1a2e" stroke-width="3" />
+          <circle cx="56" cy="64" r="9" fill="#2a3326" stroke="#0f1a2e" stroke-width="2.5" />
+          <g fill="#f2c14e"><circle cx="44" cy="46" r="2" /><circle cx="44" cy="82" r="2" /></g>
+        </svg>

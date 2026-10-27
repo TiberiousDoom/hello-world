@@ -38,6 +38,7 @@ export const ITEMS = {
   gunpowder: { name: 'Gunpowder', color: '#c2a46b' },
   casing: { name: 'Casing', color: '#d9a63a' },
   bullet: { name: 'Bullets', color: '#b8862a' },
+  shell: { name: 'Shell', color: '#7a6a4a' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
@@ -88,6 +89,7 @@ export const RECIPES: Recipe[] = [
   { id: 'gunpowder', machine: 'powder_mill', inputs: { sulfur: 1, charcoal: 1 }, output: 'gunpowder', count: 2, time: 3 },
   { id: 'casing', machine: 'steel_works', inputs: { steel: 1 }, output: 'casing', count: 4, time: 2, requires: 'heavy_defense' },
   { id: 'bullet', machine: 'assembler', inputs: { casing: 1, gunpowder: 1 }, output: 'bullet', count: 1, time: 2, requires: 'heavy_defense' },
+  { id: 'shell', machine: 'assembler', inputs: { casing: 2, gunpowder: 2, steel: 1 }, output: 'shell', count: 1, time: 4, requires: 'heavy_defense2' },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -118,6 +120,8 @@ export type BuildingType =
   | 'steel_works'
   | 'powder_mill'
   | 'turret2'
+  | 'mortar'
+  | 'artillery'
   | 'steel_wall'
   | 'boiler'
   | 'steam_turbine'
@@ -186,6 +190,8 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   turret: { name: 'Hydraulic Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, rivet: 6, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies, but only with power: run a drive shaft to it. Arrives loaded; refill it with iron plates by belt.' },
   cannon: { name: 'Hydraulic Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, rivet: 10 }, blocking: true, description: 'Splash damage, but only with power: run a drive shaft to it. Arrives loaded; refill it with gears by belt.' },
   turret2: { name: 'Turret Mk.2', short: 'T2', color: '#3a5a7a', hp: 260, cost: { steel: 12, steel_beam: 4, motor: 2 }, blocking: true, description: 'Fires bullets fast, but only with electricity from a power pole. Arrives loaded; refill it with bullets by belt.' },
+  mortar: { name: 'Mortar', short: 'MO', color: '#4a5a4a', hp: 240, cost: { steel: 14, steel_beam: 6, bearing: 4 }, blocking: true, description: "Lobs shells over walls, hitting every bug where they land, with electricity from a power pole. It can't hit anything right next to it. Refill it with shells." },
+  artillery: { name: 'Artillery', short: 'AR', color: '#3a4a3a', hp: 420, size: [2, 2], cost: { steel: 30, steel_beam: 16, bearing: 10, motor: 4 }, blocking: true, description: "A big gun that fires shells a very long way, with electricity from a power pole, but it can't hit anything close. Refill it with shells." },
   tesla: {
     name: 'Tesla Turret',
     short: 'TE',
@@ -312,6 +318,8 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   trebuchet: { ammoItem: 'stone', shotsPerItem: 1, maxShots: 12, range: 24, minRange: 6, rate: 0.25, damage: 40, splash: 2 },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
   turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0 },
+  mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8 },
+  artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6 },
   tesla: { ammoItem: 'wire', shotsPerItem: 2, maxShots: 30, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
 
@@ -436,7 +444,7 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5, turret2: 2 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
@@ -458,7 +466,7 @@ export const WATER_SOURCES: BuildingType[] = ['well', 'water_wheel'];
 /** Defences that fire only with power (D-117). */
 export const HYDRAULIC: BuildingType[] = ['turret', 'cannon'];
 /** Defences that fire only with electricity (D-123). */
-export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2'];
+export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2', 'mortar', 'artillery'];
 /**
  * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
  * defences too, so a row of turrets shares one shaft.
@@ -535,6 +543,8 @@ export const RESEARCH: Research[] = [
   { id: 'steam_power', name: 'Steam Power', cost: { steel: 60, iron_rod: 40, brick: 30 }, time: 90, requires: ['steelmaking'], unlocks: ['boiler', 'steam_turbine', 'power_pole'], description: 'Boilers and steam turbines make electricity, and power poles carry it.' },
   { id: 'express_logistics', name: 'Express Logistics', cost: { steel: 60, motor: 20 }, time: 90, requires: ['steam_power'], unlocks: ['express_belt', 'storage_silo'], description: 'Express belts, twice as fast as belts, run on electricity. The Storage Silo holds twelve stacks of 100.' },
   { id: 'heavy_defense', name: 'Heavy Defense', cost: { steel: 60, motor: 30, gear: 50 }, time: 120, requires: ['steelmaking', 'steam_power'], unlocks: ['powder_mill', 'turret2', 'steel_wall'], description: 'The Turret Mk.2, which fires bullets with electricity, and steel walls. Powder mills grind sulfur and charcoal into gunpowder; casings come from the Steel Works and bullets from the Assembler.' },
+  { id: 'heavy_defense2', name: 'Heavy Defense 2', cost: { steel_beam: 100, casing: 80, gunpowder: 60 }, time: 150, requires: ['heavy_defense', 'steel_works'], unlocks: ['mortar', 'artillery'], description: 'Mortars and artillery, electric guns that fire shells over walls and a long way. Shells come from the Assembler.' },
+  { id: 'hull', name: 'Hull', cost: { steel_beam: 60, bearing: 30, motor: 20 }, time: 120, requires: ['engineering'], unlocks: [], description: "The ship's Steam Age stage: its steel hull, built in the shipyard after the launch pad." },
   { id: 'mk2', name: 'Mk2 Machines', cost: { steel_beam: 60, bearing: 40, motor: 20 }, time: 120, requires: ['steel_works', 'steam_power'], unlocks: [], description: 'Upgrade extractors and furnaces in place: with electricity, they work twice as fast.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
@@ -576,7 +586,7 @@ export const SHIP = {
     // One stage per age (D-089); the Wood Age's is the scaffolding (D-109).
     { id: 'scaffold', name: 'Scaffolding', items: { plank: 150, truss: 40, rope: 60 } },
     { id: 'pad', name: 'Launch pad', items: { brick: 120, iron_plate: 80, rivet: 60, iron_rod: 40 }, research: 'launch_pad' }, // the Iron Age's (D-118)
-    { id: 'hull', name: 'Hull', items: { iron_plate: 150, brick: 80 } },
+    { id: 'hull', name: 'Hull', items: { steel: 120, steel_beam: 60, bearing: 30, motor: 20 }, research: 'hull' }, // the Steam Age's (D-124)
     { id: 'engine', name: 'Engine', items: { motor: 30, gear: 80 } },
     { id: 'life', name: 'Life support', items: { wire: 120, copper_ingot: 60 } },
     { id: 'nav', name: 'Navigation', items: { motor: 20, wire: 80, gear: 40 } },
@@ -685,7 +695,7 @@ export const moundHp = (distance: number): number => Math.round(NESTS.moundHp * 
 export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.floor(distance / 25));
 
 /** Chitin Plating: these buildings get this much more health (D-065). */
-export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'steel_wall', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
+export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'steel_wall', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
 
 /** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
 export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {

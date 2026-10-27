@@ -77,6 +77,8 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'powder_mill':
     case 'turret':
     case 'turret2':
+    case 'mortar':
+    case 'artillery':
     case 'cannon':
       return true;
     default:

@@ -101,8 +101,9 @@ export type { ResearchState };
  * v33 (D-120): steel needs Steelmaking; a game already making or holding steel gets it, and Engineering.
  * v34 (D-121): the Express Belt moves from a blueprint into research and runs on electricity.
  * v35 (D-123) adds sulfur deposits to the map.
+ * v36 (D-124): the hull is built of steel now, after its research; a hull under way is refunded.
  */
-export const SAVE_VERSION = 35;
+export const SAVE_VERSION = 36;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -421,6 +422,7 @@ export class World {
     if (state.version === 32) World.migrateV32(state);
     if (state.version === 33) World.migrateV33(state);
     if (state.version === 34) state.version = 35; // sulfur goes in once the world exists (addSulfur)
+    if (state.version === 35) World.migrateV35(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -460,6 +462,22 @@ export class World {
     const free = (x: number, y: number) =>
       !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
     this.addWater(generatePonds(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x5eed), free));
+  }
+
+  /**
+   * v35 to v36 (D-124): the hull, the ship's third stage, is the Steam Age's now: steel, beams, bearings and
+   * motors, after the Hull research. A ship past it keeps it and gets the research; one building it gets back
+   * what it had brought in, for the old hull's plates and bricks.
+   */
+  private static migrateV35(state: GameState): void {
+    const ship = state.ship;
+    const hull = SHIP.stages.findIndex((s) => s.id === 'hull');
+    if (ship.stage > hull && !state.researched.includes('hull')) state.researched.push('hull');
+    if (ship.stage === hull) {
+      for (const [k, n] of Object.entries(ship.delivered)) state.inventory[k as ItemId] = (state.inventory[k as ItemId] ?? 0) + n!;
+      ship.delivered = {};
+    }
+    state.version = 36;
   }
 
   /**
@@ -1778,6 +1796,8 @@ export class World {
       }
       case 'turret':
       case 'turret2':
+      case 'mortar':
+      case 'artillery':
       case 'ballista':
       case 'cannon':
       case 'tesla':
@@ -2042,6 +2062,8 @@ export class World {
         case 'hub':
         case 'turret':
         case 'turret2':
+        case 'mortar':
+        case 'artillery':
         case 'ballista':
         case 'cannon':
         case 'tesla':
