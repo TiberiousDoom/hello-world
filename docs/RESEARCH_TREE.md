@@ -171,7 +171,7 @@ The owner's answers, 2026-10-26. Numbers are first guesses to test.
 | Steelmaking | Steel recipe | 100 iron plates, 60 charcoal | Engineering, Charcoal |
 | Steel Works | Steel Works (steel beams, bearings) | 80 steel, 40 gears, 20 motors | Steelmaking |
 | Steam Power | Boiler, Steam Turbine, Power Pole: electricity (D-119) | 60 steel, 40 iron rods, 30 bricks | Steelmaking |
-| Express Logistics | Express Belt (electric); the Storage Silo later | 60 steel, 20 motors | Steam Power |
+| Express Logistics | Express Belt (electric), Storage Silo | 60 steel, 20 motors | Steam Power |
 | Mk2 Machines | Extractors and furnaces upgraded in place (electric) | 60 steel beams, 40 bearings, 20 motors | Steel Works, Steam Power |
 | Heavy Defense | Turret Mk.2 (electric, fires bullets), Steel Wall; sulfur, gunpowder (Powder Mill), casings, bullets | 60 steel, 30 motors, 50 gears | Steelmaking, Steam Power |
 | Heavy Defense 2 | Mortar and Artillery (electric, fire shells); shells | 100 steel beams, 80 casings, 60 gunpowder | Heavy Defense, Steel Works |
@@ -202,7 +202,8 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
      needs it now), and the Steel Works with steel beams and bearings.
   2. ✅ Steam Power and Express Logistics (0.62.0, D-121): the boiler, the steam turbine, power poles and the
      electric network, and the express belt on it.
-  3. Mk2 Machines and the Storage Silo: upgrades in place, on electricity.
+  3. ✅ Mk2 Machines and the Storage Silo (0.63.0, D-122): extractors and furnaces upgraded in place, twice as
+     fast on electricity; the silo holds 12 stacks of 100.
   4. Heavy Defense: sulfur ore, the Powder Mill, casings and bullets, the Turret Mk.2 and the steel wall.
   5. Heavy Defense 2 and the hull: the mortar, artillery and shells, and the ship's Steam Age stage.
 
@@ -254,7 +255,7 @@ Age by age, each playtested before the next:
    Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), ✅ the Storage Unit (0.58.0), ✅ hydraulic defences (0.59.0), ✅ the
    launch pad (0.60.0). The Iron Age is built.
 4. 🚧 **Steam Age** (decided, D-119; see [How the Steam Age plays](#how-the-steam-age-plays-d-119)): ✅ Engineering,
-   steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), then Mk2 machines,
+   steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), ✅ Mk2 machines and the Storage Silo (0.63.0), then
    gunpowder weapons, the hull.
 5. **Electric Age:** circuits, drones, electric defences, launch and supply runs.
 

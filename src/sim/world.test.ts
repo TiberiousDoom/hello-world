@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, ORE, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, ORE, SILO, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2369,5 +2369,64 @@ describe('Electricity (D-119, D-121)', () => {
     expect(RESEARCH_BY_ID.steam_power.unlocks.sort()).toEqual(['boiler', 'power_pole', 'steam_turbine']);
     expect(RESEARCH_BY_ID.express_logistics.requires).toEqual(['steam_power']);
     expect(RESEARCH_BY_ID.express_logistics.unlocks).toContain('express_belt');
+  });
+});
+
+describe('Mk2 machines and the Storage Silo (D-122)', () => {
+  it('a furnace upgraded in place keeps what it holds, and works twice as fast with electricity, Mk1 speed without', () => {
+    const w = emptyWorld();
+    w.freePower = false;
+    Object.assign(w.state.inventory, { steel_beam: 99, bearing: 99, steel: 999 });
+    const fu = placed(w.place('furnace', 20, 20, 0));
+    w.insert(fu, 'iron_ore', 19, 20);
+    w.state.researched = w.state.researched.filter((r) => r !== 'mk2');
+    expect(w.upgradeMachine(fu.id)).toBe('locked');
+    w.state.researched.push('mk2');
+    const beams = w.state.inventory.steel_beam!;
+    expect(w.upgradeMachine(fu.id)).toBeNull();
+    expect(fu.tier).toBe(2);
+    expect(w.state.inventory.steel_beam).toBe(beams - MK2.cost.steel_beam!);
+    expect(fu.recipe).toBe('iron_ingot');
+    expect(w.upgradeMachine(fu.id)).toBe('occupied'); // already Mk2
+    expect(w.speedUp(fu)).toBe(1); // no electricity yet
+    // A plant, and a pole by the furnace.
+    placed(w.place('well', 30, 20, 0));
+    placed(w.place('boiler', 32, 20, 0));
+    placed(w.place('steam_turbine', 34, 20, 0));
+    placed(w.place('power_pole', 36, 22, 0));
+    placed(w.place('power_pole', 23, 22, 0)); // by the furnace, 13 tiles away: not linked
+    expect(w.speedUp(fu)).toBe(1);
+    placed(w.place('power_pole', 30, 22, 0));
+    placed(w.place('power_pole', 26, 22, 0)); // links them
+    expect(w.electricNet(fu)!.demand).toBe(MK2.uses);
+    expect(w.speedUp(fu)).toBe(MK2.speed);
+    expect(w.upgradeMachine(placed(w.place('steel_works', 40, 30, 0)).id)).toBe('occupied'); // only extractors and furnaces
+  });
+
+  it('a Mk2 extractor mines twice as fast with electricity; demolishing it returns the upgrade too', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel_beam: 99, bearing: 99 });
+    for (let y = 20; y < 22; y++) for (let x = 20; x < 22; x++) w.state.resources[w.idx(x, y)] = 1;
+    const a = placed(w.place('extractor', 20, 20, 0));
+    for (let y = 30; y < 32; y++) for (let x = 20; x < 22; x++) w.state.resources[w.idx(x, y)] = 1;
+    const b = placed(w.place('extractor', 20, 30, 0));
+    w.upgradeMachine(b.id); // freePower: full electricity
+    run(w, EXTRACTOR_PERIOD / 2 + 0.05);
+    expect(a.outputs.length).toBe(0);
+    expect(b.outputs.length).toBeGreaterThan(0);
+    const beams = w.state.inventory.steel_beam!;
+    w.demolish(b.id);
+    expect(w.state.inventory.steel_beam).toBe(beams + MK2.cost.steel_beam!);
+  });
+
+  it('the Storage Silo holds twelve stacks of 100, mixed, first in, first out', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99 });
+    const si = placed(w.place('storage_silo', 20, 20, 0));
+    expect(w.insert(si, 'gear', 22, 20)).toBe(false); // from its front
+    for (let i = 0; i < SILO.slots * SILO.stack; i++) expect(w.insert(si, i < 200 ? 'gear' : 'brick', 19, 20)).toBe(true);
+    expect(w.insert(si, 'brick', 19, 20)).toBe(false);
+    expect(RESEARCH_BY_ID.express_logistics.unlocks).toContain('storage_silo');
+    expect(RESEARCH_BY_ID.mk2.requires.sort()).toEqual(['steam_power', 'steel_works']);
   });
 });

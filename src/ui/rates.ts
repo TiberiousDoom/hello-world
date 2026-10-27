@@ -73,7 +73,7 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
     let tiles = 0;
     for (let y = b.y; y < b.y + fh; y++) for (let x = b.x; x < b.x + fw; x++) if (world.resourceAt(x, y) === ore) tiles++;
     const status = !tiles ? 'Used up' : b.outputs.length >= OUTPUT_BUFFER ? 'Output full: nothing is taking it' : 'Mining';
-    return { max: `${fmt((60 * tiles) / EXTRACTOR_PERIOD)} ${name(ore)}/min`, now: nowLine(world, b, status) };
+    return { max: `${fmt((60 * tiles * world.speedUp(b)) / EXTRACTOR_PERIOD)} ${name(ore)}/min`, now: nowLine(world, b, status) };
   }
   if (b.type === 'lumber_camp') {
     const [fw, fh] = world.footprintOf(b);
@@ -85,8 +85,9 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
     const r = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
     if (!r) return null;
     const pm = recipePerMinute(r);
-    const uses = pm.inputs.map(([i, n]) => `${fmt(n)} ${name(i)}`).join(' + ');
-    return { max: `${fmt(pm.output)} ${name(r.output)}/min, using ${uses}/min`, now: nowLine(world, b, machineStatus(b, r)) };
+    const k = world.speedUp(b); // Mk2 (D-122)
+    const uses = pm.inputs.map(([i, n]) => `${fmt(n * k)} ${name(i)}`).join(' + ');
+    return { max: `${fmt(pm.output * k)} ${name(r.output)}/min, using ${uses}/min`, now: nowLine(world, b, machineStatus(b, r)) };
   }
   const t = TURRETS[b.type];
   // Hydraulic defences (D-117) fire only with power.

@@ -165,7 +165,7 @@ function lateResult(entry: LoggedCommand, result: unknown): void {
   const c = entry.command;
   if (c.kind === 'mine' && result === 'full') hud.toast('Your inventory is full. Walk back to the hub to drop it off.');
   if (c.kind === 'mine' && result === 'down') hud.toast('Your engineer is getting back on their feet at the hub.');
-  if ((c.kind === 'place' || c.kind === 'upgrade-belts') && typeof result === 'string' && result !== 'occupied' && result !== 'bounds') {
+  if ((c.kind === 'place' || c.kind === 'upgrade-belts' || c.kind === 'upgrade') && typeof result === 'string' && result !== 'occupied' && result !== 'bounds') {
     // One a second at most: a drag can fail on many tiles, and the input may have said so already.
     placeError(result as PlaceError);
   }

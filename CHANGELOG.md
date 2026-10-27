@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.63.0 · 2026-10-27 · Mk2 machines
+### New
+- **Mk2 Machines** (after Steel Works and Steam Power): select an extractor or furnace and press **Upgrade to Mk2** (6 steel beams, 4 bearings, 2 motors). It keeps its place and what it holds, gets a gold plate, and with electricity from a power pole works twice as fast. Without electricity it works at its old speed.
+- **The Storage Silo** (Express Logistics): a 2×2 store with 12 stacks of up to 100 items, mixed, first in, first out, like the Storage Unit.
+- A machine's panel shows its Mk2 speed, and its rates count it.
+
 ## 0.62.0 · 2026-10-27 · Electricity
 ### New
 - **Steam Power** (after Steelmaking) brings electricity. A **Boiler** burns logs or charcoal and needs water: place it touching a well or a water wheel. A **Steam Turbine** touching it makes electricity. **Power Poles** carry it: each links to poles within 6 tiles, with a wire between them, and connects turbines and electric buildings within 2 tiles.

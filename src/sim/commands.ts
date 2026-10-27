@@ -25,6 +25,8 @@ export type Command =
   | { kind: 'research'; id: string }
   | { kind: 'pause-research' }
   | { kind: 'upgrade-belts'; x: number; y: number }
+  // An extractor or furnace to Mk2 (D-122).
+  | { kind: 'upgrade'; id: number }
   | { kind: 'launch' }
   | { kind: 'pick-blueprint'; id: string }
   | { kind: 'mine'; x: number; y: number }
@@ -53,6 +55,7 @@ export interface CommandResults {
   research: ResearchError | null;
   'pause-research': void;
   'upgrade-belts': { upgraded: number; left: number } | PlaceError;
+  upgrade: PlaceError | null;
   launch: LaunchError | null;
   'pick-blueprint': boolean;
   mine: HandTap | MineError;
@@ -100,6 +103,8 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.pauseResearch();
     case 'upgrade-belts':
       return w.upgradeBeltLine(c.x, c.y);
+    case 'upgrade':
+      return w.upgradeMachine(c.id);
     case 'launch':
       return launch(w);
     case 'pick-blueprint':
