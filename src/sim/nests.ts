@@ -22,9 +22,10 @@
 //
 // In Hardcore (D-133) a mound can't be shot down: covering it and a ring around it with buildings destroys it.
 
-import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, GameMode, HARDCORE_NESTS, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
+import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, FOREST, GameMode, HARDCORE_NESTS, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
+import { TREE } from './world';
 import type { Building, Enemy, World } from './world';
 import { Player, hurtPlayer, playerNear } from './player';
 
@@ -592,11 +593,12 @@ function targetNear(w: World, e: Enemy, reach: number): boolean {
   return buildingNear(w, e.x, e.y, reach);
 }
 
-/** How fast a bug moves now: slower on a working spike pit (D-107), and in a floodlight's light at night (D-126). */
+/** How fast a bug moves now: slower on a working spike pit (D-107), in a floodlight's light at night (D-126) and among trees (D-134). */
 function speedOf(w: World, e: Enemy): number {
   const b = w.buildingAt(Math.floor(e.x), Math.floor(e.y));
   const spikes = b?.type === 'spike_pit' && b.ammo > 0 ? SPIKES.slow : 1;
-  return ENEMIES[e.type].speed * spikes * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1);
+  const trees = w.treeAt(Math.floor(e.x), Math.floor(e.y)) === TREE ? FOREST.bugSlow : 1;
+  return ENEMIES[e.type].speed * spikes * trees * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1);
 }
 
 /** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */

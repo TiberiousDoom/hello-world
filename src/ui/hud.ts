@@ -34,6 +34,7 @@ import {
   isMachine,
   CLOCK,
   NESTS,
+  NURSERY,
   PLAYER,
   isBelt,
   CRATE_SIZE,
@@ -62,6 +63,7 @@ const TOOLBAR: BuildingType[] = [
   'drone_pad',
   'teleporter',
   'greenhouse',
+  'tree_nursery',
   'belt',
   'express_belt',
   'splitter',
@@ -106,7 +108,7 @@ const TOOLBAR: BuildingType[] = [
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'railgun', 'shield_pylon', 'strike_beacon', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'railgun', 'shield_pylon', 'strike_beacon', 'tree_nursery', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
 const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'drone_pad', 'teleporter', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
@@ -953,6 +955,7 @@ export class Hud {
           ? `<br>Receives ${swatch(b.filter)}${ITEMS[b.filter].name} from any sending teleporter, ${TELEPORT.rate} a second · holds ${held}`
           : `<br>Sends: holds ${held}`;
       }
+      if (b.type === 'tree_nursery') stats += `<br>Plants a tree on open ground within ${NURSERY.range} tiles every ${NURSERY.period} s · next in ${Math.max(0, Math.ceil(b.cooldown))} s`;
       if (b.type === 'strike_beacon') {
         const e = world.electrified(b);
         stats +=

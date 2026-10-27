@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.76.0 · 2026-10-27 · Forests and bugs
+### New
+- Some nests lie **deep in forest**. Trees slow bugs down, and bugs go round forest when they can, so clearing it opens paths for them.
+- **Cutting a tree inside a bug territory provokes its nest**, by hand or by a lumber camp.
+- The colony can send a **Tree Nursery**: it plants young trees around it, so cut forest grows back.
+
 ## 0.75.0 · 2026-10-27 · Hardcore nests
 ### New
 - In Hardcore, nests can't be shot down. **Build over a mound and the ring of tiles around it** to destroy it. The tiles left to cover are marked.

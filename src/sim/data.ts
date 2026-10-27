@@ -138,6 +138,7 @@ export type BuildingType =
   | 'teleporter'
   | 'strike_beacon'
   | 'greenhouse'
+  | 'tree_nursery'
   | 'railgun'
   | 'floodlight'
   | 'boiler'
@@ -234,6 +235,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   // The colony's special buildings (D-131), sent as blueprints after supply runs.
   teleporter: { name: 'Teleporter Pad', short: 'TP', color: '#5a3a8a', hp: 200, cost: { circuit: 10, coil: 10, steel_beam: 4 }, blocking: true, description: 'Like a drone pad, without the drone or the distance: set to Send, belts fill it; set to receive an item, it pulls it at once from any sending teleporter. It uses a lot of electricity.' },
   strike_beacon: { name: 'Orbital Strike Beacon', short: 'OS', color: '#8a3a3a', hp: 200, cost: { circuit: 20, coil: 10, steel: 20 }, blocking: true, description: 'Charges over a day with electricity, then calls a strike from orbit on any explored spot: it wrecks bugs and nests there.' },
+  tree_nursery: { name: 'Tree Nursery', short: 'TN', color: '#4a7a3a', hp: 120, size: [2, 2], cost: { plank: 40, rope: 10, steel: 10 }, blocking: true, description: 'Plants a young tree on open ground nearby every few seconds, so forest grows back where it was cut.' },
   greenhouse: { name: 'Greenhouse', short: 'GH', color: '#3a7a4a', hp: 160, size: [2, 2], cost: { steel: 10, circuit: 4, wire: 10 }, blocking: true, description: 'Grows logs, with no trees needed, while it has electricity from a power pole.' },
   shield_pylon: { name: 'Shield Pylon', short: 'SP', color: '#3a6a9a', hp: 220, cost: { circuit: 6, coil: 6, steel_beam: 4 }, blocking: true, description: 'Shields the buildings around it: bites come off its shield first. The shield recharges with electricity from a power pole.' },
   railgun: { name: 'Railgun', short: 'RG', color: '#2f4a6a', hp: 450, size: [2, 2], cost: { steel_beam: 20, circuit: 10, coil: 10, bearing: 6 }, blocking: true, description: 'Fires a slug that goes through every bug in a long line. It needs no ammunition, only electricity from a power pole.' },
@@ -447,7 +449,15 @@ export const FOREST = {
   scale: 16, // noise scale in tiles
   clear: 20, // no trees this close to the hub's centre
   grove: 3, // radius of the guaranteed grove just outside the clearing
+  // Forests and bugs (D-134):
+  nestShare: 0.2, // of nests, planted deep in forest on a new map
+  nestDensity: 0.6, // of the open tiles in such a nest's cell, outside its mound and ring
+  bugSlow: 0.6, // a bug's speed among trees
+  bugCost: 3, // what a tree tile costs a bug's path (open ground is 1)
 };
+
+/** The Tree Nursery (D-134), a colony blueprint: a tree on open ground within `range` tiles every `period` seconds. */
+export const NURSERY = { range: 5, period: 15 };
 export const BELT_SPEED = 1.5; // tiles per second
 export const EXPRESS_BELT_SPEED = 3; // a colony blueprint (D-049)
 
@@ -694,11 +704,12 @@ export interface Blueprint {
   unlocks: BuildingType[];
 }
 
-/** The colony's special buildings (D-131); the Express Belt and Tesla moved into the tree (D-121, D-126). */
+/** The colony's special buildings (D-131, D-134); the Express Belt and Tesla moved into the tree (D-121, D-126). */
 export const BLUEPRINTS: Blueprint[] = [
   { id: 'teleporter', name: 'Teleporter Pad', description: 'Moves items between pads at once, at any distance, with a lot of electricity.', unlocks: ['teleporter'] },
   { id: 'strike_beacon', name: 'Orbital Strike Beacon', description: 'Once a day, calls a strike from orbit on any explored spot: it can wreck a nest outright.', unlocks: ['strike_beacon'] },
   { id: 'greenhouse', name: 'Greenhouse', description: 'Grows logs with electricity, no trees needed: wood that never runs out.', unlocks: ['greenhouse'] },
+  { id: 'tree_nursery', name: 'Tree Nursery', description: 'Plants young trees on open ground around it, so cut forest grows back.', unlocks: ['tree_nursery'] },
 ];
 export const BLUEPRINT_BY_ID: Record<string, Blueprint> = Object.fromEntries(BLUEPRINTS.map((b) => [b.id, b]));
 

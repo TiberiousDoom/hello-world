@@ -132,6 +132,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Teleporter Pad | 1×1, needs electricity | 10 circuit boards, 10 coils, 4 steel beams | 200 | Colony blueprint |
 | Orbital Strike Beacon | 1×1, needs electricity to charge | 20 circuit boards, 10 coils, 20 steel | 200 | Colony blueprint |
 | Greenhouse | 2×2, needs electricity | 10 steel, 4 circuit boards, 10 wire | 160 | Colony blueprint |
+| Tree Nursery | 2×2 | 40 planks, 10 rope, 10 steel | 120 | Colony blueprint |
 | Drone Pad | 1×1, needs electricity | 4 circuit boards, 2 motors, 2 steel beams | 160 | Drone Logistics |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
@@ -286,6 +287,11 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
 - The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
   like walls. Walls and palisades join up with their neighbours, with their own corners and ends.
 - Selecting a camp shows its reach, and how many trees and regrowing stumps it has.
+- **Forests and bugs (D-134):** about **1 nest in 5** lies deep in forest, with trees over most of its
+  territory. Every mound and the ring of tiles around it are clear of trees. **Cutting a tree inside a live
+  territory provokes its nest**, by hand or by a lumber camp. Bugs move at **60%** of their speed among
+  trees, and their paths treat a tree tile like **3** of open ground, so they go round forest when they
+  can. Clearing forest opens paths for them.
 - **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
   **Ballista**, and refill **spike pits** (both from the Wood Age's defences, D-107). **Repair stations** burn planks as well as
   iron plates. The **Workshop**, **Repair Station** and **Shipyard** cost a few planks, so Workshops
@@ -661,15 +667,19 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 - The main menu's Continue button shows how many supply runs a save has delivered.
 - **Blueprints from the colony (D-049):** after each delivery the colony offers **two blueprints** for
   buildings you can't research, and you **pick one** on a screen that pauses the game. The other stays
-  on offer for a later run; when only one is left, the next delivery simply sends it. The colony sends three
-  **special buildings** (D-131); the Express Belt and the Tesla Turret are researched now (D-121, D-126):
+  on offer for a later run; when only one is left, the next delivery simply sends it. The colony sends four
+  **special buildings** (D-131, D-134); the Express Belt and the Tesla Turret are researched now (D-121, D-126):
   - **Teleporter Pad** (1×1, uses 10 electricity): like a drone pad, set to Send or to receive one item, but a
     receiving teleporter pulls its item **4 a second** from any sending teleporter, at any distance, at once.
   - **Orbital Strike Beacon** (1×1, uses 5): charges for a day and a night (**540 s**) with electricity, then
     **Call a strike** in its panel and tap any explored spot (Esc or right-click cancels): every bug within
     **4 tiles** takes **2000** damage, and each nest mound there **1000**, which wrecks most.
-  - **Greenhouse** (2×2, uses 3): grows **2 logs every 6 s** with electricity, from nothing. Research lists them under "From the colony", with
-  what you've received and what's on offer.
+  - **Greenhouse** (2×2, uses 3): grows **2 logs every 6 s** with electricity, from nothing.
+  - **Tree Nursery** (2×2, no electricity; 40 planks, 10 rope, 10 steel; D-134): every **15 s** it plants a tree on
+    a random open tile within **5 tiles** of its centre: bare ground or a stump, not under a building, on ore, in a
+    pond, on a mound or on the shipyard's site. A planted tree can be cut and grow back 3 times, like any other.
+
+  Research lists them under "From the colony", with what you've received and what's on offer.
 
 ## Modes
 
