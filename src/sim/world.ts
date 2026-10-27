@@ -76,7 +76,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generatePonds, generateResources, generateSulfur, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
 import { explored, newFog, revealBuilding, tickFog } from './fog';
-import { Nest, announceThreat, anyAngry, broodFor, startRaids, cellKey, damageMound, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, tickBreeding, tickBugs, tickSpread } from './nests';
+import { Nest, announceThreat, anyAngry, broodFor, startRaids, damageMound, indexNests, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, spotIn, tickBreeding, tickBugs, tickMerge, tickSpread } from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -113,7 +113,7 @@ export type { ResearchState };
  * v38 (D-128) adds drones in flight.
  * v39 (D-130): the engines, life support and navigation are Electric Age stages, after Ship Systems.
  */
-export const SAVE_VERSION = 39;
+export const SAVE_VERSION = 40;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -237,6 +237,8 @@ export interface GameState {
   players: Player[];
   /** Game time when a bug territory next spreads (#51). */
   nextSpread: number;
+  /** Game time when two nests next get a chance to merge (D-132). */
+  nextMerge: number;
   /** Where the shipyard goes: a 5×5 site staked out at the start (D-109). Its top-left tile. */
   shipSite?: { x: number; y: number };
   /** Ore taken from each ore tile so far (D-096); at ORE.perTile it's bare ground. */
@@ -392,7 +394,7 @@ export class World {
     this.flow = new Float64Array(state.width * state.height);
     this.shipFlow = new Float64Array(state.width * state.height);
     for (const b of state.buildings) this.index(b, false);
-    for (const n of state.nests) this.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
+    indexNests(this);
   }
 
   static create(seed = Math.floor(Math.random() * 2 ** 31), mode: GameMode = 'standard'): World {
@@ -422,6 +424,7 @@ export class World {
       paths: { dirty: true, at: null, shipDirty: true, shipAt: null },
       players: [],
       nextSpread: NESTS.spreadEvery,
+      nextMerge: NESTS.mergeEvery,
       explored: [],
       water: [],
       drones: [],
@@ -439,7 +442,7 @@ export class World {
     tickFog(state);
     generateTrees(world, centre, centre);
     state.nests = generateNests(world, centre, centre);
-    for (const n of state.nests) world.nestCells.set(cellKey(n.x / NESTS.cell, n.y / NESTS.cell), n);
+    indexNests(world);
     const sites = shipSites(state);
     state.shipSite = sites[Math.floor(world.random() * sites.length)];
     world.addSulfur();
@@ -483,6 +486,7 @@ export class World {
       state.version = 38;
     }
     if (state.version === 38) World.migrateV38(state);
+    if (state.version === 39) World.migrateV39(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -538,6 +542,21 @@ export class World {
       ship.delivered = {};
     }
     state.version = 36;
+  }
+
+  /**
+   * v39 to v40 (D-132): nests have kinds, stages and merging. A nest's kind follows the bugs it holds, as its
+   * mound was already drawn (a den with brutes, a hive with runners, a warren otherwise); every nest starts at
+   * stage 1, and the first merge comes a while after loading.
+   */
+  private static migrateV39(state: GameState): void {
+    for (const n of state.nests) {
+      n.kind = n.brood.brute > 0 ? 'den' : n.brood.runner > 0 ? 'hive' : 'warren';
+      n.stage = 1;
+      n.age = 0;
+    }
+    state.nextMerge = state.time + NESTS.mergeEvery;
+    state.version = 40;
   }
 
   /**
@@ -1375,9 +1394,7 @@ export class World {
 
   /** Adds a calm bug at a random spot in its nest's territory: an adult, or `young`, just hatched (D-065). */
   spawnBug(type: EnemyType, nest: Nest, hpMult: number, young = false): Enemy {
-    const c = NESTS.cell;
-    const x = nest.x + 0.5 + this.random() * (c - 1);
-    const y = nest.y + 0.5 + this.random() * (c - 1);
+    const [x, y] = spotIn(this, nest);
     const hp = Math.round(ENEMIES[type].hp * hpMult);
     const e: Enemy = { id: this.state.nextId++, type, x, y, hp, maxHp: hp, nest: nest.id, tx: x, ty: y, wait: this.random() * NESTS.pause[1] };
     if (young) {
@@ -2272,6 +2289,7 @@ export class World {
     if (s.ship.launchAt != null && p.shipDirty && (p.shipAt == null || s.time - p.shipAt >= FLOW_REFRESH)) this.computeShipFlow();
     tickBugs(this, dt);
     tickSpread(this);
+    tickMerge(this);
     tickBreeding(this, dt);
     tickPlayers(this, dt, (p, a) => this.act(p, a));
     tickFog(s);

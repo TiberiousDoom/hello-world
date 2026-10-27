@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.74.0 · 2026-10-27 · Nests grow
+### New
+- Nests come in **kinds**: crawler warrens near the hub, runner hives further out, and brute dens furthest. Where two zones meet, they mix.
+- Each map has 1 to 3 **queen nests** near its edge. They're tough, breed fast and drop lots of chitin.
+- Calm nests **grow**: every 3 days of calm, a nest gets bigger, with more bugs and a tougher mound, up to large. Grown nests drop more chitin.
+- Two grown nests of a kind whose territories touch can **merge** into one bigger nest.
+- Saved games keep their nests, which start growing from small.
+
 ## 0.73.0 · 2026-10-27 · Belt pieces
 ### New
 - Belt corners, end bumpers, start lips and the flanges where belts meet buildings are drawn from new art. Express belt corners have their yellow rails.

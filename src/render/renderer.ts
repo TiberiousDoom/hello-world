@@ -46,7 +46,7 @@ import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, outOfFuel } from
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
-import { Nest, isAngry, nestCentre, ownsCell, strength } from '../sim/nests';
+import { Nest, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
 import { BeltLook, beltLook } from './belts';
@@ -308,7 +308,7 @@ export class Renderer {
     if (s.shipSite && !shipyard(world) && visible(s.shipSite.x, s.shipSite.y, SHIP_SIZE)) this.drawShipSite(s.shipSite.x, s.shipSite.y, z);
 
     // Blighted ground around standing nests, under everything built, so danger zones read from the ground's colour.
-    for (const n of s.nests) if (!n.destroyed && visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawBlight(n);
+    for (const n of s.nests) if (!n.destroyed && territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n)) this.drawBlight(n);
 
     // Paired tunnels: a faint dotted line where the belt runs underground.
     for (const b of s.buildings) {
@@ -333,7 +333,7 @@ export class Renderer {
 
     // Bug territories: a mound in each, and its outline while placing or while it's angry.
     // (A cleared territory taken over by a newer nest is drawn as that nest.)
-    for (const n of s.nests) if (visible(n.x, n.y, NESTS.cell) && ownsCell(world, n)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
+    for (const n of s.nests) if (territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n)) this.drawNest(world, n, now, z, !!ui?.tool && ui.tool !== 'demolish');
 
     if (ui) this.drawPlayers(world, now, z);
 
@@ -591,24 +591,32 @@ export class Renderer {
     const angry = alive && isAngry(world, n);
     if (alive && (placing || angry)) {
       const m = NESTS.nearMargin;
-      ctx.fillStyle = angry ? `rgba(224,68,90,${0.08 + 0.05 * Math.sin(now / 200)})` : 'rgba(224,68,90,0.05)';
-      ctx.fillRect(n.x - m, n.y - m, c + 2 * m, c + 2 * m);
-      ctx.strokeStyle = angry ? 'rgba(255,96,112,0.9)' : 'rgba(224,68,90,0.55)';
-      ctx.lineWidth = 2 / z;
-      ctx.setLineDash([8 / z, 6 / z]);
-      ctx.strokeRect(n.x - m, n.y - m, c + 2 * m, c + 2 * m);
-      ctx.setLineDash([]);
+      // Each cell of the territory: a merged nest owns several (D-132).
+      for (const [x, y] of territory(n)) {
+        ctx.fillStyle = angry ? `rgba(224,68,90,${0.08 + 0.05 * Math.sin(now / 200)})` : 'rgba(224,68,90,0.05)';
+        ctx.fillRect(x - m, y - m, c + 2 * m, c + 2 * m);
+        ctx.strokeStyle = angry ? 'rgba(255,96,112,0.9)' : 'rgba(224,68,90,0.55)';
+        ctx.lineWidth = 2 / z;
+        ctx.setLineDash([8 / z, 6 / z]);
+        ctx.strokeRect(x - m, y - m, c + 2 * m, c + 2 * m);
+        ctx.setLineDash([]);
+      }
     }
     // The mound: a burrow entrance by kind (D-065), with eyes when angry and a collapsing rim when badly hurt.
     const standing = !n.destroyed;
     const [cx, cy] = nestCentre(n);
-    const kind = n.brood.brute > 0 ? 'den' : n.brood.runner > 0 ? 'hive' : 'warren';
-    const key = !standing ? 'nests/destroyed' : world.state.mode === 'hardcore' ? 'nests/hardcore' : `nests/${kind}`;
-    if (this.drawSprite(key, cx - 1, cy - 1, 2)) {
+    const key = !standing ? 'nests/destroyed' : world.state.mode === 'hardcore' && n.kind !== 'queen' ? 'nests/hardcore' : `nests/${n.kind}`;
+    // Bigger with each stage, and bigger still for a queen or a merged nest (D-132).
+    const size = standing ? moundSize(n) : 2;
+    const [sx, sy] = [cx - size / 2, cy - size / 2];
+    if (this.drawSprite(key, sx, sy, size)) {
       if (!standing) return;
-      if (angry) this.drawSprite('nests/angry', cx - 1, cy - 1, 2);
-      if (n.hp < n.maxHp / 2) this.drawSprite('nests/damaged', cx - 1, cy - 1, 2);
-      if (n.hp < n.maxHp) bar(ctx, cx - 0.7, cy - 1.25, 1.4, n.hp / n.maxHp, '#e0445a');
+      // Grown nests show egg clutches and side burrows; a large one on both sides.
+      if (n.stage >= 2) this.drawSprite('nests/grown', sx, sy, size);
+      if (n.stage >= 3) this.drawSprite('nests/grown', sx, sy, size, Math.PI);
+      if (angry) this.drawSprite('nests/angry', sx, sy, size);
+      if (n.hp < n.maxHp / 2) this.drawSprite('nests/damaged', sx, sy, size);
+      if (n.hp < n.maxHp) bar(ctx, cx - 0.7, sy - 0.25, 1.4, n.hp / n.maxHp, '#e0445a');
       return;
     }
     // Drawn in code when the sprites are missing.
@@ -1474,17 +1482,20 @@ export class Renderer {
     return `buildings/${b.type}`;
   }
 
-  /** Dead, straw-coloured grass fading out around a nest's mound (blight). */
+  /** Dead, straw-coloured grass fading out around a nest's mound (blight), over each cell it owns. */
   private drawBlight(n: Nest): void {
     const ctx = this.ctx;
-    const [cx, cy] = nestCentre(n);
     const r = NESTS.cell * 0.55;
-    const g = ctx.createRadialGradient(cx, cy, 0.8, cx, cy, r);
-    g.addColorStop(0, 'rgba(110,90,52,0.75)');
-    g.addColorStop(0.5, 'rgba(138,122,66,0.45)');
-    g.addColorStop(1, 'rgba(122,122,64,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+    for (const [x, y] of territory(n)) {
+      const cx = x + NESTS.cell / 2;
+      const cy = y + NESTS.cell / 2;
+      const g = ctx.createRadialGradient(cx, cy, 0.8, cx, cy, r);
+      g.addColorStop(0, 'rgba(110,90,52,0.75)');
+      g.addColorStop(0.5, 'rgba(138,122,66,0.45)');
+      g.addColorStop(1, 'rgba(122,122,64,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+    }
   }
 
   /** Cracks and smoke over a building's footprint once it's badly hurt (the hub has its own damaged sprite). */
