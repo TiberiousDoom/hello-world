@@ -6,7 +6,7 @@
 // two games can be wired together in a unit test.
 
 import { BLUEPRINT_BY_ID, BUILDINGS, ITEMS, RECIPE_BY_ID, RESEARCH_BY_ID } from '../sim/data';
-import type { Command } from '../sim/commands';
+import { type Command, PASTE_MAX } from '../sim/commands';
 import { LoggedCommand, Session, summaryHash } from '../sim/session';
 import { MAX_GUEST_MESSAGE } from './protocol';
 
@@ -87,6 +87,7 @@ const GUEST_KINDS: Record<string, string[]> = {
   'pause-research': [],
   'upgrade-belts': ['x', 'y'],
   'clear-belts': ['id'],
+  paste: ['x', 'y'],
   upgrade: ['id'],
   launch: [],
   strike: ['id', 'x', 'y'],
@@ -118,6 +119,20 @@ export function validCommand(c: unknown): c is Command {
   if (o.kind === 'filter' && o.item !== null && !(typeof o.item === 'string' && Object.hasOwn(ITEMS, o.item))) return false;
   if (o.kind === 'splitter-side' && o.side !== 'left' && o.side !== 'right') return false;
   if (o.kind === 'auto-drop' && typeof o.on !== 'boolean') return false;
+  if (o.kind === 'paste' && !(Array.isArray(o.items) && o.items.length <= PASTE_MAX && o.items.every(validPasteItem))) return false;
+  return true;
+}
+
+/** One building of a paste (D-143), checked like a place command and the settings commands. */
+function validPasteItem(it: unknown): boolean {
+  if (!it || typeof it !== 'object') return false;
+  const o = it as Record<string, unknown>;
+  if (!(typeof o.type === 'string' && Object.hasOwn(BUILDINGS, o.type) && o.type !== 'hub')) return false;
+  if (![o.dx, o.dy].every((n) => Number.isInteger(n) && Math.abs(n as number) <= 256)) return false;
+  if (!(Number.isInteger(o.dir) && (o.dir as number) >= 0 && (o.dir as number) <= 3)) return false;
+  if (o.recipe != null && !(typeof o.recipe === 'string' && Object.hasOwn(RECIPE_BY_ID, o.recipe))) return false;
+  if (o.filter != null && !(typeof o.filter === 'string' && Object.hasOwn(ITEMS, o.filter))) return false;
+  if (o.side !== undefined && o.side !== 'left' && o.side !== 'right') return false;
   return true;
 }
 

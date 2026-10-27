@@ -55,6 +55,7 @@ import { PlaceError, World, canCollect, defenceTier, nextDefenceTier, nextTier }
 import { Player, held } from '../sim/player';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
+import { isKey, keyFor, keyName, keysVersion, toolIndex, toolKey } from './keys';
 import { shipSideView } from './shipview';
 import { Tool, UIState, turnTool } from './state';
 
@@ -111,9 +112,63 @@ const TOOLBAR: BuildingType[] = [
   'shipyard',
 ];
 /** Buildings without a meaningful facing. */
-const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'railgun', 'shield_pylon', 'strike_beacon', 'tree_nursery', 'trebuchet', 'port', 'shipyard'];
+const NO_ROTATE: BuildingType[] = [
+  'well',
+  'boiler',
+  'steam_turbine',
+  'power_pole',
+  'wall',
+  'reinforced_wall',
+  'steel_wall',
+  'arc_fence',
+  'floodlight',
+  'palisade',
+  'spike_pit',
+  'repair',
+  'turret',
+  'turret2',
+  'mortar',
+  'artillery',
+  'ballista',
+  'cannon',
+  'tesla',
+  'railgun',
+  'shield_pylon',
+  'strike_beacon',
+  'tree_nursery',
+  'trebuchet',
+  'port',
+  'shipyard',
+];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'drone_pad', 'teleporter', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = [
+  'hub',
+  'crate',
+  'storage',
+  'storage_silo',
+  'spike_pit',
+  'trebuchet',
+  'furnace',
+  'boiler',
+  'workshop',
+  'assembler',
+  'sawmill',
+  'blacksmith',
+  'machine_shop',
+  'steel_works',
+  'powder_mill',
+  'circuit_works',
+  'drone_pad',
+  'teleporter',
+  'turret',
+  'turret2',
+  'mortar',
+  'artillery',
+  'ballista',
+  'cannon',
+  'repair',
+  'shipyard',
+];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -155,6 +210,10 @@ export interface HudActions {
   toMainMenu(): void;
   hasGame(): boolean;
   rotatePlan(): void;
+  /** Undoes the last building or demolishing (D-143). */
+  undo(): void;
+  /** Starts or stops copying an area. */
+  toggleCopy(): void;
   /** A supply run was delivered; `first` when it was this game's first, and its screen has opened. */
   delivered(first: boolean): void;
   /** The first-delivery screen was closed. */
@@ -222,9 +281,7 @@ function esc(s: string): string {
 /** The shipyard's panel: every stage, what the current one or the cargo still needs, and the launch. */
 function shipStats(world: World): string {
   const ship = world.state.ship;
-  const stages = SHIP.stages
-    .map((st, i) => (i < ship.stage ? `✓ ${esc(st.name)}` : i === ship.stage ? `<b>${esc(st.name)}</b>` : esc(st.name)))
-    .join(' · ');
+  const stages = SHIP.stages.map((st, i) => (i < ship.stage ? `✓ ${esc(st.name)}` : i === ship.stage ? `<b>${esc(st.name)}</b>` : esc(st.name))).join(' · ');
   let html = `<br>${stages}`;
   const stage = currentStage(world);
   const needs = (items: ItemCounts) =>
@@ -408,8 +465,10 @@ export class Hud {
     $('toolbar').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-tool]');
       if (!btn) return;
-      const tool = btn.dataset.tool as Tool | 'rotate' | 'pack';
+      const tool = btn.dataset.tool as Tool | 'rotate' | 'pack' | 'undo' | 'copy';
       if (tool === 'pack') this.togglePack();
+      else if (tool === 'undo') this.actions.undo();
+      else if (tool === 'copy') this.actions.toggleCopy();
       else if (tool === 'rotate') this.rotate();
       else this.setTool(this.ui.tool === tool ? null : tool);
     });
@@ -501,19 +560,19 @@ export class Hud {
     window.addEventListener('keydown', (e) => {
       // Typing in a text box (the feedback form) isn't a shortcut.
       if (document.body.classList.contains('in-menu') || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (e.key === ' ') {
+      if (isKey(e, 'pause')) {
         e.preventDefault();
         this.setSpeed(this.ui.speed === 0 ? 1 : 0);
         return;
       }
-      if (e.key === 'i' || e.key === 'I') {
+      if (isKey(e, 'inventory')) {
         this.togglePack();
         return;
       }
-      const n = Number(e.key);
-      if (n >= 1 && n <= 9) {
+      const n = toolIndex(e);
+      if (n != null) {
         const tools = this.unlockedTools();
-        if (tools[n - 1]) this.setTool(this.ui.tool === tools[n - 1] ? null : tools[n - 1]);
+        if (tools[n]) this.setTool(this.ui.tool === tools[n] ? null : tools[n]);
       }
     });
   }
@@ -533,6 +592,8 @@ export class Hud {
   setTool(tool: Tool): void {
     if (tool !== this.ui.tool) this.ui.dirSet = false; // a new tool lines up with belts again (#85)
     this.ui.moving = null;
+    this.ui.clipMode = null;
+    this.ui.selecting = null;
     this.ui.aiming = null;
     this.ui.tool = tool;
     this.ui.plan = null;
@@ -678,21 +739,23 @@ export class Hud {
     const tools = this.unlockedTools();
     const inv = world.state.inventory;
     const me = this.me(world);
-    const key = [tools.join(), this.ui.tool, this.ui.dir, this.packOpen, me ? held(me) : 0, ...tools.map((t) => world.canAfford(BUILDINGS[t].cost))].join('|');
+    const key = [tools.join(), this.ui.tool, this.ui.dir, this.packOpen, this.ui.clipMode, keysVersion(), me ? held(me) : 0, ...tools.map((t) => world.canAfford(BUILDINGS[t].cost))].join('|');
     if (key === this.toolbarKey) return;
     this.toolbarKey = key;
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
       const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
-      return `<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, i + 1))}">
+      return `<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, toolKey(i)))}">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
         <span class="costs">${costHtml(def.cost, inv)}</span></button>`;
     });
     buttons.push(
-      `<button class="tool util" data-tool="rotate" title="Rotate (R)"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
-      `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (X)"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
-      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (I)"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
+      `<button class="tool util" data-tool="undo" title="Undo the last building or demolishing (${keyName(keyFor('undo'))}, Ctrl+Z)"><span class="icon">${ico('undo')}</span><span class="label">Undo</span></button>`,
+      `<button class="tool util ${this.ui.clipMode ? 'active' : ''}" data-tool="copy" title="Copy an area: drag over buildings, then tap to paste (${keyName(keyFor('copy'))}; ${keyName(keyFor('paste'))} pastes again)"><span class="icon">${ico('copy')}</span><span class="label">${this.ui.clipMode === 'paste' ? 'Pasting' : this.ui.clipMode === 'copy' ? 'Copying' : 'Copy'}</span></button>`,
+      `<button class="tool util" data-tool="rotate" title="Rotate (${keyName(keyFor('rotate'))})"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
+      `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (${keyName(keyFor('demolish'))})"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
+      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (${keyName(keyFor('inventory'))})"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
     );
     // In place, so a tap isn't lost when a count changes under the finger (#86).
     setHtml($('toolbar'), buttons.join(''));
@@ -710,11 +773,7 @@ export class Hud {
     panel.hidden = !this.packOpen || !me;
     if (panel.hidden || !me) return;
     const slots = me.slots
-      .map((s) =>
-        s
-          ? `<div class="slot" title="${esc(ITEMS[s.item].name)}">${swatch(s.item)}<span class="slot-n">${s.n}</span></div>`
-          : '<div class="slot empty"></div>',
-      )
+      .map((s) => (s ? `<div class="slot" title="${esc(ITEMS[s.item].name)}">${swatch(s.item)}<span class="slot-n">${s.n}</span></div>` : '<div class="slot empty"></div>'))
       .join('');
     setHtml(
       panel,
@@ -746,7 +805,7 @@ export class Hud {
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';
-      let html = '';
+      let html: string;
       {
         const def = BUILDINGS[b!.type];
         let actions = '';
@@ -754,10 +813,7 @@ export class Hud {
         if (isMachine(b!.type)) {
           actions += `<div class="recipes">${world
             .recipesFor(b!.type)
-            .map(
-              (r) =>
-                `<button data-action="recipe" data-recipe="${r.id}" class="${b!.recipe === r.id ? 'active' : ''}">${swatch(r.output)}${esc(ITEMS[r.output].name)}</button>`,
-            )
+            .map((r) => `<button data-action="recipe" data-recipe="${r.id}" class="${b!.recipe === r.id ? 'active' : ''}">${swatch(r.output)}${esc(ITEMS[r.output].name)}</button>`)
             .join('')}</div>`;
         }
         if (b!.type === 'splitter') {
@@ -766,8 +822,7 @@ export class Hud {
           actions += `<p class="small muted">Sort one item to a side; everything else goes out of the other.</p><div class="row seg-row">${(['left', 'right'] as const)
             .map((s) => `<button data-action="side" data-side="${s}" class="${side === s ? 'active' : ''}">${s === 'left' ? '← Left' : 'Right →'}</button>`)
             .join('')}</div><div class="recipes">${ITEM_IDS.map(
-            (i) =>
-              `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
+            (i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
           ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         if (b!.type === 'strike_beacon' && b!.ammo >= STRIKE.charge) {
@@ -776,14 +831,12 @@ export class Hud {
         if (b!.type === 'drone_pad' || b!.type === 'teleporter') {
           // Send, or receive one item (D-128, D-131).
           actions += `<p class="small muted">Send what belts bring it, or pick an item for drones to bring here.</p><div class="recipes"><button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Send</button>${ITEM_IDS.map(
-            (i) =>
-              `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="Receive ${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
+            (i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="Receive ${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
           ).join('')}</div>`;
         }
         if (b!.type === 'port') {
           actions += `<div class="recipes">${ITEM_IDS.map(
-            (i) =>
-              `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
+            (i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
           ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         // Before belts, finished items are carried to the hub by hand (#38).
@@ -837,7 +890,7 @@ export class Hud {
       panel.innerHTML = html;
     }
 
-    let stats = '';
+    let stats: string;
     {
       stats = `HP ${Math.ceil(b.hp)} / ${world.maxHp(b)}`;
       const rates = buildingRates(world, b);
@@ -905,7 +958,7 @@ export class Hud {
       if (b.type === 'repair') stats += `<br>Stored repairs ${Math.floor(b.ammo)} / ${REPAIR.maxCharge} HP`;
       // Power (D-115): what the building's network gives and uses.
       const net = world.powerNet(b);
-      if (net && (b.type !== 'splitter' && b.type !== 'tunnel')) {
+      if (net && b.type !== 'splitter' && b.type !== 'tunnel') {
         const p = world.powered(b);
         const use = `${fmtPower(net.supply)} power, it all uses ${fmtPower(net.demand)}`;
         const hydraulic = HYDRAULIC.includes(b.type);
@@ -940,12 +993,13 @@ export class Hud {
         stats += e > 0 ? `<br>Shocks each bug biting it for ${Math.round(ARC_FENCE.dps * e)} damage a second` : "<br><b>No electricity:</b> it doesn't shock. Put a power pole near it";
       }
       if (b.type === 'shield_pylon') {
-        stats += `<br>Shield ${Math.floor(b.ammo)} / ${SHIELD.max}: takes the bites on buildings within ${SHIELD.radius} tiles${world.electrified(b) > 0 ? `, recharging ${Math.round(SHIELD.recharge * world.electrified(b))} a second` : '. <b>No electricity:</b> it doesn\'t recharge. Put a power pole near it'}`;
+        stats += `<br>Shield ${Math.floor(b.ammo)} / ${SHIELD.max}: takes the bites on buildings within ${SHIELD.radius} tiles${world.electrified(b) > 0 ? `, recharging ${Math.round(SHIELD.recharge * world.electrified(b))} a second` : ". <b>No electricity:</b> it doesn't recharge. Put a power pole near it"}`;
       }
       if (b.type === 'floodlight') {
-        stats += world.electrified(b) > 0
-          ? `<br>At night it lights ${FLOODLIGHT.radius} tiles around it, and bugs in its light move at ${Math.round(FLOODLIGHT.slow * 100)}% speed`
-          : "<br><b>No electricity:</b> it's dark. Put a power pole near it";
+        stats +=
+          world.electrified(b) > 0
+            ? `<br>At night it lights ${FLOODLIGHT.radius} tiles around it, and bugs in its light move at ${Math.round(FLOODLIGHT.slow * 100)}% speed`
+            : "<br><b>No electricity:</b> it's dark. Put a power pole near it";
       }
       if (b.type === 'boiler') {
         stats += !world.hasWater(b)
@@ -981,15 +1035,11 @@ export class Hud {
         }
       }
       if (b.type === 'port') {
-        stats += b.filter
-          ? `<br>Sending ${swatch(b.filter)}${ITEMS[b.filter].name} (${world.state.inventory[b.filter] ?? 0} in stock)`
-          : '<br>Choose an item to send out.';
+        stats += b.filter ? `<br>Sending ${swatch(b.filter)}${ITEMS[b.filter].name} (${world.state.inventory[b.filter] ?? 0} in stock)` : '<br>Choose an item to send out.';
       }
       if (b.type === 'teleporter') {
         const held = b.outputs.length ? `${b.outputs.length} / ${DRONES.hold} ${swatch(b.outputs[0])}${ITEMS[b.outputs[0]].name}` : `empty (holds ${DRONES.hold})`;
-        stats += b.filter
-          ? `<br>Receives ${swatch(b.filter)}${ITEMS[b.filter].name} from any sending teleporter, ${TELEPORT.rate} a second · holds ${held}`
-          : `<br>Sends: holds ${held}`;
+        stats += b.filter ? `<br>Receives ${swatch(b.filter)}${ITEMS[b.filter].name} from any sending teleporter, ${TELEPORT.rate} a second · holds ${held}` : `<br>Sends: holds ${held}`;
       }
       if (b.type === 'tree_nursery') stats += `<br>Plants a tree on open ground within ${NURSERY.range} tiles every ${NURSERY.period} s · next in ${Math.max(0, Math.ceil(b.cooldown))} s`;
       if (b.type === 'strike_beacon') {
@@ -1022,7 +1072,8 @@ export class Hud {
         stats += `<br>Hub gun: ${HUB_WEAPON.damage} damage, ${HUB_WEAPON.rate}/s, range ${HUB_WEAPON.range}. No ammo needed`;
         // Stock by name: the chips above the hub show only icons, and touch can't hover them for a name.
         const stock = ITEM_IDS.filter((i) => (world.state.inventory[i] ?? 0) > 0);
-        if (stock.length) stats += `<span class="stock-list" aria-label="Hub stock">${stock.map((i) => `<span>${swatch(i)}${esc(ITEMS[i].name)} <b>${world.state.inventory[i]}</b></span>`).join('')}</span>`;
+        if (stock.length)
+          stats += `<span class="stock-list" aria-label="Hub stock">${stock.map((i) => `<span>${swatch(i)}${esc(ITEMS[i].name)} <b>${world.state.inventory[i]}</b></span>`).join('')}</span>`;
       }
       if (b.type === 'shipyard') stats += shipStats(world);
       if (isBelt(b.type)) stats += `<br>Carrying ${b.belt.length} item${b.belt.length === 1 ? '' : 's'}`;
@@ -1115,21 +1166,21 @@ export class Hud {
         <div><b>${esc(bp.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br><span class="muted">${esc(bp.description)}</span></div>
         <div>${state}</div></div>`;
     });
-    setHtml($('research-body'), `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}${
-      colony.length // none until the special buildings come (D-126)
-        ? `<h3>From the colony</h3>
+    setHtml(
+      $('research-body'),
+      `<p class="muted">Start a research and it draws its items from hub stock over time. It stalls if the hub runs out. You can switch at any time without losing progress.</p>${rows.join('')}${
+        colony.length // none until the special buildings come (D-126)
+          ? `<h3>From the colony</h3>
       <p class="muted">Blueprints you can't research. After each supply run, the colony offers two and you pick one.</p>${colony.join('')}`
-        : ''
-    }`);
+          : ''
+      }`,
+    );
   }
 
   private openLessons(): void {
     $('lessons-list').innerHTML = this.actions
       .lessons()
-      .map(
-        (l) =>
-          `<button data-lesson="${l.id}">${ico('play')}${esc(l.title)}${l.seen ? '<span class="lesson-seen">✓ Seen</span>' : ''}</button>`,
-      )
+      .map((l) => `<button data-lesson="${l.id}">${ico('play')}${esc(l.title)}${l.seen ? '<span class="lesson-seen">✓ Seen</span>' : ''}</button>`)
       .join('');
     $<HTMLInputElement>('tips-toggle').checked = !this.actions.tipsOff();
     this.openModal('lessons');
@@ -1142,9 +1193,7 @@ export class Hud {
     const unlocked = this.actions.hardcoreUnlocked();
     const hc = $<HTMLButtonElement>('btn-hardcore');
     hc.disabled = !unlocked;
-    $('hardcore-note').textContent = unlocked
-      ? 'Losing the hub ends the run.'
-      : 'Locked: deliver a supply run in Standard to unlock.';
+    $('hardcore-note').textContent = unlocked ? 'Losing the hub ends the run.' : 'Locked: deliver a supply run in Standard to unlock.';
     $('standard-note').textContent = `If the hub falls, the bugs go home but you lose ${BREACH.stockLost * 100}% of hub stock.`;
     this.pickDifficulty(this.difficulty);
     this.openModal('newgame');
@@ -1162,8 +1211,7 @@ export class Hud {
     }
     const { nests, toughness } = DIFFICULTY[d];
     const pct = (f: number): string => (f === 1 ? 'usual' : `${f < 1 ? '' : '+'}${Math.round((f - 1) * 100)}%`);
-    $('difficulty-note').textContent =
-      d === 'normal' ? 'The usual number of nests and bug health.' : `Nests: ${pct(nests)}. Bug health: ${pct(toughness)}. Hardcore is always Normal.`;
+    $('difficulty-note').textContent = d === 'normal' ? 'The usual number of nests and bug health.' : `Nests: ${pct(nests)}. Bug health: ${pct(toughness)}. Hardcore is always Normal.`;
   }
 
   /** The season, the day and whether it's night, in the top bar (#42). */

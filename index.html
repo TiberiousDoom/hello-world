@@ -6,6 +6,10 @@
     <meta name="theme-color" content="#142b52" />
     <title>Foundry Front</title>
     <link rel="icon" type="image/svg+xml" href="/src/art/ui/logo.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" />
@@ -53,6 +57,7 @@
           <button id="mm-new"><i data-icon="new"></i><span>New game</span></button>
           <button id="mm-coop"><i data-icon="coop"></i><span>Play together</span></button>
           <button id="mm-help"><i data-icon="help"></i><span>How to play</span></button>
+          <button id="mm-settings"><i data-icon="settings"></i><span>Settings</span></button>
         </div>
         <p class="mm-note" id="mm-note" hidden></p>
         <p class="mm-foot"><button id="mm-whatsnew" class="link-btn">v<span class="app-version"></span> · What's new<span class="new-dot" hidden></span></button> · Prototype, placeholder art</p>
@@ -149,16 +154,31 @@
           <button id="btn-save"><i data-icon="save"></i>Save now</button>
           <button id="btn-tutorial"><i data-icon="help"></i>Tutorials</button>
           <button id="btn-help"><i data-icon="research"></i>How to play</button>
+          <button id="btn-settings"><i data-icon="settings"></i>Settings</button>
           <button id="btn-whatsnew"><i data-icon="new"></i>What's new<span class="new-dot" hidden></span></button>
           <button id="btn-feedback"><i data-icon="feedback"></i>Send feedback</button>
           <button id="btn-mainmenu"><i data-icon="home"></i>Main menu</button>
           <button id="btn-new" class="danger"><i data-icon="new"></i>New game</button>
         </div>
-        <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
-        <label class="toggle"><input type="checkbox" id="saver-toggle" /> Battery saver (lower resolution, 30 frames a second)</label>
+        <p class="muted small">Progress saves automatically in this browser. Foundry Front v<span class="app-version"></span>.</p>
+      </div>
+    </div>
+
+    <div id="settings" class="modal" hidden>
+      <div class="card">
+        <div class="card-head"><h2>Settings</h2><button data-close aria-label="Close settings" title="Close"><i data-icon="close"></i></button></div>
+        <h3>Sound</h3>
         <label class="toggle volume">Music <input type="range" id="music-volume" min="0" max="100" step="5" /></label>
         <label class="toggle volume">Sound effects <input type="range" id="sfx-volume" min="0" max="100" step="5" /></label>
-        <p class="muted small">Progress saves automatically in this browser. Foundry Front v<span class="app-version"></span>.</p>
+        <h3>Screen</h3>
+        <label class="toggle volume scale">Text and buttons <input type="range" id="ui-scale" min="80" max="140" step="10" /><span id="ui-scale-value" class="muted"></span></label>
+        <label class="toggle"><input type="checkbox" id="motion-toggle" /> Reduce motion (no drifting leaves, fireflies or bouncing)</label>
+        <label class="toggle"><input type="checkbox" id="saver-toggle" /> Battery saver (lower resolution, 30 frames a second)</label>
+        <h3>Controls</h3>
+        <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
+        <p class="muted small">Keys: 1–9, 0 and Shift+1–9 pick tools. WASD or the arrows walk; Enter builds a blueprint; Esc puts things down; Ctrl+Z undoes. Click a key below to change it.</p>
+        <div id="keys-list" class="keys-list"></div>
+        <button id="keys-reset" class="link-btn">Put every key back</button>
       </div>
     </div>
 
@@ -217,8 +237,8 @@
         </ul>
         <h3>Controls</h3>
         <ul>
-          <li><b>Desktop:</b> click to build or select. Drag out a line of belts or walls, then press ✓ or Enter to build it (⟳ or R reverses or rotates it, ✕ or Esc cancels). Right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9 picks buildings, Space pauses and Esc cancels.</li>
-          <li><b>Touch:</b> tap to place a blueprint, then ✓ to build it (or tap the same spot again). Drag with a tool to lay a line, drag with no tool to pan, pinch to zoom. Menu → "Confirm before building" switches blueprints off.</li>
+          <li><b>Desktop:</b> click to build or select. Drag out a line of belts or walls, then press ✓ or Enter to build it (⟳ or R reverses or rotates it, ✕ or Esc cancels). Right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9, 0 and Shift+1–9 pick buildings, Space pauses, Esc cancels and Ctrl+Z undoes. C copies an area (drag over it, then click where the copy goes) and V pastes it again. Settings changes these keys.</li>
+          <li><b>Touch:</b> tap to place a blueprint, then ✓ to build it (or tap the same spot again). Drag with a tool to lay a line, drag with no tool to pan, pinch to zoom. Menu → Settings → "Confirm before building" switches blueprints off. Undo and Copy are on the toolbar.</li>
           <li><b>Playing together:</b> press P (or hold a finger still on empty ground) to point at a spot for the others. Only the host pauses or changes the speed.</li>
         </ul>
         <h3>Credits</h3>

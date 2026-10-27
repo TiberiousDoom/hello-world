@@ -1,6 +1,56 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DEFENCE_TIERS, DIFFICULTY, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, HARDCORE_NESTS, NURSERY, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
+import {
+  ARC_FENCE,
+  DEFENCE_TIERS,
+  DIFFICULTY,
+  DRONES,
+  FLOODLIGHT,
+  RECIPE_BY_ID,
+  SHIELD,
+  STRIKE,
+  TELEPORT,
+  BELT_SPACING,
+  BELT_SPEED,
+  BREACH,
+  BUILDINGS,
+  CRATE_SIZE,
+  ENEMIES,
+  EXTRACTOR_PERIOD,
+  ELECTRIC,
+  ELECTRIC_DEFENCES,
+  EXPRESS_BELT_SPEED,
+  FUEL,
+  HYDRAULIC,
+  MK2,
+  MK3,
+  ORE,
+  SILO,
+  SULFUR,
+  POWER,
+  PONDS,
+  STORAGE,
+  ROLLER,
+  SPIKES,
+  FOREST,
+  HAND_MINING,
+  HUB_SIZE,
+  PLAYER,
+  ItemId,
+  LUMBER,
+  MAP_SIZE,
+  NESTS,
+  REPAIR,
+  RESEARCH,
+  RESEARCH_BY_ID,
+  TURRETS,
+  HARDCORE_NESTS,
+  NURSERY,
+  QUEENS,
+  nestComposition,
+  nestKindFor,
+  stageSize,
+} from './data';
 import { Nest, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, defenceTierCost, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -19,7 +69,26 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
   w.state.nests = [];
   w.state.enemies = [];
   w.nestCells.clear();
-  w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, dowel: 999, peg: 999, rope: 999, truss: 999, stake: 999, iron_ingot: 999, iron_rod: 999, rivet: 999 };
+  w.state.inventory = {
+    iron_plate: 999,
+    stone: 999,
+    iron_ore: 999,
+    brick: 999,
+    copper_ingot: 999,
+    gear: 999,
+    wire: 999,
+    motor: 999,
+    plank: 999,
+    log: 999,
+    dowel: 999,
+    peg: 999,
+    rope: 999,
+    truss: 999,
+    stake: 999,
+    iron_ingot: 999,
+    iron_rod: 999,
+    rivet: 999,
+  };
   return w;
 }
 
@@ -107,7 +176,13 @@ describe('Map', () => {
 describe('Buildings', () => {
   it('have their sizes, and sideways turns swap width and height', () => {
     const w = emptyWorld();
-    const sizes: [string, number, number][] = [['extractor', 2, 2], ['furnace', 2, 2], ['workshop', 2, 2], ['assembler', 3, 3], ['splitter', 1, 2]];
+    const sizes: [string, number, number][] = [
+      ['extractor', 2, 2],
+      ['furnace', 2, 2],
+      ['workshop', 2, 2],
+      ['assembler', 3, 3],
+      ['splitter', 1, 2],
+    ];
     let y = 20;
     for (const [type, bw, bh] of sizes) {
       ore(w, 20, y, 1, 4);
@@ -218,10 +293,29 @@ describe('Production', () => {
     expect(w.isUnlocked('extractor')).toBe(false); // smelting comes with Industry (D-093)
     expect(w.isUnlocked('turret')).toBe(false);
     expect(w.isUnlocked('shipyard')).toBe(false);
-    w.state.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, copper_ingot: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, peg: 999, rope: 999, truss: 999, dowel: 999, iron_ingot: 999, rivet: 999, iron_rod: 999 };
+    w.state.inventory = {
+      iron_plate: 999,
+      stone: 999,
+      iron_ore: 999,
+      brick: 999,
+      copper_ingot: 999,
+      gear: 999,
+      wire: 999,
+      motor: 999,
+      plank: 999,
+      log: 999,
+      peg: 999,
+      rope: 999,
+      truss: 999,
+      dowel: 999,
+      iron_ingot: 999,
+      rivet: 999,
+      iron_rod: 999,
+    };
     expect(w.researchNow('workshop')).toBe('requires'); // workshops need Forestry
     expect(w.researchNow('defense')).toBe('requires'); // hydraulic turrets need Hydraulics (D-117)
-    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'blacksmith', 'machine_shop', 'hydraulics', 'defense', 'assembly', 'shipyard']) expect(w.researchNow(id)).toBeNull();
+    for (const id of ['forestry', 'workshop', 'carpentry', 'rollers', 'palisades', 'defense2', 'industry', 'blacksmith', 'machine_shop', 'hydraulics', 'defense', 'assembly', 'shipyard'])
+      expect(w.researchNow(id)).toBeNull();
     expect(w.isUnlocked('extractor') && w.isUnlocked('furnace')).toBe(true);
     expect(w.isUnlocked('turret')).toBe(true);
     expect(w.isUnlocked('shipyard')).toBe(true);
@@ -386,7 +480,7 @@ describe('Bugs', () => {
     expect(turret.hp).toBeLessThan(BUILDINGS.turret.hp);
   });
 
-  it("give up on buildings out of reach, stay home, and calm down after a while (D-091)", () => {
+  it('give up on buildings out of reach, stay home, and calm down after a while (D-091)', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 2);
     const [cx, cy] = nestCentre(n);
@@ -751,7 +845,12 @@ describe('Wooden parts (D-105)', () => {
     w.state.researched.push('carpentry');
     w.setRecipe(ws.id, 'truss');
     ws.outputs = [];
-    for (const [item, n] of [['plank', 3], ['peg', 2], ['rope', 1]] as [ItemId, number][]) for (let i = 0; i < n; i++) expect(w.insert(ws, item, ws.x - 1, ws.y)).toBe(true);
+    for (const [item, n] of [
+      ['plank', 3],
+      ['peg', 2],
+      ['rope', 1],
+    ] as [ItemId, number][])
+      for (let i = 0; i < n; i++) expect(w.insert(ws, item, ws.x - 1, ws.y)).toBe(true);
     run(w, 4.5);
     expect(ws.outputs).toEqual(['truss']);
   });
@@ -788,12 +887,22 @@ describe('Ore that runs out, and trees that stop growing back (D-094, D-096)', (
   it('an extractor makes one ore per ore tile under it each cycle, up to 4, and stops when they run out', () => {
     const w = emptyWorld();
     const [x, y] = [w.hub!.x - 30, w.hub!.y];
-    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) ore(w, x + dx, y + dy, 1, 1); // three of its four tiles
+    for (const [dx, dy] of [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+    ])
+      ore(w, x + dx, y + dy, 1, 1); // three of its four tiles
     const ex = placed(w.place('extractor', x, y, 0));
     for (let t = 0; t < EXTRACTOR_PERIOD + 0.05; t += TICK) w.tick();
     expect(ex.outputs).toEqual(['iron_ore', 'iron_ore', 'iron_ore']); // nothing in front takes them
     // Nearly used up: one ore left in each tile.
-    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) w.state.oreMined![w.idx(x + dx, y + dy)] = ORE.perTile - 1;
+    for (const [dx, dy] of [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+    ])
+      w.state.oreMined![w.idx(x + dx, y + dy)] = ORE.perTile - 1;
     for (let t = 0; t < EXTRACTOR_PERIOD * 3; t += TICK) {
       ex.outputs = [];
       w.tick();
@@ -1290,11 +1399,12 @@ describe('Starting from nothing (#38)', () => {
     const seen = new Set<number>();
     for (const b of loaded.state.buildings) {
       const [fw, fh] = loaded.footprintOf(b);
-      for (let dy = 0; dy < fh; dy++) for (let dx = 0; dx < fw; dx++) {
-        const i = loaded.idx(b.x + dx, b.y + dy);
-        expect(seen.has(i)).toBe(false);
-        seen.add(i);
-      }
+      for (let dy = 0; dy < fh; dy++)
+        for (let dx = 0; dx < fw; dx++) {
+          const i = loaded.idx(b.x + dx, b.y + dy);
+          expect(seen.has(i)).toBe(false);
+          seen.add(i);
+        }
     }
   });
 
@@ -3139,7 +3249,10 @@ describe('Forests and bugs (D-134)', () => {
     const w = emptyWorld();
     const n = addNest(w, 50, 50, 3);
     const p = w.state.players[0];
-    for (const [x, y] of [[40, 52], [52, 52]] as const) {
+    for (const [x, y] of [
+      [40, 52],
+      [52, 52],
+    ] as const) {
       w.state.trees[w.idx(x, y)] = TREE;
       [p.x, p.y] = [x - 0.5, y + 0.5];
       for (let k = 0; k < HAND_MINING.taps; k++) w.mineByHand(x, y);
@@ -3249,7 +3362,10 @@ describe('Wasps and beetles (D-135)', () => {
   });
 
   it('a beetle shrugs off small shots: each hit does its armour less, down to 1', () => {
-    for (const [type, dealt] of [['turret', 1], ['cannon', 30 - ENEMIES.beetle.armour!]] as const) {
+    for (const [type, dealt] of [
+      ['turret', 1],
+      ['cannon', 30 - ENEMIES.beetle.armour!],
+    ] as const) {
       const w = emptyWorld();
       const n = addNest(w, 80, 80, 0);
       const t = placed(w.place(type, 50, 50, 0));
@@ -3289,7 +3405,11 @@ describe('Better ammo (D-136)', () => {
     expect(RESEARCH_BY_ID.better_ammo.requires.sort()).toEqual(['electric_defense', 'heavy_defense2']);
     expect(RECIPE_BY_ID.ap_bullet.requires).toBe('better_ammo');
     expect(RECIPE_BY_ID.he_shell.requires).toBe('better_ammo');
-    expect(emptyWorld().recipesFor('assembler').map((r) => r.id)).toEqual(expect.arrayContaining(['ap_bullet', 'he_shell']));
+    expect(
+      emptyWorld()
+        .recipesFor('assembler')
+        .map((r) => r.id),
+    ).toEqual(expect.arrayContaining(['ap_bullet', 'he_shell']));
   });
 
   it('a turret takes better ammo as well as its usual ammo, sharing its room, and fires it first', () => {
@@ -3311,7 +3431,7 @@ describe('Better ammo (D-136)', () => {
     expect(t.ammo).toBe(TURRETS.turret2!.maxShots - 5);
   });
 
-  it('armour-piercing bullets go through a beetle\'s armour', () => {
+  it("armour-piercing bullets go through a beetle's armour", () => {
     const dealt = (better: boolean): number => {
       const w = emptyWorld();
       Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9 });

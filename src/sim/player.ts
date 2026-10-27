@@ -16,11 +16,7 @@ import { moundAt } from './nests';
 import type { Building, World } from './world';
 
 /** Something the character will do on arriving next to its target. */
-export type PlayerAction =
-  | { kind: 'mine'; x: number; y: number }
-  | { kind: 'collect'; id: number }
-  | { kind: 'drop'; id: number }
-  | { kind: 'pickup'; id: number };
+export type PlayerAction = { kind: 'mine'; x: number; y: number } | { kind: 'collect'; id: number } | { kind: 'drop'; id: number } | { kind: 'pickup'; id: number };
 
 /** One inventory slot: up to PLAYER.stack of one item. */
 export interface Slot {

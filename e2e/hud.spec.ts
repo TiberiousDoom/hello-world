@@ -73,9 +73,12 @@ test('the stock panel fades while the pointer is over it, and hides when the hub
   const y = box.y + box.height / 2;
   if (info.project.name === 'phone') {
     // A finger held down over it; lifting it brings the panel back.
-    await page.evaluate(([x, y]) => {
-      window.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, pointerType: 'touch', isPrimary: true }));
-    }, [x, y] as const);
+    await page.evaluate(
+      ([x, y]) => {
+        window.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, pointerType: 'touch', isPrimary: true }));
+      },
+      [x, y] as const,
+    );
     await expect(stock).toHaveClass(/peek/);
     await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'touch' })));
     await expect(stock).not.toHaveClass(/peek/);

@@ -19,9 +19,7 @@ test('Move picks a building up and puts it down where you tap, with what it hold
   expect(await page.evaluate(() => window.game.ui.tool)).toBe('furnace');
   await cameraSettled(page);
   await tap(page, info, ...(await uncoveredTile(page, start.x + 5, start.y)));
-  await expect
-    .poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.x, start.id))
-    .not.toBe(start.x);
+  await expect.poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.x, start.id)).not.toBe(start.x);
   const moved = await page.evaluate(({ id, x, y }) => {
     const w = window.game.world;
     return { outputs: w.byId.get(id).outputs, tool: window.game.ui.tool, oldSpot: w.buildingAt(x, y)?.id ?? null };

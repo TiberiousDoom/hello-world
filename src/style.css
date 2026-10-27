@@ -1721,3 +1721,68 @@ body:not(.in-menu) #demo-fade {
   color: var(--muted);
   opacity: 0.8;
 }
+
+/* ---------------------------------------------------- settings (D-143) */
+
+.toggle.volume.scale {
+  grid-template-columns: 8.5em 1fr 3em;
+}
+.keys-list {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 10px;
+}
+.key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.key-row button {
+  min-width: 7em;
+  justify-content: center;
+}
+.key-row button.waiting {
+  border-color: var(--sky);
+  color: var(--sky);
+}
+
+/* The size of text and buttons (Settings, times the browser's own text size). The map and the
+   blueprints over it keep their size: they're placed in map coordinates. */
+#topbar,
+#toasts,
+#info,
+#pack,
+#toolbar,
+#contract-tracker,
+.modal > .card,
+.mm-panel {
+  zoom: var(--ui, 1);
+}
+
+/* Reduce motion, from Settings or the system: no animations or slides. */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Fingers need room (D-143): on touch screens, buttons are at least 44 px each way. */
+@media (pointer: coarse) {
+  button,
+  .tool,
+  select {
+    min-height: 44px;
+  }
+  .card-head button,
+  #topbar button,
+  .link-btn,
+  .key-row button {
+    min-width: 44px;
+  }
+  .toggle input[type='checkbox'] {
+    width: 24px;
+    height: 24px;
+  }
+}

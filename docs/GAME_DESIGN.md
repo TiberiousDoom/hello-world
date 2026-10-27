@@ -837,7 +837,8 @@ one research tree, one supply ship.
 ## Screen
 
 - The **top bar** holds only the speed buttons and the menu.
-- The **toolbar** at the bottom lists the unlocked buildings with their costs, plus Rotate and Demolish.
+- The **toolbar** at the bottom lists the unlocked buildings with their costs, plus Undo, Copy, Rotate,
+  Demolish and Inventory.
 - The **info panel** opens only for a building that's already placed (select it). Picking a tool from the
   toolbar shows no panel.
 - **Rates (#48):** the info panel shows a building's top rate (items a minute in and out, belt
@@ -852,8 +853,21 @@ one research tree, one supply ship.
   errors. **Open on GitHub** opens a new issue with all of it filled in (labelled playtest, plus bug or
   enhancement), for the player to submit; **Copy** puts it on the clipboard for players without a GitHub
   account; **Download save** saves the current game as a file to attach. The game sends nothing itself.
-- **Battery saver** (pause menu): draws at normal resolution and 30 frames a second. Otherwise the
-  game draws at most 60 frames a second, and 30 while paused or on the main menu (#46).
+- **Settings** (D-143), from the main menu and the pause menu:
+  - **Sound:** music and sound effects volumes.
+  - **Screen:** the size of text and buttons (80–140%; it starts from the browser's own text size, so
+    players who set bigger text get a bigger interface), **Reduce motion** (no drifting leaves or
+    fireflies, no CSS animations; on by default when the system asks for less motion), and **Battery
+    saver**: normal resolution and 30 frames a second. Otherwise the game draws at most 60 frames a
+    second, and 30 while paused or on the main menu (#46).
+  - **Controls:** "Confirm before building on touch screens", and the **keys**: click an action's key,
+    then press the new one. A key another action had swaps over. Walking, Enter, Esc, Tab, Delete and the
+    number keys can't be taken. Kept in this browser.
+  - Closing Settings opened from the pause menu goes back to it.
+- **Touch targets:** on touch screens every button is at least 44 px high (and the small ones as wide).
+- **Install and play offline (D-143):** the game is a web app. Browsers offer to install it to the home
+  screen, and once opened it plays offline (without music, which is too large to keep). The single-file
+  build has neither.
 - Hub stock floats above the hub (see [Map](#map)).
 - **Animation (D-082):** machines run a working animation while they work (the extractor's rotor, the
   furnace's flames and smoke, turning gears and saws, the assembler's arm, the repair station's torch),
@@ -885,7 +899,9 @@ underground belts (they'd lose their pair) can't be moved.
 | Demolish | X | Demolish button |
 | Move a building (#76, #83) | Select it, Move, then click where it goes | Select it, Move, then tap where it goes |
 | Inventory | I, or the Inventory button | Inventory button (right end of the toolbar) |
-| Pick a building | 1–9 | Toolbar |
+| Pick a building | 1–9, 0 (the 10th), Shift+1–9 (the 11th to 19th) | Toolbar |
+| Undo the last building or demolishing | Ctrl+Z or Z, or Undo | Undo button |
+| Copy and paste an area | C (or Copy), drag over it, then click where the copy goes; V pastes again | Copy, drag over it, then tap where it goes |
 | Build more like a placed building | Middle-click it | Hold a finger still on it (about half a second) |
 | Pause | Space | ❚❚ button |
 | Ping (co-op) | P, at the spot under the mouse | Hold a finger still on empty ground |
@@ -893,13 +909,26 @@ underground belts (they'd lose their pair) can't be moved.
 | Close a menu | Click outside it | Tap outside it |
 | Blueprint: rotate, reverse, cancel | ⟳, R or the wheel (reverses a belt line); ✕, Esc or right-click | ⟳ or Rotate; ✕ |
 
+The keys are the defaults; Settings changes them (D-143).
+
+- **Undo (D-143)** takes back your last building or demolishing. Changes made within 0.4 s of each other
+  undo together, so a dragged line goes in one step, and so does a paste. Undoing a building demolishes
+  it (with the usual refund); undoing a demolish builds it again, paying again, with its facing, recipe,
+  filter and side, but at Mk1 and Tier 1 (the upgrades were refunded). The last 50 steps are kept until
+  you start or load a game. In co-op each player undoes only their own changes.
+- **Copy and paste (D-143):** Copy, then drag over an area: every building wholly inside it (not the hub
+  or the shipyard) is copied with its facing, recipe, filter and splitter side. Then each click or tap
+  builds the copy centred there, paying as usual; R turns it a quarter. What can't be built there (in the
+  way, locked, or not enough in stock) is skipped and counted. Esc or right-click puts the copy away; V
+  (or Copy's button while pasting) brings it back. In co-op, a paste goes as one command per 40
+  buildings.
 - **With a tool in hand, pressing on an existing building of a different kind selects that building**
   and puts the tool down. Two exceptions keep building: pressing a belt with another building drops the
   building onto the belt line, and a belt drag may start on an existing belt.
 - **Soft placement (D-030).** Building can show a **blueprint** first: dashed ghosts, red where a
   tile can't be built (blocked, or past what your stock can pay for), and a bar with ✕, ⟳ and ✓
   beside its end. Dragging back along a blueprint shortens it, and tiles that already hold a building
-  are skipped. On touch screens every placement is a blueprint; Menu → "Confirm before building on
+  are skipped. On touch screens every placement is a blueprint; Settings → "Confirm before building on
   touch screens" switches it off. On desktop, single clicks build at once, and only a dragged-out belt
   or wall line becomes a blueprint.
 - **Dragging a building into place (D-057).** Every building that isn't laid as a line (belts, express

@@ -94,7 +94,9 @@ export function summaryHash(w: World): string {
   }
   for (const e of s.enemies) h.num(e.id).num(e.x).num(e.y).num(e.hp);
   for (const n of s.nests) h.num(n.angryUntil);
-  h.num(s.ship.stage).num(s.ship.runs).num(s.ship.launchAt ?? -1);
+  h.num(s.ship.stage)
+    .num(s.ship.runs)
+    .num(s.ship.launchAt ?? -1);
   return h.hex();
 }
 

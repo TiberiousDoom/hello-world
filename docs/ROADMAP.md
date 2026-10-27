@@ -164,9 +164,9 @@ In this order:
 ## 3. UX and onboarding
 - ✅ Spotlight tutorial (M2b)
 - ✅ Main menu with a live demo factory behind it: Continue, New game, How to play (M3a)
-- ⬜ Settings screen reachable from the main menu (today, music volume and the touch-confirm setting are in the pause menu)
+- ✅ **Settings screen** (0.85.0, D-143) from the main menu and the pause menu: volumes, size of text and buttons, reduced motion, battery saver, touch confirmation and keys
 - ✅ Item names for hub stock (0.84.0): the hub's panel lists its stock by name, icon and count (touch users can't hover the chips)
-- ⬜ Hotkeys beyond 9 tools, and a key-binding screen
+- ✅ **Hotkeys beyond 9 tools, and key bindings** (0.85.0, D-143): 0 and Shift+1–9 pick tools 10–19; Settings rebinds the other keys
 - ✅ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a long press on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
 - ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
 - ✅ **Hub stock only while the hub is selected or pointed at** (D-053), so the map around the hub stays clear
@@ -175,9 +175,8 @@ In this order:
 - ✅ **Belt snapping can be overridden (#85, 0.45.3, D-088):** turning a building after it lines up with a belt keeps your facing
 - ✅ **Haptics for mining by hand (#84, 0.46.2):** a short vibration on each tap on phones that support it (a long press already vibrates)
 - ✅ **Move a placed building (#76, #83, 0.53.0, D-110):** a Move button in the building's panel, beside Rotate and Demolish, makes the building the tool in hand, keeping its recipe, filter and contents
-- ⬜ Undo for the last placement or demolish
-- ⬜ Copy and paste for sections of a factory
-- ⬜ A settings screen: UI scale, reduced motion (the music and sound effects volumes are in the pause menu)
+- ✅ **Undo** (0.85.0, D-143) for building, demolishing and pasting: Ctrl+Z, Z or the Undo button; a dragged line undoes in one step
+- ✅ **Copy and paste** (0.85.0, D-143) for sections of a factory, with recipes and filters, turned with R; works in co-op
 - ✅ **Tutorial rework (M3c, D-025):** lessons (six now, with Wood), each starting the first time it's useful: *Essentials* (a fresh factory, or chosen on New game), *Bugs* (the first provoked nest, or building near one), *Splitters and tunnels* (when researched), *The escape ship* (when researched) and *Breaches* (the first breach). Lessons never open over a window.
   - Action steps wait for you to do the thing (place an extractor, lay belts, build a furnace, deliver a plate, research Basic Defense), and the game keeps running.
   - Explanation steps pause the game.
@@ -216,23 +215,23 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Versioned saves with tested migrations (v8 started over with the new map, D-038)
 - ✅ Browser tests (Playwright, `e2e/`) in CI on desktop and phone viewports: lessons, blueprints, HUD, controls, music, the supply ship and wood (D-035)
 - ⬜ A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies
-- ⬜ Lint and format checks (ESLint, Prettier)
+- ✅ Lint and format checks (0.85.0, D-143): ESLint and Prettier, run in CI (`npm run lint`)
 - 🚧 Error reporting (Q-7): the feedback form includes recent page errors when a player sends a report (D-064); automatic reporting is still open
 - 🚧 Save export and import: the feedback form can download the current game; importing a save is still to come
 
 ## 6. Platform and release
 - ✅ Single-file build for sharing (claude.ai artifact)
 - ✅ GitHub Pages deployment from `master` (D-010)
-- ⬜ PWA: offline play, install to home screen, app icon
+- ✅ PWA (0.85.0, D-143): offline play after the first visit (without music), install to home screen, app icons from the logo
 - ⬜ Capacitor wrapper for iOS and Android (M5)
 - ⬜ Store accounts (Apple Developer, Google Play), signing, and a build pipeline
 - ⬜ Store listings: screenshots, description, privacy policy, age rating
 - ⬜ Cloud saves (optional)
 
 ## 7. Accessibility
-- ⬜ Colour-blind-safe items: distinct shapes as well as colours (the sprites solve most of this)
-- ⬜ Text that scales with system settings, and minimum touch target sizes
-- 🚧 Respect reduced-motion (done for the tutorial, fireflies and leaves; extend to effects)
+- ✅ Colour-blind-safe items: every item has its own sprite with its own shape, and the hub's panel names them (0.84.0)
+- ✅ Text that scales with system settings, and minimum touch target sizes (0.85.0, D-143): the interface starts from the browser's text size and Settings scales it 80–140%; touch buttons are at least 44 px
+- ✅ Respect reduced-motion (0.85.0, D-143): the system setting or Settings' switch stops CSS animations, fireflies and leaves. ⬜ Calmer battle effects too
 
 ## 8. Business and legal
 - ⬜ Optional purchase plus donations or tips (D-017)

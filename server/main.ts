@@ -131,7 +131,10 @@ function save(force = false): void {
     if (hour !== lastBackupHour) {
       lastBackupHour = hour;
       writeFileSync(join(BACKUP_DIR, `world-${hour}.json`), json);
-      const old = readdirSync(BACKUP_DIR).filter((f) => f.startsWith('world-')).sort().slice(0, -BACKUPS);
+      const old = readdirSync(BACKUP_DIR)
+        .filter((f) => f.startsWith('world-'))
+        .sort()
+        .slice(0, -BACKUPS);
       for (const f of old) rmSync(join(BACKUP_DIR, f));
     }
   } catch (err) {
@@ -148,7 +151,10 @@ function status(): void {
   try {
     // Players by number, as the game names them (the server is player 1). `at` says how fresh this is.
     const players = guests().map((s) => s + 1);
-    writeAtomic(STATUS_FILE, JSON.stringify({ version: VERSION, room: room.code, phase: coop.phase, paused: paused(), players, tick: coop.host?.session.ticks ?? null, at: new Date().toISOString() }, null, 2));
+    writeAtomic(
+      STATUS_FILE,
+      JSON.stringify({ version: VERSION, room: room.code, phase: coop.phase, paused: paused(), players, tick: coop.host?.session.ticks ?? null, at: new Date().toISOString() }, null, 2),
+    );
   } catch {
     // Only a convenience.
   }
@@ -202,7 +208,9 @@ let lastPlayers = '';
 coop.onChange = () => {
   // The room is open: start the game at once, with whoever is in; everyone else joins it under way.
   if (coop.role === 'host' && coop.phase === 'lobby') void startGame();
-  const players = guests().map((s) => s + 1).join(', ');
+  const players = guests()
+    .map((s) => s + 1)
+    .join(', ');
   if (players !== lastPlayers) {
     lastPlayers = players;
     log(players ? `Players in: ${players}.` : 'Nobody in.');

@@ -90,7 +90,10 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
     const pm = recipePerMinute(r);
     const k = world.speedUp(b); // Mk2 (D-122)
     const uses = pm.inputs.map(([i, n]) => `${fmt(n * k)} ${name(i)}`).join(' + ');
-    return { max: `${fmt(pm.output * k)} ${name(r.output)}/min, using ${uses}/min`, now: nowLine(world, b, ELECTRIC_MACHINES.includes(b.type) && world.electrified(b) <= 0 ? "No electricity: it can't work. Put a power pole near it" : machineStatus(b, r)) };
+    return {
+      max: `${fmt(pm.output * k)} ${name(r.output)}/min, using ${uses}/min`,
+      now: nowLine(world, b, ELECTRIC_MACHINES.includes(b.type) && world.electrified(b) <= 0 ? "No electricity: it can't work. Put a power pole near it" : machineStatus(b, r)),
+    };
   }
   const t = TURRETS[b.type];
   // Hydraulic defences (D-117) fire only with power.
@@ -125,7 +128,7 @@ function nowLine(world: World, b: Building, status: string): string {
 }
 
 /** Plain text for a tooltip on a toolbar button. */
-export function toolTitle(type: BuildingType, key: number): string {
+export function toolTitle(type: BuildingType, key: string | null): string {
   const rates = rateSummary(type);
-  return `${BUILDINGS[type].name} (${key})${rates ? `: ${rates}` : ''}`;
+  return `${BUILDINGS[type].name}${key ? ` (${key})` : ''}${rates ? `: ${rates}` : ''}`;
 }

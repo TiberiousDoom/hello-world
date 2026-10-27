@@ -34,15 +34,12 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     });
     return best;
   });
-  const logs = () =>
-    page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'log' ? s.n : 0), 0));
+  const logs = () => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'log' ? s.n : 0), 0));
   // A tap that lands while the camera glides can miss the tree and send the engineer elsewhere: then try again.
   for (let attempt = 0; attempt < 3 && (await logs()) === 0; attempt++) {
     await cameraSettled(page);
     await tap(page, info, ...(await uncoveredTile(page, ...tree)));
-    await expect
-      .poll(() => page.evaluate(() => window.game.world.state.players[0].path.length), { timeout: 30000 })
-      .toBe(0); // arrived
+    await expect.poll(() => page.evaluate(() => window.game.world.state.players[0].path.length), { timeout: 30000 }).toBe(0); // arrived
     await cameraSettled(page);
     const here = await uncoveredTile(page, ...tree); // the camera may have moved while it walked
     // On a slow machine a tap can land late, so keep tapping until the tree comes down.
@@ -118,8 +115,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   });
   await expect(page.locator('#info')).toContainText('Sawmill');
   await page.click('#info [data-action="collect"]');
-  const planks = () =>
-    page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'plank' ? s.n : 0), 0));
+  const planks = () => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'plank' ? s.n : 0), 0));
   await expect.poll(planks, { timeout: 30000 }).toBeGreaterThanOrEqual(2);
   await page.evaluate(() => window.game.world.moveTo(window.game.world.hub.x - 1, window.game.world.hub.y + 2));
   await expect(step).toContainText('9 of', { timeout: 30000 });

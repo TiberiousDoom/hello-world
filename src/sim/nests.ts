@@ -22,7 +22,32 @@
 //
 // In Hardcore (D-133) a mound can't be shot down: covering it and a ring around it with buildings destroys it.
 
-import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, FLY_OVER, FOREST, GameMode, HARDCORE_NESTS, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
+import {
+  ARC_FENCE,
+  BUILDINGS,
+  CLOCK,
+  DX,
+  DY,
+  ENEMIES,
+  EnemyType,
+  FLOODLIGHT,
+  FLY_OVER,
+  FOREST,
+  GameMode,
+  HARDCORE_NESTS,
+  HUB_SIZE,
+  NESTS,
+  NestKind,
+  PLAYER,
+  QUEENS,
+  RAIDS,
+  SPIKES,
+  chitinFor,
+  moundHp,
+  nestComposition,
+  nestKindFor,
+  stageSize,
+} from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import { TREE } from './world';

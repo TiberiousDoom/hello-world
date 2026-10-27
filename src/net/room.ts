@@ -28,14 +28,7 @@ export const CLOSE_REPLACED = 4001;
  * A guest back with its key while its old connection still looks open (a phone that slept) takes back
  * its own slot, instead of coming in as a new player (#100). Returns the new player's slot, or why not.
  */
-export function admit(
-  peers: Peer[],
-  role: Role,
-  version: string,
-  key = '',
-  room: RoomHost | null = null,
-  gate: Gate = {},
-): { slot: number } | { refuse: RefuseReason; hostVersion?: string } {
+export function admit(peers: Peer[], role: Role, version: string, key = '', room: RoomHost | null = null, gate: Gate = {}): { slot: number } | { refuse: RefuseReason; hostVersion?: string } {
   if (!version || version.length > 40 || key.length > 64 || (gate.pass?.length ?? 0) > 128) return { refuse: 'bad-request' };
   const host = peers.find((p) => p.role === 'host');
   if (role === 'host') {

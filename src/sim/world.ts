@@ -80,7 +80,28 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generatePonds, generateResources, generateSulfur, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
 import { explored, newFog, revealBuilding, tickFog } from './fog';
-import { Nest, announceThreat, anyAngry, broodFor, checkBuiltOver, startRaids, damageMound, indexNests, moundAt, moundInRange, nestAt, nestCentre, onBugHurt, provoke, onBuilt, spotIn, tickBreeding, tickBugs, tickMerge, tickSpread } from './nests';
+import {
+  Nest,
+  announceThreat,
+  anyAngry,
+  broodFor,
+  checkBuiltOver,
+  startRaids,
+  damageMound,
+  indexNests,
+  moundAt,
+  moundInRange,
+  nestAt,
+  nestCentre,
+  onBugHurt,
+  provoke,
+  onBuilt,
+  spotIn,
+  tickBreeding,
+  tickBugs,
+  tickMerge,
+  tickSpread,
+} from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -321,7 +342,6 @@ export interface PathTimers {
   shipAt: number | null;
 }
 
-
 /** One tap of hand mining (#38): `item` is set when the tap finished one. */
 export interface HandTap {
   x: number;
@@ -431,6 +451,7 @@ export class World {
     indexNests(this);
   }
 
+  // eslint-disable-next-line no-restricted-properties -- the one place the rules may: picking a seed when none is given
   static create(seed = Math.floor(Math.random() * 2 ** 31), mode: GameMode = 'standard', difficulty: Difficulty = 'normal'): World {
     const size = MAP_SIZE;
     const state: GameState = {
@@ -470,7 +491,16 @@ export class World {
     const hy = hx;
     const centre = hx + Math.floor(HUB_SIZE / 2);
     generateResources(world, centre, centre, HUB_SIZE / 2);
-    world.addWater(generatePonds(size, size, centre, centre, () => world.random(), () => true));
+    world.addWater(
+      generatePonds(
+        size,
+        size,
+        centre,
+        centre,
+        () => world.random(),
+        () => true,
+      ),
+    );
     const hub = world.addBuilding('hub', hx, hy, 0);
     state.hubId = hub.id;
     state.players = [newPlayer(world, 0)];
@@ -572,8 +602,7 @@ export class World {
     const c = hub.x + Math.floor(HUB_SIZE / 2);
     const cy = hub.y + Math.floor(HUB_SIZE / 2);
     const site = this.state.shipSite;
-    const free = (x: number, y: number) =>
-      !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
+    const free = (x: number, y: number) => !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
     this.addWater(generatePonds(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x5eed), free));
   }
 
@@ -954,7 +983,10 @@ export class World {
     const W = state.width;
     const taken = new Map<number, number>();
     const mark = (b: Building, [w, h]: [number, number], id: number) => {
-      for (let y = b.y; y < b.y + h; y++) for (let x = b.x; x < b.x + w; x++) if (id) taken.set(y * W + x, id); else taken.delete(y * W + x);
+      for (let y = b.y; y < b.y + h; y++)
+        for (let x = b.x; x < b.x + w; x++)
+          if (id) taken.set(y * W + x, id);
+          else taken.delete(y * W + x);
     };
     for (const b of state.buildings) mark(b, size(b), b.id);
     const fits = (x: number, y: number, w: number, h: number) => {
@@ -1224,9 +1256,7 @@ export class World {
   inFloodlight(x: number, y: number): boolean {
     if (this.lit.at !== this.state.time) {
       this.lit.at = this.state.time;
-      this.lit.spots = clockAt(this.state.time).night
-        ? this.state.buildings.filter((b) => b.type === 'floodlight' && this.electrified(b) > 0).map((b) => this.centreOf(b))
-        : [];
+      this.lit.spots = clockAt(this.state.time).night ? this.state.buildings.filter((b) => b.type === 'floodlight' && this.electrified(b) > 0).map((b) => this.centreOf(b)) : [];
     }
     const r = FLOODLIGHT.radius ** 2;
     return this.lit.spots.some(([cx, cy]) => (x - cx) ** 2 + (y - cy) ** 2 <= r);
@@ -1703,11 +1733,7 @@ export class World {
     if (!upgraded) return 'cost';
     this.layout++; // the line leaves the shaft network and joins the electric one
     const left = line.length - upgraded;
-    this.events.push(
-      left
-        ? `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'}. Not enough stock for the other ${left}.`
-        : `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'} to express.`,
-    );
+    this.events.push(left ? `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'}. Not enough stock for the other ${left}.` : `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'} to express.`);
     return { upgraded, left };
   }
 
@@ -2064,7 +2090,8 @@ export class World {
         const def = TURRETS[target.type]!;
         const better = def.better?.item === item;
         if ((item !== def.ammoItem && !better) || target.ammo + (target.better ?? 0) + def.shotsPerItem > def.maxShots) return false;
-        if (better) target.better = (target.better ?? 0) + def.shotsPerItem; // fired first (D-136)
+        if (better)
+          target.better = (target.better ?? 0) + def.shotsPerItem; // fired first (D-136)
         else target.ammo += def.shotsPerItem;
         return true;
       }
@@ -2570,7 +2597,8 @@ export class World {
     if (!n || n === target) return false;
     if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
     if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
-    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type) && n.type !== 'drone_pad' && n.type !== 'teleporter') return false;
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type) && n.type !== 'drone_pad' && n.type !== 'teleporter')
+      return false;
     const o = this.outputTile(n);
     return o.x === target.x && o.y === target.y;
   }

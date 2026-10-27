@@ -140,7 +140,9 @@ test('wooden defences: a spike pit and a trebuchet go up, and their panels show 
   });
   const spot = await page.evaluate(() => {
     const w = window.game.world;
-    for (let d = 8; d < 40; d++) for (let dy = -d; dy <= d; dy++) if (!w.checkPlace('trebuchet', w.hub.x - d, w.hub.y + dy, 0) && !w.checkPlace('spike_pit', w.hub.x - d - 2, w.hub.y + dy, 0)) return [w.hub.x - d, w.hub.y + dy] as [number, number];
+    for (let d = 8; d < 40; d++)
+      for (let dy = -d; dy <= d; dy++)
+        if (!w.checkPlace('trebuchet', w.hub.x - d, w.hub.y + dy, 0) && !w.checkPlace('spike_pit', w.hub.x - d - 2, w.hub.y + dy, 0)) return [w.hub.x - d, w.hub.y + dy] as [number, number];
     return null;
   });
   expect(spot).not.toBeNull();

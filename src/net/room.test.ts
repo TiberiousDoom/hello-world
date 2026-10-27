@@ -39,7 +39,7 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(admit([], 'host', '')).toEqual({ refuse: 'bad-request' });
   });
 
-  it("lets a host with its key take over from its own old connection, and nobody else (D-085)", () => {
+  it('lets a host with its key take over from its own old connection, and nobody else (D-085)', () => {
     const host = peer(0);
     const room = { key: 'secret', version: '1.0.0' };
     expect(admit([host, peer(1)], 'host', '1.0.0', 'secret', room)).toEqual({ slot: 0 });
@@ -172,7 +172,10 @@ describe('Co-op relay rooms (D-077)', () => {
     leave([host, a, b], peer(2));
     expect(host.got).toEqual([{ t: 'left', slot: 2 }]);
     leave([host, a], peer(0));
-    expect(a.got).toEqual([{ t: 'left', slot: 2 }, { t: 'closed', reason: 'host-left' }]);
+    expect(a.got).toEqual([
+      { t: 'left', slot: 2 },
+      { t: 'closed', reason: 'host-left' },
+    ]);
     expect(a.closed).toBe(1000);
   });
 

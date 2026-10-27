@@ -39,8 +39,10 @@ test('music: silent until a click, the menu theme flows into the game tracks and
   expect(GAME_TRACKS).toContain((await music()).track);
 
   await page.click('#menu-btn');
+  await page.click('#btn-settings');
   await page.locator('#music-volume').fill('20');
   await page.locator('#music-volume').dispatchEvent('change');
+  await page.click('#settings [data-close]'); // back to the pause menu
   expect((await music()).volume).toBe(0.2);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).musicVolume)).toBe(0.2);
 

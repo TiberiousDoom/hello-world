@@ -28,13 +28,15 @@ async function clearArea(page: Page): Promise<{ x0: number; y0: number }> {
   return area!;
 }
 
-const count = (page: Page, type: string) =>
-  page.evaluate((t) => window.game.world.state.buildings.filter((b: { type: string }) => b.type === t).length, type);
+const count = (page: Page, type: string) => page.evaluate((t) => window.game.world.state.buildings.filter((b: { type: string }) => b.type === t).length, type);
 const at = (page: Page, x: number, y: number) =>
-  page.evaluate(([x, y]) => {
-    const b = window.game.world.buildingAt(x, y);
-    return b ? { type: b.type as string, dir: b.dir as number } : null;
-  }, [x, y] as const);
+  page.evaluate(
+    ([x, y]) => {
+      const b = window.game.world.buildingAt(x, y);
+      return b ? { type: b.type as string, dir: b.dir as number } : null;
+    },
+    [x, y] as const,
+  );
 const planLength = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles.length ?? 0);
 // Just the tiles (a plan also remembers where in a tile the pointer was, for snapping splitters).
 const planTiles = (page: Page) => page.evaluate(() => window.game.ui.plan?.tiles.map((t: { x: number; y: number }) => ({ x: t.x, y: t.y })) ?? null);
@@ -207,7 +209,9 @@ test.describe('touch', () => {
 
     // Switched off in the menu: a tap builds.
     await page.click('#menu-btn');
+    await page.click('#btn-settings');
     await page.click('#confirm-toggle');
+    await page.click('#settings [data-close]'); // back to the pause menu
     await page.click('#btn-resume');
     await page.touchscreen.tap(...(await tilePoint(page, x0, y0 + 2)));
     await expect.poll(async () => (await at(page, x0, y0 + 2))?.type).toBe('belt');

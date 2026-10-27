@@ -33,8 +33,10 @@ import { PlaceError, TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { buzz } from './haptics';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
+import { clipCorner, copyArea, pasteChunks, rotateClip } from '../ui/clipboard';
+import { isKey } from '../ui/keys';
 
-type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine';
+type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine' | 'select' | 'stamp';
 
 interface Tile {
   x: number;
@@ -53,6 +55,8 @@ export interface InputCallbacks {
   onNotice(text: string): void;
   /** Points at a tile for the other players (co-op, D-080). False when there's no one to point for. */
   ping(x: number, y: number): boolean;
+  /** Undoes the last building or demolishing (D-143). */
+  undo(): void;
   onChange(): void; // UI state (selection, tool, direction) changed
 }
 
@@ -106,11 +110,7 @@ export class Input {
       if (e.pointerType === 'mouse') ui.hover = null;
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    canvas.addEventListener(
-      'wheel',
-      (e) => this.wheel(e),
-      { passive: false },
-    );
+    canvas.addEventListener('wheel', (e) => this.wheel(e), { passive: false });
     window.addEventListener('keydown', (e) => this.key(e));
     window.addEventListener('keyup', (e) => this.keyUp(e));
     window.addEventListener('blur', () => {
@@ -147,6 +147,7 @@ export class Input {
   /** Right-click: cancel the blueprint, or put down the tool and clear the selection (same as Esc). */
   private clearSelection(): void {
     if (this.ui.plan) return this.cancelPlan();
+    if (this.ui.clipMode) return this.stopClip();
     this.ui.aiming = null;
     this.ui.tool = null;
     this.ui.selected = null;
@@ -178,6 +179,7 @@ export class Input {
     if (this.pointers.size === 2) {
       if (this.mode === 'plan') this.ui.plan = this.prevPlan; // that finger was the start of a pinch
       if (this.mode === 'move') this.abandonMove();
+      if (this.mode === 'select') this.ui.selecting = null;
       this.stopMining();
       this.mode = 'pinch';
       this.startPinch();
@@ -186,7 +188,7 @@ export class Input {
     if (this.pointers.size > 2) return;
 
     this.downAt = { x, y };
-    if (e.pointerType !== 'mouse') this.startLongPress(this.ui.hover);
+    if (e.pointerType !== 'mouse' && !this.ui.clipMode) this.startLongPress(this.ui.hover);
     if (e.pointerType === 'mouse' && e.button === 2) {
       this.mode = 'right'; // a click clears; a drag pans
     } else if (e.pointerType === 'mouse' && e.button === 1) {
@@ -194,6 +196,13 @@ export class Input {
       e.preventDefault(); // no autoscroll
     } else if (e.pointerType === 'mouse' && e.button !== 0) {
       this.mode = 'pan';
+    } else if (this.ui.clipMode === 'copy') {
+      // Copying (D-143): the drag picks the area.
+      this.mode = 'select';
+      this.ui.selecting = { from: this.ui.hover, to: this.ui.hover };
+      this.cb.onChange();
+    } else if (this.ui.clipMode === 'paste') {
+      this.mode = 'stamp'; // a tap puts the copy down; a drag pans
     } else if (this.ui.tool === 'express_belt' && this.cb.getWorld().buildingAt(this.ui.hover.x, this.ui.hover.y)?.type === 'belt') {
       // A tap or click on a belt upgrades its whole line at once: no blueprint, no drag.
       const result = this.cb.issue({ kind: 'upgrade-belts', x: this.ui.hover.x, y: this.ui.hover.y });
@@ -250,7 +259,8 @@ export class Input {
       const r = this.cb.issue({ kind: 'mine', x: t.x, y: t.y });
       // A tick for each tap, a longer buzz when the ore comes loose (#84).
       if (typeof r === 'object' && r) buzz(r.item ? 30 : 8);
-      if (r === 'no-ore') this.stopMining(); // the tree came down
+      if (r === 'no-ore')
+        this.stopMining(); // the tree came down
       else if (r === 'full') {
         this.stopMining();
         this.cb.onNotice('Your inventory is full. Walk back to the hub to drop it off.');
@@ -286,7 +296,8 @@ export class Input {
     const moved = Math.hypot(x - this.downAt.x, y - this.downAt.y) > TAP_SLOP;
     if (moved) this.cancelLongPress();
     if (this.mode === 'mine' && moved) this.stopMining();
-    if ((this.mode === 'pending' || this.mode === 'right' || this.mode === 'middle' || this.mode === 'mine') && moved) this.mode = 'pan';
+    if ((this.mode === 'pending' || this.mode === 'right' || this.mode === 'middle' || this.mode === 'mine' || this.mode === 'stamp') && moved) this.mode = 'pan';
+    if (this.mode === 'select' && this.ui.selecting) this.ui.selecting.to = this.ui.hover;
     if (this.mode === 'pan') this.camera.pan(x - prev.x, y - prev.y);
     if (this.mode === 'paint') this.paintTo(this.ui.hover);
     if (this.mode === 'plan') this.extendPlan(this.ui.hover);
@@ -313,6 +324,8 @@ export class Input {
       if (this.mode === 'pending' && !this.ui.tool && !this.cb.getWorld().buildingAt(t.x, t.y)) this.cb.issue({ kind: 'move', x: t.x, y: t.y });
       this.select(t);
     }
+    if (this.mode === 'select') this.endSelect(completed);
+    if (completed && this.mode === 'stamp') this.pasteAt(this.tileAt(x, y));
     if (completed && this.mode === 'right') this.clearSelection();
     if (completed && this.mode === 'middle') this.pick(this.tileAt(x, y));
     if (this.mode === 'plan') this.endPlanGesture(e.pointerType, completed);
@@ -365,6 +378,7 @@ export class Input {
   pick(t: Tile): void {
     const b = this.cb.getWorld().buildingAt(t.x, t.y);
     if (!b || b.type === 'hub') return;
+    this.stopClip(false);
     this.ui.moving = null;
     this.ui.tool = b.type;
     this.ui.dir = b.dir;
@@ -607,7 +621,8 @@ export class Input {
     }
     // In co-op the result comes later, so judge it now from the world as it is (the host's game decides).
     const entrance = tool === 'tunnel' ? world.findTunnelEntrance(at.x, at.y, at.dir) : undefined;
-    const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt }) ?? world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt) ?? { ...at, link: entrance?.id ?? null };
+    const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt }) ??
+      world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt) ?? { ...at, link: entrance?.id ?? null };
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {
@@ -630,33 +645,109 @@ export class Input {
   private key(e: KeyboardEvent): void {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || document.body.classList.contains('in-menu')) return;
     const k = e.key.toLowerCase();
-    if (WALK_KEYS[k]) {
+    if (WALK_KEYS[k] && !e.ctrlKey && !e.metaKey) {
       this.held.add(k);
       this.updateWalk();
       e.preventDefault();
       return;
     }
-    if (this.ui.plan && (k === 'enter' || k === 'r' || k === 'escape')) {
+    if (this.ui.plan && (k === 'enter' || k === 'escape' || isKey(e, 'rotate'))) {
       if (k === 'enter') this.confirmPlan();
-      else if (k === 'r') this.rotatePlan();
-      else this.cancelPlan();
+      else if (k === 'escape') this.cancelPlan();
+      else this.rotatePlan();
       e.preventDefault();
       return;
     }
-    if (k === 'p' && this.ui.hover) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && k === 'z') {
+      this.cb.undo();
+      e.preventDefault();
+      return;
+    }
+    if (isKey(e, 'undo')) this.cb.undo();
+    else if (this.ui.clipMode && (k === 'escape' || isKey(e, 'cancel'))) return void (this.stopClip(), e.preventDefault());
+    else if (this.ui.clipMode === 'paste' && isKey(e, 'rotate')) {
+      if (this.ui.clip) this.ui.clip = rotateClip(this.ui.clip);
+    } else if (isKey(e, 'copy')) this.toggleCopy();
+    else if (isKey(e, 'paste')) this.startPaste();
+    else if (isKey(e, 'ping') && this.ui.hover) {
       // Point at the spot under the mouse for the other players (co-op).
       if (!this.cb.ping(this.ui.hover.x, this.ui.hover.y)) return;
-    } else if (k === 'r') {
+    } else if (isKey(e, 'rotate')) {
       if (this.ui.tool) this.ui.dir = ((this.ui.dir + (e.shiftKey ? 3 : 1)) % 4) as Dir;
       else if (this.ui.selected != null) this.cb.issue({ kind: 'rotate', id: this.ui.selected });
-    } else if (k === 'escape' || k === 'q') {
+    } else if (k === 'escape' || isKey(e, 'cancel')) {
       this.ui.tool = null;
       this.ui.selected = null;
       this.ui.aiming = null;
-    } else if (k === 'x' || k === 'delete') {
+    } else if (k === 'delete' || isKey(e, 'demolish')) {
       this.ui.tool = this.ui.tool === 'demolish' ? null : 'demolish';
+      this.stopClip(false);
     } else return;
     e.preventDefault();
+    this.cb.onChange();
+  }
+
+  // ------------------------------------------------------------- copy and paste (D-143)
+
+  /** Starts copying an area (nothing in hand), or stops copying or pasting. */
+  toggleCopy(): void {
+    if (this.ui.clipMode) return this.stopClip();
+    this.ui.tool = null;
+    this.ui.plan = null;
+    this.ui.moving = null;
+    this.ui.aiming = null;
+    this.ui.selected = null;
+    this.ui.clipMode = 'copy';
+    this.cb.onNotice('Drag over the buildings to copy.');
+    this.cb.onChange();
+  }
+
+  /** Puts the last copy in hand again. */
+  startPaste(): void {
+    if (!this.ui.clip) return this.cb.onNotice('Nothing copied yet. Press Copy, then drag over some buildings.');
+    this.ui.tool = null;
+    this.ui.plan = null;
+    this.ui.moving = null;
+    this.ui.aiming = null;
+    this.ui.clipMode = 'paste';
+    this.cb.onChange();
+  }
+
+  /** Leaves copy or paste mode; the copy is kept for later. */
+  stopClip(notify = true): void {
+    this.ui.clipMode = null;
+    this.ui.selecting = null;
+    if (notify) this.cb.onChange();
+  }
+
+  private endSelect(completed: boolean): void {
+    const sel = this.ui.selecting;
+    this.ui.selecting = null;
+    if (completed && sel) {
+      const clip = copyArea(this.cb.getWorld(), sel.from.x, sel.from.y, sel.to.x, sel.to.y);
+      if (!clip) this.cb.onNotice('Nothing to copy there. Drag over buildings to copy them.');
+      else {
+        this.ui.clip = clip;
+        this.ui.clipMode = 'paste';
+        const n = clip.items.length;
+        this.cb.onNotice(`Copied ${n} building${n === 1 ? '' : 's'}. Tap where the copy goes; R turns it.`);
+      }
+    }
+    this.cb.onChange();
+  }
+
+  /** Builds the copy centred on tile `t`. What can't be built there is skipped. */
+  private pasteAt(t: Tile): void {
+    const clip = this.ui.clip;
+    if (!clip) return;
+    const at = clipCorner(clip, t);
+    let failed = 0;
+    for (const items of pasteChunks(clip.items)) {
+      const r = this.cb.issue({ kind: 'paste', x: at.x, y: at.y, items });
+      if (r) failed += r.failed;
+    }
+    if (failed) this.cb.onNotice(`${failed} of ${clip.items.length} couldn't be built: something in the way, locked, or not enough in stock.`);
+    buzz(15);
     this.cb.onChange();
   }
 

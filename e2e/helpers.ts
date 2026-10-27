@@ -100,7 +100,15 @@ function coveredBy([x, y]: readonly [number, number]): string {
  * tile sits under an overlay (the lesson card, the stock panel, a toast).
  */
 export async function uncoveredTile(page: Page, tx: number, ty: number): Promise<[number, number]> {
-  for (const [ox, oy] of [[0, 0], [0, -3], [0, 3], [-3, 0], [3, 0], [0, -6], [0, 6]]) {
+  for (const [ox, oy] of [
+    [0, 0],
+    [0, -3],
+    [0, 3],
+    [-3, 0],
+    [3, 0],
+    [0, -6],
+    [0, 6],
+  ]) {
     const pt = await page.evaluate(
       ([tx, ty, ox, oy]) => {
         const c = window.game.camera;
@@ -124,9 +132,7 @@ export async function uncoveredTile(page: Page, tx: number, ty: number): Promise
 /** A tap on touch screens, a click on desktop, on the map at (x, y). */
 export async function tap(page: Page, info: TestInfo, x: number, y: number): Promise<void> {
   // Wait for anything gliding over that spot (the tutorial card, a toast) to get out of the way.
-  await expect
-    .poll(() => page.evaluate(coveredBy, [x, y] as const), { message: 'the map is uncovered at the tap point' })
-    .toBe('game');
+  await expect.poll(() => page.evaluate(coveredBy, [x, y] as const), { message: 'the map is uncovered at the tap point' }).toBe('game');
   if (isTouch(info)) await page.touchscreen.tap(x, y);
   else await page.mouse.click(x, y);
 }
@@ -167,7 +173,10 @@ export async function buildTile(page: Page, info: TestInfo, tx: number, ty: numb
       }
       await page.click('[data-plan="confirm"]');
     }
-    await expect.poll(built, { timeout: 2000 }).toBe(true).catch(() => undefined);
+    await expect
+      .poll(built, { timeout: 2000 })
+      .toBe(true)
+      .catch(() => undefined);
   }
   expect(await built(), `a ${tool} at ${tx},${ty}`).toBe(true);
 }

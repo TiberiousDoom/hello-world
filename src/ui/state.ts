@@ -1,5 +1,6 @@
 import { BuildingType, DX, DY, Dir, footprint, isBelt } from '../sim/data';
 import type { World } from '../sim/world';
+import type { Clip } from './clipboard';
 
 export type Tool = BuildingType | 'demolish' | null;
 
@@ -36,6 +37,12 @@ export interface UIState {
   moving: number | null;
   /** A charged strike beacon whose target the next tap on the map picks (D-131). */
   aiming: number | null;
+  /** The copied section of a factory (D-143), kept until something else is copied. */
+  clip: Clip | null;
+  /** Copying: a drag picks an area. Pasting: a tap puts the copy down. */
+  clipMode: 'copy' | 'paste' | null;
+  /** The area being dragged out while copying, corner to corner. */
+  selecting: { from: Spot; to: Spot } | null;
 }
 
 /** A co-op ping: player `player` points at tile (x, y). */
@@ -50,7 +57,24 @@ export interface Ping {
 export const PING_MS = 5000;
 
 export function createUIState(): UIState {
-  return { tool: null, dir: 0, dirSet: false, hover: null, selected: null, speed: 1, plan: null, confirmTouch: true, player: 0, coop: null, pings: [], moving: null, aiming: null };
+  return {
+    tool: null,
+    dir: 0,
+    dirSet: false,
+    hover: null,
+    selected: null,
+    speed: 1,
+    plan: null,
+    confirmTouch: true,
+    player: 0,
+    coop: null,
+    pings: [],
+    moving: null,
+    aiming: null,
+    clip: null,
+    clipMode: null,
+    selecting: null,
+  };
 }
 
 /**
@@ -109,7 +133,21 @@ export const isBig = (type: BuildingType): boolean => {
 };
 
 /** Buildings that send items out of one side, and so can line up with a belt. */
-const ALIGNS: BuildingType[] = ['extractor', 'lumber_camp', 'furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'greenhouse', 'splitter'];
+const ALIGNS: BuildingType[] = [
+  'extractor',
+  'lumber_camp',
+  'furnace',
+  'workshop',
+  'assembler',
+  'sawmill',
+  'blacksmith',
+  'machine_shop',
+  'steel_works',
+  'powder_mill',
+  'circuit_works',
+  'greenhouse',
+  'splitter',
+];
 
 /**
  * How well a building at (x, y) facing `dir` joins the belts around it: 2 if

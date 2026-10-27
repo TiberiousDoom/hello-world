@@ -144,12 +144,7 @@ function recipe(sound: Sound): Layer[] {
     case 'hub_hit':
       return [tone('triangle', 330, 320, 0.28, 0.22), tone('sine', 812, 800, 0.22, 0.1), noise('bandpass', 2000, 1200, 0.05, 0.15)];
     case 'breach':
-      return [
-        tone('sine', 80, 30, 1.2, 0.6),
-        noise('lowpass', 2500, 100, 1, 0.45),
-        tone('square', 660, 440, 0.3, 0.1, 0.15),
-        tone('square', 660, 440, 0.3, 0.1, 0.5),
-      ];
+      return [tone('sine', 80, 30, 1.2, 0.6), noise('lowpass', 2500, 100, 1, 0.45), tone('square', 660, 440, 0.3, 0.1, 0.15), tone('square', 660, 440, 0.3, 0.1, 0.5)];
     case 'research':
       return [523, 659, 784, 1047].flatMap((f, i) => [tone('triangle', f, f, 0.35, 0.2, i * 0.09), tone('sine', f / 2, f / 2, 0.3, 0.08, i * 0.09)]);
     case 'stage':
@@ -195,10 +190,7 @@ function recipe(sound: Sound): Layer[] {
       // A low, rattling croak, sometimes two.
       const f = 140 + Math.random() * 80;
       const n = Math.random() < 0.4 ? 2 : 1;
-      return Array.from({ length: n }, (_, i) => [
-        tone('sawtooth', f, f * 0.85, 0.22, 0.07, i * 0.35, 0.02),
-        noise('bandpass', f * 4, f * 3, 0.2, 0.06, 3, i * 0.35, 0.02),
-      ]).flat();
+      return Array.from({ length: n }, (_, i) => [tone('sawtooth', f, f * 0.85, 0.22, 0.07, i * 0.35, 0.02), noise('bandpass', f * 4, f * 3, 0.2, 0.06, 3, i * 0.35, 0.02)]).flat();
     }
   }
 }
@@ -266,11 +258,14 @@ export class Sfx {
     let end = 0;
     for (const layer of recipe(sound)) end = Math.max(end, this.layer(layer, out, now));
     this.voices++;
-    setTimeout(() => {
-      this.voices--;
-      out.disconnect();
-      node.disconnect();
-    }, (end - now) * 1000 + 100);
+    setTimeout(
+      () => {
+        this.voices--;
+        out.disconnect();
+        node.disconnect();
+      },
+      (end - now) * 1000 + 100,
+    );
   }
 
   /**

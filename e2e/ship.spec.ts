@@ -145,10 +145,6 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   });
   await page.click('[data-tool="express_belt"]');
   await tap(page, info, ...(await uncoveredTile(page, belts.x0 + 2, belts.y)));
-  await expect
-    .poll(() =>
-      page.evaluate(({ x0, y }) => [0, 1, 2, 3, 4, 5].map((i) => window.game.world.buildingAt(x0 + i, y)?.type), belts),
-    )
-    .toEqual(Array(6).fill('express_belt'));
+  await expect.poll(() => page.evaluate(({ x0, y }) => [0, 1, 2, 3, 4, 5].map((i) => window.game.world.buildingAt(x0 + i, y)?.type), belts)).toEqual(Array(6).fill('express_belt'));
   expect(await page.evaluate(() => window.game.ui.plan)).toBeNull();
 });

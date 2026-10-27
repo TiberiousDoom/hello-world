@@ -83,7 +83,9 @@ test('holding the mouse button on bare ore keeps mining it by hand', async ({ pa
   await page.waitForTimeout(2600);
   await page.mouse.up();
   // Four taps a second: eight taps (one stone) in about two seconds.
-  await expect.poll(() => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0))).toBeGreaterThanOrEqual(1);
+  await expect
+    .poll(() => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0)))
+    .toBeGreaterThanOrEqual(1);
   const taps = await page.evaluate(() => window.game.world.handMiningAt(window.game.world.hub.x - 6, window.game.world.hub.y + 2));
   expect(taps).toBeLessThan(8);
 });

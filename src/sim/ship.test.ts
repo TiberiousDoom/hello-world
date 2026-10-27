@@ -25,7 +25,24 @@ function quiet(mode: 'standard' | 'hardcore' = 'standard'): World {
   s.nests = [];
   s.enemies = [];
   w.nestCells.clear();
-  s.inventory = { iron_plate: 999, stone: 999, iron_ore: 999, brick: 999, gear: 999, wire: 999, motor: 999, plank: 999, log: 999, truss: 999, rope: 999, rivet: 999, iron_rod: 999, steel: 999, steel_beam: 999, bearing: 999 };
+  s.inventory = {
+    iron_plate: 999,
+    stone: 999,
+    iron_ore: 999,
+    brick: 999,
+    gear: 999,
+    wire: 999,
+    motor: 999,
+    plank: 999,
+    log: 999,
+    truss: 999,
+    rope: 999,
+    rivet: 999,
+    iron_rod: 999,
+    steel: 999,
+    steel_beam: 999,
+    bearing: 999,
+  };
   return w;
 }
 
@@ -293,7 +310,11 @@ describe('Supply ship', () => {
     expect(ship.offer).toHaveLength(2);
     pickBlueprint(w, ship.offer![0]);
     deliverRun(w); // two left: both on offer
-    expect([...ship.offer!].sort()).toEqual(BLUEPRINTS.map((b) => b.id).filter((id) => !ship.blueprints.includes(id)).sort());
+    expect([...ship.offer!].sort()).toEqual(
+      BLUEPRINTS.map((b) => b.id)
+        .filter((id) => !ship.blueprints.includes(id))
+        .sort(),
+    );
     pickBlueprint(w, ship.offer![1]);
     deliverRun(w); // only one left: it's simply sent
     expect(ship.offer).toBeNull();
@@ -376,7 +397,11 @@ describe('Supply ship', () => {
   });
 
   it('v31 saves: a ship past the scaffolding counts the launch pad as built and keeps its stage going', () => {
-    for (const [stage, after] of [[0, 0], [1, 2], [5, 6]]) {
+    for (const [stage, after] of [
+      [0, 0],
+      [1, 2],
+      [5, 6],
+    ]) {
       const w = quiet();
       w.state.researched = w.state.researched.filter((r) => r !== 'launch_pad');
       const old = JSON.parse(w.toJSON());

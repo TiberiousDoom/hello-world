@@ -18,6 +18,9 @@ import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { PING_MS, createUIState } from './ui/state';
+import { UndoStack, rebuild } from './ui/undo';
+import { KeyList, UI_SCALE_MAX, UI_SCALE_MIN, applyUiScale, systemReducedMotion } from './ui/settings';
+import { keyName } from './ui/keys';
 import { LESSONS, Tutorial } from './ui/tutorial';
 import { Lobby } from './ui/lobby';
 import { RELAY_URL, SERVER_ROOM, roomStatus } from './net/client';
@@ -66,10 +69,24 @@ interface Profile {
   sfxVolume: number; // 0–1
   lastSeenVersion: string; // the newest version whose What's new this player has opened
   batterySaver: boolean; // draw at normal resolution and 30 frames a second
+  uiScale: number; // the size of text and buttons, 0.8–1.4 (D-143)
+  reducedMotion: boolean | null; // null: as the system says
 }
 
 function loadProfile(): Profile {
-  const fallback: Profile = { lessonsSeen: [], tipsOff: false, hardcoreUnlocked: false, confirmTouch: true, musicVolume: 0.5, sfxVolume: 0.6, escapes: 0, lastSeenVersion: '', batterySaver: false };
+  const fallback: Profile = {
+    lessonsSeen: [],
+    tipsOff: false,
+    hardcoreUnlocked: false,
+    confirmTouch: true,
+    musicVolume: 0.5,
+    sfxVolume: 0.6,
+    escapes: 0,
+    lastSeenVersion: '',
+    batterySaver: false,
+    uiScale: 1,
+    reducedMotion: null,
+  };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
     // Players who finished the old one-shot tutorial have seen what its lessons cover.
@@ -153,9 +170,45 @@ const serverRoom = (params.get('server') ?? SERVER_ROOM).toUpperCase();
  */
 function issue<C extends Command>(command: C): ResultOf<C> | undefined {
   if (inMenu || !session) return applyCommand(active(), command);
-  if (coop.host) return void coop.host.submit(0, command);
-  if (coop.guest) return void coop.guest.submit(command);
-  return session.do(command);
+  // What a demolish takes down, captured before it goes, so undo can build it again (D-143).
+  const gone = command.kind === 'demolish' ? game?.byId.get(command.id) : undefined;
+  const back = gone ? rebuild(gone) : null;
+  let result: ResultOf<C> | undefined;
+  if (coop.host) coop.host.submit(0, command);
+  else if (coop.guest) coop.guest.submit(command);
+  else result = session.do(command);
+  if (undoing) undoSent.push(JSON.stringify(command));
+  else {
+    if (back && result !== false) undo.record(back, performance.now());
+    if (result !== undefined) recordBuilt(command, result);
+  }
+  return result;
+}
+
+/** Building and demolishing that can be undone (D-143), newest last. In co-op, each player undoes their own. */
+const undo = new UndoStack();
+let undoing = false;
+/** In co-op, undo's own commands come back late: these aren't recorded as new changes. */
+let undoSent: string[] = [];
+
+/** Records what takes down what a place or paste command built. */
+function recordBuilt(c: Command, result: unknown): void {
+  const now = performance.now();
+  if (c.kind === 'place' && result && typeof result === 'object' && 'id' in result) undo.record({ kind: 'demolish', id: (result as { id: number }).id }, now);
+  if (c.kind === 'paste' && result && typeof result === 'object' && 'ids' in result) for (const id of (result as { ids: number[] }).ids) undo.record({ kind: 'demolish', id }, now);
+}
+
+function undoLast(): void {
+  if (inMenu || !session) return;
+  const step = undo.pop();
+  if (!step) return hud.toast('Nothing to undo.');
+  undoing = true;
+  try {
+    for (const c of step) issue(c);
+  } finally {
+    undoing = false;
+  }
+  hud.refresh();
 }
 
 /** In co-op, this player's commands answer a few ticks late: report their errors then. */
@@ -163,6 +216,9 @@ let lastPlaceError = 0;
 function lateResult(entry: LoggedCommand, result: unknown): void {
   if (!session || entry.player !== session.player || !ui.coop) return;
   const c = entry.command;
+  const sent = undoSent.indexOf(JSON.stringify(c));
+  if (sent >= 0) undoSent.splice(sent, 1);
+  else recordBuilt(c, result);
   if (c.kind === 'mine' && result === 'full') hud.toast('Your inventory is full. Walk back to the hub to drop it off.');
   if (c.kind === 'mine' && result === 'down') hud.toast('Your engineer is getting back on their feet at the hub.');
   if ((c.kind === 'place' || c.kind === 'upgrade-belts' || c.kind === 'upgrade') && typeof result === 'string' && result !== 'occupied' && result !== 'bounds') {
@@ -191,6 +247,8 @@ function centreOnHub(world: World): void {
 function play(world: World, shared?: Session): void {
   if (!shared && coop.active) coop.leave();
   useSession(world, shared);
+  undo.clear();
+  undoSent = [];
   inMenu = false;
   document.body.classList.remove('in-menu');
   ui.selected = null;
@@ -318,6 +376,8 @@ const hud = new Hud(ui, {
   toMainMenu: showMainMenu,
   hasGame: () => !!game || hasSave(),
   rotatePlan: () => input.rotatePlan(),
+  undo: undoLast,
+  toggleCopy: () => input.toggleCopy(),
   delivered: (first) => {
     if (first) music.setMood('win');
     // Count each game's first delivery once.
@@ -369,6 +429,7 @@ const input = new Input(canvas, camera, ui, {
   onPlaceError: placeError,
   onNotice: (text) => hud.toast(text),
   onChange: () => hud.refresh(),
+  undo: undoLast,
   ping,
 });
 const planBar = new PlanBar(camera, ui, {
@@ -412,6 +473,59 @@ saverToggle.addEventListener('change', () => {
   renderer.resize();
   saveProfile();
 });
+
+// Settings (D-143): the size of the interface, motion, and the keys.
+const uiScale = document.getElementById('ui-scale') as HTMLInputElement;
+const showUiScale = () => {
+  profile.uiScale = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, profile.uiScale || 1));
+  uiScale.value = String(Math.round(profile.uiScale * 100));
+  document.getElementById('ui-scale-value')!.textContent = `${uiScale.value}%`;
+  applyUiScale(profile.uiScale);
+};
+showUiScale();
+uiScale.addEventListener('input', () => {
+  profile.uiScale = Number(uiScale.value) / 100;
+  showUiScale();
+});
+uiScale.addEventListener('change', () => {
+  saveProfile();
+  hud.refresh();
+});
+const motionToggle = document.getElementById('motion-toggle') as HTMLInputElement;
+const applyMotion = () => {
+  const reduced = profile.reducedMotion ?? systemReducedMotion();
+  motionToggle.checked = reduced;
+  renderer.reducedMotion = reduced;
+  document.body.classList.toggle('reduce-motion', reduced);
+};
+applyMotion();
+motionToggle.addEventListener('change', () => {
+  profile.reducedMotion = motionToggle.checked;
+  applyMotion();
+  saveProfile();
+});
+const keyList = new KeyList(
+  document.getElementById('keys-list')!,
+  () => hud.refresh(),
+  (key) => hud.toast(`${keyName(key)} can't be changed: walking, Enter, Esc, Tab, Delete and the number keys keep their jobs.`),
+);
+keyList.render();
+document.getElementById('keys-reset')!.addEventListener('click', () => keyList.reset());
+/** Opened from the pause menu, closing Settings goes back to it. */
+let settingsFromPause = false;
+const openSettings = (fromPause: boolean) => {
+  settingsFromPause = fromPause;
+  keyList.render();
+  hud.openModal('settings');
+};
+document.getElementById('mm-settings')!.addEventListener('click', () => openSettings(false));
+document.getElementById('btn-settings')!.addEventListener('click', () => openSettings(true));
+document.querySelector('#settings [data-close]')!.addEventListener('click', () => {
+  if (settingsFromPause && !inMenu) hud.openModal('menu');
+});
+new MutationObserver(() => {
+  if (document.getElementById('settings')!.hidden) keyList.stop();
+}).observe(document.getElementById('settings')!, { attributes: true, attributeFilter: ['hidden'] });
 
 const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
 confirmToggle.checked = profile.confirmTouch;
@@ -566,6 +680,10 @@ renderer.resize();
 showMainMenu();
 const artLoaded = loadArt(); // sprites appear as they finish loading; shapes are drawn until then
 
+// Offline play and installing to the home screen (D-143). Not in the single-file build, which has no sw.js.
+if (import.meta.env.PROD && import.meta.env.MODE !== 'single' && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch((err) => console.warn('No offline play:', err));
+}
 
 let last = performance.now();
 let lastSeason: string | null = null;
@@ -666,6 +784,7 @@ requestAnimationFrame(frame);
     return inMenu;
   },
   camera,
+  renderer,
   ui,
   music,
   sfx,

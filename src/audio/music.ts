@@ -132,11 +132,14 @@ export class Music {
       g.cancelScheduledValues(ctx.currentTime);
       g.setValueAtTime(g.value, ctx.currentTime);
       g.linearRampToValueAtTime(0, ctx.currentTime + fade);
-      setTimeout(() => {
-        old.el.pause();
-        old.el.removeAttribute('src');
-        old.gain.disconnect();
-      }, fade * 1000 + 100);
+      setTimeout(
+        () => {
+          old.el.pause();
+          old.el.removeAttribute('src');
+          old.gain.disconnect();
+        },
+        fade * 1000 + 100,
+      );
     }
     const name = this.nextName();
     const el = new Audio(`music/${name}.wav`);
