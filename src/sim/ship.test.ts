@@ -126,7 +126,8 @@ describe('Supply ship', () => {
     for (const [item, n] of Object.entries(SHIP.stages[2].items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
     expect(w.state.ship.stage).toBe(3);
     expect(w.events.some((e) => e.includes('Hull done'))).toBe(true);
-    expect(w.insert(b, 'gear', ...from)).toBe(true); // now the engine
+    expect(w.insert(b, 'gear', ...from)).toBe(false); // the engine is built of coils and steel now (D-130)
+    expect(w.insert(b, 'coil', ...from)).toBe(true); // now the engine
   });
 
   it('once built, the ship takes only the cargo the run still needs', () => {
@@ -425,7 +426,8 @@ describe('Supply ship', () => {
   });
 
   it('v35 saves: the hull is steel now; a hull under way gives back its parts, and a ship past it gets the research', () => {
-    for (const stage of [2, 4]) {
+    for (const stage of [2, SHIP.stages.length]) {
+      // A ship past the hull: here a finished one, since a stage after it under way is refunded by v39 (D-130).
       const w = quiet();
       w.state.researched = w.state.researched.filter((r) => r !== 'hull');
       const old = JSON.parse(w.toJSON());
@@ -440,5 +442,38 @@ describe('Supply ship', () => {
       if (stage === 2) expect(loaded.state.inventory).toEqual({ iron_plate: 40, brick: 10 });
     }
     expect(SHIP.stages[2]).toMatchObject({ id: 'hull', research: 'hull' });
+  });
+
+  it('the engines, life support and navigation wait for Ship Systems (D-130)', () => {
+    const w = quiet();
+    w.state.researched = w.state.researched.filter((r) => r !== 'ship_systems');
+    const b = yard(w);
+    const from = [b.x - 1, b.y] as const;
+    for (const st of SHIP.stages.slice(0, 3)) for (const [item, n] of Object.entries(st.items)) for (let i = 0; i < n!; i++) w.insert(b, item as ItemId, ...from);
+    expect(w.state.ship.stage).toBe(3);
+    expect(SHIP.stages.slice(3).map((st) => st.research)).toEqual(['ship_systems', 'ship_systems', 'ship_systems']);
+    expect(stageNeeds(w)).toBe('ship_systems');
+    expect(w.insert(b, 'coil', ...from)).toBe(false);
+    expect(RESEARCH_BY_ID.ship_systems.requires.sort()).toEqual(['electronics', 'hull']);
+    w.state.researched.push('ship_systems');
+    expect(w.insert(b, 'coil', ...from)).toBe(true);
+  });
+
+  it('v38 saves: a ship past the engines gets Ship Systems; one building an Electric Age stage gets its parts back', () => {
+    for (const stage of [3, 4, SHIP.stages.length]) {
+      const w = quiet();
+      w.state.researched = w.state.researched.filter((r) => r !== 'ship_systems');
+      const old = JSON.parse(w.toJSON());
+      old.version = 38;
+      old.ship.stage = stage;
+      old.ship.delivered = { wire: 50, gear: 20 };
+      old.inventory = {};
+      const loaded = World.fromJSON(JSON.stringify(old));
+      expect(loaded.state.ship.stage).toBe(stage);
+      expect(loaded.state.researched.includes('ship_systems')).toBe(stage > 3);
+      const refunded = stage < SHIP.stages.length;
+      expect(loaded.state.ship.delivered).toEqual(refunded ? {} : { wire: 50, gear: 20 });
+      if (refunded) expect(loaded.state.inventory).toEqual({ wire: 50, gear: 20 });
+    }
   });
 });

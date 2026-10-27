@@ -222,7 +222,7 @@ circuits, drones, Mk3 machines and electric defences, all on the Steam Age's pow
 | Mk3 Machines | Mk2 extractors and furnaces, and assemblers, upgraded in place to Mk3 (electric) | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works, Mk2 Machines |
 | Electric Defense | Tesla Turret (electric, no ammunition), Arc Fence, Floodlights | 60 circuit boards, 100 wire, 30 coils | Circuit Works |
 | Electric Defense 2 | Shield Pylon, Railgun | 100 circuit boards, 60 coils, 40 bearings | Electric Defense |
-| Ship Systems | The ship's engines, life support and navigation; launch | *to set* (circuits, coils, motors, steel) | Electronics |
+| Ship Systems | The ship's engines, life support and navigation; launch | 120 circuit boards, 60 coils, 40 motors, 100 steel (D-130) | Electronics, Hull |
 
 ### How the Electric Age plays (D-125)
 
@@ -249,7 +249,7 @@ The owner's answers, 2026-10-27. Numbers are first guesses to test.
   3. ✅ Mk3 Machines (0.68.0, D-127).
   4. ✅ Drone Logistics (0.69.0, D-128): drone pads.
   5. ✅ Electric Defense 2 (0.70.0, D-129): the Shield Pylon and the Railgun.
-  6. Ship Systems and the launch.
+  6. ✅ Ship Systems and the launch (0.71.0, D-130): the engine, life support and navigation, of circuits, coils and steel.
   7. Special buildings from supply runs.
 
 ## The ship
@@ -288,7 +288,7 @@ Age by age, each playtested before the next:
    steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), ✅ Mk2 machines and the Storage Silo (0.63.0), ✅ gunpowder
    and the Turret Mk.2 (0.64.0), ✅ the mortar, artillery and hull (0.65.0). The Steam Age is built.
 5. **Electric Age** (decided, D-125; see [How the Electric Age plays](#how-the-electric-age-plays-d-125)): ✅ Electronics
-   and the Circuit Works (0.66.0), ✅ Electric Defense (0.67.0), ✅ Mk3 Machines (0.68.0), ✅ drone pads (0.69.0), ✅ Electric Defense 2 (0.70.0); next Ship Systems and the launch.
+   and the Circuit Works (0.66.0), ✅ Electric Defense (0.67.0), ✅ Mk3 Machines (0.68.0), ✅ drone pads (0.69.0), ✅ Electric Defense 2 (0.70.0), ✅ Ship Systems (0.71.0); next the colony's special buildings.
 
 Each step changes saved games: a save migration grants an age's keystone to a game that already
 researched something in it, and refunds researches that are removed.
