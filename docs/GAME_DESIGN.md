@@ -64,7 +64,9 @@ How the game works on `master` today. Balance numbers live in
 | Rope | Workshop | 2 logs | 3 s |
 | Truss | Workshop (after Carpentry) | 3 planks + 2 pegs + 1 rope | 4 s |
 | Charcoal | Furnace (after Charcoal) | 2 logs | 2.5 s |
-| Steel | Furnace | 2 iron plates + 1 charcoal | 3 s |
+| Steel | Furnace (after Steelmaking) | 2 iron plates + 1 charcoal | 3 s |
+| Steel beam | Steel Works | 2 steel | 3 s |
+| Bearing ×2 | Steel Works | 1 steel + 1 gear | 3 s |
 | Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
@@ -92,6 +94,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Workshop | 2×2 | 10 planks, 6 logs | 120 | Workshops |
 | Blacksmith | 2×2 | 10 stone, 6 iron ingots | 140 | Blacksmith |
 | Machine Shop | 2×2 | 10 iron plates, 10 rivets, 4 bricks | 140 | Machine Shop |
+| Steel Works | 2×2 | 10 steel, 12 bricks, 6 gears | 180 | Steel Works |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Metal Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Metal Logistics |
@@ -232,7 +235,7 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
 - **Wood in the economy (D-054):** a Sawmill can also saw planks into **stakes**, the ammo for the
   **Ballista**, and refill **spike pits** (both from the Wood Age's defences, D-107). **Repair stations** burn planks as well as
   iron plates. The **Workshop**, **Repair Station** and **Shipyard** cost a few planks, so Workshops
-  research needs Forestry. Its wooden parts are in [Wooden parts](#items-and-recipes) (D-105). A **furnace** burns 2 logs into **charcoal**, and makes **steel** from
+  research needs Forestry. Its wooden parts are in [Wooden parts](#items-and-recipes) (D-105). A **furnace** burns 2 logs into **charcoal**, and, after Steelmaking, makes **steel** from
   2 iron plates and 1 charcoal. Steel is cargo for the fourth supply run on, and the material for upgrades
   to come.
 - Still to come: forest that matters to bugs ([ROADMAP.md](ROADMAP.md)).
@@ -268,6 +271,9 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Chitin Plating | 10 chitin, 20 iron plates | 45 s | Advanced Defense | Turrets, walls and palisades get 1.5× health (built ones too) |
 | Distribution | 25 iron plates, 10 copper | 60 s | Advanced Defense | Hub Port |
 | Assembly | 30 gears, 30 wire | 120 s | Machine Shop | Assembler |
+| Engineering | 30 motors, 100 gears, 60 bricks | 120 s | Assembly, Advanced Defense 2 | Opens the Steam Age |
+| Steelmaking | 100 iron plates, 60 charcoal | 60 s | Engineering, Charcoal | The steel recipe |
+| Steel Works | 80 steel, 40 gears, 20 motors | 90 s | Steelmaking | Steel Works (steel beams, bearings) |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
@@ -368,6 +374,9 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    hammers ingots into **plates** (or rods, and rods into rivets). Plates pay for **Hydraulics**, then **Metal Logistics** (powered belts), and
    **Advanced Defense** (hydraulic turrets and brick walls), then **Advanced Defense 2** (hydraulic cannons and
    reinforced walls). The **Machine Shop** (after Blacksmith) makes gears and wire.
+9. **The Steam Age (D-119):** **Engineering** (30 motors, 100 gears, 60 bricks, after Assembly and Advanced Defense 2)
+   opens it. **Steelmaking** lets furnaces make **steel**, and the **Steel Works** rolls it into **steel beams** and
+   makes **bearings** from steel and gears.
 
 ## Bugs
 
@@ -773,7 +782,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v32**). v32 (D-118) adds the launch pad as the ship's second stage: a ship past the
+- Save files are versioned (currently **v33**). v33 (D-120) gives a game already making or holding steel Steelmaking and
+  Engineering, since the steel recipe now needs them. v32 (D-118) adds the launch pad as the ship's second stage: a ship past the
   scaffolding counts it as built, with its research, and carries on with the stage it was on. v31 (D-117) trades Masonry for Advanced Defense (with Hydraulics, which it
   needs), returns what was paid towards Masonry, and puts stock in the hub for the wells and shafts its turrets and cannons now
   need. v30 (D-115) adds ponds away from what's built, gives a game with Logistics

@@ -90,8 +90,9 @@ export type { ResearchState };
  * v30 (D-115) adds ponds, and powered belts: old games get Hydraulics with Logistics, and stock for wells.
  * v31 (D-117): turrets and cannons need power, and Masonry goes into Advanced Defense.
  * v32 (D-118): the ship gains the launch pad, its second stage; a ship past the scaffolding has it built.
+ * v33 (D-120): steel needs Steelmaking; a game already making or holding steel gets it, and Engineering.
  */
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -384,6 +385,7 @@ export class World {
     if (state.version === 29) World.migrateV29(state);
     if (state.version === 30) World.migrateV30(state);
     if (state.version === 31) World.migrateV31(state);
+    if (state.version === 32) World.migrateV32(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -401,6 +403,16 @@ export class World {
     const free = (x: number, y: number) =>
       !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
     this.addWater(generatePonds(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x5eed), free));
+  }
+
+  /**
+   * v32 to v33 (D-120): the steel recipe needs Steelmaking, in the Steam Age. A game already making or
+   * holding steel gets it, with Engineering, the age's keystone, so its furnaces carry on.
+   */
+  private static migrateV32(state: GameState): void {
+    const steel = (state.inventory.steel ?? 0) > 0 || state.buildings.some((b) => b.recipe === 'steel');
+    if (steel) for (const id of ['engineering', 'steelmaking']) if (!state.researched.includes(id)) state.researched.push(id);
+    state.version = 33;
   }
 
   /**
@@ -1510,7 +1522,8 @@ export class World {
       case 'assembler':
       case 'sawmill':
       case 'blacksmith':
-      case 'machine_shop': {
+      case 'machine_shop':
+      case 'steel_works': {
         // Fuel goes into the fuel store, unless the recipe uses it and still has room for it (D-114).
         const burn = burnsFuel(target.type) ? FUEL.burns[item] : undefined;
         if (burn) {
@@ -1795,6 +1808,7 @@ export class World {
         case 'sawmill':
         case 'blacksmith':
         case 'machine_shop':
+        case 'steel_works':
           this.tickMachine(b, dt);
           break;
         case 'hub':

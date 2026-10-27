@@ -23,6 +23,7 @@ export function outputsTo(world: World, n: Building, x: number, y: number): bool
     case 'sawmill':
     case 'blacksmith':
     case 'machine_shop':
+    case 'steel_works':
     case 'port':
       dirs = [n.dir];
       break;
@@ -68,6 +69,7 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'sawmill':
     case 'blacksmith':
     case 'machine_shop':
+    case 'steel_works':
     case 'turret':
     case 'cannon':
       return true;

@@ -37,6 +37,7 @@ const TILES: Record<string, [number, number]> = {
   'buildings/well': [2, 2],
   'buildings/water_wheel': [3, 1],
   'buildings/machine_shop': [2, 2],
+  'buildings/steel_works': [2, 2],
   'buildings/assembler': [3, 3],
   'buildings/splitter': [1, 2],
   'buildings/storage': [1, 2],

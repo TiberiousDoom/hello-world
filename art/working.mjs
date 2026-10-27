@@ -134,6 +134,15 @@ const MACHINES = {
     svg = swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'machine shop light');
     return svg;
   },
+  steel_works(svg, i) {
+    // The rolls turn against each other, the billet passes between them, and its glow breathes.
+    svg = swap(svg, 'translate(62 46) rotate(0)', `translate(62 46) rotate(${22.5 * i})`, 'steel works top roll');
+    svg = swap(svg, 'translate(62 82) rotate(0)', `translate(62 82) rotate(${-22.5 * i})`, 'steel works bottom roll');
+    svg = swap(svg, '<rect x="20" y="59" width="34" height="10"', `<rect x="${20 + 4 * i}" y="59" width="34" height="10"`, 'steel works billet');
+    svg = swap(svg, 'opacity="0.55" filter="url(#kBlur)"', `opacity="${[0.55, 0.75, 0.6, 0.8][i]}" filter="url(#kBlur)"`, 'steel works glow');
+    svg = swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'steel works light');
+    return svg;
+  },
   well(svg, i) {
     // The crank turns a quarter of the way round over the loop, and back to the start: four-fold symmetric.
     return swap(svg, '<g id="wCrank" transform="rotate(0 64 64)">', `<g id="wCrank" transform="rotate(${22.5 * i} 64 64)">`, 'well crank');
