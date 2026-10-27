@@ -25,6 +25,8 @@ export type Command =
   | { kind: 'research'; id: string }
   | { kind: 'pause-research' }
   | { kind: 'upgrade-belts'; x: number; y: number }
+  // Empties a whole belt line into hub stock (D-141).
+  | { kind: 'clear-belts'; id: number }
   // An extractor or furnace to Mk2 (D-122).
   | { kind: 'upgrade'; id: number }
   | { kind: 'launch' }
@@ -57,6 +59,7 @@ export interface CommandResults {
   research: ResearchError | null;
   'pause-research': void;
   'upgrade-belts': { upgraded: number; left: number } | PlaceError;
+  'clear-belts': number;
   upgrade: PlaceError | null;
   launch: LaunchError | null;
   strike: StrikeError | null;
@@ -106,6 +109,8 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.pauseResearch();
     case 'upgrade-belts':
       return w.upgradeBeltLine(c.x, c.y);
+    case 'clear-belts':
+      return w.clearBeltLine(c.id);
     case 'upgrade':
       return w.upgradeMachine(c.id);
     case 'launch':

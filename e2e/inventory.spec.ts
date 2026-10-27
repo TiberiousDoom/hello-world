@@ -59,3 +59,27 @@ test('the Inventory button shows the slots, drop-off at the hub can be switched 
   await pick.click();
   await expect.poll(() => stone(page), { timeout: 8000 }).toBe(8);
 });
+
+test('Clear line puts every item on a belt line back in hub stock (D-141)', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  const before = await page.evaluate(() => {
+    const w = window.game.world;
+    const h = w.hub!;
+    const [x, y] = [h.x - 3, h.y + 7];
+    const ids: number[] = [];
+    for (let dx = 0; dx < 3; dx++) {
+      w.state.trees[w.idx(x + dx, y)] = 0;
+      w.state.resources[w.idx(x + dx, y)] = 0;
+      const b = w.place('belt', x + dx, y, 0, false);
+      if (typeof b === 'string') throw new Error(b);
+      b.belt = [{ item: 'gear', pos: 0.4, lane: 1 }];
+      ids.push(b.id);
+    }
+    window.game.ui.selected = ids[0];
+    return w.state.inventory.gear ?? 0;
+  });
+  await page.locator('#info [data-action="clear-belts"]').click();
+  await expect(page.locator('#toasts')).toContainText('3 items back in hub stock');
+  expect(await page.evaluate(() => window.game.world.state.inventory.gear ?? 0)).toBe(before + 3);
+});

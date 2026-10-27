@@ -1594,8 +1594,8 @@ export class World {
    * belt-to-belt, in both directions (side merges included), up to any other
    * building. Nearest first.
    */
-  beltLine(start: Building): Building[] {
-    if (start.type !== 'belt') return [];
+  beltLine(start: Building, joins: (t: BuildingType) => boolean = (t) => t === 'belt'): Building[] {
+    if (!joins(start.type)) return [];
     const seen = new Set([start.id]);
     const line = [start];
     for (let i = 0; i < line.length; i++) {
@@ -1611,7 +1611,7 @@ export class World {
         if (n && n.x + DX[n.dir] === b.x && n.y + DY[n.dir] === b.y) next.push(n);
       }
       for (const n of next) {
-        if (n && n.type === 'belt' && !seen.has(n.id)) {
+        if (n && joins(n.type) && !seen.has(n.id)) {
           seen.add(n.id);
           line.push(n);
         }
@@ -1625,6 +1625,22 @@ export class World {
    * keeping each belt's facing and items and refunding the old belts. With
    * too little stock it upgrades as many as it can, nearest the tap first.
    */
+  /**
+   * Empties every item off a whole belt line (rollers and belts of any kind, joined end to end) into hub
+   * stock, leaving the belts in place (Q-19, D-141). Returns how many items went back.
+   */
+  clearBeltLine(id: number): number {
+    const start = this.byId.get(id);
+    if (!start) return 0;
+    let n = 0;
+    for (const b of this.beltLine(start, isBelt)) {
+      for (const it of b.belt) this.state.inventory[it.item] = (this.state.inventory[it.item] ?? 0) + 1;
+      n += b.belt.length;
+      b.belt = [];
+    }
+    return n;
+  }
+
   upgradeBeltLine(x: number, y: number): { upgraded: number; left: number } | PlaceError {
     const start = this.buildingAt(x, y);
     if (start?.type !== 'belt') return 'occupied';
