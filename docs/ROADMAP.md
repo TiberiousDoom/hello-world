@@ -120,6 +120,10 @@ In this order. Phase 0 can start before the player character (playtest issue #40
 - ✅ **Phase 2, make it solid** (0.42.0, D-079): joining mid-game from a snapshot, a fresh copy for a guest out of step or 20 s behind, reconnecting after a dropped connection, the shared game saved in every player's browser (a co-op slot apart from your own factory), a departed player's engineer back at the hub at once. The host never waits for a guest, so a slow guest can't hold anyone up. The host reconnecting came after (D-081)
 - ✅ **Phase 3, co-op design** (0.42.0, D-080): pings, the blueprint offer as a card that doesn't block play (with Later), per-player messages ("your engineer"), engineers side by side at the start, 4-player tests. Player colours came in phase 1. ⬜ Balance for more players, after playtesting
 - ✅ **The host reconnecting** (0.42.0, D-081): the relay keeps the room a minute for a host whose connection dropped; only the host's key takes it back; keep-alive turns let guests notice a dead connection
+- ⬜ **Opening up to strangers** (later, D-143). Until then the dedicated server stays on the owner's spare PC for friends, behind a reserved room code and a password (D-140). When the game opens up, in this order:
+  1. **Invite links and player accounts:** join by clicking a link instead of typing a password; accounts so one player can be removed, or given their own permissions. Mostly changes in the game and the relay.
+  2. **Move the dedicated server to a small cloud server** (a basic Linux machine, about $5–10 a month): always on, and kept apart from the home network. The same setup as the spare PC; `world.json` and `room.json` move across, and the room code, reservation and passwords keep working.
+  3. **More rooms** as players arrive: several worlds at once, each with its own code.
 
 ### Nests (D-065, #53)
 In this order:

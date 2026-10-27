@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.84.1 · 2026-10-27 · Plans for opening up
+### New
+- Nothing new in the game this time: the plan for opening co-op to strangers is written up. Invite links and player accounts come first, then a cloud server and more rooms.
+
 ## 0.84.0 · 2026-10-27 · Stock by name
 ### New
 - The hub's panel lists everything in stock **by name**, with its icon and count. Handy on phones, where you can't hover an icon to see what it is.
