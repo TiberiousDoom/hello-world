@@ -1120,7 +1120,7 @@ export class Hud {
     el.classList.toggle('night', c.night);
     el.dataset.season = c.season.id;
     const left = Math.ceil(((1 - c.part) * (c.night ? CLOCK.night : CLOCK.day)) / 60);
-    const threat = threatAt(time);
+    const threat = threatAt(time, this.actions.getWorld().state.mode);
     const threatEl = el.querySelector<HTMLElement>('.clock-threat')!;
     const threatText = threat ? `⚠${threat}` : '';
     if (threatEl.textContent !== threatText) threatEl.textContent = threatText;

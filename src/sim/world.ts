@@ -76,7 +76,7 @@ import { ResearchState, createResearchState, drawResearch, researchFraction } fr
 import { generateNests, generatePonds, generateResources, generateSulfur, generateTrees, seeded } from './mapgen';
 import { hypot } from './math';
 import { explored, newFog, revealBuilding, tickFog } from './fog';
-import { Nest, announceThreat, anyAngry, broodFor, startRaids, damageMound, indexNests, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, spotIn, tickBreeding, tickBugs, tickMerge, tickSpread } from './nests';
+import { Nest, announceThreat, anyAngry, broodFor, checkBuiltOver, startRaids, damageMound, indexNests, moundAt, moundInRange, nestCentre, onBugHurt, onBuilt, spotIn, tickBreeding, tickBugs, tickMerge, tickSpread } from './nests';
 import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
@@ -1656,7 +1656,7 @@ export class World {
         const b = this.buildingAt(x + dx, y + dy);
         if (b && b !== moving && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
         if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
-        if (moundAt(this, x + dx, y + dy)) return 'nest';
+        if (moundAt(this, x + dx, y + dy) && this.state.mode !== 'hardcore') return 'nest'; // Hardcore nests are destroyed by building over them (D-133)
         if (type !== 'water_wheel' && this.isWater(x + dx, y + dy)) return 'water';
       }
     }
@@ -1704,6 +1704,7 @@ export class World {
     if (b.type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(b.type, dir));
     this.index(b);
     revealBuilding(this.state, b, ...footprint(b.type, dir));
+    checkBuiltOver(this, b); // moved onto the last open tile around a Hardcore mound (D-133)
     return b;
   }
 

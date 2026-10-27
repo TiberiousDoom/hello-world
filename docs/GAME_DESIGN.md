@@ -539,6 +539,12 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   other's cells, bugs, brood and mound health; its burrow is drawn bigger. A merged nest owns up to
   4 cells, and its bugs stroll over all of them. Building in any of its cells provokes it. Destroying it
   drops chitin for every cell it owns. A message says when nests merge.
+- **Hardcore nests (D-133).** In Hardcore, the threat level starts at **2**, and nests breed, spread and
+  grow **1.5×** as fast. A mound **can't be shot down**: turrets leave it alone, and an orbital strike only
+  kills its bugs. To destroy it, **build over the mound and the ring of tiles around it** (16 tiles; walls
+  and belts count, and pond tiles count as covered). Building there provokes the nest as usual, and a nest
+  that's partly built over breeds **twice as fast again**. While you hold a tool, or once you've started,
+  the tiles still to cover are marked, with a bar for how much is done. Destroying it drops chitin as usual.
 
 | Bug | HP | Speed (tiles/s) | Damage to buildings |
 |---|---|---|---|
@@ -670,6 +676,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 | | Standard (default) | Hardcore |
 |---|---|---|
 | Hub reaches 0 HP | **Breach:** every nest calms down and its bugs go home (raiders too), 25% of every item in stock is lost, and the hub is restored to 50% HP | Run over |
+| Nests | See Bugs | Threat starts at 2; faster breeding, spreading and growing; a raid every night; mounds destroyed only by building over them (D-133) |
 | Availability | Always | Unlocked by delivering a supply run in Standard |
 
 The hardcore unlock is stored in the browser's profile, separate from the save file.
