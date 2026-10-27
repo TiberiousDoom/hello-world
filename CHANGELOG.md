@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.79.0 · 2026-10-27 · Bugs hold a grudge
+### New
+- **Brutes and beetles go for the turret that shoots them**, instead of the nearest building, until it's gone. Walls in front of your turrets matter more now.
+
 ## 0.78.0 · 2026-10-27 · Better ammo
 ### New
 - New research, **Better Ammo**: the Assembler makes **AP bullets** and **explosive shells**.

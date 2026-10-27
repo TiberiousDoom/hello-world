@@ -142,7 +142,7 @@ In this order:
 - ⬜ More recipes and research to extend the mid- and late game
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
-- ⬜ Enemy targeting: nearest building, and later enemies switch to turrets that shoot them (D-020)
+- ✅ Enemy targeting (0.79.0, D-137): bugs go for the nearest building; brutes and beetles switch to the turret that shoots them (D-020)
 - ⬜ Difficulty settings for Standard (nest density and toughness)
 - 🚧 **The research tree in four ages (#88, D-089, [RESEARCH_TREE.md](RESEARCH_TREE.md)):** each age with its own material, power and weapons; a keystone that needs the age's top defence; rollers before powered belts; smelting at Industry; fuel for furnaces; the ship built in one stage per age and launched in the Electric Age, with supply runs after it. Built age by age:
   - ✅ **The engineer's inventory (#87, 0.46.0, D-090):** 12 slots of 10, filled by mining, Collect and Pick up off belts; an Inventory button and window; a switch for dropping off at the hub. The Storage Unit (1×2, 6 slots of 50), iron ingots and the Blacksmith come with the Iron Age

@@ -3363,3 +3363,49 @@ describe('Better ammo (D-136)', () => {
     expect(w.state.inventory.bullet).toBe(4);
   });
 });
+
+describe('Enemy targeting (D-137)', () => {
+  const setup = (type: 'crawler' | 'brute', wall = false) => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9 });
+    const n = addNest(w, 80, 80, 0);
+    n.angryUntil = 1e9;
+    const t = placed(w.place('turret2', 50, 50, 0));
+    t.ammo = 60;
+    const crate = placed(w.place('crate', 56, 51, 0)); // the nearest building to the bug
+    if (wall) for (let y = 47; y < 56; y++) placed(w.place('wall', 53, y, 0));
+    const bug = w.spawnBug(type, n, 1);
+    [bug.x, bug.y] = [55.5, 53.5];
+    bug.hp = bug.maxHp = 1e6;
+    w.markFlowDirty();
+    return { w, t, crate, bug };
+  };
+
+  it('a crawler bites the nearest building, even while a turret shoots it', () => {
+    const { w, t, crate, bug } = setup('crawler');
+    run(w, 8);
+    expect(crate.hp).toBeLessThan(w.maxHp(crate));
+    expect(t.hp).toBe(w.maxHp(t));
+    expect(bug.foe).toBeUndefined();
+  });
+
+  it('a brute goes for the turret that shoots it instead', () => {
+    expect(ENEMIES.brute.vengeful && ENEMIES.beetle.vengeful).toBe(true);
+    const { w, t, crate, bug } = setup('brute');
+    run(w, 12);
+    expect(bug.foe?.id).toBe(t.id);
+    expect(t.hp).toBeLessThan(w.maxHp(t));
+    expect(crate.hp).toBe(w.maxHp(crate));
+  });
+
+  it("with a wall in the way, it doesn't stand still: it follows its path, and forgets a turret that's gone", () => {
+    const { w, t, bug } = setup('brute', true);
+    const [x, y] = [bug.x, bug.y];
+    run(w, 3);
+    expect(bug.foe?.id).toBe(t.id);
+    expect(Math.abs(bug.x - x) + Math.abs(bug.y - y)).toBeGreaterThan(0.3);
+    w.demolish(t.id);
+    run(w, 1);
+    expect(bug.foe).toBeUndefined();
+  });
+});
