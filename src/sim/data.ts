@@ -754,7 +754,44 @@ export const NESTS = {
   threatSwapMax: 0.5,
   threatSpread: 0.08, // territories spread this much sooner per level, down to threatSpreadMin of the usual time
   threatSpreadMin: 0.5,
+  // Themed kinds (D-132): warrens near the hub, hives from hiveFrom tiles out, dens from denFrom, mixing
+  // within kindBlend tiles either side of each line.
+  hiveFrom: 60,
+  denFrom: 100,
+  kindBlend: 12,
+  // Growing (D-132): a calm nest moves up a stage after this many seconds of calm (3 days), up to stageMax.
+  // Each stage brings a bigger brood and a tougher mound: stage s holds (s + 1) / 2 of stage 1.
+  stageEvery: 1620,
+  stageMax: 3,
+  // Merging (D-132): every mergeEvery seconds, two calm nests of the same kind, both at stage mergeStage or
+  // more, whose territories touch become one nest, up to mergeCells cells of territory.
+  mergeEvery: 600,
+  mergeStage: 2,
+  mergeCells: 4,
 };
+
+/** Queen nests (D-132): rare, near the map edge, with a big brood, a tougher mound and lots of chitin. */
+export const QUEENS = {
+  edge: 20, // only cells with a tile this close to the map edge
+  count: [1, 3] as [number, number], // queens on a new map
+  mound: 3, // times a nest's mound health
+  chitin: 3, // times a nest's chitin
+  breed: 2, // breeds this many times as fast
+};
+
+/** What kind of nest it is (D-132): crawler warrens, runner hives, brute dens and rare queens. */
+export type NestKind = 'warren' | 'hive' | 'den' | 'queen';
+
+/** A nest's kind `distance` tiles from the hub: `roll` (0–1) picks one where two zones meet. */
+export function nestKindFor(distance: number, roll: number): NestKind {
+  const past = (at: number) => Math.min(1, Math.max(0, (distance - at + NESTS.kindBlend) / (2 * NESTS.kindBlend)));
+  if (roll < past(NESTS.denFrom)) return 'den';
+  if (roll < past(NESTS.hiveFrom)) return 'hive';
+  return 'warren';
+}
+
+/** How much bigger a nest at `stage` is than at stage 1 (D-132). */
+export const stageSize = (stage: number): number => (stage + 1) / 2;
 
 /**
  * Night raids (D-065). At nightfall a nest near your buildings may send a small party of grown bugs
@@ -779,8 +816,17 @@ export const chitinFor = (distance: number): number => Math.min(10, 3 + Math.flo
 /** Chitin Plating: these buildings get this much more health (D-065). */
 export const PLATING = { bonus: 1.5, types: ['turret', 'cannon', 'turret2', 'mortar', 'artillery', 'railgun', 'shield_pylon', 'steel_wall', 'arc_fence', 'ballista', 'tesla', 'trebuchet', 'wall', 'reinforced_wall', 'palisade'] as BuildingType[] };
 
-/** What lives in a nest `distance` tiles from the hub: further out is more dangerous. */
-export function nestComposition(distance: number): { crawlers: number; runners: number; brutes: number; hpMult: number } {
+/**
+ * What lives in a nest `distance` tiles from the hub: further out is more dangerous. Each kind is mostly its
+ * own bug (D-132); with no kind, the mix nests had before kinds (for migrating old saves).
+ */
+export function nestComposition(distance: number, kind?: NestKind): { crawlers: number; runners: number; brutes: number; hpMult: number } {
+  const f = Math.floor;
+  const hpMult = 1 + distance / 150;
+  if (kind === 'warren') return { crawlers: 3 + f(distance / 45), runners: 0, brutes: 0, hpMult };
+  if (kind === 'hive') return { crawlers: 1 + f(distance / 120), runners: 2 + f(Math.max(0, distance - NESTS.hiveFrom) / 40), brutes: 0, hpMult };
+  if (kind === 'den') return { crawlers: 2 + f(distance / 60), runners: 0, brutes: 1 + f(Math.max(0, distance - NESTS.denFrom) / 50), hpMult };
+  if (kind === 'queen') return { crawlers: 3 + f(distance / 45), runners: 2 + f(distance / 60), brutes: 2 + f(distance / 80), hpMult };
   return {
     crawlers: 3 + Math.floor(distance / 45),
     runners: distance > 60 ? 1 + Math.floor((distance - 60) / 40) : 0,

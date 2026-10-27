@@ -200,8 +200,8 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Hit spark, where a turret or ballista shot lands | 32×32 | 3 | P3 | Upgraded (`effects/hit_spark_3f`) |
 | Repair sparkle, on the building being mended | 32×32 | 4 | P3 | Upgraded (`effects/repair_sparkle_4f`) |
 | Building destroyed (debris) | 64×64 | 5 | P3 | Upgraded (`effects/debris_5f`) |
-| Nest burrow and territory outline | 2×2 tiles; outline in code | 1 + angry + damaged + destroyed | P2 | Upgraded (`nests/warren`, `hive`, `den` by brood, `nests/hardcore` in Hardcore, overlays `nests/angry`, `nests/damaged`, and `nests/destroyed`); blight around nests is drawn in code |
-| Queen nest (D-065, planned) | 3×3 tiles | 1 | P2 | Upgraded (`nests/queen`, waiting for queen nests in the rules) |
+| Nest burrow and territory outline | 2×2 tiles, drawn 1.7, 2 or 2.3 tiles across by stage (D-132); outline in code | 1 + angry + damaged + destroyed + grown | P2 | Upgraded (`nests/warren`, `hive`, `den` by kind, `nests/hardcore` in Hardcore, overlays `nests/angry`, `nests/damaged`, `nests/grown` (egg clutches and a side burrow at the lower left, drawn turned half round as well for a large nest) and `nests/destroyed`); blight around nests is drawn in code, over every cell a merged nest owns |
+| Queen nest (D-132) | 3×3 tiles, drawn 1.3× a nest's size (merged nests too) | 1 | P2 | Upgraded (`nests/queen`) |
 | Chitin (item, D-065): an olive bug-shell plate | Item size | 1 | P2 | Upgraded (`items/chitin`) |
 | Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 

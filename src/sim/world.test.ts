@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
-import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
+import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, QUEENS, nestComposition, nestKindFor, stageSize } from './data';
+import { Nest, cellKey, damageMound, hubDistance, isAngry, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
@@ -1795,6 +1795,7 @@ describe('Threat (D-065)', () => {
     const next = addNest(w, 60, 60, 1);
     const far = addNest(w, 80, 50, 1);
     const bug = w.state.enemies.find((e) => e.nest === n.id)!;
+    [bug.x, bug.y] = [51.5, 51.5]; // clear of the mound
     const t = placed(w.place('turret', Math.floor(bug.x) + 3, Math.floor(bug.y), 0));
     t.ammo = 20;
     run(w, 1);
@@ -2914,5 +2915,149 @@ describe("The colony's special buildings (D-131)", () => {
     expect(b.ammo).toBe(0);
     expect(w.blasts).toHaveLength(1);
     expect(w.strike(b.id, Math.floor(mx), Math.floor(my))).toBe('not-ready'); // a day to charge again
+  });
+});
+
+describe('Nest kinds, growth and merging (D-132)', () => {
+  /** A calm nest of `kind` at stage `stage`, with its brood all hatched. */
+  const nestOf = (w: World, x: number, y: number, kind: Nest['kind'], stage = 1): Nest => {
+    const n = newNest(w.state.nests.length, x, y, 80, 1, kind);
+    n.stage = stage;
+    w.state.nests.push(n);
+    w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
+    for (const t of ['crawler', 'runner', 'brute'] as const) for (let i = 0; i < n.brood[t]; i++) w.spawnBug(t, n, 1);
+    return n;
+  };
+
+  it.each([42, 1, 7])('a new map has warrens near the hub, hives further out, dens furthest and 1 to 3 queens near the edge, seed %i', (seed) => {
+    const w = World.create(seed);
+    const s = w.state;
+    const queens = s.nests.filter((n) => n.kind === 'queen');
+    expect(queens.length).toBeGreaterThanOrEqual(QUEENS.count[0]);
+    expect(queens.length).toBeLessThanOrEqual(QUEENS.count[1]);
+    for (const q of queens) expect(Math.min(q.x, q.y, s.width - q.x - NESTS.cell, s.height - q.y - NESTS.cell)).toBeLessThan(QUEENS.edge);
+    for (const n of s.nests) {
+      const d = hubDistance(w, n);
+      if (n.kind === 'queen') continue;
+      if (d < NESTS.hiveFrom - NESTS.kindBlend) expect(n.kind).toBe('warren');
+      if (d > NESTS.denFrom + NESTS.kindBlend) expect(n.kind).toBe('den');
+      // Each kind is mostly its own bug.
+      if (n.kind === 'warren') expect(n.brood.runner + n.brood.brute).toBe(0);
+      if (n.kind === 'hive') expect(n.brood.runner).toBeGreaterThan(n.brood.crawler);
+      if (n.kind === 'den') expect(n.brood.brute).toBeGreaterThan(0);
+      expect(n.stage).toBe(1);
+      expect(n.age).toBeLessThan(NESTS.stageEvery);
+    }
+    expect(s.nests.some((n) => n.kind === 'hive')).toBe(true);
+    // Every nest's bugs are there, all of its brood.
+    for (const n of s.nests) expect(s.enemies.filter((e) => e.nest === n.id).length).toBe(n.brood.crawler + n.brood.runner + n.brood.brute);
+  });
+
+  it('kinds mix where zones meet', () => {
+    expect(nestKindFor(NESTS.hiveFrom, 0.25)).toBe('hive');
+    expect(nestKindFor(NESTS.hiveFrom, 0.75)).toBe('warren');
+    expect(nestKindFor(NESTS.denFrom, 0.25)).toBe('den');
+    expect(nestKindFor(NESTS.denFrom, 0.75)).toBe('hive');
+    expect(nestKindFor(NESTS.hiveFrom - NESTS.kindBlend - 1, 0)).toBe('warren');
+  });
+
+  it('a queen has a tougher mound, breeds twice as fast and drops three times the chitin', () => {
+    const w = emptyWorld();
+    const q = nestOf(w, 50, 50, 'queen');
+    const plain = nestOf(w, 80, 80, 'den');
+    expect(q.maxHp).toBe(plain.maxHp * QUEENS.mound);
+    w.state.enemies = w.state.enemies.filter((e) => e.nest !== q.id || e.type !== 'crawler'); // short of crawlers
+    run(w, 1.05);
+    expect(q.nextBreed - w.state.time).toBeLessThanOrEqual(NESTS.breedEvery[1] / QUEENS.breed);
+    w.state.inventory.chitin = 0;
+    damageMound(w, q, q.hp);
+    expect(w.state.inventory.chitin).toBe(Math.round(Math.min(10, 3 + Math.floor(hubDistance(w, q) / 25)) * QUEENS.chitin));
+  });
+
+  it('a calm nest grows a stage after 3 days of calm: a bigger brood and mound; not while angry, and only to stage 3', () => {
+    const w = emptyWorld();
+    const n = nestOf(w, 50, 50, 'warren');
+    const brood = n.brood.crawler;
+    const hp = n.maxHp;
+    n.age = NESTS.stageEvery - 1;
+    n.angryUntil = w.state.time + 5;
+    run(w, 2);
+    expect(n.stage).toBe(1); // angry: no growing
+    w.state.enemies = []; // nothing to keep it angry
+    n.angryUntil = 0;
+    run(w, 2);
+    expect(n.stage).toBe(2);
+    expect(n.brood.crawler).toBe(Math.round(brood * stageSize(2)));
+    expect(n.maxHp).toBe(Math.round(hp * stageSize(2)));
+    n.age = NESTS.stageEvery - 1;
+    run(w, 2);
+    expect(n.stage).toBe(3);
+    n.age = NESTS.stageEvery - 1;
+    run(w, 2);
+    expect(n.stage).toBe(NESTS.stageMax);
+    // It breeds up to its bigger brood.
+    expect(w.state.nests[n.id].brood.crawler).toBeGreaterThan(brood);
+  });
+
+  it('two grown, calm nests of a kind whose territories touch merge into one, owning both cells', () => {
+    const w = emptyWorld();
+    w.state.nextSpread = Infinity;
+    const a = nestOf(w, 50, 50, 'warren', 2);
+    const b = nestOf(w, 60, 50, 'warren', 3);
+    const other = nestOf(w, 50, 60, 'hive', 2); // another kind
+    const young = nestOf(w, 40, 50, 'warren', 1); // too young
+    const bugs = w.state.enemies.length;
+    const brood = a.brood.crawler + b.brood.crawler;
+    const hp = a.maxHp + b.maxHp;
+    w.state.time = w.state.nextMerge - 0.01;
+    w.tick();
+    const [into, from] = b.brood.crawler > a.brood.crawler ? [b, a] : [a, b];
+    expect(from.destroyed).toBe(true);
+    expect(from.into).toBe(into.id);
+    expect(into.brood.crawler).toBe(brood);
+    expect(into.maxHp).toBe(hp);
+    expect(into.stage).toBe(3);
+    expect(territory(into)).toHaveLength(2);
+    expect(nestAt(w, 51, 51)).toBe(into);
+    expect(nestAt(w, 61, 51)).toBe(into);
+    expect(w.state.enemies.length).toBe(bugs);
+    expect(w.state.enemies.some((e) => e.nest === from.id)).toBe(false);
+    expect(other.destroyed).toBeFalsy();
+    expect(young.destroyed).toBeFalsy();
+    expect(w.events).toContain('Two nests have merged into one bigger nest.');
+    // Its calm bugs stroll over both cells, and the territory survives saving and loading.
+    run(w, 60);
+    for (const e of w.state.enemies.filter((e) => e.nest === into.id)) expect(nestAt(w, e.x, e.y)).toBe(into);
+    const loaded = World.fromJSON(w.toJSON());
+    expect(nestAt(loaded, 61, 51)?.id).toBe(into.id);
+    expect(nestAt(loaded, 51, 51)?.id).toBe(into.id);
+    // Building in the other cell provokes the merged nest.
+    placed(w.place('wall', 65, 58, 0));
+    expect(isAngry(w, into)).toBe(true);
+    // Destroying it drops chitin for both cells.
+    w.state.inventory.chitin = 0;
+    damageMound(w, into, into.hp);
+    expect(w.state.inventory.chitin).toBe(Math.round(Math.min(10, 3 + Math.floor(hubDistance(w, into) / 25)) * stageSize(3) * 2));
+  });
+
+  it('v39 saves: nests get the kind their bugs suggest, stage 1, and merging starts a while after loading', () => {
+    const w = emptyWorld();
+    const old = JSON.parse(w.toJSON());
+    old.version = 39;
+    old.time = 500;
+    const brood = (crawler: number, runner: number, brute: number) => ({ crawler, runner, brute });
+    old.nests = [brood(3, 0, 0), brood(2, 1, 0), brood(2, 1, 1)].map((b, i) => {
+      const n = newNest(i, 50 + i * 10, 50, 80) as Partial<Nest>;
+      delete n.kind;
+      delete n.stage;
+      delete n.age;
+      return { ...n, brood: b };
+    });
+    delete old.nextMerge;
+    const loaded = World.fromJSON(JSON.stringify(old));
+    expect(loaded.state.nests.map((n) => n.kind)).toEqual(['warren', 'hive', 'den']);
+    expect(loaded.state.nests.every((n) => n.stage === 1 && n.age === 0)).toBe(true);
+    expect(loaded.state.nextMerge).toBe(500 + NESTS.mergeEvery);
+    expect(loaded.state.version).toBe(SAVE_VERSION);
   });
 });

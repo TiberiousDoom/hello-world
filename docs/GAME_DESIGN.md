@@ -461,8 +461,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 There are no waves (D-038). Bugs are distant threats that only attack when provoked.
 Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts`.
 
-- Each **nest** owns one 10×10 cell, marked by a burrow entrance. Its bugs stroll and rest inside that
-  cell and never leave it while calm.
+- Each **nest** owns one 10×10 cell (more after merging), marked by a burrow entrance. Its bugs stroll and
+  rest inside its cells and never leave them while calm.
 - A nest is **provoked** when:
   - anything is built inside its cell or within 2 tiles of it,
   - any building is within 3 tiles of one of its bugs, or
@@ -494,8 +494,8 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - **Threat (D-065, D-072).** A threat level starts at 0 and rises by 1 every **18 minutes** of play, up
   to 10. A message says when it rises, and the clock in the top bar shows it (⚠). At each level:
   - bugs bred or spread from then on get **+15% health** (bugs already out there don't change),
-  - a bred crawler has an **8% chance** (up to 50%) to hatch as a runner instead, or, for a nest that
-    already has brutes, as a runner or a brute; the nest's size stays the same,
+  - a bred crawler has an **8% chance** (up to 50%) to hatch as a runner instead, or, in a den or a
+    queen's nest, as a runner or a brute; the nest's size stays the same,
   - territories spread **8% sooner** (down to half the usual 4 minutes).
 - **Night raids (D-065, D-073).** At nightfall, from the **second night** on, a raid comes with a
   **50% chance** (+10% per threat level; **every night in Hardcore**). One calm nest within **40 tiles**
@@ -510,16 +510,35 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   into a neighbouring cell (left, right, above or below) that has no live nest: one whose mound was
   destroyed, or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
   with any of your buildings in them, stay clear, so building on cleared land holds it. A new
-  territory starts with **half** the bugs a nest that far out would have. A message says when it
+  territory starts with **half** the bugs a nest that far out would have, and is of the same kind as the
+  nest it came from (a queen's spreads as whatever kind lives that far out). A message says when it
   happens.
-- Nests further from the hub are bigger and tougher:
+- **Kinds (D-132).** Nests come in kinds by distance from the hub: **crawler warrens** within 60 tiles,
+  **runner hives** from 60 tiles, **brute dens** from 100 tiles. Within 12 tiles of each line the two kinds
+  mix. Each kind is mostly its own bug, and further out is bigger and tougher (*d* is the distance from the
+  hub in tiles):
 
-  | Bugs in a nest *d* tiles from the hub | Count |
-  |---|---|
-  | Crawlers | 3, plus 1 per 45 tiles of *d* |
-  | Runners | none within 60 tiles; then 1, plus 1 per 40 tiles beyond 60 |
-  | Brutes | none within 100 tiles; then 1, plus 1 per 50 tiles beyond 100 |
-  | Bug HP | +1% per 1.5 tiles of *d* (double at 150 tiles) |
+  | Kind | Crawlers | Runners | Brutes |
+  |---|---|---|---|
+  | Warren | 3, plus 1 per 45 tiles of *d* | none | none |
+  | Hive | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none |
+  | Den | 2, plus 1 per 60 tiles of *d* | none | 1, plus 1 per 50 tiles beyond 100 |
+  | Queen | 3, plus 1 per 45 tiles of *d* | 2, plus 1 per 60 tiles of *d* | 2, plus 1 per 80 tiles of *d* |
+
+  Bug HP is +1% per 1.5 tiles of *d* (double at 150 tiles), for every kind.
+- **Queens (D-132).** A new map has **1 to 3 queen nests**, in cells within 20 tiles of the map edge. A
+  queen's mound has **3×** the health, it breeds **twice as fast**, and it drops **3×** the chitin. Its
+  burrow is drawn bigger.
+- **Growing (D-132).** A calm nest moves up a stage after **3 days** of calm (27 minutes), from small to
+  medium to large. Each stage holds more: a medium nest has 1.5× the brood and mound health of a small one,
+  a large one 2×. It then breeds up to its bigger brood. Angry nests don't grow. The burrow is drawn bigger
+  at each stage, with egg clutches from medium. Destroying a grown nest drops more chitin (1.5× or 2×).
+  New maps start every nest part way through its first stage, so they don't all grow at once.
+- **Merging (D-132).** Every **10 minutes**, two calm nests of the same kind (not queens), both medium or
+  large, whose territories touch, may merge into one nest. The one with the bigger brood takes the
+  other's cells, bugs, brood and mound health; its burrow is drawn bigger. A merged nest owns up to
+  4 cells, and its bugs stroll over all of them. Building in any of its cells provokes it. Destroying it
+  drops chitin for every cell it owns. A message says when nests merge.
 
 | Bug | HP | Speed (tiles/s) | Damage to buildings |
 |---|---|---|---|

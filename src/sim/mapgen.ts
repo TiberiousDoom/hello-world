@@ -3,7 +3,7 @@
 // cells away from it. Everything comes from the world's seeded random
 // generator, so the same seed always makes the same map.
 
-import { FOREST, NESTS, ORE, PONDS, SULFUR } from './data';
+import { FOREST, NESTS, ORE, PONDS, QUEENS, SULFUR, nestKindFor } from './data';
 import { hypot } from './math';
 import { Nest, nearHub, newNest, populate } from './nests';
 import type { World } from './world';
@@ -158,7 +158,11 @@ export function generateTrees(w: World, hubCx: number, hubCy: number): void {
   }
 }
 
-/** Picks the cells that hold bug territories and populates them. */
+/**
+ * Picks the cells that hold bug territories and populates them. Each nest's kind comes from its distance,
+ * mixed where zones meet, and a few near the map edge are queens (D-132). Nests start part way to their
+ * next stage, so they don't all grow at once.
+ */
 export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
   const { width, height } = w.state;
   const c = NESTS.cell;
@@ -167,8 +171,18 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
     for (let cx = 0; cx + c <= width; cx += c) {
       if (nearHub(cx, cy, hubCx, hubCy)) continue;
       if (w.random() >= NESTS.chance) continue;
-      nests.push(newNest(nests.length, cx, cy, hypot(cx + c / 2 - hubCx, cy + c / 2 - hubCy)));
+      const d = hypot(cx + c / 2 - hubCx, cy + c / 2 - hubCy);
+      const n = newNest(nests.length, cx, cy, d, 1, nestKindFor(d, w.random()));
+      n.age = Math.floor(w.random() * NESTS.stageEvery * 0.5);
+      nests.push(n);
     }
+  }
+  // Queens: a few of the nests near the map edge, picked at random.
+  const edge = nests.filter((n) => Math.min(n.x, n.y, width - n.x - c, height - n.y - c) < QUEENS.edge);
+  const count = QUEENS.count[0] + Math.floor(w.random() * (QUEENS.count[1] - QUEENS.count[0] + 1));
+  for (let k = 0; k < count && edge.length; k++) {
+    const [n] = edge.splice(Math.floor(w.random() * edge.length), 1);
+    nests[n.id] = { ...newNest(n.id, n.x, n.y, hypot(n.x + c / 2 - hubCx, n.y + c / 2 - hubCy), 1, 'queen'), age: n.age };
   }
   for (const nest of nests) populate(w, nest, hypot(nest.x + c / 2 - hubCx, nest.y + c / 2 - hubCy));
   return nests;

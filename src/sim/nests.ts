@@ -15,8 +15,12 @@
 // sooner. Shooting a nest's bugs wakes the nests next to it too. Some nights a
 // nest near your buildings sends a raiding party. Bugs notice the engineer:
 // walking close to calm bugs provokes them, and angry ones close by go for it.
+//
+// Nests come in kinds by distance (D-132): crawler warrens, runner hives, brute dens, and rare queens near
+// the map edge. A calm nest grows through three stages, and two grown nests of a kind whose territories
+// touch may merge into one bigger nest, owning both cells.
 
-import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, HUB_SIZE, NESTS, PLAYER, RAIDS, SPIKES, chitinFor, moundHp, nestComposition } from './data';
+import { ARC_FENCE, BUILDINGS, CLOCK, DX, DY, ENEMIES, EnemyType, FLOODLIGHT, HUB_SIZE, NESTS, NestKind, PLAYER, QUEENS, RAIDS, SPIKES, chitinFor, moundHp, nestComposition, nestKindFor, stageSize } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
 import type { Building, Enemy, World } from './world';
@@ -32,20 +36,28 @@ export interface Nest {
   destroyed?: boolean; // the mound is gone: the territory is clear for good
   brood: Brood; // the bugs it started with, which it breeds back up to while calm
   nextBreed: number; // game time its next bug hatches; 0 while it isn't breeding
+  kind: NestKind; // D-132
+  stage: number; // 1 to NESTS.stageMax: it grows while calm (D-132)
+  age: number; // seconds of calm towards its next stage
+  cells?: [number, number][]; // the top-left of each other cell it owns, after merging (D-132)
+  into?: number; // merged into this nest: it's gone (and `destroyed`), without dropping chitin
 }
 
 /** How many bugs of each kind a nest holds. */
 export type Brood = Record<EnemyType, number>;
 
 /** A new nest whose cell has its top-left at (x, y), `distance` tiles from the hub; `share` of the usual bugs. */
-export function newNest(id: number, x: number, y: number, distance: number, share = 1): Nest {
-  const hp = moundHp(distance);
-  return { id, x, y, angryUntil: 0, hp, maxHp: hp, brood: broodFor(distance, share), nextBreed: 0 };
+export function newNest(id: number, x: number, y: number, distance: number, share = 1, kind = nestKindFor(distance, 0.5)): Nest {
+  const hp = Math.round(moundHp(distance) * (kind === 'queen' ? QUEENS.mound : 1));
+  return { id, x, y, angryUntil: 0, hp, maxHp: hp, brood: broodFor(distance, share, kind), nextBreed: 0, kind, stage: 1, age: 0 };
 }
 
-/** The bugs a nest `distance` tiles from the hub starts with; `share` of them for a newly spread one (at least 2 crawlers). */
-export function broodFor(distance: number, share = 1): Brood {
-  const comp = nestComposition(distance);
+/**
+ * The bugs a nest `distance` tiles from the hub starts with; `share` of them for a newly spread one (at least
+ * 2 crawlers). With no kind, the mix from before kinds, for migrating old saves.
+ */
+export function broodFor(distance: number, share = 1, kind?: NestKind): Brood {
+  const comp = nestComposition(distance, kind);
   const count = (k: number) => Math.round(k * share);
   return { crawler: Math.max(share < 1 ? 2 : 0, count(comp.crawlers)), runner: count(comp.runners), brute: count(comp.brutes) };
 }
@@ -54,6 +66,35 @@ const C = NESTS.cell;
 
 export function nestCentre(n: Nest): [number, number] {
   return [n.x + C / 2, n.y + C / 2];
+}
+
+/** The top-left of every cell a nest owns: its own, then any it took over by merging (D-132). */
+export function territory(n: Nest): [number, number][] {
+  return n.cells ? [[n.x, n.y], ...n.cells] : [[n.x, n.y]];
+}
+
+/** Points every cell of every nest at its owner: a nest's own cell, then the cells nests took over by merging. */
+export function indexNests(w: World): void {
+  w.nestCells.clear();
+  for (const n of w.state.nests) if (!n.into) w.nestCells.set(cellKey(n.x / C, n.y / C), n);
+  for (const n of w.state.nests) if (!n.destroyed) for (const [x, y] of n.cells ?? []) w.nestCells.set(cellKey(x / C, y / C), n);
+}
+
+/** Whether (x, y) is in one of a nest's cells. */
+export function inTerritory(n: Nest, x: number, y: number): boolean {
+  return territory(n).some(([cx, cy]) => x >= cx && x < cx + C && y >= cy && y < cy + C);
+}
+
+/** A random spot in a nest's territory. A single cell takes two random numbers, as it always has. */
+export function spotIn(w: World, n: Nest): [number, number] {
+  const cells = territory(n);
+  const [cx, cy] = cells.length > 1 ? cells[Math.floor(w.random() * cells.length)] : cells[0];
+  return [cx + 0.5 + w.random() * (C - 1), cy + 0.5 + w.random() * (C - 1)];
+}
+
+/** How big a nest's mound looks, in tiles across: by stage, and bigger for a queen or a merged nest (D-132). */
+export function moundSize(n: Nest): number {
+  return 2 * (0.7 + 0.15 * n.stage) * (n.kind === 'queen' || n.cells ? 1.3 : 1);
 }
 
 /** Provoked, or homeless: a destroyed nest's survivors never calm down. */
@@ -124,7 +165,9 @@ export function damageMound(w: World, n: Nest, amount: number): void {
   if (n.hp > 0) return;
   n.hp = 0;
   n.destroyed = true;
-  const chitin = chitinFor(hubDistance(w, n));
+  // More from a queen, a grown nest and a merged one (D-132).
+  const more = (n.kind === 'queen' ? QUEENS.chitin : 1) * stageSize(n.stage) * territory(n).length;
+  const chitin = Math.round(chitinFor(hubDistance(w, n)) * more);
   w.state.inventory.chitin = (w.state.inventory.chitin ?? 0) + chitin;
   w.markFlowDirty();
   w.events.push(`Nest destroyed: its territory is clear. +${chitin} chitin`);
@@ -186,10 +229,11 @@ export function tickBreeding(w: World, dt: number): void {
       n.nextBreed = 0;
       continue;
     }
+    growNest(n);
     const got = have.get(n.id) ?? { crawler: 0, runner: 0, brute: 0 };
     const total = (b: Brood) => b.crawler + b.runner + b.brute;
     if (total(got) >= total(n.brood)) n.nextBreed = 0;
-    else if (!n.nextBreed) n.nextBreed = s.time + NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0]);
+    else if (!n.nextBreed) n.nextBreed = s.time + (NESTS.breedEvery[0] + w.random() * (NESTS.breedEvery[1] - NESTS.breedEvery[0])) / (n.kind === 'queen' ? QUEENS.breed : 1);
     else if (s.time >= n.nextBreed) {
       const distance = hubDistance(w, n);
       const short = BUG_TYPES.filter((t) => got[t] < n.brood[t]);
@@ -197,12 +241,68 @@ export function tickBreeding(w: World, dt: number): void {
       // With threat, crawlers more often hatch as something worse (D-065). The nest's size stays the same.
       const threat = threatAt(s.time);
       if (type === 'crawler' && w.random() < Math.min(NESTS.threatSwapMax, NESTS.threatSwap * threat)) {
-        type = nestComposition(distance).brutes > 0 && w.random() < 0.5 ? 'brute' : 'runner';
+        type = (n.kind === 'den' || n.kind === 'queen') && w.random() < 0.5 ? 'brute' : 'runner';
       }
       w.spawnBug(type, n, nestComposition(distance).hpMult * threatToughness(w), true);
       n.nextBreed = 0;
     }
   }
+}
+
+/**
+ * A calm nest's second of growing (D-132): after NESTS.stageEvery seconds of calm it moves up a stage, its
+ * brood and mound growing from stageSize(s) to stageSize(s + 1) of stage 1's. It keeps the damage taken.
+ */
+function growNest(n: Nest): void {
+  if (n.stage >= NESTS.stageMax) return;
+  n.age++;
+  if (n.age < NESTS.stageEvery) return;
+  n.age = 0;
+  const k = stageSize(n.stage + 1) / stageSize(n.stage);
+  for (const t of BUG_TYPES) n.brood[t] = Math.round(n.brood[t] * k);
+  n.hp = Math.round(n.hp * k);
+  n.maxHp = Math.round(n.maxHp * k);
+  n.stage++;
+}
+
+/**
+ * Merging (D-132). Every NESTS.mergeEvery seconds, two calm nests of the same kind (not queens), both grown
+ * to NESTS.mergeStage or more, whose territories touch, may become one: the one with the bigger brood takes
+ * the other's cells, bugs, brood and mound health. Up to NESTS.mergeCells cells of territory.
+ */
+export function tickMerge(w: World): void {
+  const s = w.state;
+  if (s.time < s.nextMerge) return;
+  s.nextMerge = s.time + NESTS.mergeEvery;
+  const ready = (n: Nest) => !n.destroyed && n.kind !== 'queen' && n.stage >= NESTS.mergeStage && ownsCell(w, n) && !isAngry(w, n);
+  const pairs: [Nest, Nest][] = [];
+  for (const a of s.nests) {
+    if (!ready(a)) continue;
+    for (const [x, y] of territory(a)) {
+      for (let k = 0; k < 4; k++) {
+        const b = w.nestCells.get(cellKey(x / C + DX[k], y / C + DY[k]));
+        if (!b || b.id <= a.id || !ready(b) || b.kind !== a.kind) continue;
+        if (territory(a).length + territory(b).length > NESTS.mergeCells) continue;
+        if (!pairs.some(([p, q]) => p === a && q === b)) pairs.push([a, b]);
+      }
+    }
+  }
+  if (!pairs.length) return;
+  const [p, q] = pairs[Math.floor(w.random() * pairs.length)];
+  const total = (n: Nest) => n.brood.crawler + n.brood.runner + n.brood.brute;
+  const [into, from] = total(q) > total(p) ? [q, p] : [p, q];
+  into.cells = [...(into.cells ?? []), ...territory(from)];
+  for (const t of BUG_TYPES) into.brood[t] += from.brood[t];
+  into.hp += from.hp;
+  into.maxHp += from.maxHp;
+  into.stage = Math.max(into.stage, from.stage);
+  from.destroyed = true;
+  from.into = into.id;
+  from.hp = 0;
+  delete from.cells;
+  for (const e of s.enemies) if (e.nest === from.id) e.nest = into.id;
+  indexNests(w);
+  w.events.push('Two nests have merged into one bigger nest.');
 }
 
 /** How grown up a bug is, from 0 (just hatched) to 1 (an adult). */
@@ -237,19 +337,22 @@ export function tickSpread(w: World): void {
   if (!hub) return;
   const hubCx = hub.x + Math.floor(HUB_SIZE / 2);
   const hubCy = hub.y + Math.floor(HUB_SIZE / 2);
-  const options: [number, number][] = [];
+  const options: [number, number, Nest][] = [];
   for (const n of s.nests) {
     if (!ownsCell(w, n) || !nestAlive(w, n)) continue;
-    for (let k = 0; k < 4; k++) {
-      const x = n.x + DX[k] * C;
-      const y = n.y + DY[k] * C;
-      if (canSettle(w, x, y, hubCx, hubCy)) options.push([x, y]);
+    for (const [cx, cy] of territory(n)) {
+      for (let k = 0; k < 4; k++) {
+        const x = cx + DX[k] * C;
+        const y = cy + DY[k] * C;
+        if (canSettle(w, x, y, hubCx, hubCy)) options.push([x, y, n]);
+      }
     }
   }
   if (!options.length) return;
-  const [x, y] = options[Math.floor(w.random() * options.length)];
+  const [x, y, from] = options[Math.floor(w.random() * options.length)];
   const distance = hypot(x + C / 2 - hubCx, y + C / 2 - hubCy);
-  const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare);
+  // A new territory is of its parent's kind; a queen's brood settles as whatever lives that far out (D-132).
+  const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare, from.kind === 'queen' ? nestKindFor(distance, w.random()) : from.kind);
   s.nests.push(nest);
   w.nestCells.set(cellKey(x / C, y / C), nest);
   populate(w, nest, distance, threatToughness(w));
@@ -402,7 +505,7 @@ export function tickBugs(w: World, dt: number): void {
       continue;
     }
     // Calm: walk back into the cell if outside it, then stroll between random spots and rest.
-    const inside = e.x >= n.x && e.x < n.x + C && e.y >= n.y && e.y < n.y + C;
+    const inside = inTerritory(n, e.x, e.y);
     if (!inside) {
       e.tx = hx;
       e.ty = hy;
@@ -413,8 +516,7 @@ export function tickBugs(w: World, dt: number): void {
     }
     const d = hypot(e.tx - e.x, e.ty - e.y);
     if (d < 0.05) {
-      e.tx = n.x + 0.5 + w.random() * (C - 1);
-      e.ty = n.y + 0.5 + w.random() * (C - 1);
+      [e.tx, e.ty] = spotIn(w, n);
       e.wait = NESTS.pause[0] + w.random() * (NESTS.pause[1] - NESTS.pause[0]);
       continue;
     }
