@@ -131,6 +131,7 @@ export type BuildingType =
   | 'artillery'
   | 'steel_wall'
   | 'arc_fence'
+  | 'drone_pad'
   | 'floodlight'
   | 'boiler'
   | 'steam_turbine'
@@ -223,6 +224,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
+  drone_pad: { name: 'Drone Pad', short: 'DP', color: '#3a5a6a', hp: 160, cost: { circuit: 4, motor: 2, steel_beam: 2 }, blocking: true, description: 'With electricity, its drone flies items to pads that ask for them. Set to Send, belts fill it with one kind of item; set to receive an item, drones bring it and a belt leaving its front takes it out.' },
   arc_fence: { name: 'Arc Fence', short: '', color: '#3a6a8a', hp: 700, cost: { steel: 2, coil: 1, wire: 2 }, blocking: true, description: 'A wall that shocks the bugs biting it, with electricity from a power pole.' },
   floodlight: { name: 'Floodlight', short: '', color: '#d9c25a', hp: 80, cost: { circuit: 1, iron_rod: 4, wire: 4 }, blocking: false, description: `Lights the ground around it at night and slows bugs in its light, with electricity from a power pole. It sees far into the fog.` },
   steel_wall: { name: 'Steel Wall', short: '', color: '#4a5562', hp: 1600, cost: { steel: 4, steel_beam: 2 }, blocking: true, description: 'Steel plate on beams: the toughest wall.' },
@@ -457,7 +459,7 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1, drone_pad: 2 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
@@ -499,6 +501,12 @@ export const ELECTRIC_DEFENCES: BuildingType[] = ['turret2', 'mortar', 'artiller
  * `sight` tiles into the fog.
  */
 export const ARC_FENCE = { dps: 30 };
+/**
+ * Drone pads (D-125, D-128): each holds up to `hold` of one item. A pad set to Send has one drone, which
+ * flies up to `load` items at `speed` tiles a second to the nearest pad within `range` asking for them, and
+ * flies home. Both pads need electricity.
+ */
+export const DRONES = { hold: 40, load: 8, speed: 5, range: 24 };
 export const FLOODLIGHT = { radius: 7, slow: 0.6, sight: 14 };
 /**
  * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
@@ -583,6 +591,7 @@ export const RESEARCH: Research[] = [
   { id: 'electronics', name: 'Electronics', cost: { steel_beam: 100, bearing: 60, motor: 40 }, time: 150, requires: ['mk2', 'heavy_defense2'], unlocks: [], description: 'Opens the Electric Age: circuit boards and coils, drones, Mk3 machines and electric defences.' },
   { id: 'circuit_works', name: 'Circuit Works', cost: { steel_beam: 80, wire: 120, bearing: 40 }, time: 120, requires: ['electronics'], unlocks: ['circuit_works'], description: 'Circuit works make circuit boards and coils, with electricity.' },
   { id: 'mk3', name: 'Mk3 Machines', cost: { circuit: 80, coil: 40, steel_beam: 60 }, time: 150, requires: ['circuit_works', 'mk2'], unlocks: [], description: 'Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3: with electricity, they work three times as fast.' },
+  { id: 'drones', name: 'Drone Logistics', cost: { circuit: 60, motor: 40 }, time: 120, requires: ['circuit_works'], unlocks: ['drone_pad'], description: 'Drone pads: drones fly items from pads that send to pads that ask for them, with electricity, without belts.' },
   { id: 'electric_defense', name: 'Electric Defense', cost: { circuit: 60, wire: 100, coil: 30 }, time: 120, requires: ['circuit_works'], unlocks: ['tesla', 'arc_fence', 'floodlight'], description: 'Tesla turrets, whose shots arc from bug to bug on electricity alone; arc fences, walls that shock bugs biting them; and floodlights, which slow bugs at night.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },

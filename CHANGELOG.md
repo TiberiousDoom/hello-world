@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.69.0 · 2026-10-27 · Drones
+### New
+- **Drone Logistics** (after Circuit Works) brings the **Drone Pad**:
+  - Set to **Send**, belts fill it with one kind of item.
+  - Pick an item in its panel and it **receives** that item. Drones from sending pads within 24 tiles fly it over, 8 at a time, and a belt leaving its front takes it out.
+  - Both pads need electricity.
+
 ## 0.68.0 · 2026-10-27 · Mk3 machines
 ### New
 - **Mk3 Machines** (after Circuit Works and Mk2 Machines): upgrade a Mk2 extractor or furnace, or an assembler, to **Mk3** from its panel.

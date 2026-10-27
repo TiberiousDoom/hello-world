@@ -5,6 +5,7 @@ import {
   BELT_SPACING,
   BELT_SPEED,
   CRATE_SIZE,
+  DRONES,
   BLUEPRINTS,
   BLUEPRINT_BY_ID,
   beltSpeed,
@@ -106,8 +107,9 @@ export type { ResearchState };
  * v35 (D-123) adds sulfur deposits to the map.
  * v36 (D-124): the hull is built of steel now, after its research; a hull under way is refunded.
  * v37 (D-126): the Tesla moves from a blueprint into research and runs on electricity alone.
+ * v38 (D-128) adds drones in flight.
  */
-export const SAVE_VERSION = 37;
+export const SAVE_VERSION = 38;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -241,6 +243,21 @@ export interface GameState {
   explored: number[];
   /** Ponds (D-095, D-115): the indices of water tiles, in order. */
   water: number[];
+  /** Drones in flight (D-128), one at most per sending pad. */
+  drones: Drone[];
+}
+
+/**
+ * A drone (D-128) belongs to the sending pad `home` and flies to the pad `to` with `count` of `item`, then
+ * home again (`back`). `flown` is how far along the current leg it is, in tiles.
+ */
+export interface Drone {
+  home: number;
+  to: number;
+  item: ItemId;
+  count: number;
+  flown: number;
+  back: boolean;
 }
 
 /** One power network (D-115): what its sources give and its belts use. */
@@ -391,6 +408,7 @@ export class World {
       nextSpread: NESTS.spreadEvery,
       explored: [],
       water: [],
+      drones: [],
     };
     state.explored = newFog(state);
     const world = new World(state);
@@ -444,6 +462,10 @@ export class World {
     if (state.version === 34) state.version = 35; // sulfur goes in once the world exists (addSulfur)
     if (state.version === 35) World.migrateV35(state);
     if (state.version === 36) World.migrateV36(state);
+    if (state.version === 37) {
+      state.drones = []; // v38 (D-128): drones
+      state.version = 38;
+    }
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -1746,6 +1768,12 @@ export class World {
   setFilter(id: number, item: ItemId | null): void {
     const b = this.byId.get(id);
     if (b?.type === 'port' || b?.type === 'splitter') b.filter = item;
+    // A drone pad (D-128): an item makes it receive that item; none makes it send. Switching empties it into the hub.
+    if (b?.type === 'drone_pad' && b.filter !== item) {
+      for (const it of b.outputs) this.state.inventory[it] = (this.state.inventory[it] ?? 0) + 1;
+      b.outputs = [];
+      b.filter = item;
+    }
   }
 
   /** Which side of a splitter its filtered item goes out of (#62). */
@@ -1784,6 +1812,12 @@ export class World {
         // Up to CRATE_SIZE of one kind, from anywhere but the tile in front, where it sends them (D-106).
         if (target.x + DX[target.dir] === fromX && target.y + DY[target.dir] === fromY) return false;
         if (target.outputs.length >= CRATE_SIZE || (target.outputs.length && target.outputs[0] !== item)) return false;
+        target.outputs.push(item);
+        return true;
+      }
+      case 'drone_pad': {
+        // A sending pad takes one kind of item from belts, up to DRONES.hold; a receiving one only from drones (D-128).
+        if (target.filter || target.outputs.length >= DRONES.hold || (target.outputs.length && target.outputs[0] !== item)) return false;
         target.outputs.push(item);
         return true;
       }
@@ -2148,8 +2182,12 @@ export class World {
         case 'boiler':
           if (this.boilerWorks(b)) b.ammo = Math.max(0, b.ammo - dt);
           break;
+        case 'drone_pad':
+          if (b.filter) this.pushOutput(b); // a receiving pad: a belt leaving its front takes items out
+          break;
       }
     }
+    this.tickDrones(dt);
 
     this.tickResearch(dt);
     this.tickRegrowth();
@@ -2323,9 +2361,87 @@ export class World {
     if (!n || n === target) return false;
     if (isBelt(n.type) || n.type === 'tunnel') return x + DX[n.dir] === target.x && y + DY[n.dir] === target.y;
     if (n.type === 'splitter') return this.splitterLanes(n).some((l) => l.outX === target.x && l.outY === target.y);
-    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type)) return false;
+    if (!isMachine(n.type) && n.type !== 'extractor' && n.type !== 'lumber_camp' && n.type !== 'port' && n.type !== 'crate' && !isStore(n.type) && n.type !== 'drone_pad') return false;
     const o = this.outputTile(n);
     return o.x === target.x && o.y === target.y;
+  }
+
+  // ------------------------------------------------------------ drones (D-128)
+
+  /** Items on their way to a receiving pad, in drones flying there. */
+  private incoming(pad: Building): number {
+    let n = 0;
+    for (const d of this.state.drones) if (d.to === pad.id && !d.back) n += d.count;
+    return n;
+  }
+
+  /** A drone's position now, between the centres of its two pads; null if either is gone. */
+  dronePosition(d: Drone): [number, number] | null {
+    const home = this.byId.get(d.home);
+    const to = this.byId.get(d.to);
+    if (!home || !to) return null;
+    const [ax, ay] = this.centreOf(home);
+    const [bx, by] = this.centreOf(to);
+    const leg = hypot(bx - ax, by - ay);
+    const f = leg > 0 ? Math.min(1, d.flown / leg) : 1;
+    const k = d.back ? 1 - f : f;
+    return [ax + (bx - ax) * k, ay + (by - ay) * k];
+  }
+
+  /**
+   * Drones fly their legs, deliver and come home; then each receiving pad short of its item calls the
+   * nearest sending pad in range holding it, whose drone is home. Both need electricity.
+   */
+  private tickDrones(dt: number): void {
+    const s = this.state;
+    s.drones = s.drones.filter((d) => {
+      const home = this.byId.get(d.home);
+      if (!home) return false; // its pad is gone, and the drone with it
+      const to = this.byId.get(d.to);
+      if (!to && !d.back) {
+        d.back = true; // nowhere to land: back home with the load
+        d.flown = 0;
+      }
+      const [ax, ay] = this.centreOf(home);
+      const [bx, by] = to ? this.centreOf(to) : [ax, ay];
+      const leg = hypot(bx - ax, by - ay);
+      d.flown += DRONES.speed * dt;
+      if (d.flown < leg) return true;
+      if (!d.back) {
+        for (let i = 0; i < d.count && to!.outputs.length < DRONES.hold; i++) to!.outputs.push(d.item);
+        d.count = 0;
+        d.back = true;
+        d.flown = 0;
+        return true;
+      }
+      for (let i = 0; i < d.count && home.outputs.length < DRONES.hold; i++) home.outputs.push(d.item); // an undelivered load
+      return false;
+    });
+    const busy = new Set(s.drones.map((d) => d.home));
+    const pads = s.buildings.filter((b) => b.type === 'drone_pad' && this.electrified(b) > 0);
+    for (const want of pads) {
+      const item = want.filter;
+      if (!item) continue;
+      const need = DRONES.hold - want.outputs.length - this.incoming(want);
+      if (need <= 0) continue;
+      const [wx, wy] = this.centreOf(want);
+      let best: Building | undefined;
+      let near = DRONES.range ** 2;
+      for (const p of pads) {
+        if (p.filter || busy.has(p.id) || p.outputs[0] !== item) continue;
+        const [px, py] = this.centreOf(p);
+        const d = (px - wx) ** 2 + (py - wy) ** 2;
+        if (d <= near) {
+          near = d;
+          best = p;
+        }
+      }
+      if (!best) continue;
+      const count = Math.min(DRONES.load, best.outputs.length, need);
+      best.outputs.splice(0, count);
+      s.drones.push({ home: best.id, to: want.id, item, count, flown: 0, back: false });
+      busy.add(best.id);
+    }
   }
 
   /** Belts, and tunnel exits (which run like one belt tile once items come up). */
@@ -2831,5 +2947,5 @@ export function shipSites(state: GameState): { x: number; y: number }[] {
 }
 
 export function canCollect(t: BuildingType): boolean {
-  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || isStore(t) || isMachine(t);
+  return t === 'extractor' || t === 'lumber_camp' || t === 'crate' || t === 'drone_pad' || isStore(t) || isMachine(t);
 }
