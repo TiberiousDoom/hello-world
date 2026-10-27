@@ -126,6 +126,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Tesla Turret | 1×1, needs electricity | 8 steel, 4 circuit boards, 4 coils | 160 | Electric Defense |
 | Arc Fence | 1×1 wall, needs electricity to shock | 2 steel, 1 coil, 2 wire | 700 | Electric Defense |
 | Floodlight | 1×1, bugs walk past it; needs electricity | 1 circuit board, 4 iron rods, 4 wire | 80 | Electric Defense |
+| Drone Pad | 1×1, needs electricity | 4 circuit boards, 2 motors, 2 steel beams | 160 | Drone Logistics |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
 | Sawmill | 2×2 | 14 logs | 100 | Forestry |
@@ -194,6 +195,12 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
   tunnel or machine. Each belt keeps its facing and items, and the old belt's plate is refunded, so an
   upgrade costs 1 gear. Hovering a belt with the tool outlines the line, red where stock runs out; with
   too little stock, the belts nearest the tap are upgraded first.
+- **Drone pads (D-128):** each holds up to **40** of one item and uses **2** electricity. A pad set to **Send**
+  (as built) takes one kind of item from belts on any side. Pick an item in a pad's panel and it **receives** that
+  item instead: when it has room, the nearest sending pad within **24 tiles** holding it sends its drone with up to
+  **8**, flying **5 tiles a second**, and the drone flies home for the next load. A belt leaving a receiving pad's
+  front takes the items out. Each sending pad has one drone; both pads need electricity. Switching a pad empties
+  what it holds into the hub. A drone whose pad is demolished comes home with its load.
 - **Mk2 machines (D-122):** after **Mk2 Machines**, select an extractor or furnace and press **Upgrade to Mk2**
   (6 steel beams, 4 bearings, 2 motors). It stays where it is with what it holds, gets a gold plate, and uses
   **2** electricity: with all of it, it works **twice as fast**; short of it, proportionally less; with none, at
@@ -323,6 +330,7 @@ runs, have none to offer until the Electric Age's special buildings (D-126). **S
 | Hull | 60 steel beams, 30 bearings, 20 motors | 120 s | Engineering | The ship's hull stage |
 | Electronics | 100 steel beams, 60 bearings, 40 motors | 150 s | Mk2 Machines, Heavy Defense 2 | Opens the Electric Age |
 | Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
+| Drone Logistics | 60 circuit boards, 40 motors | 120 s | Circuit Works | Drone Pad |
 | Mk3 Machines | 80 circuit boards, 40 coils, 60 steel beams | 150 s | Circuit Works, Mk2 Machines | Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3 |
 | Electric Defense | 60 circuit boards, 100 wire, 30 coils | 120 s | Circuit Works | Tesla Turret, Arc Fence, Floodlight |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
@@ -436,7 +444,8 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    Heavy Defense 2) opens it. The **Circuit Works** makes **circuit boards** and **coils** from wire, and works only
    with electricity. **Electric Defense** brings the **Tesla Turret** (no ammunition, only electricity), the
    **Arc Fence** and **Floodlights**; **Mk3 Machines** makes extractors, furnaces and assemblers three times as
-   fast. Drones, Electric Defense 2 and the ship's last stages follow.
+   fast. **Drone Logistics** brings **drone pads**, which fly items between pads without belts. Electric Defense 2
+   and the ship's last stages follow.
 
 ## Bugs
 
@@ -854,7 +863,7 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v37**). v37 (D-126) turns the Tesla blueprint, or teslas already built, into
+- Save files are versioned (currently **v38**). v38 (D-128) adds drones in flight. v37 (D-126) turns the Tesla blueprint, or teslas already built, into
   Electric Defense, with stock for a boiler, turbine, well and poles to power them. v36 (D-124) makes the hull a steel stage after its research: a ship past
   it gets the research, and one building it gets back what it had brought in. v35 (D-123) adds sulfur deposits to older maps, on free ground away from
   what's built. v34 (D-121) turns the Express Belt blueprint, or express belts already

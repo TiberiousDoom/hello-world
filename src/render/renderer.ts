@@ -383,6 +383,7 @@ export class Renderer {
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
     this.drawShots(world, now, z);
+    this.drawDrones(world, now);
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
     this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
@@ -1544,6 +1545,11 @@ export class Renderer {
       if (recipe && b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / recipe.time, '#8fd18f');
       if (recipe) this.drawBadge(recipe.output, b.x + fw - 1, b.y);
     }
+    // A drone pad (D-128): the item it receives, or the one it holds to send.
+    if (b.type === 'drone_pad') {
+      const item = b.filter ?? b.outputs[0];
+      if (item) this.drawBadge(item, b.x, b.y);
+    }
     // Mk2 machines (D-122): a gold plate with two chevrons in the bottom-left corner; Mk3 (D-127) a blue one with three.
     if (b.tier === 2 || b.tier === 3) {
       const mk3 = b.tier === 3;
@@ -1915,6 +1921,41 @@ export class Renderer {
     if (!frameCount(key)) return false;
     this.effects.push({ kind: 'sprite', x, y, r: size, born: at, life, color: key, angle });
     return true;
+  }
+
+  /** Drones in flight (D-128): a small quadcopter with spinning rotors, carrying its item on the way out. */
+  private drawDrones(world: World, now: number): void {
+    const ctx = this.ctx;
+    for (const d of world.state.drones) {
+      const at = world.dronePosition(d);
+      if (!at) continue;
+      const [x, y] = at;
+      ctx.fillStyle = 'rgba(10,26,12,0.25)';
+      dot(ctx, x + 0.25, y + 0.35, 0.22); // its shadow on the ground below
+      ctx.strokeStyle = '#0f1a2e';
+      ctx.lineWidth = 0.05;
+      ctx.beginPath();
+      ctx.moveTo(x - 0.2, y - 0.2);
+      ctx.lineTo(x + 0.2, y + 0.2);
+      ctx.moveTo(x + 0.2, y - 0.2);
+      ctx.lineTo(x - 0.2, y + 0.2);
+      ctx.stroke();
+      const spin = now / 40;
+      for (const [rx, ry] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]]) {
+        ctx.fillStyle = 'rgba(200,220,235,0.35)';
+        dot(ctx, x + rx, y + ry, 0.11);
+        ctx.strokeStyle = 'rgba(15,26,46,0.7)';
+        ctx.beginPath();
+        ctx.moveTo(x + rx - 0.1 * Math.cos(spin), y + ry - 0.1 * Math.sin(spin));
+        ctx.lineTo(x + rx + 0.1 * Math.cos(spin), y + ry + 0.1 * Math.sin(spin));
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#3a5a6a';
+      roundRect(ctx, x - 0.12, y - 0.12, 0.24, 0.24, 0.05);
+      ctx.fill();
+      ctx.stroke();
+      if (!d.back && d.count > 0) this.drawItem(d.item, x, y + 0.2, 0.22);
+    }
   }
 
   private drawShots(world: World, now: number, z: number): void {

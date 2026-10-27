@@ -53,3 +53,29 @@ test('an assembler upgrades to Mk3 from its panel, and its panel says it needs e
   await expect(page.locator('#info [data-action="upgrade"]')).toHaveCount(0);
   await expect(page.locator('#info')).toContainText('Mk3: no electricity');
 });
+
+test('a drone pad switches between sending and receiving an item from its panel (D-128)', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  await expect(page.locator('[data-tool="drone_pad"]')).toHaveCount(0);
+  const id = await page.evaluate(() => {
+    const w = window.game.world;
+    const s = w.state;
+    s.researched.push('electronics', 'circuit_works', 'drones');
+    Object.assign(s.inventory, { circuit: 20, motor: 20, steel_beam: 20 });
+    const [x, y] = [w.hub.x - 10, w.hub.y + 2];
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    const p = w.place('drone_pad', x, y, 0);
+    window.game.ui.selected = p.id;
+    window.game.camera.x = x + 3;
+    window.game.camera.y = y;
+    return p.id;
+  });
+  await expect(page.locator('[data-tool="drone_pad"]')).toBeVisible();
+  await expect(page.locator('#info')).toContainText('Sends: holds empty');
+  await page.click('#info [data-action="filter"][data-item="iron_plate"]');
+  await expect.poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.filter, id)).toBe('iron_plate');
+  await expect(page.locator('#info')).toContainText('Receives');
+  await page.click('#info [data-action="filter"][data-item=""]');
+  await expect.poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.filter, id)).toBeNull();
+});

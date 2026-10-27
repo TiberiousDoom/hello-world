@@ -34,6 +34,7 @@ import {
   PLAYER,
   isBelt,
   CRATE_SIZE,
+  DRONES,
   STORES,
   FUEL,
   burnsFuel,
@@ -55,6 +56,7 @@ const TOOLBAR: BuildingType[] = [
   'crate',
   'storage',
   'storage_silo',
+  'drone_pad',
   'belt',
   'express_belt',
   'splitter',
@@ -98,7 +100,7 @@ const TOOLBAR: BuildingType[] = [
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = ['well', 'boiler', 'steam_turbine', 'power_pole', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'floodlight', 'palisade', 'spike_pit', 'repair', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'tesla', 'trebuchet', 'port', 'shipyard'];
 /** Buildings that take items a character hands them (#40). */
-const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'repair', 'shipyard'];
+const TAKES_ITEMS: BuildingType[] = ['hub', 'crate', 'storage', 'storage_silo', 'spike_pit', 'trebuchet', 'furnace', 'boiler', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'drone_pad', 'turret', 'turret2', 'mortar', 'artillery', 'ballista', 'cannon', 'repair', 'shipyard'];
 const DIR_ARROWS = ['→', '↓', '←', '↑'];
 const DIR_DEGREES = [0, 90, 180, 270];
 
@@ -735,6 +737,13 @@ export class Hud {
               `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
           ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
+        if (b!.type === 'drone_pad') {
+          // Send, or receive one item (D-128).
+          actions += `<p class="small muted">Send what belts bring it, or pick an item for drones to bring here.</p><div class="recipes"><button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Send</button>${ITEM_IDS.map(
+            (i) =>
+              `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="Receive ${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
+          ).join('')}</div>`;
+        }
         if (b!.type === 'port') {
           actions += `<div class="recipes">${ITEM_IDS.map(
             (i) =>
@@ -915,6 +924,13 @@ export class Hud {
         stats += b.filter
           ? `<br>Sending ${swatch(b.filter)}${ITEMS[b.filter].name} (${world.state.inventory[b.filter] ?? 0} in stock)`
           : '<br>Choose an item to send out.';
+      }
+      if (b.type === 'drone_pad') {
+        const held = b.outputs.length ? `${b.outputs.length} / ${DRONES.hold} ${swatch(b.outputs[0])}${ITEMS[b.outputs[0]].name}` : `empty (holds ${DRONES.hold})`;
+        const flying = world.state.drones.find((d) => d.home === b.id);
+        stats += b.filter
+          ? `<br>Receives ${swatch(b.filter)}${ITEMS[b.filter].name} from sending pads within ${DRONES.range} tiles · holds ${held}`
+          : `<br>Sends: holds ${held}. Its drone ${flying ? (flying.back ? 'is flying home' : `is carrying ${flying.count}`) : 'is home'}`;
       }
       if (b.type === 'splitter') {
         const side = b.side ?? 'left';

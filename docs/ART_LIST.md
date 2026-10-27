@@ -154,6 +154,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Circuit board and coil items (D-125) | 16×16 | A green board with a chip; a copper coil on a core | 1 each | P3 | Placeholder (`items/circuit`, `items/coil`) |
 | Arc Fence (D-126): steel posts with a lightning insulator, three live wires between them | 1×1, a run set like the walls (`arc_fence`, `_v`, corners, ends, `_pier`) | Static | 9 | P2 | Placeholder (`buildings/arc_fence*`) |
 | Floodlight (D-126): a lamp head with three bulbs on a post | 1×1 | Static (its light at night is drawn in code) | 1 | P2 | Placeholder (`buildings/floodlight`) |
+| Drone Pad (D-128): a landing pad with a yellow H in a dashed ring and corner lights | 1×1 | Static | 1 | P2 | Placeholder (`buildings/drone_pad`) |
+| Drone (D-128): a small quadcopter seen from above, rotors spinning, carrying an item | ~0.5 tile | Drawn in code | — | P3 | Code |
 | Turret Mk.2 (D-123): a darker turret base and a four-barrel head | 1×1 | Base and barrel (`turret2_base`, `turret2_barrel`), like the turret | 2 | P2 | Placeholder |
 | Steel wall set (D-123) | 1×1 each | The wall set in blue-grey steel, the same pieces (`steel_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Sulfur, gunpowder, casing and bullet items (D-123) | 16×16 | A yellow crystal; a powder sack; a brass casing; two cartridges | 1 each | P3 | Placeholder |

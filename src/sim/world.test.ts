@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, FLOODLIGHT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { ARC_FENCE, DRONES, FLOODLIGHT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2688,5 +2688,87 @@ describe('Mk3 machines (D-127)', () => {
     w.demolish(fu.id);
     expect(w.state.inventory.steel_beam).toBe(beams + MK2.cost.steel_beam! + MK3.cost.steel_beam!);
     expect(w.state.inventory.bearing).toBe(bearings + MK2.cost.bearing!);
+  });
+});
+
+describe('Drone pads (D-128)', () => {
+  /** A sending pad holding `n` iron plates and a pad receiving them `dx` tiles east. */
+  function pads(dx: number, n = 20) {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, motor: 99, steel_beam: 99 });
+    const send = placed(w.place('drone_pad', 20, 20, 0));
+    const get = placed(w.place('drone_pad', 20 + dx, 20, 0));
+    for (let i = 0; i < n; i++) expect(w.insert(send, 'iron_plate', 19, 20)).toBe(true);
+    w.setFilter(get.id, 'iron_plate');
+    return { w, send, get };
+  }
+
+  it('Drone Logistics comes after Circuit Works', () => {
+    expect(RESEARCH_BY_ID.drones.requires).toEqual(['circuit_works']);
+    expect(RESEARCH_BY_ID.drones.unlocks).toEqual(['drone_pad']);
+  });
+
+  it('a sending pad takes one kind of item from belts; a receiving pad takes none from belts', () => {
+    const { w, send, get } = pads(10);
+    expect(w.insert(send, 'gear', 19, 20)).toBe(false); // one kind only
+    expect(w.insert(get, 'iron_plate', 29, 20)).toBe(false);
+  });
+
+  it('a drone flies a load to the pad that asks, comes home, and goes again until it is full', () => {
+    const { w, send, get } = pads(10);
+    w.tick();
+    expect(w.state.drones).toHaveLength(1);
+    expect(w.state.drones[0]).toMatchObject({ home: send.id, to: get.id, item: 'iron_plate', count: DRONES.load });
+    expect(send.outputs.length).toBe(20 - DRONES.load);
+    const leg = 10 / DRONES.speed;
+    run(w, leg + 0.1);
+    expect(get.outputs.length).toBe(DRONES.load);
+    expect(w.state.drones[0].back).toBe(true);
+    run(w, leg + 0.2); // home, and off again
+    expect(w.state.drones).toHaveLength(1);
+    expect(w.state.drones[0].back).toBe(false);
+    run(w, 3 * (2 * leg + 0.2));
+    expect(get.outputs.length).toBe(20);
+    expect(send.outputs.length).toBe(0);
+  });
+
+  it('a receiving pad puts what it gets on a belt leaving its front', () => {
+    const { w, get } = pads(6, 8);
+    const belt = placed(w.place('belt', 27, 20, 0));
+    run(w, 2 * (6 / DRONES.speed) + 1);
+    expect(get.outputs.length + belt.belt.length).toBeGreaterThan(0);
+    expect(belt.belt.length).toBeGreaterThan(0);
+  });
+
+  it('pads out of range, or without electricity, send nothing', () => {
+    const far = pads(DRONES.range + 2);
+    far.w.tick();
+    expect(far.w.state.drones).toHaveLength(0);
+    const dark = pads(10);
+    dark.w.freePower = false;
+    dark.w.tick();
+    expect(dark.w.state.drones).toHaveLength(0);
+  });
+
+  it('a drone whose pad is demolished on the way comes home with its load; switching a pad empties it into the hub', () => {
+    const { w, send, get } = pads(10, 8);
+    w.tick();
+    expect(send.outputs.length).toBe(0);
+    w.demolish(get.id);
+    run(w, 1);
+    expect(w.state.drones).toHaveLength(0);
+    expect(send.outputs.length).toBe(8);
+    const plates = w.state.inventory.iron_plate ?? 0;
+    w.setFilter(send.id, 'gear');
+    expect(send.outputs.length).toBe(0);
+    expect(w.state.inventory.iron_plate).toBe(plates + 8);
+  });
+
+  it('v37 saves get an empty list of drones', () => {
+    const w = emptyWorld();
+    const old = JSON.parse(w.toJSON());
+    old.version = 37;
+    delete old.drones;
+    expect(World.fromJSON(JSON.stringify(old)).state.drones).toEqual([]);
   });
 });
