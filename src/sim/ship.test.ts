@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLUEPRINTS, BLUEPRINT_BY_ID, BUILDINGS, Blueprint, ItemId, NESTS, RESEARCH, RESEARCH_BY_ID, SHIP, SHIP_SITE, cargoFor } from './data';
+import { BLUEPRINTS, BLUEPRINT_BY_ID, BUILDINGS, ItemId, NESTS, RESEARCH, RESEARCH_BY_ID, SHIP, SHIP_SITE, cargoFor } from './data';
 import { Nest, cellKey, isAngry, newNest } from './nests';
 import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, stageNeeds, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
@@ -262,7 +262,7 @@ describe('Supply ship', () => {
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship).toEqual(
         escaped
-          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: null } // the Tesla left the pool (D-126)
+          ? { stage: SHIP.stages.length, delivered: {}, launchAt: null, runs: 1, returnAt: null, drawn: [], blueprints: [], offer: ['teleporter', 'strike_beacon'] } // the first two in the pool (D-131)
           : { stage: 2, delivered: {}, launchAt: null, runs: 0, returnAt: null, drawn: [], blueprints: [], offer: null },
       );
     }
@@ -276,47 +276,29 @@ describe('Supply ship', () => {
     expect(w.state.ship.delivered.plank).toBe(20);
   });
 
-  it('after a delivery the colony offers blueprints to pick from, or sends the last one left', () => {
-    // The pool is empty until the special buildings come (D-125, D-126), so these are stand-ins.
-    const stand = (id: string): Blueprint => ({ id, name: `Test ${id}`, description: '', unlocks: ['tesla'] });
-    const added = [stand('one'), stand('two')];
-    for (const b of added) {
-      BLUEPRINTS.push(b);
-      BLUEPRINT_BY_ID[b.id] = b;
-    }
-    try {
-      const w = quiet();
-      yard(w);
-      w.state.researched = w.state.researched.filter((r) => r !== 'electric_defense');
-      expect(w.isUnlocked('tesla')).toBe(false);
-      const ship = w.state.ship;
-      deliverRun(w); // two left: an offer of both
-      expect([...ship.offer!].sort()).toEqual(['one', 'two']);
-      expect(pickBlueprint(w, 'shipyard')).toBe(false);
-      expect(pickBlueprint(w, 'one')).toBe(true);
-      expect(ship.offer).toBeNull();
-      expect(w.isUnlocked('tesla')).toBe(true);
-      deliverRun(w); // only one left: it's simply sent
-      expect(ship.offer).toBeNull();
-      expect(w.events.some((e) => e.includes('Test two blueprint'))).toBe(true);
-      deliverRun(w); // none left
-      expect(ship.offer).toBeNull();
-      expect(ship.blueprints).toEqual(['one', 'two']);
-    } finally {
-      for (const b of added) {
-        BLUEPRINTS.splice(BLUEPRINTS.indexOf(b), 1);
-        delete BLUEPRINT_BY_ID[b.id];
-      }
-    }
-  });
-
-  it('with no blueprints in the pool, a delivery offers none (D-126)', () => {
+  it('after a delivery the colony offers two of its special buildings to pick from, then sends the last one (D-131)', () => {
     const w = quiet();
     yard(w);
-    expect(BLUEPRINTS).toEqual([]);
-    deliverRun(w);
-    expect(w.state.ship.offer).toBeNull();
-    expect(w.state.ship.blueprints).toEqual([]);
+    expect(BLUEPRINTS.map((b) => b.id).sort()).toEqual(['greenhouse', 'strike_beacon', 'teleporter']);
+    for (const t of ['teleporter', 'strike_beacon', 'greenhouse'] as const) expect(w.isUnlocked(t)).toBe(false); // never researched
+    const ship = w.state.ship;
+    deliverRun(w); // three left: an offer of two
+    expect(ship.offer).toHaveLength(2);
+    expect(pickBlueprint(w, 'shipyard')).toBe(false);
+    const first = ship.offer![0];
+    expect(pickBlueprint(w, first)).toBe(true);
+    expect(ship.offer).toBeNull();
+    expect(w.isUnlocked(BLUEPRINT_BY_ID[first].unlocks[0])).toBe(true);
+    deliverRun(w); // two left: both on offer
+    expect([...ship.offer!].sort()).toEqual(BLUEPRINTS.map((b) => b.id).filter((id) => id !== first).sort());
+    const second = ship.offer![1];
+    pickBlueprint(w, second);
+    deliverRun(w); // only one left: it's simply sent
+    expect(ship.offer).toBeNull();
+    expect(ship.blueprints).toHaveLength(3);
+    expect(w.events.some((e) => e.includes('blueprint'))).toBe(true);
+    deliverRun(w); // none left
+    expect(ship.offer).toBeNull();
   });
 
   it('v36 saves: the Tesla blueprint becomes Electric Defense, with stock to power its teslas (D-126)', () => {
@@ -372,7 +354,7 @@ describe('Supply ship', () => {
       const loaded = World.fromJSON(JSON.stringify(old));
       expect(loaded.state.version).toBe(SAVE_VERSION);
       expect(loaded.state.ship.blueprints).toEqual([]);
-      expect(loaded.state.ship.offer).toBeNull(); // the Express Belt and Tesla left the pool (D-121, D-126)
+      expect(loaded.state.ship.offer).toEqual(runs ? ['teleporter', 'strike_beacon'] : null); // the first two in today's pool (D-131)
     }
   });
 

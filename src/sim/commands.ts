@@ -8,7 +8,7 @@
 
 import { BuildingType, Dir, ItemId } from './data';
 import { LaunchError, launch, pickBlueprint } from './ship';
-import type { Building, HandTap, MineError, PlaceError, ResearchError, World } from './world';
+import type { Building, HandTap, MineError, PlaceError, ResearchError, StrikeError, World } from './world';
 
 export type Command =
   | { kind: 'place'; type: BuildingType; x: number; y: number; dir: Dir; replaceBelt: boolean }
@@ -28,6 +28,8 @@ export type Command =
   // An extractor or furnace to Mk2 (D-122).
   | { kind: 'upgrade'; id: number }
   | { kind: 'launch' }
+  // An orbital strike from a charged beacon onto a spot (D-131).
+  | { kind: 'strike'; id: number; x: number; y: number }
   | { kind: 'pick-blueprint'; id: string }
   | { kind: 'mine'; x: number; y: number }
   | { kind: 'collect'; id: number }
@@ -57,6 +59,7 @@ export interface CommandResults {
   'upgrade-belts': { upgraded: number; left: number } | PlaceError;
   upgrade: PlaceError | null;
   launch: LaunchError | null;
+  strike: StrikeError | null;
   'pick-blueprint': boolean;
   mine: HandTap | MineError;
   collect: number;
@@ -107,6 +110,8 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
       return w.upgradeMachine(c.id);
     case 'launch':
       return launch(w);
+    case 'strike':
+      return w.strike(c.id, c.x, c.y);
     case 'pick-blueprint':
       return pickBlueprint(w, c.id);
     case 'mine':

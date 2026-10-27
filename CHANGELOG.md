@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.72.0 · 2026-10-27 · Gifts from the colony
+### New
+- Supply runs bring three **special buildings** from the colony. After each delivery, it offers two and you pick one.
+  - **Teleporter Pad:** like a drone pad, but items arrive at once, at any distance. It uses a lot of electricity.
+  - **Orbital Strike Beacon:** charges over a day, then press **Call a strike** and tap any explored spot. It wrecks the bugs and nests there.
+  - **Greenhouse:** grows logs with electricity. No trees needed.
+- This completes the Electric Age.
+
 ## 0.71.0 · 2026-10-27 · Ship Systems
 ### New
 - **Ship Systems** (after Electronics and Hull) is needed for the ship's **engine**, **life support** and **navigation**.

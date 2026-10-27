@@ -52,7 +52,7 @@ export const RESOURCE_ITEMS: (ItemId | null)[] = [null, 'iron_ore', 'copper_ore'
 /** The resource index of sulfur (D-123), placed in deposits of its own rather than by the ore noise. */
 export const SULFUR_RESOURCE = 4;
 
-export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works' | 'powder_mill' | 'circuit_works';
+export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works' | 'powder_mill' | 'circuit_works' | 'greenhouse';
 
 export interface Recipe {
   id: string;
@@ -96,6 +96,8 @@ export const RECIPES: Recipe[] = [
   // The Electric Age's parts (D-125).
   { id: 'circuit', machine: 'circuit_works', inputs: { wire: 3, iron_plate: 1 }, output: 'circuit', count: 1, time: 3 },
   { id: 'coil', machine: 'circuit_works', inputs: { wire: 4, iron_rod: 1 }, output: 'coil', count: 1, time: 3 },
+  // The colony's Greenhouse (D-131): logs from nothing but electricity.
+  { id: 'greenhouse_log', machine: 'greenhouse', inputs: {}, output: 'log', count: 2, time: 6 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -133,6 +135,9 @@ export type BuildingType =
   | 'arc_fence'
   | 'drone_pad'
   | 'shield_pylon'
+  | 'teleporter'
+  | 'strike_beacon'
+  | 'greenhouse'
   | 'railgun'
   | 'floodlight'
   | 'boiler'
@@ -226,6 +231,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
+  // The colony's special buildings (D-131), sent as blueprints after supply runs.
+  teleporter: { name: 'Teleporter Pad', short: 'TP', color: '#5a3a8a', hp: 200, cost: { circuit: 10, coil: 10, steel_beam: 4 }, blocking: true, description: 'Like a drone pad, without the drone or the distance: set to Send, belts fill it; set to receive an item, it pulls it at once from any sending teleporter. It uses a lot of electricity.' },
+  strike_beacon: { name: 'Orbital Strike Beacon', short: 'OS', color: '#8a3a3a', hp: 200, cost: { circuit: 20, coil: 10, steel: 20 }, blocking: true, description: 'Charges over a day with electricity, then calls a strike from orbit on any explored spot: it wrecks bugs and nests there.' },
+  greenhouse: { name: 'Greenhouse', short: 'GH', color: '#3a7a4a', hp: 160, size: [2, 2], cost: { steel: 10, circuit: 4, wire: 10 }, blocking: true, description: 'Grows logs, with no trees needed, while it has electricity from a power pole.' },
   shield_pylon: { name: 'Shield Pylon', short: 'SP', color: '#3a6a9a', hp: 220, cost: { circuit: 6, coil: 6, steel_beam: 4 }, blocking: true, description: 'Shields the buildings around it: bites come off its shield first. The shield recharges with electricity from a power pole.' },
   railgun: { name: 'Railgun', short: 'RG', color: '#2f4a6a', hp: 450, size: [2, 2], cost: { steel_beam: 20, circuit: 10, coil: 10, bearing: 6 }, blocking: true, description: 'Fires a slug that goes through every bug in a long line. It needs no ammunition, only electricity from a power pole.' },
   drone_pad: { name: 'Drone Pad', short: 'DP', color: '#3a5a6a', hp: 160, cost: { circuit: 4, motor: 2, steel_beam: 2 }, blocking: true, description: 'With electricity, its drone flies items to pads that ask for them. Set to Send, belts fill it with one kind of item; set to receive an item, drones bring it and a belt leaving its front takes it out.' },
@@ -311,7 +320,7 @@ export const FUEL = {
 };
 export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
 
-export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works'];
+export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'greenhouse'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
 
 export interface TurretDef {
@@ -466,12 +475,12 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1, drone_pad: 2, shield_pylon: 4, railgun: 6 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3, tesla: 3, arc_fence: 0.25, floodlight: 1, drone_pad: 2, shield_pylon: 4, railgun: 6, teleporter: 10, strike_beacon: 5, greenhouse: 3 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
 /** Machines that work only with electricity (D-125): at its share of their need, and not at all with none. */
-export const ELECTRIC_MACHINES: BuildingType[] = ['circuit_works'];
+export const ELECTRIC_MACHINES: BuildingType[] = ['circuit_works', 'greenhouse'];
 /**
  * Mk2 machines (D-119, D-122): an extractor or furnace upgraded in place, for `cost`. With all the
  * electricity it needs (`uses`) it works `speed` times as fast; with less, proportionally less; with none, at
@@ -520,6 +529,14 @@ export const FLOODLIGHT = { radius: 7, slow: 0.6, sight: 14 };
  * shield (up to `max`, kept in `Building.ammo`) first. It recharges `recharge` a second times its electricity.
  */
 export const SHIELD = { radius: 5, max: 600, recharge: 10 };
+/**
+ * The colony's special buildings (D-131). A receiving teleporter pulls up to `rate` items a second from any
+ * sending one. A strike beacon charges `charge` seconds of game time (one day and night) with electricity,
+ * scaled by how much it gets; a strike does `damage` to every bug within `radius` tiles of the spot, and
+ * `mound` to each nest mound there.
+ */
+export const TELEPORT = { rate: 4 };
+export const STRIKE = { charge: 540, radius: 4, damage: 2000, mound: 1000 };
 /**
  * What carries power: shafts and sources to anything touching them, belts to belts beside them. Hydraulic
  * defences too, so a row of turrets shares one shaft.
@@ -677,8 +694,12 @@ export interface Blueprint {
   unlocks: BuildingType[];
 }
 
-/** None for now: the Tesla moved into the tree (D-126); special buildings come later (D-125). */
-export const BLUEPRINTS: Blueprint[] = [];
+/** The colony's special buildings (D-131); the Express Belt and Tesla moved into the tree (D-121, D-126). */
+export const BLUEPRINTS: Blueprint[] = [
+  { id: 'teleporter', name: 'Teleporter Pad', description: 'Moves items between pads at once, at any distance, with a lot of electricity.', unlocks: ['teleporter'] },
+  { id: 'strike_beacon', name: 'Orbital Strike Beacon', description: 'Once a day, calls a strike from orbit on any explored spot: it can wreck a nest outright.', unlocks: ['strike_beacon'] },
+  { id: 'greenhouse', name: 'Greenhouse', description: 'Grows logs with electricity, no trees needed: wood that never runs out.', unlocks: ['greenhouse'] },
+];
 export const BLUEPRINT_BY_ID: Record<string, Blueprint> = Object.fromEntries(BLUEPRINTS.map((b) => [b.id, b]));
 
 /** The cargo for supply run `run` (0 for the first). */

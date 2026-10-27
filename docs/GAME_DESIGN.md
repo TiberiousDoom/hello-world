@@ -75,6 +75,7 @@ How the game works on `master` today. Balance numbers live in
 | Shell | Assembler (after Heavy Defense 2) | 2 casings + 2 gunpowder + 1 steel | 4 s |
 | Circuit board | Circuit Works | 3 wire + 1 iron plate | 3 s |
 | Coil | Circuit Works | 4 wire + 1 iron rod | 3 s |
+| Log ×2 | Greenhouse (colony blueprint) | nothing: electricity | 6 s |
 | Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
@@ -128,6 +129,9 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Floodlight | 1×1, bugs walk past it; needs electricity | 1 circuit board, 4 iron rods, 4 wire | 80 | Electric Defense |
 | Shield Pylon | 1×1, needs electricity to recharge | 6 circuit boards, 6 coils, 4 steel beams | 220 | Electric Defense 2 |
 | Railgun | 2×2, needs electricity | 20 steel beams, 10 circuit boards, 10 coils, 6 bearings | 450 | Electric Defense 2 |
+| Teleporter Pad | 1×1, needs electricity | 10 circuit boards, 10 coils, 4 steel beams | 200 | Colony blueprint |
+| Orbital Strike Beacon | 1×1, needs electricity to charge | 20 circuit boards, 10 coils, 20 steel | 200 | Colony blueprint |
+| Greenhouse | 2×2, needs electricity | 10 steel, 4 circuit boards, 10 wire | 160 | Colony blueprint |
 | Drone Pad | 1×1, needs electricity | 4 circuit boards, 2 motors, 2 steel beams | 160 | Drone Logistics |
 | Shipyard | 5×5, on its site only | 60 planks, 10 trusses, 20 logs | 900 | Shipyard |
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
@@ -293,8 +297,8 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
 ## Research
 
 You start with nothing to build (D-093): Forestry, paid in logs chopped by hand, comes first, then
-Industry for extractors and furnaces. Everything is researched; colony blueprints, which came from supply
-runs, have none to offer until the Electric Age's special buildings (D-126). **Select the hub** and press **Research** to open the list.
+Industry for extractors and furnaces. Everything is researched, except the colony's special buildings,
+which come as blueprints from supply runs (D-131). **Select the hub** and press **Research** to open the list.
 
 - **Start** a research, and it draws its items from hub stock at a steady pace over its research
   time. For example, Advanced Defense takes 20 iron plates over 30 s.
@@ -450,7 +454,7 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    **Arc Fence** and **Floodlights**; **Mk3 Machines** makes extractors, furnaces and assemblers three times as
    fast. **Drone Logistics** brings **drone pads**, which fly items between pads without belts. **Electric Defense 2**
    brings **Shield Pylons** and the **Railgun**; and **Ship Systems** the ship's last three stages, so the first
-   launch comes in the Electric Age.
+   launch comes in the Electric Age. After it, supply runs bring the colony's **special buildings** (D-131).
 
 ## Bugs
 
@@ -632,9 +636,14 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 - The main menu's Continue button shows how many supply runs a save has delivered.
 - **Blueprints from the colony (D-049):** after each delivery the colony offers **two blueprints** for
   buildings you can't research, and you **pick one** on a screen that pauses the game. The other stays
-  on offer for a later run; when only one is left, the next delivery simply sends it. There are **none left
-  for now**: the Express Belt and the Tesla Turret are researched (D-121, D-126), and the special buildings the
-  colony will send come later (D-125). Research lists them under "From the colony", with
+  on offer for a later run; when only one is left, the next delivery simply sends it. The colony sends three
+  **special buildings** (D-131); the Express Belt and the Tesla Turret are researched now (D-121, D-126):
+  - **Teleporter Pad** (1×1, uses 10 electricity): like a drone pad, set to Send or to receive one item, but a
+    receiving teleporter pulls its item **4 a second** from any sending teleporter, at any distance, at once.
+  - **Orbital Strike Beacon** (1×1, uses 5): charges for a day and a night (**540 s**) with electricity, then
+    **Call a strike** in its panel and tap any explored spot (Esc or right-click cancels): every bug within
+    **4 tiles** takes **2000** damage, and each nest mound there **1000**, which wrecks most.
+  - **Greenhouse** (2×2, uses 3): grows **2 logs every 6 s** with electricity, from nothing. Research lists them under "From the colony", with
   what you've received and what's on offer.
 
 ## Modes

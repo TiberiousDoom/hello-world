@@ -1,4 +1,4 @@
-import { calm, expect, newGame, test } from './helpers';
+import { calm, expect, newGame, tap, test, uncoveredTile } from './helpers';
 
 test('Electric Defense: the toolbar has the tesla, arc fence and floodlight, and their panels say they need electricity (D-126)', async ({ page }) => {
   await newGame(page);
@@ -101,4 +101,28 @@ test('Electric Defense 2: the shield pylon and railgun are on the toolbar, and t
   await expect(page.locator('#info')).toContainText('Shield 0 / 600');
   await expect(page.locator('#info')).toContainText("it doesn't recharge");
   expect(await page.evaluate((id) => window.game.world.byId.get(id)?.type, id)).toBe('shield_pylon');
+});
+
+test('a charged strike beacon calls a strike on the spot tapped next (D-131)', async ({ page }, info) => {
+  await newGame(page);
+  await calm(page);
+  const { id, x, y } = await page.evaluate(() => {
+    const w = window.game.world;
+    const s = w.state;
+    s.ship.blueprints.push('strike_beacon');
+    Object.assign(s.inventory, { circuit: 40, coil: 20, steel: 40 });
+    const [x, y] = [w.hub.x - 10, w.hub.y + 2];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s.resources[w.idx(x + dx, y + dy)] = s.trees[w.idx(x + dx, y + dy)] = 0;
+    const b = w.place('strike_beacon', x, y, 0);
+    b.ammo = 540; // charged
+    window.game.ui.selected = b.id;
+    return { id: b.id as number, x, y };
+  });
+  await expect(page.locator('[data-tool="strike_beacon"]')).toBeVisible();
+  await page.click('#info [data-action="strike"]');
+  expect(await page.evaluate(() => window.game.ui.aiming)).toBe(id);
+  const [sx, sy] = await uncoveredTile(page, x - 6, y);
+  await tap(page, info, sx, sy);
+  await expect.poll(() => page.evaluate((id) => window.game.world.byId.get(id)?.ammo, id)).toBe(0);
+  expect(await page.evaluate(() => window.game.ui.aiming)).toBeNull();
 });

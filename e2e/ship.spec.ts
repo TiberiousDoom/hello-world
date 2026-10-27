@@ -109,9 +109,14 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   await page.click('#btn-keep-playing');
   await expect(page.locator('#victory')).toBeHidden();
 
-  // The colony has no blueprints to send for now (the Tesla is researched, D-126): no pick to wait for.
+  // The colony offers two of its special buildings (D-131): pick one, and its tool appears.
+  await expect(page.locator('#blueprints')).toBeVisible();
+  const offer: string[] = await page.evaluate(() => window.game.world.state.ship.offer);
+  expect(offer).toHaveLength(2);
+  await page.locator(`[data-blueprint="${offer[0]}"]`).click();
   await expect(page.locator('#blueprints')).toBeHidden();
-  expect(await page.evaluate(() => window.game.world.state.ship.blueprints)).toEqual([]);
+  expect(await page.evaluate(() => window.game.world.state.ship.blueprints)).toEqual([offer[0]]);
+  await expect(page.locator(`[data-tool="${offer[0]}"]`)).toBeVisible();
   const ship = await page.evaluate(() => ({ ...window.game.world.state.ship, yards: window.game.world.state.buildings.filter((b: { type: string }) => b.type === 'shipyard').length }));
   expect(ship.runs).toBe(1);
   expect(ship.returnAt).not.toBeNull();

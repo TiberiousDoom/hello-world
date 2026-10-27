@@ -27,9 +27,14 @@ export function outputsTo(world: World, n: Building, x: number, y: number): bool
     case 'steel_works':
     case 'powder_mill':
     case 'circuit_works':
+    case 'greenhouse':
     case 'port':
       dirs = [n.dir];
       break;
+    case 'drone_pad':
+    case 'teleporter':
+      // Only a receiving pad puts items out of its front (D-128, D-131).
+      return !!n.filter && n.x + DX[n.dir] === x && n.y + DY[n.dir] === y;
     case 'tunnel':
       dirs = world.isTunnelExit(n) ? [n.dir] : [];
       break;
@@ -53,6 +58,9 @@ export function acceptsFrom(world: World, b: Building, fromX: number, fromY: num
     case 'roller':
     case 'crate':
       return !front;
+    case 'drone_pad':
+    case 'teleporter':
+      return !b.filter; // a sending pad takes from any side (D-128, D-131)
     case 'storage':
     case 'storage_silo': {
       // From anywhere but the tiles past its front edge (D-116).

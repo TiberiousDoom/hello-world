@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sightOf } from './fog';
-import { ARC_FENCE, DRONES, FLOODLIGHT, SHIELD, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
+import { ARC_FENCE, DRONES, FLOODLIGHT, RECIPE_BY_ID, SHIELD, STRIKE, TELEPORT, BELT_SPACING, BELT_SPEED, BREACH, BUILDINGS, CRATE_SIZE, ENEMIES, EXTRACTOR_PERIOD, ELECTRIC, ELECTRIC_DEFENCES, EXPRESS_BELT_SPEED, FUEL, HYDRAULIC, MK2, MK3, ORE, SILO, SULFUR, POWER, PONDS, STORAGE, ROLLER, SPIKES, FOREST, HAND_MINING, HUB_SIZE, PLAYER, ItemId, LUMBER, MAP_SIZE, NESTS, REPAIR, RESEARCH, RESEARCH_BY_ID, TURRETS, nestComposition } from './data';
 import { Nest, cellKey, hubDistance, isAngry, nestCentre, newNest, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
@@ -2854,5 +2854,65 @@ describe('Electric Defense 2: the Shield Pylon and the Railgun (D-129)', () => {
     Object.assign(e2, { x: x2 + 5, y: y2, hp: 1000, maxHp: 1000 });
     dark.tick();
     expect(e2.hp).toBe(1000);
+  });
+});
+
+describe("The colony's special buildings (D-131)", () => {
+  it('a greenhouse grows logs from nothing but electricity', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel: 99, circuit: 99 });
+    w.state.ship.blueprints.push('greenhouse');
+    const g = placed(w.place('greenhouse', 20, 20, 0));
+    expect(g.recipe).toBe('greenhouse_log');
+    expect(w.insert(g, 'log', 19, 20)).toBe(false); // it takes nothing
+    run(w, RECIPE_BY_ID.greenhouse_log.time + 0.2);
+    expect(g.outputs).toEqual(['log', 'log']);
+    w.freePower = false;
+    g.outputs = [];
+    run(w, RECIPE_BY_ID.greenhouse_log.time + 0.2);
+    expect(g.outputs).toEqual([]);
+  });
+
+  it('a receiving teleporter pulls its item at once from any sending one, however far', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, coil: 99, steel_beam: 99 });
+    w.state.ship.blueprints.push('teleporter');
+    const send = placed(w.place('teleporter', 20, 20, 0));
+    const get = placed(w.place('teleporter', 200, 200, 0));
+    for (let i = 0; i < 10; i++) w.insert(send, 'gear', 19, 20);
+    w.setFilter(get.id, 'gear');
+    run(w, 1);
+    expect(get.outputs.length).toBe(TELEPORT.rate);
+    expect(send.outputs.length).toBe(10 - TELEPORT.rate);
+    w.freePower = false;
+    run(w, 1);
+    expect(get.outputs.length).toBe(TELEPORT.rate);
+  });
+
+  it('a strike beacon charges over a day, then strikes an explored spot: bugs and a nest there are wrecked', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { circuit: 99, coil: 99, steel: 99 });
+    w.state.ship.blueprints.push('strike_beacon');
+    const b = placed(w.place('strike_beacon', w.hub!.x - 6, w.hub!.y, 0));
+    const n = addNest(w, w.hub!.x - 40, w.hub!.y - 40, 0);
+    const [mx, my] = nestCentre(n);
+    const bug = w.spawnBug('crawler', n, 1);
+    Object.assign(bug, { x: mx + 1, y: my, hp: 1000, maxHp: 1000 });
+    const far = w.spawnBug('crawler', n, 1);
+    Object.assign(far, { x: mx + STRIKE.radius + 3, y: my, hp: 1000, maxHp: 1000 });
+    expect(w.strike(b.id, Math.floor(mx), Math.floor(my))).toBe('not-ready');
+    run(w, 2);
+    expect(b.ammo).toBeCloseTo(2, 1);
+    b.ammo = STRIKE.charge;
+    w.state.explored.fill(0);
+    expect(w.strike(b.id, Math.floor(mx), Math.floor(my))).toBe('unexplored');
+    w.state.explored.fill(1);
+    expect(w.strike(b.id, Math.floor(mx), Math.floor(my))).toBeNull();
+    expect(bug.hp).toBeLessThan(0);
+    expect(far.hp).toBe(1000);
+    expect(n.destroyed).toBe(true);
+    expect(b.ammo).toBe(0);
+    expect(w.blasts).toHaveLength(1);
+    expect(w.strike(b.id, Math.floor(mx), Math.floor(my))).toBe('not-ready'); // a day to charge again
   });
 });
