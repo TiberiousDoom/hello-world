@@ -620,6 +620,7 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
     bite(w, here, n, dps * dt, angers, e, dt);
     return;
   }
+  if (e.foe && avenge(w, e, n, dps, dt, angers)) return;
   let best = -1;
   let bestCost = flow[w.idx(tx, ty)];
   for (let k = 0; k < 4; k++) {
@@ -648,6 +649,36 @@ function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, ange
     e.x += ((gx - e.x) / dist) * step;
     e.y += ((gy - e.y) / dist) * step;
   }
+}
+
+/**
+ * A vengeful bug (D-137) goes straight for the turret that shot it and bites it once in reach. Returns false
+ * when the way is blocked, so the bug follows its path field (and chews through a wall in the way, if
+ * that's the shortest way round). The turret is forgotten once it's gone or moved.
+ */
+function avenge(w: World, e: Enemy, n: Nest, dps: number, dt: number, angers: boolean): boolean {
+  const foe = w.buildingAt(e.foe!.x, e.foe!.y);
+  if (!foe || foe.id !== e.foe!.id || foe.x !== e.foe!.x || foe.y !== e.foe!.y) {
+    delete e.foe;
+    return false;
+  }
+  const [bw, bh] = w.footprintOf(foe);
+  const x = Math.max(foe.x, Math.min(e.x, foe.x + bw));
+  const y = Math.max(foe.y, Math.min(e.y, foe.y + bh));
+  const dist = hypot(x - e.x, y - e.y);
+  const def = ENEMIES[e.type];
+  if (dist <= def.radius + 0.1) {
+    bite(w, foe, n, dps * dt, angers, e, dt);
+    return true;
+  }
+  const step = Math.min(dist, speedOf(w, e) * dt);
+  const mx = e.x + ((x - e.x) / dist) * step;
+  const my = e.y + ((y - e.y) / dist) * step;
+  const blocker = w.buildingAt(Math.floor(mx), Math.floor(my));
+  if (blocker && blocker !== foe && BUILDINGS[blocker.type].blocking) return false;
+  e.x = mx;
+  e.y = my;
+  return true;
 }
 
 /**

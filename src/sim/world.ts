@@ -210,6 +210,7 @@ export interface Enemy {
   born?: number; // game time it hatched, while it's still growing up (D-065); adults have none
   raid?: boolean; // out on a night raid (D-065), until morning and nothing is left in reach
   home?: boolean; // gave up the chase with nothing in reach (D-091): heading back into its territory
+  foe?: { id: number; x: number; y: number }; // the turret that shot a vengeful bug (D-137), by id and corner tile
 }
 
 export interface GameState {
@@ -2907,7 +2908,7 @@ export class World {
         if (along < 0 || along > def.range) continue;
         const off = (e.x - cx) * uy - (e.y - cy) * ux;
         if (off * off > def.pierce * def.pierce) continue;
-        this.shoot(e, def.damage);
+        this.shoot(e, def.damage, false, b);
       }
       this.shots.push({ x1: cx, y1: cy, x2: ex, y2: ey, splash: 0, age: 0, beam: true });
       return;
@@ -2916,10 +2917,10 @@ export class World {
       for (const e of this.state.enemies) {
         if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > splash ** 2) continue;
         if (def.lobbed && ENEMIES[e.type].flies) continue;
-        this.shoot(e, damage, piercing);
+        this.shoot(e, damage, piercing, b);
       }
     } else {
-      this.shoot(target, damage, piercing);
+      this.shoot(target, damage, piercing, b);
     }
     this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash, age: 0, arc: !!def.chain });
     // Tesla: the arc jumps on to the nearest bug it hasn't hit yet, within reach of the last.
@@ -2937,16 +2938,18 @@ export class World {
         }
       }
       if (!next) break;
-      this.shoot(next, def.damage);
+      this.shoot(next, def.damage, false, b);
       this.shots.push({ x1: last.x, y1: last.y, x2: next.x, y2: next.y, splash: 0, age: 0, arc: true, jump: true });
       hit.add(next);
       last = next;
     }
   }
 
-  /** A shot hits a bug: an armoured one takes that much less, down to 1 (D-135), unless the shot is armour-piercing (D-136). */
-  private shoot(e: Enemy, damage: number, piercing = false): void {
+  /** A shot from a turret (or the hub's gun) hits a bug: an armoured one takes that much less, down to 1 (D-135), unless the shot is armour-piercing (D-136). */
+  private shoot(e: Enemy, damage: number, piercing: boolean, from: Building): void {
     e.hp -= Math.max(1, damage - (piercing ? 0 : (ENEMIES[e.type].armour ?? 0)));
+    // A vengeful bug goes for the first turret that shoots it, until that turret is gone (D-137).
+    if (ENEMIES[e.type].vengeful && !e.foe) e.foe = { id: from.id, x: from.x, y: from.y };
     onBugHurt(this, e);
   }
 

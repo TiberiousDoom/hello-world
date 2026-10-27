@@ -588,13 +588,15 @@ export interface EnemyDef {
   flies?: boolean;
   /** Armoured (D-135): each hit does this much less damage, down to 1. */
   armour?: number;
+  /** Vengeful (D-137): once shot, it goes for the turret that shot it instead of the nearest building. */
+  vengeful?: boolean;
 }
 export const ENEMIES: Record<EnemyType, EnemyDef> = {
   crawler: { name: 'Crawler', hp: 18, speed: 1.1, dps: 8, radius: 0.22, color: '#e0445a' },
   runner: { name: 'Runner', hp: 10, speed: 2.2, dps: 5, radius: 0.17, color: '#ff9a3c' },
-  brute: { name: 'Brute', hp: 110, speed: 0.55, dps: 30, radius: 0.36, color: '#a8203a' },
+  brute: { name: 'Brute', hp: 110, speed: 0.55, dps: 30, radius: 0.36, color: '#a8203a', vengeful: true },
   wasp: { name: 'Wasp', hp: 12, speed: 1.6, dps: 6, radius: 0.24, color: '#e0b030', flies: true },
-  beetle: { name: 'Beetle', hp: 70, speed: 0.7, dps: 14, radius: 0.32, color: '#3a5a7a', armour: 6 },
+  beetle: { name: 'Beetle', hp: 70, speed: 0.7, dps: 14, radius: 0.32, color: '#3a5a7a', armour: 6, vengeful: true },
 };
 
 /** What a flying bug passes over to reach what's behind (D-135): walls, fences and spike pits. */

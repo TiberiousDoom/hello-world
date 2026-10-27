@@ -569,6 +569,11 @@ floodlights still slow it. Wasps are drawn above the trees, with a shadow on the
 **Beetles are armoured (D-135):** every hit does **6** less damage, down to 1. A turret's 5 does 1, a
 ballista's 14 does 8, a cannon's 30 does 24: heavy weapons and the railgun deal with beetles best.
 
+**Brutes and beetles hold a grudge (D-137, from D-020):** crawlers, runners and wasps go for the nearest
+building, but once a turret (or the hub's gun) shoots a brute or a beetle, it goes straight for that turret
+until the turret is gone. With a wall in the way it follows its usual path, chewing through the wall if
+that's the shortest way. So put walls in front of turrets, not only around the base.
+
 The runner is drawn as a long centipede, about three times its old length, whose body follows the way it
 came and sways as it goes (#96). Only the drawing is long: it is hit, and bites, at its head.
 
