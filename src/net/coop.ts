@@ -10,7 +10,7 @@ import { World } from '../sim/world';
 import { RelayLink, connect } from './client';
 import { GuestLockstep, HostLockstep, HostMessage } from './lockstep';
 import { pack, unpack } from './pack';
-import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RoomInfo, infoMessage, RefuseReason, RelayMessage, Role, makeCode, validCode } from './protocol';
+import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RoomInfo, infoMessage, RefuseReason, RelayMessage, Role, makeCode, passHash, validCode } from './protocol';
 
 export type CoopPhase = 'idle' | 'connecting' | 'lobby' | 'starting' | 'playing';
 
@@ -47,6 +47,8 @@ export function refusalText(reason: RefuseReason, hostVersion: string | undefine
       return 'That room is already taken.';
     case 'bad-request':
       return 'The game server refused the connection.';
+    case 'password':
+      return 'That game needs a password. Type it below, then join again.';
   }
 }
 
@@ -78,6 +80,10 @@ export class Coop {
   private link: RelayLink | null = null;
   /** The host's secret for its room: only it can take the room back after a dropped connection. */
   private key = '';
+  /** The room's password, hashed (D-140): set by a host, given by a guest; kept for reconnecting. */
+  private pass = '';
+  /** Why the relay last refused this game, if it did: the lobby asks for a password after 'password'. */
+  refused: RefuseReason | null = null;
   /** The room's code was chosen, not drawn (the dedicated server): a taken code isn't swapped for another. */
   private fixed = false;
   /** When a guest last heard from its host, and the check that notices a silent connection. */
@@ -113,18 +119,19 @@ export class Coop {
    * Opens a room with a new code, or (the dedicated server, D-084) with its own code and key, the same
    * every time it starts, so players always know where to find it and a restart takes the room back.
    */
-  hostRoom(code?: string, key?: string): void {
+  hostRoom(code?: string, key?: string, pass = ''): void {
     this.fixed = code != null;
     key ??= [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
-    this.open('host', code ?? makeCode(crypto.getRandomValues(new Uint8Array(6))), key);
+    this.open('host', code ?? makeCode(crypto.getRandomValues(new Uint8Array(6))), key, pass);
   }
 
   /** Joins the room with this code (letters in any case, spaces ignored), in the lobby or under way. */
-  joinRoom(input: string): string | null {
+  joinRoom(input: string, password = ''): string | null {
     const code = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!validCode(code)) return 'A room code is 6 letters and digits.';
     // A key of its own, so that reconnecting takes back this player's slot (#100).
-    this.open('guest', code, [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join(''));
+    const key = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    void passHash(code, password).then((pass) => this.open('guest', code, key, pass));
     return null;
   }
 
@@ -186,11 +193,13 @@ export class Coop {
     link?.close();
   }
 
-  private open(role: Role, code: string, key = ''): void {
+  private open(role: Role, code: string, key = '', pass = ''): void {
     this.leave();
     this.role = role;
     this.code = code;
     this.key = key;
+    this.pass = pass;
+    this.refused = null;
     this.phase = 'connecting';
     this.attach();
     this.onChange();
@@ -198,7 +207,7 @@ export class Coop {
 
   /** Connects to the room (again, when reconnecting), keeping whatever game is under way. */
   private attach(): void {
-    const link = connect(this.relay, this.code, this.role!, this.version, this.key);
+    const link = connect(this.relay, this.code, this.role!, this.version, this.key, this.pass);
     this.link = link;
     this.heardAt = Date.now();
     this.beatAt = 0;
@@ -303,6 +312,7 @@ export class Coop {
       case 'refused':
         if (m.reason === 'taken' && this.role === 'host' && this.phase === 'connecting' && !this.fixed) return this.hostRoom(); // that code is in use: another
         if (m.reason === 'no-room' && this.reconnecting) return this.end('The host left, so the game has ended.');
+        this.refused = m.reason;
         return this.end(refusalText(m.reason, m.hostVersion, this.version));
       case 'closed':
         if (m.reason === 'replaced') return this.end('This game was opened in the room again from somewhere else, so this copy left it.', true);

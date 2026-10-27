@@ -8,7 +8,7 @@ import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_R
 import { pack, unpack } from './pack';
 import { held } from '../sim/player';
 import { roomStatus } from './client';
-import { HEARTBEAT, MAX_PLAYERS } from './protocol';
+import { HEARTBEAT, MAX_PLAYERS, passHash } from './protocol';
 
 /** A host and a guest on the same world, wired together with message queues standing in for the relay. */
 function pair() {
@@ -333,6 +333,28 @@ describe('A co-op room', () => {
     expect((lateGame! as Session).player).toBe(1);
     expect(host.players).toEqual([0, 1]);
     late.leave();
+    host.leave();
+  });
+
+  it('a room with a password turns away a guest without it, and lets in one with it (D-140)', async () => {
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 200 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    const host = new Coop('local', '1.0.0');
+    host.hostRoom('PASS23', 'k', await passHash('PASS23', 'hunter2'));
+    await until(() => host.phase === 'lobby');
+    for (const [password, ok] of [['', false], ['wrong', false], ['hunter2', true]] as const) {
+      const guest = new Coop('local', '1.0.0');
+      let why = '';
+      guest.onEnd = (w) => (why = w);
+      guest.joinRoom('pass23', password);
+      await until(() => why !== '' || guest.phase === 'lobby');
+      expect(guest.phase === 'lobby').toBe(ok);
+      expect(guest.refused).toBe(ok ? null : 'password');
+      if (!ok) expect(why).toMatch(/password/);
+      guest.leave();
+    }
     host.leave();
   });
 

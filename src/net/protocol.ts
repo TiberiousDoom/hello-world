@@ -33,6 +33,8 @@ export const HEARTBEAT_REPLY = JSON.stringify({ t: 'heartbeat' });
 export interface RoomHost {
   key: string;
   version: string;
+  /** The room's password, hashed (`passHash`): guests must give the same to come in (D-140). */
+  pass?: string;
 }
 
 export type Role = 'host' | 'guest';
@@ -56,7 +58,7 @@ export type RelayMessage =
   /** The host's connection dropped: the room waits HOST_GRACE_MS for it (D-081). It's back with `joined` slot 0. */
   | { t: 'host-away' };
 
-export type RefuseReason = 'version' | 'full' | 'no-room' | 'taken' | 'bad-request';
+export type RefuseReason = 'version' | 'full' | 'no-room' | 'taken' | 'bad-request' | 'password';
 
 /** From the host to the relay: `data` goes to one guest (`to`), or to every guest. */
 export interface HostSend {
@@ -109,4 +111,31 @@ export function makeCode(random: Uint8Array): string {
   let code = '';
   for (let i = 0; i < CODE_LENGTH; i++) code += CODE_ALPHABET[random[i] % CODE_ALPHABET.length];
   return code;
+}
+
+/** SHA-256 of some text, as hex (crypto.subtle: in browsers, Node and Cloudflare Workers alike). */
+export async function sha256(text: string): Promise<string> {
+  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * A room's password as it travels (D-140): hashed with the room's code, so the relay never sees the
+ * password itself and the same password gives a different hash in another room. Empty for none.
+ */
+export async function passHash(code: string, password: string): Promise<string> {
+  return password ? sha256(`foundry-front:${code}:${password}`) : '';
+}
+
+/**
+ * Reserved rooms (D-140), as the relay's RESERVED_ROOMS secret holds them: "CODE:sha256-of-key", comma
+ * separated. Only a host whose key hashes to that may open the code, so nobody else can take the
+ * dedicated server's room while it's down. Returns the hash for `code`, if it's reserved.
+ */
+export function reservedHash(reserved: string | undefined, code: string): string | undefined {
+  for (const entry of (reserved ?? '').split(',')) {
+    const [c, hash] = entry.trim().split(':');
+    if (c === code && hash) return hash.toLowerCase();
+  }
+  return undefined;
 }

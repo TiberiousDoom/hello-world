@@ -10,6 +10,7 @@
 //   FOUNDRY_ORIGIN      the page origin the relay lets in (default: the game on GitHub Pages)
 //   FOUNDRY_PAUSE_EMPTY "0" keeps the game running with nobody in it (default: paused until someone joins)
 //   FOUNDRY_NAME        the name players see on the Play together screen (default: none, shown as "Dedicated server")
+//   FOUNDRY_PASSWORD    a password players must type to join (default: none, open to anyone with the code) (D-140)
 //
 // A connection that dies without closing (a router restarting, a new IP address) is noticed by the
 // heartbeat in Coop (D-085): the server reconnects and the relay hands it the room.
@@ -18,7 +19,7 @@ import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, wr
 import { join } from 'node:path';
 import { Coop } from '../src/net/coop';
 import { RELAY_URL } from '../src/net/client';
-import { makeCode, validCode } from '../src/net/protocol';
+import { makeCode, passHash, sha256, validCode } from '../src/net/protocol';
 import { clockAt } from '../src/sim/clock';
 import { OldSaveError, TICK, World } from '../src/sim/world';
 
@@ -28,6 +29,7 @@ const RELAY = env.FOUNDRY_RELAY ?? RELAY_URL;
 const ORIGIN = env.FOUNDRY_ORIGIN ?? 'https://tiberiousdoom.github.io';
 const PAUSE_EMPTY = env.FOUNDRY_PAUSE_EMPTY !== '0';
 const NAME = env.FOUNDRY_NAME?.trim() || undefined;
+const PASSWORD = env.FOUNDRY_PASSWORD ?? '';
 /** The game's version, which every player must match: package.json's, kept equal to the changelog's by a test. */
 const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -191,9 +193,9 @@ async function startGame(): Promise<void> {
   }
 }
 
-function open(): void {
-  log(`Opening room ${room.code} on ${RELAY} (version ${VERSION}).`);
-  coop.hostRoom(room.code, room.key);
+async function open(): Promise<void> {
+  log(`Opening room ${room.code} on ${RELAY} (version ${VERSION})${PASSWORD ? ', with a password' : ''}.`);
+  coop.hostRoom(room.code, room.key, await passHash(room.code, PASSWORD));
 }
 
 let lastPlayers = '';
@@ -223,7 +225,7 @@ coop.onEnd = (why, replaced) => {
     return;
   }
   log(`Room closed: ${why} Opening it again in ${REOPEN_MS / 1000} s.`);
-  setTimeout(open, REOPEN_MS);
+  setTimeout(() => void open(), REOPEN_MS);
 };
 
 // The game loop, as the browser host runs it (main.ts) but without drawing: ticks at the game's speed,
@@ -263,4 +265,6 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
-open();
+// Only this server may ever open its room once the relay reserves it (D-140): this is the line to give it.
+log(`To reserve room ${room.code} on the relay, add "${room.code}:${await sha256(room.key)}" to its RESERVED_ROOMS secret (see server/README.md).`);
+void open();

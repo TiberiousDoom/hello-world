@@ -41,13 +41,16 @@ export interface RelayLink {
   drop?: () => void;
 }
 
-/** `key`: the host's secret for its room, so it can take the room back after a dropped connection (D-081). */
-export function connect(relay: string, code: string, role: Role, version: string, key = ''): RelayLink {
-  return relay === 'local' ? localRoom(code, role, version, key) : socket(relay, code, role, version, key);
+/**
+ * `key`: the host's secret for its room, so it can take the room back after a dropped connection (D-081).
+ * `pass`: the room's password, hashed (`passHash`, D-140): a host sets it, a guest gives it.
+ */
+export function connect(relay: string, code: string, role: Role, version: string, key = '', pass = ''): RelayLink {
+  return relay === 'local' ? localRoom(code, role, version, key, pass) : socket(relay, code, role, version, key, pass);
 }
 
-function socket(relay: string, code: string, role: Role, version: string, key: string): RelayLink {
-  const ws = new WebSocket(`${relay}/rooms/${code}?role=${role}&v=${encodeURIComponent(version)}${key ? `&key=${key}` : ''}`);
+function socket(relay: string, code: string, role: Role, version: string, key: string, pass: string): RelayLink {
+  const ws = new WebSocket(`${relay}/rooms/${code}?role=${role}&v=${encodeURIComponent(version)}${key ? `&key=${key}` : ''}${pass ? `&pass=${pass}` : ''}`);
   const link: RelayLink = {
     send: (text) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(text);
@@ -70,7 +73,7 @@ function socket(relay: string, code: string, role: Role, version: string, key: s
 
 /** What goes over the channel: a guest's join, data and goodbye, and the host's replies to one guest. */
 type ChannelMessage =
-  | { k: 'join'; from: string; version: string; key: string }
+  | { k: 'join'; from: string; version: string; key: string; pass: string }
   | { k: 'data'; from: string; raw: string }
   | { k: 'leave'; from: string }
   | { k: 'to'; to: string; message: RelayMessage }
@@ -93,7 +96,7 @@ interface LocalRoom {
 }
 const localRooms = new Map<string, LocalRoom>();
 
-function localRoom(code: string, role: Role, version: string, key: string): RelayLink {
+function localRoom(code: string, role: Role, version: string, key: string, pass: string): RelayLink {
   let closed = false;
   const link: RelayLink = {
     send: () => {},
@@ -106,7 +109,7 @@ function localRoom(code: string, role: Role, version: string, key: string): Rela
     closed = true;
     link.onClose();
   };
-  if (role === 'host') return localHost(code, version, key, link, end, () => closed);
+  if (role === 'host') return localHost(code, version, key, pass, link, end, () => closed);
 
   const channel = new BroadcastChannel(`foundry-front-room-${code}`);
   const post = (m: ChannelMessage) => channel.postMessage(m);
@@ -125,7 +128,7 @@ function localRoom(code: string, role: Role, version: string, key: string): Rela
       if (m.message.t === 'refused' || m.message.t === 'closed') close();
     } else if (m.k === 'close' && m.to === id) close();
   };
-  post({ k: 'join', from: id, version, key });
+  post({ k: 'join', from: id, version, key, pass });
   setTimeout(() => {
     if (welcomed || closed) return;
     link.onMessage({ t: 'refused', reason: 'no-room' });
@@ -143,7 +146,7 @@ function localRoom(code: string, role: Role, version: string, key: string): Rela
 }
 
 /** The host's side of a local room: opens it, or takes it back after a dropped link (with its key). */
-function localHost(code: string, version: string, key: string, link: RelayLink, end: () => void, isClosed: () => boolean): RelayLink {
+function localHost(code: string, version: string, key: string, pass: string, link: RelayLink, end: () => void, isClosed: () => boolean): RelayLink {
   let room = localRooms.get(code);
   const result = admit(room?.peers ?? [], 'host', version, key, room?.host ?? null);
   if ('refuse' in result) {
@@ -153,12 +156,13 @@ function localHost(code: string, version: string, key: string, link: RelayLink, 
     });
     return link;
   }
-  if (!room) room = openLocalRoom(code, { key, version });
+  const host: RoomHost = pass ? { key, version, pass } : { key, version };
+  if (!room) room = openLocalRoom(code, host);
   const r = room;
   // The host's old link, if it's still in the room (D-085): told, closed, and out of the room.
   const old = retire(r.peers.filter((p) => p.role === 'host'));
   if (old) r.peers.splice(r.peers.indexOf(old), 1);
-  r.host = { key, version };
+  r.host = host;
   if (r.timer) clearTimeout(r.timer);
   r.timer = null;
   r.link = link;
@@ -195,7 +199,7 @@ function openLocalRoom(code: string, host: RoomHost): LocalRoom {
   channel.onmessage = (e: MessageEvent<ChannelMessage>) => {
     const m = e.data;
     if (m.k === 'join') {
-      const result = admit(room.peers, 'guest', m.version, m.key, room.host);
+      const result = admit(room.peers, 'guest', m.version, m.key, room.host, { pass: m.pass });
       if ('refuse' in result) return post({ k: 'to', to: m.from, message: { t: 'refused', reason: result.refuse, hostVersion: result.hostVersion } });
       // The guest's old link, if it's still in the room (#100): told, closed, and out of the room.
       const old = retire(room.peers.filter((p) => p.role === 'guest'), result.slot);

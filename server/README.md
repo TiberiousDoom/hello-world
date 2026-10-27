@@ -38,6 +38,22 @@ All optional, as environment variables:
 | `FOUNDRY_ORIGIN` | The page origin the relay lets in | The game on GitHub Pages |
 | `FOUNDRY_PAUSE_EMPTY` | `0` keeps the game running with nobody in | Paused when empty |
 | `FOUNDRY_NAME` | The name players see on the Play together screen | "Dedicated server" |
+| `FOUNDRY_PASSWORD` | A password players type once to join (their browser keeps it). The relay only sees it hashed | None: anyone with the code |
+
+## Keep the room yours (D-140)
+
+The room code is public (it's in the game), and the relay forgets a room once it's empty and its host
+is gone: while the server is down or restarting, anyone could open its code. Reserve it on the relay so
+only this server's key can ever host it:
+
+1. Start the server once. Its log prints a line like
+   `To reserve room 764D2J on the relay, add "764D2J:3f9a…" to its RESERVED_ROOMS secret`.
+2. Set that as the relay's secret (several rooms: comma separated):
+   ```bash
+   cd relay
+   npx wrangler secret put RESERVED_ROOMS   # paste 764D2J:3f9a…
+   ```
+3. A new `room.json` (a new key) needs the secret updated to its new line.
 
 The game's Play together screen joins the room in `SERVER_ROOM` (`src/net/client.ts`) with one
 button and shows its status (D-086). If you change the server's room code, change `SERVER_ROOM` to

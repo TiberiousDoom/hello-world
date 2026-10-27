@@ -155,6 +155,10 @@ CI from master.
   guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
   The host takes at most 5 commands a second that send a guest's engineer walking (move, mine,
   collect, drop, pick up; bursts of 10), since each finds a path in every game (D-139).
+- **The door (D-140):** a room can be reserved in the relay's `RESERVED_ROOMS` secret, so only the host
+  whose key hashes to the one named there can open it (the dedicated server's, whose code is public).
+  A host can set a password: guests send it hashed with the room's code, and the relay turns away
+  any who don't match.
 - **What the host lets in:** only commands a guest may send, with whole numbers and known names
   (`validCommand` in `lockstep.ts`); a fuzz test applies thousands of odd ones without a throw.
 

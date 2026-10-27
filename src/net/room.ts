@@ -34,10 +34,13 @@ export function admit(
   version: string,
   key = '',
   room: RoomHost | null = null,
+  gate: Gate = {},
 ): { slot: number } | { refuse: RefuseReason; hostVersion?: string } {
-  if (!version || version.length > 40 || key.length > 64) return { refuse: 'bad-request' };
+  if (!version || version.length > 40 || key.length > 64 || (gate.pass?.length ?? 0) > 128) return { refuse: 'bad-request' };
   const host = peers.find((p) => p.role === 'host');
   if (role === 'host') {
+    // A reserved room (D-140): only its own host's key, whether the room is open or not.
+    if (gate.reserved != null && gate.keyHash !== gate.reserved) return { refuse: 'taken' };
     // A new room, or one with nobody in it: any host. A room with people in it (its host there, or away):
     // only its own host, with its key. The host's old connection may still look open when the host is
     // back on a new one (D-085); the new one takes over, and the old is closed (`retire`).
@@ -47,10 +50,21 @@ export function admit(
   const hostVersion = host?.version ?? (peers.length ? room?.version : undefined);
   if (!hostVersion) return { refuse: 'no-room' };
   if (hostVersion !== version) return { refuse: 'version', hostVersion };
+  if (room?.pass && gate.pass !== room.pass) return { refuse: 'password' }; // D-140
   const old = key ? peers.find((p) => p.role === 'guest' && p.key === key) : undefined;
   if (old) return { slot: old.slot };
   for (let slot = 1; slot < MAX_PLAYERS; slot++) if (!peers.some((p) => p.slot === slot)) return { slot };
   return { refuse: 'full' };
+}
+
+/**
+ * What else the door checks (D-140): for a host, the hash of its key and the room's reserved hash, if
+ * it's reserved; for a guest, the password hash it gave.
+ */
+export interface Gate {
+  keyHash?: string;
+  reserved?: string;
+  pass?: string;
 }
 
 /** Tells the newcomer who's here, and everyone else that it came. */

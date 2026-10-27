@@ -4,10 +4,14 @@ The newest version is at the top; the game shows this file under "What's new". E
 what's **New** and what's **Fixed**.
 
 ## 0.81.0 · 2026-10-27 · Safer co-op
+### New
+- A dedicated server can have a **password**. Joining asks for it once, and your browser remembers it.
+
 ### Fixed
 - A player in a co-op game could crash everyone's game, the dedicated server's included, with one bad message. The host now refuses it.
 - A player could stall a co-op game by sending their engineer walking thousands of times a second. The host now takes at most 5 a second from each player, which is far more than tapping.
 - The dedicated server's room key is now readable only by the server's own user.
+- Nobody else can take over the dedicated server's room while it's restarting.
 
 ## 0.80.0 · 2026-10-27 · Difficulty settings
 ### New

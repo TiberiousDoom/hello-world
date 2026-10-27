@@ -5,11 +5,13 @@
 // deleted when the room closes.
 
 import { DurableObject } from 'cloudflare:workers';
-import { HEARTBEAT, HEARTBEAT_REPLY, HOST_GRACE_MS, RelayMessage, Role, RoomHost, RoomInfo, validCode } from '../../src/net/protocol';
+import { HEARTBEAT, HEARTBEAT_REPLY, HOST_GRACE_MS, RelayMessage, Role, RoomHost, RoomInfo, reservedHash, sha256, validCode } from '../../src/net/protocol';
 import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, retire, route, status, welcome } from '../../src/net/room';
 
 export interface Env {
   ROOMS: DurableObjectNamespace<Room>;
+  /** Reserved rooms (D-140), a secret: "CODE:sha256-of-host-key", comma separated. */
+  RESERVED_ROOMS?: string;
 }
 
 /** Pages that may connect: the game on GitHub Pages, and local development. */
@@ -65,9 +67,13 @@ export class Room extends DurableObject<Env> {
     const role: Role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
     const version = url.searchParams.get('v') ?? '';
     const key = url.searchParams.get('key') ?? '';
+    const pass = url.searchParams.get('pass') ?? '';
+    const code = url.pathname.split('/')[2] ?? '';
+    const reserved = role === 'host' ? reservedHash(this.env.RESERVED_ROOMS, code) : undefined;
+    const keyHash = reserved != null ? await sha256(key) : undefined;
     const [client, server] = Object.values(new WebSocketPair());
     const room = (await this.ctx.storage.get<RoomHost>('host')) ?? null;
-    const result = admit(this.peers(), role, version, key, room);
+    const result = admit(this.peers(), role, version, key, room, { reserved, keyHash, pass });
     if ('refuse' in result) {
       // Not let in: say why, then close. This socket isn't part of the room, so no hibernation.
       server.accept();
@@ -90,7 +96,7 @@ export class Room extends DurableObject<Env> {
     const others = this.peers();
     if (role === 'host') {
       // A new room, or its host back: remember who may take it back, and stop waiting.
-      await this.ctx.storage.put('host', { key, version } satisfies RoomHost);
+      await this.ctx.storage.put('host', (pass ? { key, version, pass } : { key, version }) satisfies RoomHost);
       await this.ctx.storage.deleteAlarm();
     }
     this.ctx.acceptWebSocket(server);
