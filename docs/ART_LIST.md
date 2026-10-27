@@ -168,6 +168,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Mortar (D-124): a squat tube on a green-grey turret base | 1×1 | Base and barrel (`mortar_base`, `mortar_barrel`), like the turret | 2 | P2 | Placeholder |
 | Artillery (D-124): a long gun in a turret on a big octagonal base | 2×2 | Base and barrel (`artillery_base`, `artillery_barrel`), like the trebuchet | 2 | P2 | Placeholder |
 | Shell item (D-124) | 16×16 | A shell with a brass case | 1 | P3 | Placeholder (`items/shell`) |
+| AP bullets item (D-136) | 16×16 | Two bullets with pointed blue-steel tips | 1 | P3 | Placeholder (`items/ap_bullet`) |
+| Explosive shell item (D-136) | 16×16 | A shell with a red nose and yellow bands | 1 | P3 | Placeholder (`items/he_shell`) |
 | Reinforced wall set (D-117) | 1×1 each | The wall set in iron-grey stone with iron straps and rivets, the same pieces (`reinforced_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Construction / ghost overlay | 1×1 | Optional: the game can tint sprites instead | 1 | P3 | Optional |
 

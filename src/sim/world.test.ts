@@ -3284,3 +3284,82 @@ describe('Wasps and beetles (D-135)', () => {
     expect(loaded.state.nests[0].brood).toEqual({ crawler: 3, runner: 1, brute: 0, wasp: 0, beetle: 0 });
   });
 });
+
+describe('Better ammo (D-136)', () => {
+  it('Better Ammo comes after Electric Defense and Heavy Defense 2, and the assembler makes both kinds', () => {
+    expect(RESEARCH_BY_ID.better_ammo.requires.sort()).toEqual(['electric_defense', 'heavy_defense2']);
+    expect(RECIPE_BY_ID.ap_bullet.requires).toBe('better_ammo');
+    expect(RECIPE_BY_ID.he_shell.requires).toBe('better_ammo');
+    expect(emptyWorld().recipesFor('assembler').map((r) => r.id)).toEqual(expect.arrayContaining(['ap_bullet', 'he_shell']));
+  });
+
+  it('a turret takes better ammo as well as its usual ammo, sharing its room, and fires it first', () => {
+    const w = emptyWorld();
+    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9 });
+    const n = addNest(w, 80, 80, 0);
+    const t = placed(w.place('turret2', 50, 50, 0));
+    t.ammo = 0;
+    expect(w.insert(t, 'ap_bullet', 49, 50)).toBe(true);
+    expect(w.insert(t, 'bullet', 49, 50)).toBe(true);
+    expect(w.insert(t, 'he_shell', 49, 50)).toBe(false); // not its kind
+    expect([t.ammo, t.better]).toEqual([5, 5]);
+    t.ammo = TURRETS.turret2!.maxShots - 5;
+    expect(w.insert(t, 'bullet', 49, 50)).toBe(false); // full
+    const bug = w.spawnBug('brute', n, 1);
+    [bug.x, bug.y] = [53.5, 50.5];
+    w.tick();
+    expect(t.better).toBe(4);
+    expect(t.ammo).toBe(TURRETS.turret2!.maxShots - 5);
+  });
+
+  it('armour-piercing bullets go through a beetle\'s armour', () => {
+    const dealt = (better: boolean): number => {
+      const w = emptyWorld();
+      Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9 });
+      const n = addNest(w, 80, 80, 0);
+      const t = placed(w.place('turret2', 50, 50, 0));
+      t.ammo = better ? 0 : 10;
+      t.better = better ? 10 : 0;
+      const beetle = w.spawnBug('beetle', n, 1);
+      [beetle.x, beetle.y] = [53.5, 50.5];
+      const hp = beetle.hp;
+      w.tick();
+      return hp - beetle.hp;
+    };
+    expect(dealt(false)).toBe(Math.max(1, TURRETS.turret2!.damage - ENEMIES.beetle.armour!));
+    expect(dealt(true)).toBe(TURRETS.turret2!.damage * TURRETS.turret2!.better!.damage);
+  });
+
+  it('explosive shells hit harder over a wider blast', () => {
+    const hits = (better: boolean): { hurt: number; dealt: number } => {
+      const w = emptyWorld();
+      Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, bearing: 99 });
+      const n = addNest(w, 80, 80, 0);
+      const m = placed(w.place('mortar', 50, 50, 0));
+      m.ammo = better ? 0 : 5;
+      m.better = better ? 5 : 0;
+      const near = w.spawnBug('brute', n, 1);
+      const far = w.spawnBug('brute', n, 1);
+      [near.x, near.y] = [58.5, 50.5];
+      [far.x, far.y] = [58.5, 50.5 + TURRETS.mortar!.splash + 0.3]; // outside the usual blast only
+      const hp = near.hp;
+      w.tick();
+      return { hurt: [near, far].filter((e) => e.hp < hp).length, dealt: hp - near.hp };
+    };
+    expect(hits(false)).toEqual({ hurt: 1, dealt: TURRETS.mortar!.damage });
+    expect(hits(true)).toEqual({ hurt: 2, dealt: TURRETS.mortar!.damage * TURRETS.mortar!.better!.damage });
+  });
+
+  it('a turret by the hub takes better ammo from stock first', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9, bullet: 5, ap_bullet: 1 });
+    const t = placed(w.place('turret2', hub.x + HUB_SIZE, hub.y + 2, 0));
+    t.ammo = 0;
+    w.tick();
+    expect(w.state.inventory.ap_bullet).toBe(0);
+    expect(t.better).toBe(TURRETS.turret2!.shotsPerItem);
+    w.tick();
+    expect(w.state.inventory.bullet).toBe(4);
+  });
+});

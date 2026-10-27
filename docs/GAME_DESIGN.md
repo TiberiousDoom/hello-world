@@ -344,6 +344,7 @@ which come as blueprints from supply runs (D-131). **Select the hub** and press 
 | Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
 | Drone Logistics | 60 circuit boards, 40 motors | 120 s | Circuit Works | Drone Pad |
 | Electric Defense 2 | 100 circuit boards, 60 coils, 40 bearings | 150 s | Electric Defense | Shield Pylon, Railgun |
+| Better Ammo | 40 circuit boards, 120 bullets, 30 shells | 120 s | Electric Defense, Heavy Defense 2 | AP bullets and explosive shells (D-136) |
 | Ship Systems | 120 circuit boards, 60 coils, 40 motors, 100 steel | 180 s | Electronics, Hull | The ship's engine, life support and navigation stages |
 | Mk3 Machines | 80 circuit boards, 40 coils, 60 steel beams | 150 s | Circuit Works, Mk2 Machines | Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3 |
 | Electric Defense | 60 circuit boards, 100 wire, 30 coils | 120 s | Circuit Works | Tesla Turret, Arc Fence, Floodlight |
@@ -459,7 +460,7 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    with electricity. **Electric Defense** brings the **Tesla Turret** (no ammunition, only electricity), the
    **Arc Fence** and **Floodlights**; **Mk3 Machines** makes extractors, furnaces and assemblers three times as
    fast. **Drone Logistics** brings **drone pads**, which fly items between pads without belts. **Electric Defense 2**
-   brings **Shield Pylons** and the **Railgun**; and **Ship Systems** the ship's last three stages, so the first
+   brings **Shield Pylons** and the **Railgun**; **Better Ammo** AP bullets and explosive shells (D-136); and **Ship Systems** the ship's last three stages, so the first
    launch comes in the Electric Age. After it, supply runs bring the colony's **special buildings** (D-131).
 
 ## Bugs
@@ -592,6 +593,16 @@ drive shaft to them, or place them touching a well, a powered belt or another po
 Mk.2** (D-123) fires only with electricity, using 2: put a power pole within 2 tiles of it. So do the
 **Mortar** (2) and **Artillery** (4) (D-124), the **Tesla Turret** (3, D-126) and the **Railgun** (6, D-129), which need no ammunition at all. Short of
 power they fire more slowly, and with none they don't fire at all, so a cut shaft leaves a gap.
+
+**Better ammo (D-136)** is optional. After **Better Ammo**, the Assembler makes **AP bullets** (2 bullets and
+1 steel → 2, 3 s) and **explosive shells** (1 shell, 2 gunpowder and 1 circuit board → 1, 5 s). A turret takes
+them as well as its usual ammo, sharing its max shots, and fires them first; a turret by the hub takes them from
+stock first.
+
+| Ammo | Turret | Effect |
+|---|---|---|
+| AP bullets | Turret Mk.2 | ×1.5 damage (10.5), and through a beetle's armour |
+| Explosive shells | Mortar, Artillery | ×1.5 damage, ×1.4 splash radius |
 
 Turrets fire at any bug in range, calm or not, so a turret near a territory provokes it. The
 **trebuchet** (D-107) can't hit anything within 6 tiles, so it needs other defences close in.

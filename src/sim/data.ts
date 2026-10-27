@@ -39,6 +39,9 @@ export const ITEMS = {
   casing: { name: 'Casing', color: '#d9a63a' },
   bullet: { name: 'Bullets', color: '#b8862a' },
   shell: { name: 'Shell', color: '#7a6a4a' },
+  // Better ammo (D-136), optional: a turret takes it as well as its usual ammo, and fires it first.
+  ap_bullet: { name: 'AP Bullets', color: '#6a8aa8' },
+  he_shell: { name: 'Explosive Shell', color: '#b83a2a' },
   // The Electric Age's parts (D-125): the Circuit Works makes them.
   circuit: { name: 'Circuit Board', color: '#3f9a5a' },
   coil: { name: 'Coil', color: '#d98a3a' },
@@ -93,6 +96,8 @@ export const RECIPES: Recipe[] = [
   { id: 'casing', machine: 'steel_works', inputs: { steel: 1 }, output: 'casing', count: 4, time: 2, requires: 'heavy_defense' },
   { id: 'bullet', machine: 'assembler', inputs: { casing: 1, gunpowder: 1 }, output: 'bullet', count: 1, time: 2, requires: 'heavy_defense' },
   { id: 'shell', machine: 'assembler', inputs: { casing: 2, gunpowder: 2, steel: 1 }, output: 'shell', count: 1, time: 4, requires: 'heavy_defense2' },
+  { id: 'ap_bullet', machine: 'assembler', inputs: { bullet: 2, steel: 1 }, output: 'ap_bullet', count: 2, time: 3, requires: 'better_ammo' },
+  { id: 'he_shell', machine: 'assembler', inputs: { shell: 1, gunpowder: 2, circuit: 1 }, output: 'he_shell', count: 1, time: 5, requires: 'better_ammo' },
   // The Electric Age's parts (D-125).
   { id: 'circuit', machine: 'circuit_works', inputs: { wire: 3, iron_plate: 1 }, output: 'circuit', count: 1, time: 3 },
   { id: 'coil', machine: 'circuit_works', inputs: { wire: 4, iron_rod: 1 }, output: 'coil', count: 1, time: 3 },
@@ -338,6 +343,11 @@ export interface TurretDef {
   minRange?: number;
   /** Lobs its shots, so it can't hit a flying bug (D-135). */
   lobbed?: boolean;
+  /**
+   * Better ammo it also takes (D-136): shots of it are fired first, with `damage` and `splash` times the
+   * usual, and through armour if `piercing`.
+   */
+  better?: { item: ItemId; damage: number; splash: number; piercing?: boolean };
   /** Railgun (D-129): the shot goes on to its full range, hitting every bug within this many tiles of its line. */
   pierce?: number;
   /** Tesla: each shot jumps on to up to this many more bugs, each within `chainRange` tiles of the last. */
@@ -351,9 +361,9 @@ export const TURRETS: Partial<Record<BuildingType, TurretDef>> = {
   // Range and blind spot doubled from the decisions page at the owner's note (D-093).
   trebuchet: { ammoItem: 'stone', shotsPerItem: 1, maxShots: 12, range: 24, minRange: 6, rate: 0.25, damage: 40, splash: 2, lobbed: true },
   cannon: { ammoItem: 'gear', shotsPerItem: 3, maxShots: 24, range: 6.5, rate: 0.7, damage: 30, splash: 1.3 },
-  turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0 },
-  mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8, lobbed: true },
-  artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6, lobbed: true },
+  turret2: { ammoItem: 'bullet', shotsPerItem: 5, maxShots: 60, range: 6.5, rate: 6, damage: 7, splash: 0, better: { item: 'ap_bullet', damage: 1.5, splash: 1, piercing: true } },
+  mortar: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 12, range: 13, minRange: 3, rate: 0.5, damage: 45, splash: 1.8, lobbed: true, better: { item: 'he_shell', damage: 1.5, splash: 1.4 } },
+  artillery: { ammoItem: 'shell', shotsPerItem: 1, maxShots: 10, range: 30, minRange: 8, rate: 0.2, damage: 100, splash: 2.6, lobbed: true, better: { item: 'he_shell', damage: 1.5, splash: 1.4 } },
   railgun: { shotsPerItem: 0, maxShots: 0, range: 18, minRange: 2, rate: 0.4, damage: 120, splash: 0, pierce: 0.6 },
   tesla: { shotsPerItem: 0, maxShots: 0, range: 5, rate: 1, damage: 12, splash: 0, chain: 2, chainRange: 2 },
 };
@@ -643,6 +653,7 @@ export const RESEARCH: Research[] = [
   { id: 'mk3', name: 'Mk3 Machines', cost: { circuit: 80, coil: 40, steel_beam: 60 }, time: 150, requires: ['circuit_works', 'mk2'], unlocks: [], description: 'Upgrade Mk2 extractors and furnaces, and assemblers, to Mk3: with electricity, they work three times as fast.' },
   { id: 'ship_systems', name: 'Ship Systems', cost: { circuit: 120, coil: 60, motor: 40, steel: 100 }, time: 180, requires: ['electronics', 'hull'], unlocks: [], description: "The ship's Electric Age stages: its engines, life support and navigation, built in the shipyard after the hull. Then it can launch." },
   { id: 'electric_defense2', name: 'Electric Defense 2', cost: { circuit: 100, coil: 60, bearing: 40 }, time: 150, requires: ['electric_defense'], unlocks: ['shield_pylon', 'railgun'], description: 'Shield pylons, which take the bites for the buildings around them, and railguns, whose slugs go through a whole line of bugs.' },
+  { id: 'better_ammo', name: 'Better Ammo', cost: { circuit: 40, bullet: 120, shell: 30 }, time: 120, requires: ['electric_defense', 'heavy_defense2'], unlocks: [], description: 'Armour-piercing bullets for the Turret Mk.2 and explosive shells for mortars and artillery, from the Assembler. A turret takes them as well as its usual ammo, and fires them first.' },
   { id: 'drones', name: 'Drone Logistics', cost: { circuit: 60, motor: 40 }, time: 120, requires: ['circuit_works'], unlocks: ['drone_pad'], description: 'Drone pads: drones fly items from pads that send to pads that ask for them, with electricity, without belts.' },
   { id: 'electric_defense', name: 'Electric Defense', cost: { circuit: 60, wire: 100, coil: 30 }, time: 120, requires: ['circuit_works'], unlocks: ['tesla', 'arc_fence', 'floodlight'], description: 'Tesla turrets, whose shots arc from bug to bug on electricity alone; arc fences, walls that shock bugs biting them; and floodlights, which slow bugs at night.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },

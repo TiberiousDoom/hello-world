@@ -146,6 +146,7 @@ export interface Building {
   inputs: ItemCounts; // machines
   outputs: ItemId[]; // extractors, machines, splitters and tunnel exits
   progress: number; // extractors and machines: seconds into the current job, -1 when idle
+  better?: number; // turrets: shots of better ammo stored, fired first (D-136)
   ammo: number; // turrets: shots stored; repair stations: HP of repairs stored; furnaces and blacksmiths: seconds of fuel (D-114)
   cooldown: number; // turrets
   link: number | null; // tunnels: the paired entrance or exit
@@ -1995,8 +1996,10 @@ export class World {
       case 'tesla':
       case 'trebuchet': {
         const def = TURRETS[target.type]!;
-        if (item !== def.ammoItem || target.ammo + def.shotsPerItem > def.maxShots) return false;
-        target.ammo += def.shotsPerItem;
+        const better = def.better?.item === item;
+        if ((item !== def.ammoItem && !better) || target.ammo + (target.better ?? 0) + def.shotsPerItem > def.maxShots) return false;
+        if (better) target.better = (target.better ?? 0) + def.shotsPerItem; // fired first (D-136)
+        else target.ammo += def.shotsPerItem;
         return true;
       }
       default:
@@ -2852,7 +2855,15 @@ export class World {
     if (!hub) this.supplyFromHub(b);
     b.cooldown = Math.max(0, b.cooldown - dt);
     const ammo = !hub && !!def.ammoItem; // the hub's gun and the tesla (D-126) need none
-    if (b.cooldown > 0 || (ammo && b.ammo <= 0)) return;
+    const better = ammo && (b.better ?? 0) > 0 ? def.better : undefined; // fired first (D-136)
+    if (b.cooldown > 0 || (ammo && b.ammo <= 0 && !better)) return;
+    const damage = def.damage * (better?.damage ?? 1);
+    const splash = def.splash * (better?.splash ?? 1);
+    const piercing = !!better?.piercing;
+    const spend = (): void => {
+      if (better) b.better!--;
+      else if (ammo) b.ammo--;
+    };
     // Hydraulic defences fire only with power, and electric ones with electricity, more slowly when their network runs short (D-117, D-123).
     const power = HYDRAULIC.includes(b.type) ? this.powered(b) : ELECTRIC_DEFENCES.includes(b.type) ? this.electrified(b) : 1;
     if (power <= 0) return;
@@ -2875,14 +2886,14 @@ export class World {
       if (!mound) return;
       const [mx0, my0] = nestCentre(mound);
       if ((mx0 - cx) ** 2 + (my0 - cy) ** 2 < min) return;
-      if (ammo) b.ammo--;
+      spend();
       b.cooldown = reload;
-      damageMound(this, mound, def.damage);
+      damageMound(this, mound, damage);
       const [mx, my] = nestCentre(mound);
-      this.shots.push({ x1: cx, y1: cy, x2: mx, y2: my, splash: def.splash, age: 0, arc: !!def.chain });
+      this.shots.push({ x1: cx, y1: cy, x2: mx, y2: my, splash, age: 0, arc: !!def.chain });
       return;
     }
-    if (ammo) b.ammo--;
+    spend();
     b.cooldown = reload;
     if (def.pierce) {
       // A railgun's slug (D-129) goes on to its full range, through every bug near its line.
@@ -2901,16 +2912,16 @@ export class World {
       this.shots.push({ x1: cx, y1: cy, x2: ex, y2: ey, splash: 0, age: 0, beam: true });
       return;
     }
-    if (def.splash > 0) {
+    if (splash > 0) {
       for (const e of this.state.enemies) {
-        if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > def.splash ** 2) continue;
+        if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > splash ** 2) continue;
         if (def.lobbed && ENEMIES[e.type].flies) continue;
-        this.shoot(e, def.damage);
+        this.shoot(e, damage, piercing);
       }
     } else {
-      this.shoot(target, def.damage);
+      this.shoot(target, damage, piercing);
     }
-    this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash: def.splash, age: 0, arc: !!def.chain });
+    this.shots.push({ x1: cx, y1: cy, x2: target.x, y2: target.y, splash, age: 0, arc: !!def.chain });
     // Tesla: the arc jumps on to the nearest bug it hasn't hit yet, within reach of the last.
     const hit = new Set([target]);
     let last = target;
@@ -2933,9 +2944,9 @@ export class World {
     }
   }
 
-  /** A shot hits a bug: an armoured one takes that much less, down to 1 (D-135). */
-  private shoot(e: Enemy, damage: number): void {
-    e.hp -= Math.max(1, damage - (ENEMIES[e.type].armour ?? 0));
+  /** A shot hits a bug: an armoured one takes that much less, down to 1 (D-135), unless the shot is armour-piercing (D-136). */
+  private shoot(e: Enemy, damage: number, piercing = false): void {
+    e.hp -= Math.max(1, damage - (piercing ? 0 : (ENEMIES[e.type].armour ?? 0)));
     onBugHurt(this, e);
   }
 
@@ -2957,8 +2968,14 @@ export class World {
   /** A turret touching the hub reloads from hub stock, one item at a time. */
   private supplyFromHub(b: Building): void {
     const t = TURRETS[b.type];
-    if (!t?.ammoItem || b.ammo + t.shotsPerItem > t.maxShots || this.awayFromHub(b.x, b.y) == null) return;
+    if (!t?.ammoItem || b.ammo + (b.better ?? 0) + t.shotsPerItem > t.maxShots || this.awayFromHub(b.x, b.y) == null) return;
     const inv = this.state.inventory;
+    // Better ammo first, when the hub has some (D-136).
+    if (t.better && (inv[t.better.item] ?? 0) > 0) {
+      inv[t.better.item]!--;
+      b.better = (b.better ?? 0) + t.shotsPerItem;
+      return;
+    }
     if ((inv[t.ammoItem] ?? 0) <= 0) return;
     inv[t.ammoItem]!--;
     b.ammo += t.shotsPerItem;

@@ -1609,7 +1609,11 @@ export class Renderer {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);
       }
-      if (turret.ammoItem) bar(ctx, b.x + 0.12, b.y + fw - 0.14, fw - 0.24, b.ammo / turret.maxShots, ITEMS[turret.ammoItem].color);
+      if (turret.ammoItem) {
+        const better = b.better ?? 0;
+        // Better ammo (D-136) shows as its own colour at the bar's start.
+        bar(ctx, b.x + 0.12, b.y + fw - 0.14, fw - 0.24, (b.ammo + better) / turret.maxShots, better > 0 && turret.better ? ITEMS[turret.better.item].color : ITEMS[turret.ammoItem].color);
+      }
     }
     if (b.type === 'spike_pit') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / SPIKES.maxCharge, ITEMS.stake.color);
 

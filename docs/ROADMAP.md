@@ -138,7 +138,7 @@ In this order:
 - ✅ More enemy types (0.77.0, D-135): wasps that fly over walls (in far hives) and armoured beetles (in far dens)
 - ✅ A tesla turret fed by wire (a colony blueprint, D-050) and the Ballista, firing stakes (D-054)
 - ⬜ More defence as colony blueprints: the Mortar, Shield Pylon and Floodlights (D-055)
-- ⬜ Better ammo as optional upgrades (D-006, option D)
+- ✅ Better ammo as optional upgrades (0.78.0, D-136): AP bullets for the Turret Mk.2, explosive shells for mortars and artillery
 - ⬜ More recipes and research to extend the mid- and late game
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
