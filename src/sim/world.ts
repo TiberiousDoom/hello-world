@@ -89,8 +89,9 @@ export type { ResearchState };
  * v29 (D-114): furnaces and blacksmiths burn fuel; old ones start with a full store.
  * v30 (D-115) adds ponds, and powered belts: old games get Hydraulics with Logistics, and stock for wells.
  * v31 (D-117): turrets and cannons need power, and Masonry goes into Advanced Defense.
+ * v32 (D-118): the ship gains the launch pad, its second stage; a ship past the scaffolding has it built.
  */
-export const SAVE_VERSION = 31;
+export const SAVE_VERSION = 32;
 export const TICK = 1 / 20;
 
 /** What grows on a tile (GameState.trees). */
@@ -382,6 +383,7 @@ export class World {
     if (state.version === 28) World.migrateV28(state);
     if (state.version === 29) World.migrateV29(state);
     if (state.version === 30) World.migrateV30(state);
+    if (state.version === 31) World.migrateV31(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -399,6 +401,19 @@ export class World {
     const free = (x: number, y: number) =>
       !this.tiles[this.idx(x, y)] && !moundAt(this, x, y) && !(site && x >= site.x - 1 && y >= site.y - 1 && x <= site.x + 5 && y <= site.y + 5);
     this.addWater(generatePonds(this.state.width, this.state.height, c, cy, seeded(this.state.seed ^ 0x5eed), free));
+  }
+
+  /**
+   * v31 to v32 (D-118): the launch pad goes in as the ship's second stage, after the scaffolding. A ship past
+   * the scaffolding counts it as built, with its research, and keeps what it has towards the stage it was on.
+   */
+  private static migrateV31(state: GameState): void {
+    const ship = state.ship;
+    if (ship.stage >= 1) {
+      ship.stage = Math.min(ship.stage + 1, SHIP.stages.length);
+      if (!state.researched.includes('launch_pad')) state.researched.push('launch_pad');
+    }
+    state.version = 32;
   }
 
   /**

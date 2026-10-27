@@ -518,7 +518,7 @@ export const LESSONS: Lesson[] = [
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),
         text: () =>
-          `The ship goes up in ${SHIP.stages.length} stages: ${SHIP.stages.map((s) => s.name.toLowerCase()).join(', ')}. The scaffolding is wood; the rest comes with later ages. Bring each stage's parts to the shipyard; select it to see what it still needs, and press Side view to see the ship.`,
+          `The ship goes up in ${SHIP.stages.length} stages: ${SHIP.stages.map((s) => s.name.toLowerCase()).join(', ')}. The scaffolding is wood; the launch pad is brick and iron, after the Launch Pad research; the rest comes with later ages. Bring each stage's parts to the shipyard; select it to see what it still needs, and press Side view to see the ship.`,
       },
       {
         target: (c) => ({ tiles: shipTarget(c.world), shape: 'circle' }),

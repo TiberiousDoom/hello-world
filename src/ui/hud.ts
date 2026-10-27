@@ -18,6 +18,7 @@ import {
   REPAIR,
   SPIKES,
   RESEARCH,
+  RESEARCH_BY_ID,
   SHIP,
   TUNNEL_RANGE,
   TURRETS,
@@ -34,7 +35,7 @@ import {
 import { clockAt } from '../sim/clock';
 import { threatAt } from '../sim/nests';
 import { artUrl, icon } from '../art';
-import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, wakeRadius } from '../sim/ship';
+import { cargoLoaded, checkLaunch, currentCargo, currentStage, nestsToWake, runStats, stageNeeds, wakeRadius } from '../sim/ship';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, World, canCollect } from '../sim/world';
 import { Player, held } from '../sim/player';
@@ -197,7 +198,10 @@ function shipStats(world: World): string {
       .map(([k, n]) => `${swatch(k as ItemId)}${ship.delivered[k as ItemId] ?? 0}/${n}`)
       .join(' ');
   if (ship.runs) html += `<br>Supply runs delivered: ${ship.runs}`;
-  if (stage) {
+  const waits = stageNeeds(world);
+  if (stage && waits) {
+    html += `<br>Research <b>${esc(RESEARCH_BY_ID[waits].name)}</b> at the hub first. Then belt in: ${needs(stage.items)}`;
+  } else if (stage) {
     html += `<br>Belt in: ${needs(stage.items)}`;
   } else if (ship.returnAt != null) {
     html += `<br>The ship is away at the colony. Back in ${formatTime(ship.returnAt - world.state.time)}.`;
@@ -681,7 +685,7 @@ export class Hud {
 
     // Structure (buttons) only changes when the subject changes, so clicks aren't lost.
     const ship = world.state.ship;
-    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
+    const key = `b:${b.id}:${b.recipe}:${b.filter}:${b.side}:${b.dir}:${b.type === 'shipyard' ? `${ship.stage}:${stageNeeds(world)}:${ship.launchAt != null}:${ship.returnAt != null}:${ship.runs}:${cargoLoaded(world)}` : ''}`;
     if (key !== this.infoKey) {
       this.infoKey = key;
       this.statsHtml = '';

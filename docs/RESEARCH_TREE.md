@@ -1,7 +1,7 @@
 # The research tree in four ages (planned)
 
-The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood Age
-is built, and the Iron Age is under way. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
+The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood and
+Iron Ages are built, and the Steam Age is next. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the
@@ -121,7 +121,7 @@ Decided on the Wood Age decisions page. Numbers are first guesses to test.
 | Distribution | Hub Port | 25 iron plates, 10 copper | Industry |
 | Charcoal | Charcoal recipe | 40 logs, 20 iron plates | Industry |
 | Assembly | Assembler (motors) | 30 gears, 30 wire | Machine Shop |
-| Launch Pad | The ship's launch pad | *to set* (iron, bricks) | Industry |
+| Launch Pad | The ship's launch pad | 60 iron plates, 60 bricks, 30 rivets (D-118) | Blacksmith, Shipyard |
 
 - **Fuel:** furnaces and the Blacksmith burn logs, or charcoal once it's researched (it burns longer).
 - **Wells and pumps work anywhere**, drawing groundwater. Ponds (30+ tiles from the hub) take a Water Wheel,
@@ -160,7 +160,8 @@ The owner's answers, 2026-10-26. Numbers are first guesses to test.
   4. ✅ Hydraulic defences (0.59.0, D-117): the turret and cannon need power, and don't fire without it;
      the brick wall moves to Advanced Defense (Masonry goes) and the Reinforced Wall comes with Advanced
      Defense 2, which replaces Heavy Ordnance.
-  5. The launch pad, the ship's Iron Age stage.
+  5. ✅ The launch pad (0.60.0, D-118), the ship's Iron Age stage: 120 bricks, 80 plates, 60 rivets and 40
+     rods, after the scaffolding, once Launch Pad is researched.
 
 ## Steam Age
 
@@ -218,9 +219,9 @@ Age by age, each playtested before the next:
 2. ✅ **Wood Age** (decided, D-093; all five steps done in 0.47.0 to 0.51.0; see [How the Wood Age plays](#how-the-wood-age-plays-d-093)): the start,
    wooden parts, rollers and the crate, the spike pit and trebuchet, then the 5×5 shipyard. Today's later
    researches stay as they are behind Industry until their age is built.
-3. 🚧 **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
-   Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), ✅ the Storage Unit (0.58.0), ✅ hydraulic defences (0.59.0), then
-   the launch pad.
+3. ✅ **Iron Age** (decided, D-113; see [How the Iron Age plays](#how-the-iron-age-plays-d-113)): ✅ the
+   Blacksmith and Machine Shop (0.55.0), ✅ fuel (0.56.0), ✅ water power and powered belts (0.57.0), ✅ the Storage Unit (0.58.0), ✅ hydraulic defences (0.59.0), ✅ the
+   launch pad (0.60.0). The Iron Age is built.
 4. **Steam Age:** steam, steel parts, gunpowder weapons, the hull.
 5. **Electric Age:** electricity, circuits, drones, electric defences, launch and supply runs.
 

@@ -270,6 +270,7 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Assembly | 30 gears, 30 wire | 120 s | Machine Shop | Assembler |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
+| Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
 
 The hub starts empty.
 
@@ -486,12 +487,13 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   the shipyard goes: with the Shipyard tool, the blueprint sits on the site wherever you point.
 - The **Shipyard** research (a Wood Age research after Carpentry) unlocks the **Shipyard**: 5×5, 900 HP,
   60 planks, 10 trusses and 20 logs. Only one can exist at a time.
-- The ship is built once, in five **stages**, in order. Bring each stage's items into the shipyard (by
+- The ship is built once, in six **stages**, in order. Bring each stage's items into the shipyard (by
   roller, belt or by hand); it accepts only what the current stage still needs, so nothing is wasted.
 
   | Stage | Items |
   |---|---|
   | Scaffolding (Wood Age) | 150 planks, 40 trusses, 60 rope |
+  | Launch pad (Iron Age; needs the Launch Pad research) | 120 bricks, 80 iron plates, 60 rivets, 40 iron rods |
   | Hull | 150 iron plates, 80 bricks |
   | Engine | 30 motors, 80 gears |
   | Life support | 120 wire, 60 copper ingots |
@@ -771,7 +773,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v31**). v31 (D-117) trades Masonry for Advanced Defense (with Hydraulics, which it
+- Save files are versioned (currently **v32**). v32 (D-118) adds the launch pad as the ship's second stage: a ship past the
+  scaffolding counts it as built, with its research, and carries on with the stage it was on. v31 (D-117) trades Masonry for Advanced Defense (with Hydraulics, which it
   needs), returns what was paid towards Masonry, and puts stock in the hub for the wells and shafts its turrets and cannons now
   need. v30 (D-115) adds ponds away from what's built, gives a game with Logistics
   Hydraulics, and puts stock in the hub for the wells and shafts its belts now need. v29 (D-114) fills the fuel store of every furnace and blacksmith, and gives a game

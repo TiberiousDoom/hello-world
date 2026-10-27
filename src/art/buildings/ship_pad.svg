@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><pattern id="pBrick" width="8" height="4" patternUnits="userSpaceOnUse"><rect width="8" height="4" fill="#9a5b3e" /><path d="M0 0 H8 M0 2 H8 M2 0 V2 M6 2 V4" stroke="#6e3c27" stroke-width="0.5" /></pattern>
+      <radialGradient id="pPlate" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#9aa3ad" /><stop offset="1" stop-color="#4f5760" /></radialGradient></defs>
+      <g>
+        <rect x="7" y="7" width="52" height="52" rx="3" fill="#0a1a0c" opacity="0.3" />
+        <rect x="5" y="5" width="54" height="54" rx="3" fill="url(#pBrick)" stroke="#0f1a2e" stroke-width="1.6" />
+        <rect x="8" y="8" width="48" height="48" rx="2" fill="none" stroke="#c98a5e" stroke-width="0.8" opacity="0.7" />
+        <circle cx="32" cy="32" r="15" fill="url(#pPlate)" stroke="#0f1a2e" stroke-width="1.4" />
+        <circle cx="32" cy="32" r="9" fill="none" stroke="#2f353b" stroke-width="1.2" />
+        <path d="M32 17 V23 M32 41 V47 M17 32 H23 M41 32 H47" stroke="#2f353b" stroke-width="1.4" />
+        <g fill="#22262a"><circle cx="32" cy="19.5" r="0.9" /><circle cx="32" cy="44.5" r="0.9" /><circle cx="19.5" cy="32" r="0.9" /><circle cx="44.5" cy="32" r="0.9" /><circle cx="23.2" cy="23.2" r="0.9" /><circle cx="40.8" cy="23.2" r="0.9" /><circle cx="23.2" cy="40.8" r="0.9" /><circle cx="40.8" cy="40.8" r="0.9" /></g>
+        <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="0.6"><path d="M8 8 h6 l-6 6 z" /><path d="M56 8 h-6 l6 6 z" /><path d="M8 56 h6 l-6 -6 z" /><path d="M56 56 h-6 l6 -6 z" /></g>
+      </g>
+</svg>

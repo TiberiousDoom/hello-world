@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.60.0 · 2026-10-27 · The launch pad
+### New
+- **The launch pad:** the ship's Iron Age stage, built after the scaffolding from 120 bricks, 80 iron plates, 60 rivets and 40 iron rods. The shipyard takes its parts once you research **Launch Pad** (60 iron plates, 60 bricks, 30 rivets; after Blacksmith and Shipyard), and its panel says so until then. The side view shows the pad under the ship.
+- This completes the Iron Age.
+- Saved games keep working: a ship already past its scaffolding counts the launch pad as built and carries on where it was.
+
 ## 0.59.0 · 2026-10-27 · Hydraulic defences
 ### New
 - **Turrets and cannons are hydraulic now:** they fire only with power. Lay a drive shaft to them, or place them touching a well, a powered belt or another powered turret. A turret uses 1 power and a cannon 2, so a well runs 8 turrets. Short of power they fire more slowly; with none they don't fire at all, and flash a blue mark. Select one to see its network.

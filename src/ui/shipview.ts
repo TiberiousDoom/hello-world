@@ -19,6 +19,10 @@ export function stageProgress(world: World): number[] {
 
 /** Each stage's drawing, in a 200×260 box with the ground at y = 240. */
 const PARTS: Record<string, { fill: string; shapes: string }> = {
+  pad: {
+    fill: '#9a5b3e',
+    shapes: '<rect x="20" y="226" width="160" height="14" rx="2"/><rect x="70" y="220" width="60" height="6" fill="#7d858f"/>',
+  },
   scaffold: {
     fill: '#b07a3c',
     shapes:
@@ -34,8 +38,8 @@ const PARTS: Record<string, { fill: string; shapes: string }> = {
 /** The side view and a list of the stages, as HTML. */
 export function shipSideView(world: World): string {
   const progress = stageProgress(world);
-  // Scaffolding first, behind; then the ship from the bottom up.
-  const order = ['scaffold', 'engine', 'hull', 'life', 'nav'];
+  // The pad and scaffolding first, behind; then the ship from the bottom up.
+  const order = ['pad', 'scaffold', 'engine', 'hull', 'life', 'nav'];
   const parts = order
     .map((id) => {
       const i = SHIP.stages.findIndex((s) => s.id === id);

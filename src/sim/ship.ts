@@ -83,11 +83,18 @@ const filled = (need: ItemCounts, have: ItemCounts): boolean => Object.entries(n
 /** Every item the next run needs is aboard. */
 export const cargoLoaded = (w: World): boolean => shipFinished(w) && filled(currentCargo(w), w.state.ship.delivered);
 
+/** The research the current stage still waits for, if any (D-118). */
+export function stageNeeds(w: World): string | null {
+  const r = currentStage(w)?.research;
+  return r && !w.state.researched.includes(r) ? r : null;
+}
+
 /** Takes an item into the shipyard if the current stage, or the cargo, still needs it. */
 export function insertShip(w: World, item: ItemId): boolean {
   const ship = w.state.ship;
   const stage = currentStage(w);
   if (!stage && (shipAway(w) || launching(w))) return false;
+  if (stageNeeds(w)) return false;
   const need = (stage ? stage.items : currentCargo(w))[item] ?? 0;
   const have = ship.delivered[item] ?? 0;
   if (have >= need) return false;

@@ -8,7 +8,7 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   const spot = await page.evaluate(() => {
     const w = window.game.world;
     const s = w.state;
-    s.inventory = { iron_plate: 999, brick: 999, plank: 999, log: 999, truss: 999, rope: 999 };
+    s.inventory = { iron_plate: 999, brick: 999, plank: 999, log: 999, truss: 999, rope: 999, rivet: 999, iron_rod: 999 };
     s.researched.push('workshop', 'carpentry', 'shipyard');
     const x = w.hub.x - 22;
     const y = w.hub.y + 1;
@@ -55,12 +55,22 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   await page.click('#ship-view [data-close]');
   await expect(page.locator('#ship-view')).toBeHidden();
 
+  // Finish the scaffolding: the launch pad waits for its research (D-118).
+  await page.evaluate(() => {
+    const w = window.game.world;
+    const b = w.state.buildings.find((b: { type: string }) => b.type === 'shipyard');
+    for (const [item, n] of Object.entries({ plank: 150, truss: 40, rope: 60 })) for (let i = 0; i < n; i++) w.insert(b, item, b.x - 1, b.y);
+  });
+  await expect(page.locator('#info')).toContainText('Research Launch Pad at the hub first');
+  await page.evaluate(() => window.game.world.state.researched.push('launch_pad'));
+  await expect(page.locator('#info')).not.toContainText('Research Launch Pad');
+
   // Finish every stage: the cargo list appears.
   await page.evaluate(() => {
     const w = window.game.world;
     const b = w.state.buildings.find((b: { type: string }) => b.type === 'shipyard');
     const stages = [
-      { plank: 150, truss: 40, rope: 60 },
+      { brick: 120, iron_plate: 80, rivet: 60, iron_rod: 40 },
       { iron_plate: 150, brick: 80 },
       { motor: 30, gear: 80 },
       { wire: 120, copper_ingot: 60 },

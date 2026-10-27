@@ -457,6 +457,7 @@ export const RESEARCH: Research[] = [
   { id: 'distribution', name: 'Distribution', cost: { iron_plate: 25, copper_ingot: 10 }, time: 60, requires: ['defense'], unlocks: ['port'], description: 'Hub ports put stock from the hub back onto belts.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
+  { id: 'launch_pad', name: 'Launch Pad', cost: { iron_plate: 60, brick: 60, rivet: 30 }, time: 60, requires: ['blacksmith', 'shipyard'], unlocks: [], description: "The ship's Iron Age stage: a brick and iron launch pad, built in the shipyard after the scaffolding." },
   { id: 'shipyard', name: 'Shipyard', cost: { plank: 80, truss: 20, rope: 20 }, time: 90, requires: ['carpentry'], unlocks: ['shipyard'], description: 'A dock where you can build a ship to carry supplies to the colony.' },
 ];
 export const RESEARCH_BY_ID: Record<string, Research> = Object.fromEntries(RESEARCH.map((r) => [r.id, r]));
@@ -485,12 +486,15 @@ export interface ShipStage {
   id: string;
   name: string;
   items: ItemCounts;
+  /** A research the stage needs before the shipyard takes its parts (D-118). */
+  research?: string;
 }
 
 export const SHIP = {
   stages: [
     // One stage per age (D-089); the Wood Age's is the scaffolding (D-109).
     { id: 'scaffold', name: 'Scaffolding', items: { plank: 150, truss: 40, rope: 60 } },
+    { id: 'pad', name: 'Launch pad', items: { brick: 120, iron_plate: 80, rivet: 60, iron_rod: 40 }, research: 'launch_pad' }, // the Iron Age's (D-118)
     { id: 'hull', name: 'Hull', items: { iron_plate: 150, brick: 80 } },
     { id: 'engine', name: 'Engine', items: { motor: 30, gear: 80 } },
     { id: 'life', name: 'Life support', items: { wire: 120, copper_ingot: 60 } },
