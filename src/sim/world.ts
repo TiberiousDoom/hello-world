@@ -59,6 +59,7 @@ import {
   HYDRAULIC,
   ELECTRIC_DEFENCES,
   ELECTRIC,
+  ELECTRIC_MACHINES,
   MK2,
   EXPRESS_BELT_SPEED,
   WATER_SOURCES,
@@ -1029,6 +1030,7 @@ export class World {
 
   /** How fast a machine works (D-122): Mk2 at up to MK2.speed with electricity, Mk1 at 1. */
   speedUp(b: Building): number {
+    if (ELECTRIC_MACHINES.includes(b.type)) return this.electrified(b); // electric only (D-125)
     return b.tier === 2 ? 1 + (MK2.speed - 1) * this.electrified(b) : 1;
   }
 
@@ -1766,7 +1768,8 @@ export class World {
       case 'blacksmith':
       case 'machine_shop':
       case 'steel_works':
-      case 'powder_mill': {
+      case 'powder_mill':
+      case 'circuit_works': {
         // Fuel goes into the fuel store, unless the recipe uses it and still has room for it (D-114).
         const burn = burnsFuel(target.type) ? FUEL.burns[item] : undefined;
         if (burn) {
@@ -2057,6 +2060,7 @@ export class World {
         case 'machine_shop':
         case 'steel_works':
         case 'powder_mill':
+        case 'circuit_works':
           this.tickMachine(b, dt);
           break;
         case 'hub':

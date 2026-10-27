@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.66.0 · 2026-10-27 · Electronics
+### New
+- **The Electric Age begins.** Research **Electronics** (after Mk2 Machines and Heavy Defense 2) to open it.
+- **Circuit Works** (after Electronics) makes **circuit boards** from wire and iron plates, and **coils** from wire and iron rods.
+  - It works only with electricity: put a power pole near it.
+- Drones, Mk3 machines, electric defences and the ship's launch follow in the next updates.
+
 ## 0.65.0 · 2026-10-27 · Heavy guns and the hull
 ### New
 - **Heavy Defense 2** (after Heavy Defense and Steel Works):

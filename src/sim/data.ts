@@ -39,6 +39,9 @@ export const ITEMS = {
   casing: { name: 'Casing', color: '#d9a63a' },
   bullet: { name: 'Bullets', color: '#b8862a' },
   shell: { name: 'Shell', color: '#7a6a4a' },
+  // The Electric Age's parts (D-125): the Circuit Works makes them.
+  circuit: { name: 'Circuit Board', color: '#3f9a5a' },
+  coil: { name: 'Coil', color: '#d98a3a' },
 } as const;
 export type ItemId = keyof typeof ITEMS;
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
@@ -49,7 +52,7 @@ export const RESOURCE_ITEMS: (ItemId | null)[] = [null, 'iron_ore', 'copper_ore'
 /** The resource index of sulfur (D-123), placed in deposits of its own rather than by the ore noise. */
 export const SULFUR_RESOURCE = 4;
 
-export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works' | 'powder_mill';
+export type MachineType = 'furnace' | 'workshop' | 'assembler' | 'sawmill' | 'blacksmith' | 'machine_shop' | 'steel_works' | 'powder_mill' | 'circuit_works';
 
 export interface Recipe {
   id: string;
@@ -90,6 +93,9 @@ export const RECIPES: Recipe[] = [
   { id: 'casing', machine: 'steel_works', inputs: { steel: 1 }, output: 'casing', count: 4, time: 2, requires: 'heavy_defense' },
   { id: 'bullet', machine: 'assembler', inputs: { casing: 1, gunpowder: 1 }, output: 'bullet', count: 1, time: 2, requires: 'heavy_defense' },
   { id: 'shell', machine: 'assembler', inputs: { casing: 2, gunpowder: 2, steel: 1 }, output: 'shell', count: 1, time: 4, requires: 'heavy_defense2' },
+  // The Electric Age's parts (D-125).
+  { id: 'circuit', machine: 'circuit_works', inputs: { wire: 3, iron_plate: 1 }, output: 'circuit', count: 1, time: 3 },
+  { id: 'coil', machine: 'circuit_works', inputs: { wire: 4, iron_rod: 1 }, output: 'coil', count: 1, time: 3 },
   { id: 'motor', machine: 'assembler', inputs: { gear: 1, wire: 2, iron_plate: 1 }, output: 'motor', count: 1, time: 4 },
 ];
 export const RECIPE_BY_ID: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
@@ -119,6 +125,7 @@ export type BuildingType =
   | 'machine_shop'
   | 'steel_works'
   | 'powder_mill'
+  | 'circuit_works'
   | 'turret2'
   | 'mortar'
   | 'artillery'
@@ -228,6 +235,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
   blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
   machine_shop: { name: 'Machine Shop', short: 'MS', color: '#4f6a86', hp: 140, size: [2, 2], cost: { iron_plate: 10, rivet: 10, brick: 4 }, blocking: true, description: 'Makes gears from iron plates and wire from copper ingots.' },
+  circuit_works: { name: 'Circuit Works', short: 'CW', color: '#2f6a4a', hp: 180, size: [2, 2], cost: { steel_beam: 8, wire: 20, motor: 2 }, blocking: true, description: 'Makes circuit boards from wire and iron plates, and coils from wire and iron rods. Works only with electricity from a power pole.' },
   steel_works: { name: 'Steel Works', short: 'SW', color: '#4b5563', hp: 180, size: [2, 2], cost: { steel: 10, brick: 12, gear: 6 }, blocking: true, description: 'Rolls steel into steel beams, and steel and gears into bearings.' },
   powder_mill: { name: 'Powder Mill', short: 'PM', color: '#6b5a3a', hp: 160, size: [2, 2], cost: { steel: 10, brick: 10, gear: 6 }, blocking: true, description: 'Grinds sulfur and charcoal into gunpowder.' },
   // Water power (D-095, D-113, D-115): sources turn drive shafts, which power belts.
@@ -293,7 +301,7 @@ export const FUEL = {
 };
 export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
 
-export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill'];
+export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
 
 export interface TurretDef {
@@ -444,10 +452,12 @@ export const POWER = {
  */
 export const ELECTRIC = {
   turbine: 60,
-  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4 } as Partial<Record<BuildingType, number>>,
+  uses: { express_belt: 0.5, turret2: 2, mortar: 2, artillery: 4, circuit_works: 3 } as Partial<Record<BuildingType, number>>,
   link: 6,
   reach: 2,
 };
+/** Machines that work only with electricity (D-125): at its share of their need, and not at all with none. */
+export const ELECTRIC_MACHINES: BuildingType[] = ['circuit_works'];
 /**
  * Mk2 machines (D-119, D-122): an extractor or furnace upgraded in place, for `cost`. With all the
  * electricity it needs (`uses`) it works `speed` times as fast; with less, proportionally less; with none, at
@@ -546,6 +556,9 @@ export const RESEARCH: Research[] = [
   { id: 'heavy_defense2', name: 'Heavy Defense 2', cost: { steel_beam: 100, casing: 80, gunpowder: 60 }, time: 150, requires: ['heavy_defense', 'steel_works'], unlocks: ['mortar', 'artillery'], description: 'Mortars and artillery, electric guns that fire shells over walls and a long way. Shells come from the Assembler.' },
   { id: 'hull', name: 'Hull', cost: { steel_beam: 60, bearing: 30, motor: 20 }, time: 120, requires: ['engineering'], unlocks: [], description: "The ship's Steam Age stage: its steel hull, built in the shipyard after the launch pad." },
   { id: 'mk2', name: 'Mk2 Machines', cost: { steel_beam: 60, bearing: 40, motor: 20 }, time: 120, requires: ['steel_works', 'steam_power'], unlocks: [], description: 'Upgrade extractors and furnaces in place: with electricity, they work twice as fast.' },
+  // The Electric Age (D-125): Electronics opens it, after the Steam Age's top defence.
+  { id: 'electronics', name: 'Electronics', cost: { steel_beam: 100, bearing: 60, motor: 40 }, time: 150, requires: ['mk2', 'heavy_defense2'], unlocks: [], description: 'Opens the Electric Age: circuit boards and coils, drones, Mk3 machines and electric defences.' },
+  { id: 'circuit_works', name: 'Circuit Works', cost: { steel_beam: 80, wire: 120, bearing: 40 }, time: 120, requires: ['electronics'], unlocks: ['circuit_works'], description: 'Circuit works make circuit boards and coils, with electricity.' },
   { id: 'assembly', name: 'Assembly', cost: { gear: 30, wire: 30 }, time: 120, requires: ['machine_shop'], unlocks: ['assembler'], description: 'Combine parts into motors.' },
   { id: 'repair', name: 'Field Repair', cost: { gear: 20, wire: 20 }, time: 90, requires: ['defense', 'machine_shop'], unlocks: ['repair'], description: 'Stations that repair nearby buildings.' },
   { id: 'launch_pad', name: 'Launch Pad', cost: { iron_plate: 60, brick: 60, rivet: 30 }, time: 60, requires: ['blacksmith', 'shipyard'], unlocks: [], description: "The ship's Iron Age stage: a brick and iron launch pad, built in the shipyard after the scaffolding." },

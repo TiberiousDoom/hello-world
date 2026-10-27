@@ -73,6 +73,8 @@ How the game works on `master` today. Balance numbers live in
 | Casing ×4 | Steel Works (after Heavy Defense) | 1 steel | 2 s |
 | Bullets | Assembler (after Heavy Defense) | 1 casing + 1 gunpowder | 2 s |
 | Shell | Assembler (after Heavy Defense 2) | 2 casings + 2 gunpowder + 1 steel | 4 s |
+| Circuit board | Circuit Works | 3 wire + 1 iron plate | 3 s |
+| Coil | Circuit Works | 4 wire + 1 iron rod | 3 s |
 | Chitin | Destroyed nest mounds | — | — |
 
 A machine picks its recipe from the first input it receives, or the player
@@ -102,6 +104,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Machine Shop | 2×2 | 10 iron plates, 10 rivets, 4 bricks | 140 | Machine Shop |
 | Steel Works | 2×2 | 10 steel, 12 bricks, 6 gears | 180 | Steel Works |
 | Powder Mill | 2×2 | 10 steel, 10 bricks, 6 gears | 160 | Heavy Defense |
+| Circuit Works | 2×2, needs electricity | 8 steel beams, 20 wire, 2 motors | 180 | Circuit Works |
 | Turret Mk.2 | 1×1, needs electricity | 12 steel, 4 steel beams, 2 motors | 260 | Heavy Defense |
 | Steel Wall | 1×1 | 4 steel, 2 steel beams | 1600 | Heavy Defense |
 | Mortar | 1×1, needs electricity | 14 steel, 6 steel beams, 4 bearings | 240 | Heavy Defense 2 |
@@ -179,6 +182,8 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
   it (a 5×5 square, shown while placing or selecting one). Express belts pass it along their line, each using
   **0.5**, so a turbine runs 120 express belts. Short of electricity, everything on the network slows evenly.
   It's a network of its own: belts and hydraulic defences stay on drive shafts.
+- **The Circuit Works (D-125)** runs only on electricity, using **3**: short of it, it works proportionally slower,
+  and with none it stops (a flashing blue mark, and "No electricity" in its panel).
 - **Express belts** (Express Logistics, after Steam Power) work the same way at 3 tiles/s with electricity, and at
   roller speed without it.
 - **Mk2 machines (D-122):** after **Mk2 Machines**, select an extractor or furnace and press **Upgrade to Mk2**
@@ -310,6 +315,8 @@ from supply runs. **Select the hub** and press **Research** to open the list.
 | Heavy Defense | 60 steel, 30 motors, 50 gears | 120 s | Steelmaking, Steam Power | Powder Mill, Turret Mk.2, Steel Wall; casings and bullets |
 | Heavy Defense 2 | 100 steel beams, 80 casings, 60 gunpowder | 150 s | Heavy Defense, Steel Works | Mortar, Artillery; shells |
 | Hull | 60 steel beams, 30 bearings, 20 motors | 120 s | Engineering | The ship's hull stage |
+| Electronics | 100 steel beams, 60 bearings, 40 motors | 150 s | Mk2 Machines, Heavy Defense 2 | Opens the Electric Age |
+| Circuit Works | 80 steel beams, 120 wire, 40 bearings | 120 s | Electronics | Circuit Works (circuit boards, coils) |
 | Field Repair | 20 gears, 20 wire | 90 s | Advanced Defense, Machine Shop | Repair Station |
 | Shipyard | 80 planks, 20 trusses, 20 rope | 90 s | Carpentry | Shipyard |
 | Launch Pad | 60 iron plates, 60 bricks, 30 rivets | 60 s | Blacksmith, Shipyard | The ship's launch pad stage |
@@ -417,6 +424,9 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
    **Heavy Defense** brings gunpowder (sulfur and charcoal, in the **Powder Mill**), casings and bullets, the electric
    **Turret Mk.2** and the **steel wall**; **Heavy Defense 2** the electric **mortar** and **artillery**, which fire
    shells; and **Hull** the ship's Steam Age stage.
+10. **The Electric Age (D-125):** **Electronics** (100 steel beams, 60 bearings, 40 motors, after Mk2 Machines and
+   Heavy Defense 2) opens it. The **Circuit Works** makes **circuit boards** and **coils** from wire, and works only
+   with electricity. Drones, Mk3 machines, electric defences and the ship's last stages follow.
 
 ## Bugs
 

@@ -150,6 +150,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Mk2 plate (D-122) | — | A gold plate with two chevrons on Mk2 extractors and furnaces, dim without electricity | — | P3 | Code |
 | Sulfur node (D-123) | 1×1 | Yellow crystals in rock, like the other ore nodes | 1 | P2 | Placeholder (`terrain/node_sulfur`, recoloured from copper) |
 | Powder Mill (D-123): a stone pan with two edge runners, sulfur and charcoal bins | 2×2 | Static, plus a 4-frame working strip (runners turning, light) | 1 + 4 | P2 | Placeholder (`buildings/powder_mill`, `powder_mill_working_4f`) |
+| Circuit Works (D-125): a green circuit board with a chip and a placing head, coils in a tray, a lightning mark | 2×2 | Static, plus a 4-frame working strip (head dipping, solder spark, light) | 1 + 4 | P2 | Placeholder (`buildings/circuit_works`, `circuit_works_working_4f`) |
+| Circuit board and coil items (D-125) | 16×16 | A green board with a chip; a copper coil on a core | 1 each | P3 | Placeholder (`items/circuit`, `items/coil`) |
 | Turret Mk.2 (D-123): a darker turret base and a four-barrel head | 1×1 | Base and barrel (`turret2_base`, `turret2_barrel`), like the turret | 2 | P2 | Placeholder |
 | Steel wall set (D-123) | 1×1 each | The wall set in blue-grey steel, the same pieces (`steel_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Sulfur, gunpowder, casing and bullet items (D-123) | 16×16 | A yellow crystal; a powder sack; a brass casing; two cartridges | 1 each | P3 | Placeholder |

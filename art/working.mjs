@@ -155,6 +155,12 @@ const MACHINES = {
     svg = swap(svg, 'translate(58 64) rotate(0)', `translate(58 64) rotate(${11.25 * i})`, 'turbine rotor');
     return swap(svg, '<circle cx="90" cy="18" r="4" fill="#f2c14e"', `<circle cx="90" cy="18" r="4" fill="${i % 2 ? '#fff4c2' : '#f2c14e'}"`, 'turbine spark');
   },
+  circuit_works(svg, i) {
+    // The placing head dips to the board and sparks as it solders; the light blinks.
+    svg = swap(svg, '<g transform="translate(55 63)" id="cwHead">', `<g transform="translate(55 ${63 + [0, 4, 6, 3][i]})" id="cwHead">`, 'circuit works head');
+    svg = swap(svg, 'fill="#ffd36b" opacity="0.4" id="cwSpark"', `fill="#ffd36b" opacity="${[0.4, 0.8, 1, 0.6][i]}" id="cwSpark"`, 'circuit works spark');
+    return swap(svg, '<circle cx="100" cy="22" r="5" fill="#6ee07a"', `<circle cx="100" cy="22" r="5" fill="${i % 2 ? '#2c6b38' : '#6ee07a'}"`, 'circuit works light');
+  },
   powder_mill(svg, i) {
     // The edge runners roll round the pan: a quarter turn over the loop, two-fold symmetric. The light blinks.
     svg = swap(svg, 'translate(56 62) rotate(0)', `translate(56 62) rotate(${45 * i})`, 'powder mill runners');

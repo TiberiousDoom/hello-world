@@ -1,7 +1,7 @@
 # The research tree in four ages (planned)
 
 The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood and
-Iron Ages are built, and so is the Steam Age; the Electric Age is next. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
+Iron Ages are built, and so is the Steam Age; the Electric Age is under way. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the
@@ -217,12 +217,40 @@ circuits, drones, Mk3 machines and electric defences, all on the Steam Age's pow
 | Research | Gives | Costs | Needs |
 |---|---|---|---|
 | **Electronics** (keystone) | Opens the age | 100 steel beams, 60 bearings, 40 motors | Mk2 Machines, Heavy Defense 2 |
-| Circuit Works | Circuit Works (circuit boards, coils) | 80 steel beams, 120 wire, 40 bearings | Electronics |
-| Drone Logistics | Conveyor Drone Pad, logistics network | 60 circuit boards, 40 motors | Circuit Works |
-| Mk3 Machines | Faster extractors, furnaces and assemblers | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works |
-| Electric Defense | Tesla Turret (fed by wire), Floodlights | 60 circuit boards, 100 wire, 30 coils | Circuit Works |
-| Electric Defense 2 | Shield Pylon, Arc Fence | 100 circuit boards, 60 coils, 40 bearings | Electric Defense |
-| Ship Systems | The ship's engines, life support and navigation; launch | *to set* (circuits, motors, steel) | Electronics |
+| Circuit Works | Circuit Works (circuit boards, coils; electric) | 80 steel beams, 120 wire, 40 bearings | Electronics |
+| Drone Logistics | Drone Pad: pad-to-pad delivery by drone (electric) | 60 circuit boards, 40 motors | Circuit Works |
+| Mk3 Machines | Mk2 extractors and furnaces, and assemblers, upgraded in place to Mk3 (electric) | 80 circuit boards, 40 coils, 60 steel beams | Circuit Works |
+| Electric Defense | Tesla Turret (electric, no ammunition), Arc Fence, Floodlights | 60 circuit boards, 100 wire, 30 coils | Circuit Works |
+| Electric Defense 2 | Shield Pylon, Railgun | 100 circuit boards, 60 coils, 40 bearings | Electric Defense |
+| Ship Systems | The ship's engines, life support and navigation; launch | *to set* (circuits, coils, motors, steel) | Electronics |
+
+### How the Electric Age plays (D-125)
+
+The owner's answers, 2026-10-27. Numbers are first guesses to test.
+
+- **Everything new runs on electricity** from the Steam Age's turbines and poles, starting with the
+  **Circuit Works**, which makes **circuit boards** and **coils** from wire.
+- **Drones deliver pad to pad.** A **Drone Pad** fed by a belt sends its item by drone to pads set to request
+  that item, within a range. Logistics without belts, using electricity.
+- **Mk3 machines upgrade in place**, as Mk2 did: a Mk2 extractor or furnace becomes Mk3 (three times as fast),
+  and the assembler gets its first upgrade, straight to Mk3. All need electricity to run at speed.
+- **Electric Defense** gives a weapon and a wall together: the **Tesla Turret** moves into the tree and runs on
+  electricity alone, with no ammunition; the **Arc Fence** is a wall that shocks bugs biting it; and
+  **Floodlights** light the ground around them at night, lifting the fog and slowing bugs in their beam.
+- **Electric Defense 2:** the **Shield Pylon** puts a shield on buildings around it that soaks damage and
+  recharges from electricity, and the **Railgun** is the age's heavy weapon.
+- **Ship Systems**, one research, gates the engines, life support and navigation, whose parts change to
+  circuits, coils and steel. So the first launch needs the Electric Age.
+- **Supply runs** reward **special buildings** outside the tree once the Tesla has moved into it. Their list is
+  for the owner to approve before that step.
+- **Order, each playtested:**
+  1. ✅ Electronics and the Circuit Works (0.66.0): the keystone, circuit boards and coils.
+  2. Electric Defense: the electric Tesla, the Arc Fence and Floodlights.
+  3. Mk3 Machines.
+  4. Drone Logistics: drone pads.
+  5. Electric Defense 2: the Shield Pylon and the Railgun.
+  6. Ship Systems and the launch.
+  7. Special buildings from supply runs.
 
 ## The ship
 
@@ -259,7 +287,8 @@ Age by age, each playtested before the next:
 4. ✅ **Steam Age** (decided, D-119; see [How the Steam Age plays](#how-the-steam-age-plays-d-119)): ✅ Engineering,
    steel and the Steel Works (0.61.0), ✅ steam turbines, electricity and express belts (0.62.0), ✅ Mk2 machines and the Storage Silo (0.63.0), ✅ gunpowder
    and the Turret Mk.2 (0.64.0), ✅ the mortar, artillery and hull (0.65.0). The Steam Age is built.
-5. **Electric Age:** circuits, drones, electric defences, launch and supply runs.
+5. **Electric Age** (decided, D-125; see [How the Electric Age plays](#how-the-electric-age-plays-d-125)): ✅ Electronics
+   and the Circuit Works (0.66.0); next the electric defences.
 
 Each step changes saved games: a save migration grants an age's keystone to a game that already
 researched something in it, and refunds researches that are removed.
