@@ -1152,11 +1152,11 @@ export class Renderer {
     ctx.stroke();
     ctx.lineCap = 'butt';
     // Caps where a line starts or stops: a lip at the start, a hazard bumper at the end.
-    if (!look.fed) {
+    if (!look.fed && !this.drawSprite(`buildings/${b.type}_start`, b.x, b.y, 1, angle)) {
       ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
       this.beltBar(at, -0.5, 0.09);
     }
-    if (!look.joined) {
+    if (!look.joined && !this.drawSprite('buildings/belt_end', b.x, b.y, 1, angle)) {
       ctx.fillStyle = '#d9a93a';
       this.beltBar(at, 0.41, 0.09);
       ctx.fillStyle = '#20242d';
@@ -1330,21 +1330,20 @@ export class Renderer {
       ctx.arc(px, py, r0, a1, a0, !ccw);
       ctx.closePath();
     };
-    ctx.fillStyle = BELT_SURFACE;
-    ring(0.09, 0.91);
-    ctx.fill();
-    ctx.lineWidth = 1.5 / z;
-    ctx.strokeStyle = '#0f1a2e';
-    // Rails line up with the straight belt sprite's (4–11 and 53–60 px of 64).
-    for (const [r0, r1] of [[0.06, 0.17], [0.83, 0.94]]) {
-      ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
-      ring(r0, r1);
+    if (!this.drawCornerSprite(b, from)) {
+      ctx.fillStyle = BELT_SURFACE;
+      ring(0.09, 0.91);
       ctx.fill();
-      ctx.stroke();
+      ctx.lineWidth = 1.5 / z;
+      ctx.strokeStyle = '#0f1a2e';
+      // Rails line up with the straight belt sprite's (4–11 and 53–60 px of 64).
+      for (const [r0, r1] of [[0.06, 0.17], [0.83, 0.94]]) {
+        ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
+        ring(r0, r1);
+        ctx.fill();
+        ctx.stroke();
+      }
     }
-    // Rivets on the outer rail.
-    ctx.fillStyle = '#8a96a8';
-    for (const t of [0.15, 0.5, 0.85]) dot(ctx, px + Math.cos(a0 + sweep * t) * 0.885, py + Math.sin(a0 + sweep * t) * 0.885, 0.025);
     // Slats fan out around the bend.
     const arrows = this.beltArrows(b, z);
     ctx.strokeStyle = BELT_SLAT;
@@ -1365,6 +1364,24 @@ export class Renderer {
     }
   }
 
+  /**
+   * The corner sprite, drawn coming in from the west and leaving south (a right turn). Other turns
+   * rotate it; left turns mirror it first. Returns false if it isn't loaded.
+   */
+  private drawCornerSprite(b: Building, from: Dir): boolean {
+    const img = sprite(`buildings/${b.type}_corner`);
+    if (!img) return false;
+    const right = b.dir === (from + 3) % 4;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(b.x + 0.5, b.y + 0.5);
+    ctx.rotate((((right ? from + 2 : from) % 4) * Math.PI) / 2);
+    if (!right) ctx.scale(-1, 1);
+    ctx.drawImage(img, -0.5, -0.5, 1, 1);
+    ctx.restore();
+    return true;
+  }
+
   /** Metal flanges where a belt meets a building, so the line reads as plugged in. */
   private drawJoins(world: World, b: Building, look: BeltLook, z: number): void {
     const sides: Dir[] = [];
@@ -1374,6 +1391,7 @@ export class Renderer {
     if (look.joined && front && !isBelt(front.type) && !hubCornerAhead(world, b)) sides.push(b.dir);
     const ctx = this.ctx;
     for (const d of sides) {
+      if (this.drawSprite('buildings/belt_flange', b.x, b.y, 1, (d * Math.PI) / 2)) continue;
       const ex = b.x + 0.5 + DX[d] * 0.5;
       const ey = b.y + 0.5 + DY[d] * 0.5;
       const w = DX[d] ? 0.16 : 0.66;
