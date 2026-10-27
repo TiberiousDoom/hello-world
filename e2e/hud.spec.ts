@@ -181,3 +181,10 @@ test("a wall's panel upgrades it a tier (D-142)", async ({ page }) => {
   await expect(page.locator('#info')).toContainText('Tier 2 of 4');
   expect(await page.evaluate((i) => window.game.world.byId.get(i)!.tier, id)).toBe(2);
 });
+
+test("the hub's panel lists its stock by name, for touch as well as mouse", async ({ page }, info) => {
+  await newGame(page);
+  await selectHub(page, info);
+  await expect(page.locator('#info .stock-list')).toContainText('Iron Plate');
+  await expect(page.locator('#info .stock-list')).toContainText('100');
+});

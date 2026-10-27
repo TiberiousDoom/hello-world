@@ -165,7 +165,7 @@ In this order:
 - ✅ Spotlight tutorial (M2b)
 - ✅ Main menu with a live demo factory behind it: Continue, New game, How to play (M3a)
 - ⬜ Settings screen reachable from the main menu (today, music volume and the touch-confirm setting are in the pause menu)
-- ⬜ Tooltips for items in the hub stock panel (touch users can't hover; item icons help)
+- ✅ Item names for hub stock (0.84.0): the hub's panel lists its stock by name, icon and count (touch users can't hover the chips)
 - ⬜ Hotkeys beyond 9 tools, and a key-binding screen
 - ✅ **Pick a building to build more of it:** a middle-click on a placed building (desktop), or a long press on one (touch), makes that building the tool in hand, facing the same way, ready to place again. A middle-drag still pans
 - ✅ **Buildings line up with belts while you aim (D-053):** hovering a building over or next to a belt line turns and centres the blueprint so it connects: dropped onto the line it runs along it (as it already does once placed), and beside a line's end it faces so the belt feeds it or it feeds the belt
