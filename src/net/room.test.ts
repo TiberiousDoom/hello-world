@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GUEST_RATE, HEARTBEAT, MAX_GUEST_MESSAGE, MAX_PLAYERS, RelayMessage, RoomInfo, infoMessage, Role, makeCode, validCode } from './protocol';
+import { GUEST_RATE, HEARTBEAT, MAX_GUEST_MESSAGE, MAX_PLAYERS, RelayMessage, RoomInfo, infoMessage, Role, makeCode, passHash, reservedHash, sha256, validCode } from './protocol';
 import { Allowance, CLOSE_POLICY, CLOSE_REPLACED, Peer, admit, cleanInfo, expire, leave, retire, route, status, welcome } from './room';
 
 /** A connection that records what it was sent, and whether it was closed. */
@@ -53,6 +53,24 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(host.closed).toBe(CLOSE_REPLACED);
     expect(guest.got).toEqual([]);
     expect(retire([guest])).toBeUndefined();
+  });
+
+  it('a reserved room opens only for the host whose key it names; a room with a password, only for guests who give it (D-140)', async () => {
+    const hash = await sha256('server-key');
+    expect(reservedHash(`ABCDEF:x, 764D2J:${hash.toUpperCase()}`, '764D2J')).toBe(hash);
+    expect(reservedHash('ABCDEF:x', '764D2J')).toBeUndefined();
+    expect(reservedHash(undefined, '764D2J')).toBeUndefined();
+    // Empty, so any host could have it, but it's reserved.
+    expect(admit([], 'host', '1.0.0', 'mine', null, { reserved: hash, keyHash: await sha256('mine') })).toEqual({ refuse: 'taken' });
+    expect(admit([], 'host', '1.0.0', 'server-key', null, { reserved: hash, keyHash: hash })).toEqual({ slot: 0 });
+    const room = { key: 'k', version: '1.0.0', pass: await passHash('764D2J', 'hunter2') };
+    const host = peer(0);
+    expect(admit([host], 'guest', '1.0.0', 'g', room)).toEqual({ refuse: 'password' });
+    expect(admit([host], 'guest', '1.0.0', 'g', room, { pass: await passHash('764D2J', 'nope') })).toEqual({ refuse: 'password' });
+    expect(admit([host], 'guest', '1.0.0', 'g', room, { pass: await passHash('764D2J', 'hunter2') })).toEqual({ slot: 1 });
+    expect(await passHash('ABCDEF', 'hunter2')).not.toBe(room.pass); // salted with the code
+    expect(await passHash('ABCDEF', '')).toBe('');
+    expect(admit([host], 'guest', '1.0.0', 'g', { key: 'k', version: '1.0.0' }, { pass: 'anything' })).toEqual({ slot: 1 }); // no password set
   });
 
   it('gives a guest back with its key its own slot, and retires its old connection (#100)', () => {

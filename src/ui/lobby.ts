@@ -97,7 +97,7 @@ export class Lobby {
     private actions: LobbyActions,
   ) {
     $('coop-server-join').addEventListener('click', () => {
-      coop.joinRoom(actions.server.code);
+      coop.joinRoom(actions.server.code, this.password(actions.server.code));
       this.status('Joining the server…');
     });
     $('coop-host-new').addEventListener('click', () => this.host('new'));
@@ -105,7 +105,8 @@ export class Lobby {
     $('coop-host-coop').addEventListener('click', () => this.host('coop'));
     $('coop-join').addEventListener('submit', (e) => {
       e.preventDefault();
-      const err = coop.joinRoom($<HTMLInputElement>('coop-code').value);
+      const input = $<HTMLInputElement>('coop-code').value;
+      const err = coop.joinRoom(input, this.password(input.toUpperCase().replace(/[^A-Z0-9]/g, '')));
       this.status(err ?? 'Joining…');
     });
     $('coop-start').addEventListener('click', () => actions.start(this.choice));
@@ -134,9 +135,28 @@ export class Lobby {
     if (!this.poll) this.poll = setInterval(() => void this.checkServer(), SERVER_POLL_MS);
   }
 
-  /** The room ended before the game began, or while it ran: say why. */
+  /**
+   * The password for a room (D-140): the one typed, kept in this browser for next time, or the one kept
+   * from before. Empty for none.
+   */
+  private password(code: string): string {
+    const typed = $<HTMLInputElement>('coop-password').value;
+    const stored = `foundry-front-pass-${code}`;
+    try {
+      if (typed) localStorage.setItem(stored, typed);
+      return typed || (localStorage.getItem(stored) ?? '');
+    } catch {
+      return typed;
+    }
+  }
+
+  /** The room ended before the game began, or while it ran: say why. A room with a password asks for it. */
   ended(why: string): void {
     this.render();
+    if (this.coop.refused === 'password') {
+      $('coop-pass-row').hidden = false;
+      $<HTMLInputElement>('coop-password').focus();
+    }
     this.status(why);
   }
 

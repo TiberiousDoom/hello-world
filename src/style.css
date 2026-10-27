@@ -586,6 +586,21 @@ body.in-menu #toasts {
   margin: 8px 0;
 }
 
+.coop-pass {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.coop-pass input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--navy-deep);
+  color: inherit;
+}
 .coop-join {
   display: flex;
   gap: 8px;

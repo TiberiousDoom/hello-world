@@ -10,15 +10,16 @@
 //   FOUNDRY_ORIGIN      the page origin the relay lets in (default: the game on GitHub Pages)
 //   FOUNDRY_PAUSE_EMPTY "0" keeps the game running with nobody in it (default: paused until someone joins)
 //   FOUNDRY_NAME        the name players see on the Play together screen (default: none, shown as "Dedicated server")
+//   FOUNDRY_PASSWORD    a password players must type to join (default: none, open to anyone with the code) (D-140)
 //
 // A connection that dies without closing (a router restarting, a new IP address) is noticed by the
 // heartbeat in Coop (D-085): the server reconnects and the relay hands it the room.
 
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Coop } from '../src/net/coop';
 import { RELAY_URL } from '../src/net/client';
-import { makeCode, validCode } from '../src/net/protocol';
+import { makeCode, passHash, sha256, validCode } from '../src/net/protocol';
 import { clockAt } from '../src/sim/clock';
 import { OldSaveError, TICK, World } from '../src/sim/world';
 
@@ -28,6 +29,7 @@ const RELAY = env.FOUNDRY_RELAY ?? RELAY_URL;
 const ORIGIN = env.FOUNDRY_ORIGIN ?? 'https://tiberiousdoom.github.io';
 const PAUSE_EMPTY = env.FOUNDRY_PAUSE_EMPTY !== '0';
 const NAME = env.FOUNDRY_NAME?.trim() || undefined;
+const PASSWORD = env.FOUNDRY_PASSWORD ?? '';
 /** The game's version, which every player must match: package.json's, kept equal to the changelog's by a test. */
 const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -51,9 +53,10 @@ function log(text: string): void {
   console.log(`${new Date().toISOString()} ${text}`);
 }
 
-/** Writes a file whole or not at all: a crash mid-write leaves the old one. */
-function writeAtomic(file: string, text: string): void {
-  writeFileSync(`${file}.tmp`, text);
+/** Writes a file whole or not at all: a crash mid-write leaves the old one. `mode`: its permissions. */
+function writeAtomic(file: string, text: string, mode = 0o644): void {
+  writeFileSync(`${file}.tmp`, text, { mode });
+  chmodSync(`${file}.tmp`, mode); // writeFileSync's mode only applies to a new file
   renameSync(`${file}.tmp`, file);
 }
 
@@ -79,7 +82,9 @@ function loadRoom(): { code: string; key: string } {
   const code = (env.FOUNDRY_ROOM ?? room?.code ?? makeCode(crypto.getRandomValues(new Uint8Array(6)))).toUpperCase();
   if (!validCode(code)) throw new Error(`FOUNDRY_ROOM must be 6 letters and digits, without 0, O, 1, I or L (got "${code}").`);
   const key = room?.key ?? [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
-  if (code !== room?.code || key !== room?.key) writeAtomic(ROOM_FILE, JSON.stringify({ code, key }));
+  // The key lets whoever holds it take the room (D-085): readable by the server's user alone.
+  if (code !== room?.code || key !== room?.key) writeAtomic(ROOM_FILE, JSON.stringify({ code, key }), 0o600);
+  else chmodSync(ROOM_FILE, 0o600); // tighten one written before this rule
   return { code, key };
 }
 
@@ -188,9 +193,9 @@ async function startGame(): Promise<void> {
   }
 }
 
-function open(): void {
-  log(`Opening room ${room.code} on ${RELAY} (version ${VERSION}).`);
-  coop.hostRoom(room.code, room.key);
+async function open(): Promise<void> {
+  log(`Opening room ${room.code} on ${RELAY} (version ${VERSION})${PASSWORD ? ', with a password' : ''}.`);
+  coop.hostRoom(room.code, room.key, await passHash(room.code, PASSWORD));
 }
 
 let lastPlayers = '';
@@ -220,7 +225,7 @@ coop.onEnd = (why, replaced) => {
     return;
   }
   log(`Room closed: ${why} Opening it again in ${REOPEN_MS / 1000} s.`);
-  setTimeout(open, REOPEN_MS);
+  setTimeout(() => void open(), REOPEN_MS);
 };
 
 // The game loop, as the browser host runs it (main.ts) but without drawing: ticks at the game's speed,
@@ -260,4 +265,6 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
-open();
+// Only this server may ever open its room once the relay reserves it (D-140): this is the line to give it.
+log(`To reserve room ${room.code} on the relay, add "${room.code}:${await sha256(room.key)}" to its RESERVED_ROOMS secret (see server/README.md).`);
+void open();

@@ -727,6 +727,7 @@ one research tree, one supply ship.
   a light (online, offline, reconnecting, full, or on another version), players in (of 9: the server
   takes one place), its game's day and season, and its version. **Join the server** works with no code,
   and only when joining can work; otherwise the card says why. It checks again every 10 seconds.
+  A server can have a password (D-140): joining asks for it once, and the browser keeps it.
 - **Host or join:** below the server, **Host on this device** opens a room with a new game (Standard),
   their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
   share. The others type the code and press Join. Everyone must be on the same version; a mismatch is

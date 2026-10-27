@@ -5,7 +5,7 @@
 // here touches the DOM or a socket: the host and guest send text through a function they're given, so
 // two games can be wired together in a unit test.
 
-import { BUILDINGS, ITEMS, RECIPE_BY_ID } from '../sim/data';
+import { BLUEPRINT_BY_ID, BUILDINGS, ITEMS, RECIPE_BY_ID, RESEARCH_BY_ID } from '../sim/data';
 import type { Command } from '../sim/commands';
 import { LoggedCommand, Session, summaryHash } from '../sim/session';
 import { MAX_GUEST_MESSAGE } from './protocol';
@@ -28,6 +28,13 @@ export const CATCH_UP = INPUT_DELAY * 3;
  * the game instead of running every tick it missed (D-079).
  */
 export const FAR_BEHIND = 400;
+/**
+ * Commands that send an engineer walking: each finds a path, which can take tens of milliseconds in
+ * every game. A player taps for them one at a time, so the host takes at most WALK_RATE a second from
+ * each guest (bursts of twice that) and drops the rest: one guest can't stall everyone's game.
+ */
+export const WALKING: readonly string[] = ['move', 'mine', 'collect', 'drop', 'pickup'];
+export const WALK_RATE = 5;
 /** Commands the host stamps for itself (adding engineers, checkpoints): first on their tick. */
 export const BOOKKEEPING = -1;
 
@@ -103,7 +110,8 @@ export function validCommand(c: unknown): c is Command {
   if (!ints || !ints.every((k) => Number.isInteger(o[k]))) return false;
   if (o.dir !== undefined && !(Number.isInteger(o.dir) && (o.dir as number) >= 0 && (o.dir as number) <= 3)) return false;
   if ((o.kind === 'place' || o.kind === 'turn') && !(typeof o.type === 'string' && Object.hasOwn(BUILDINGS, o.type) && o.type !== 'hub')) return false;
-  if ((o.kind === 'research' || o.kind === 'pick-blueprint') && typeof o.id !== 'string') return false;
+  if (o.kind === 'research' && !(typeof o.id === 'string' && Object.hasOwn(RESEARCH_BY_ID, o.id))) return false;
+  if (o.kind === 'pick-blueprint' && !(typeof o.id === 'string' && Object.hasOwn(BLUEPRINT_BY_ID, o.id))) return false;
   // Values the rules store without looking them up: an unknown one would break every game later.
   if (o.kind === 'recipe' && o.recipe !== null && !(typeof o.recipe === 'string' && Object.hasOwn(RECIPE_BY_ID, o.recipe))) return false;
   if (o.kind === 'filter' && o.item !== null && !(typeof o.item === 'string' && Object.hasOwn(ITEMS, o.item))) return false;
@@ -123,6 +131,8 @@ export class HostLockstep {
   private seq = 0;
   /** Pings to send with the next turn, as [player, x, y]. */
   private pings: [number, number, number][] = [];
+  /** Each guest's allowance of walking commands, as [tokens, at (ms)]. */
+  private walks = new Map<number, [number, number]>();
   /** Shows a ping from any player, the host's own included. */
   onPing: (player: number, x: number, y: number) => void = () => {};
 
@@ -174,7 +184,7 @@ export class HostLockstep {
   }
 
   /** A guest's message, passed on by the relay. Anything that isn't a list of commands is ignored. */
-  receive(player: number, data: string): void {
+  receive(player: number, data: string, now = performance.now()): void {
     let msg: GuestMessage;
     try {
       msg = JSON.parse(data) as GuestMessage;
@@ -187,7 +197,19 @@ export class HostLockstep {
       return;
     }
     if (msg?.t !== 'cmds' || !Array.isArray(msg.cmds)) return;
-    for (const c of msg.cmds) if (validCommand(c)) this.submit(player, c);
+    for (const c of msg.cmds) if (validCommand(c) && (!WALKING.includes(c.kind) || this.mayWalk(player, now))) this.submit(player, c);
+  }
+
+  /** Whether a guest may send its engineer walking once more now (a token bucket, see WALKING). */
+  private mayWalk(player: number, now: number): boolean {
+    const [tokens, at] = this.walks.get(player) ?? [WALK_RATE * 2, now];
+    const left = Math.min(WALK_RATE * 2, tokens + ((now - at) / 1000) * WALK_RATE);
+    if (left < 1) {
+      this.walks.set(player, [left, now]);
+      return false;
+    }
+    this.walks.set(player, [left - 1, now]);
+    return true;
   }
 
   /** Runs one tick, noting a fingerprint every HASH_EVERY ticks. */
