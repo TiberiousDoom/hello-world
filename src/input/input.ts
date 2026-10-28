@@ -522,7 +522,7 @@ export class Input {
     const plan = this.ui.plan;
     if (!plan) return;
     const dirs = planDirs(plan, this.ui.dir);
-    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir, this.ui.dirSet);
+    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir, this.ui.dirSet, this.ui.player);
     this.reportedError = false;
     this.ui.plan = null; // building an underground entrance may put up its exit's blueprint (#64)
     this.ui.dir = dirs[dirs.length - 1];
@@ -638,7 +638,7 @@ export class Input {
     // In co-op the result comes later, so judge it now from the world as it is (the host's game decides).
     const entrance = tool === 'tunnel' ? world.findTunnelEntrance(at.x, at.y, at.dir) : undefined;
     const result = this.cb.issue({ kind: 'place', type: tool, x: at.x, y: at.y, dir: at.dir, replaceBelt }) ??
-      world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt) ?? { ...at, link: entrance?.id ?? null };
+      world.checkPlace(tool, at.x, at.y, at.dir, replaceBelt, undefined, this.ui.player) ?? { ...at, link: entrance?.id ?? null };
     if (typeof result === 'string') {
       // Report one error per drag, and never for dragging over existing buildings.
       if (result !== 'occupied' && result !== 'bounds' && !this.reportedError) {

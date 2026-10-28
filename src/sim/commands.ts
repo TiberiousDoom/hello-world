@@ -99,11 +99,11 @@ export const PASTE_MAX = 40;
  * Builds each copied building that fits, paying as usual, then gives it the copy's recipe, filter and side.
  * What can't be built (in the way, too poor, locked) is skipped and counted.
  */
-function paste(w: World, x: number, y: number, items: readonly PasteItem[]): { ids: number[]; failed: number } {
+function paste(w: World, x: number, y: number, items: readonly PasteItem[], player: number): { ids: number[]; failed: number } {
   const ids: number[] = [];
   let failed = 0;
   for (const it of items) {
-    const b = w.place(it.type, x + it.dx, y + it.dy, it.dir, false);
+    const b = w.place(it.type, x + it.dx, y + it.dy, it.dir, false, player);
     if (typeof b === 'string') {
       failed++;
       continue;
@@ -124,7 +124,7 @@ export function applyCommand<C extends Command>(w: World, c: C, player = 0): Res
 function apply(w: World, c: Command, player: number): CommandResults[keyof CommandResults] {
   switch (c.kind) {
     case 'place':
-      return w.place(c.type, c.x, c.y, c.dir, c.replaceBelt);
+      return w.place(c.type, c.x, c.y, c.dir, c.replaceBelt, player);
     case 'demolish':
       return w.demolish(c.id);
     case 'rotate':
@@ -150,7 +150,7 @@ function apply(w: World, c: Command, player: number): CommandResults[keyof Comma
     case 'clear-belts':
       return w.clearBeltLine(c.id);
     case 'paste':
-      return paste(w, c.x, c.y, c.items);
+      return paste(w, c.x, c.y, c.items, player);
     case 'upgrade':
       return w.upgradeMachine(c.id);
     case 'launch':

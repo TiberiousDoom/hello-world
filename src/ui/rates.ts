@@ -81,7 +81,7 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
   if (b.type === 'lumber_camp') {
     const [fw, fh] = world.footprintOf(b);
     const status =
-      b.outputs.length + LUMBER.logsPerTree > OUTPUT_BUFFER ? 'Output full: nothing is taking it' : world.treesInReach(b.x, b.y, fw, fh).trees.length ? 'Cutting' : 'Waiting for trees to grow back';
+      b.outputs.length + LUMBER.logsPerTree > LUMBER.buffer ? 'Output full: nothing is taking it' : world.treesInReach(b.x, b.y, fw, fh).trees.length ? 'Cutting' : 'Waiting for trees to grow back';
     return { max: rateSummary(b.type), now: nowLine(world, b, status) };
   }
   if (isMachine(b.type)) {

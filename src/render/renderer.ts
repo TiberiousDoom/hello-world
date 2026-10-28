@@ -224,6 +224,8 @@ export class Renderer {
   private fog = document.createElement('canvas');
   private fogKey = '';
   /** Each character as drawn: eased toward its position between ticks, its heading, how far it has walked, and where it has been (for the trail of carried items). */
+  /** The player looking: their engineer's inventory helps pay for blueprints (D-147). */
+  private viewer: number | undefined;
   private players = new Map<number, { x: number; y: number; angle: number; walked: number; trail: [number, number][]; at: number }>();
   private world: World | null = null;
   /** How far the game is between its last tick and the next (0–1); things are drawn that far along (#49). */
@@ -255,6 +257,7 @@ export class Renderer {
 
   /** `alpha`: how far the game is towards its next tick (0–1); moving things are drawn that far along. */
   draw(world: World, ui: UIState | null, now: number, alpha = 1): void {
+    this.viewer = ui?.player;
     // iOS Safari can change the visible area (toolbars, opening from another app)
     // without a resize event, which left the picture stretched. Check every frame.
     const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
@@ -554,7 +557,7 @@ export class Renderer {
   /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
   private drawPlan(world: World, plan: Plan, dir: Dir, keepDir: boolean, z: number): void {
     const single = plan.tiles.length === 1;
-    const steps = planSteps(world, plan, dir, keepDir);
+    const steps = planSteps(world, plan, dir, keepDir, this.viewer);
     let entrance: Spot | null = null;
     for (const s of steps) {
       if (s.status === 'occupied' && !s.over) continue;
@@ -2048,7 +2051,7 @@ export class Renderer {
     const replaceBelt = opts.replaceBelt ?? true;
     if (!opts.exact) ({ x, y, dir } = placementAt(world, tool, spot, dir, replaceBelt, opts.keepDir));
     const [fw, fh] = footprint(tool, dir);
-    const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving);
+    const ok = opts.ok ?? !world.checkPlace(tool, x, y, dir, opts.moving ? false : replaceBelt, opts.moving, this.viewer);
     const turret = !!TURRETS[tool];
     const directional =
       tool !== 'wall' &&

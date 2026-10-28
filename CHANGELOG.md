@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.0 · 2026-10-28 · Wood that lasts
+### New
+- **Build from your pockets:** when the hub is short, what your engineer carries pays the rest, wherever they are. The hub's stock is used first.
+- **Lumber Camps go over trees:** the trees under it are cut at once, and their logs pay for the camp. Over four trees it's free, and starts with 8 logs to send out.
+- Trees give **4 logs** (up from 2), by hand or by a camp, and grow back **10 times** (up from 3). A camp holds 8 logs.
+
+### Fixed
+- Wood no longer runs out so fast.
+
 ## 0.86.1 · 2026-10-28 · Plans for the next playtest fixes
 ### New
 - Nothing in the game yet: the plans are written down for building from your own pockets when the hub runs short, trees that last longer, and real birdsong.

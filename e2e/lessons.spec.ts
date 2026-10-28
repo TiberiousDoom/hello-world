@@ -15,7 +15,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await page.click('.tip-next');
   await expect.poll(speed).toBe(1); // action steps let it run
 
-  // Chop a tree by hand: a tap sends the engineer over, then eight taps fell it for two logs, which they carry.
+  // Chop a tree by hand: a tap sends the engineer over, then eight taps fell it for four logs, which they carry.
   await expect(step).toContainText('3 of');
   await expect(page.locator('#tutorial .tip-text')).toContainText('0 of 23');
   await settled(page.locator('#tutorial .spot'));
@@ -45,14 +45,13 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     // On a slow machine a tap can land late, so keep tapping until the tree comes down.
     for (let i = 0; i < 30 && (await logs()) === 0; i++) await tap(page, info, ...here);
   }
-  expect(await logs()).toBe(2);
+  expect(await logs()).toBe(4);
   expect(await page.evaluate(([x, y]) => window.game.world.treeAt(x, y), tree)).toBe(2); // a stump
   // The rest of the logs, as if chopped.
   await page.evaluate(() => {
     const p = window.game.world.state.players[0];
     p.slots[5] = { item: 'log', n: 10 };
-    p.slots[6] = { item: 'log', n: 10 };
-    p.slots[7] = { item: 'log', n: 1 };
+    p.slots[6] = { item: 'log', n: 9 };
   });
   await expect(step).toContainText('4 of');
 

@@ -761,7 +761,7 @@ export class Hud {
 
   private updateToolbar(world: World): void {
     const tools = this.unlockedTools();
-    const inv = world.state.inventory;
+    const inv = world.funds(this.ui.player); // hub stock and the engineer's inventory both pay (D-147)
     const me = this.me(world);
     const key = [
       tools.join(),
@@ -772,13 +772,13 @@ export class Hud {
       this.ui.pinned,
       keysVersion(),
       me ? held(me) : 0,
-      ...tools.map((t) => world.canAfford(BUILDINGS[t].cost)),
+      ...tools.map((t) => world.canAfford(BUILDINGS[t].cost, this.ui.player)),
     ].join('|');
     if (key === this.toolbarKey) return;
     this.toolbarKey = key;
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
-      const cls = ['tool', this.ui.tool === t ? 'active' : '', this.ui.tool === t && this.ui.pinned ? 'pinned' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
+      const cls = ['tool', this.ui.tool === t ? 'active' : '', this.ui.tool === t && this.ui.pinned ? 'pinned' : '', world.canAfford(def.cost, this.ui.player) ? '' : 'poor'].join(' ');
       return `<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, toolKey(i)))}">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
