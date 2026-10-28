@@ -215,3 +215,13 @@ export async function cameraSettled(page: Page): Promise<void> {
     })
     .toBeLessThan(0.001);
 }
+
+/** Puts the tool down if it's still in hand (on touch, building a single building already did, #164). */
+export async function putDown(page: Page, tool: string): Promise<void> {
+  if ((await page.evaluate(() => window.game.ui.tool)) === tool) await page.click(`[data-tool="${tool}"]`);
+}
+
+/** Takes the tool in hand unless it already is (on touch, it's put down after each building, #164). */
+export async function pickTool(page: Page, tool: string): Promise<void> {
+  if ((await page.evaluate(() => window.game.ui.tool)) !== tool) await page.click(`[data-tool="${tool}"]`);
+}

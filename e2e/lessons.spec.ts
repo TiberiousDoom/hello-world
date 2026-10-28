@@ -1,4 +1,4 @@
-import { ALL_LESSONS, buildTile, cameraSettled, expect, isTouch, newGame, selectHub, settled, stepLabel, tap, test, uncoveredTile } from './helpers';
+import { ALL_LESSONS, buildTile, cameraSettled, expect, isTouch, newGame, putDown, selectHub, settled, stepLabel, tap, test, uncoveredTile } from './helpers';
 
 test('the Essentials, Smelting and Bugs lessons run, then can be replayed and switched off', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: [], fresh: true });
@@ -106,7 +106,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await expect(step).toContainText('8 of');
 
   // Collect its planks by hand and bring them to the hub.
-  await page.click('[data-tool="sawmill"]'); // put the tool down
+  await putDown(page, 'sawmill');
   // Selected directly: a tap could land on the lumber camp next to it while the camera glides.
   await page.evaluate(() => {
     const b = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'sawmill');
@@ -137,7 +137,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   // Pick the extractor, then build it over the highlighted ore.
   await page.click('[data-tool="extractor"]');
   if (isTouch(info)) await expect(page.locator('#tutorial .tip-text')).toContainText('tap ✓');
-  await expect(page.locator('#tutorial .tip-text')).toContainText('tap the iron ore');
+  await expect(page.locator('#tutorial .tip-text')).toContainText(isTouch(info) ? 'tap the iron ore' : 'click the iron ore');
   await settled(page.locator('#tutorial .spot')); // it glides to the ore
   await cameraSettled(page);
   // A clear patch of iron ore made for the test, with room east of it for the furnace and belts, and no
@@ -178,7 +178,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await expect(step).toContainText('4 of');
 
   // Collect its ingots by hand (D-113).
-  await page.click('[data-tool="furnace"]'); // put the tool down
+  await putDown(page, 'furnace');
   const furnace = await page.evaluate(() => {
     const f = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'furnace');
     f.outputs = ['iron_ingot', 'iron_ingot'];
@@ -229,7 +229,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await expect(page.locator('#tutorial')).toBeHidden();
 
   // Logistics unlocks splitters, which have a lesson of their own.
-  await page.click('[data-tool="blacksmith"]'); // put the tool down
+  await putDown(page, 'blacksmith');
   await page.evaluate(() => {
     const w = window.game.world;
     w.state.inventory.iron_plate = 20;

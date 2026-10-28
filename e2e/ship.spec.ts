@@ -1,4 +1,4 @@
-import { ALL_LESSONS, build, calm, cameraSettled, expect, newGame, settled, stepLabel, tap, test, tilePoint, uncoveredTile } from './helpers';
+import { ALL_LESSONS, build, calm, cameraSettled, expect, newGame, putDown, settled, stepLabel, tap, test, tilePoint, uncoveredTile } from './helpers';
 
 test('build the supply ship, load and launch it, deliver the first run, and keep building', async ({ page }, info) => {
   await newGame(page, { lessonsSeen: ALL_LESSONS.filter((l) => l !== 'shipyard') });
@@ -37,7 +37,7 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   await expect(page.locator('#tutorial')).toBeHidden();
 
   // Put the tool down, feed the first stage partly, and check the panel.
-  await page.click('[data-tool="shipyard"]');
+  await putDown(page, 'shipyard');
   await page.evaluate(() => {
     const w = window.game.world;
     const b = w.state.buildings.find((b: { type: string }) => b.type === 'shipyard');

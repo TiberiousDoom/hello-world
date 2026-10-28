@@ -196,15 +196,19 @@ test.describe('touch', () => {
     expect(await planLength(page)).toBe(0);
     expect(await at(page, x0 + 5, y0)).toBeNull();
 
-    // A single building dragged into place, then moved by dragging its blueprint, waits for ✓.
+    // A single building dragged into place, then moved by dragging its blueprint, waits for ✓. Dragged by a
+    // finger, a new blueprint sits above it (#157): about 70 px, in whole tiles.
     await page.click('[data-tool="turret"]');
-    await touchDrag(page, await tilePoint(page, x0 + 4, y0 + 2), await tilePoint(page, x0 + 6, y0 + 3));
-    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 6, y: y0 + 3 }]);
-    await touchDrag(page, await tilePoint(page, x0 + 6, y0 + 3), await tilePoint(page, x0 + 7, y0 + 4));
-    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 7, y: y0 + 4 }]);
+    const lift = await page.evaluate(() => Math.max(1, Math.round(70 / window.game.camera.zoom)));
+    await touchDrag(page, await tilePoint(page, x0 + 4, y0 + 4), await tilePoint(page, x0 + 6, y0 + 5));
+    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 6, y: y0 + 5 - lift }]);
+    // Dragging the waiting blueprint moves it with the finger, keeping the same offset.
+    await touchDrag(page, await tilePoint(page, x0 + 6, y0 + 5 - lift), await tilePoint(page, x0 + 7, y0 + 6 - lift));
+    await expect.poll(() => planTiles(page)).toEqual([{ x: x0 + 7, y: y0 + 6 - lift }]);
     expect(await count(page, 'turret')).toBe(0);
     await page.click('[data-plan="confirm"]');
-    await expect.poll(async () => (await at(page, x0 + 7, y0 + 4))?.type).toBe('turret');
+    await expect.poll(async () => (await at(page, x0 + 7, y0 + 6 - lift))?.type).toBe('turret');
+    expect(await page.evaluate(() => window.game.ui.tool)).toBeNull(); // put down once built (#164)
     await page.click('[data-tool="belt"]');
 
     // Switched off in the menu: a tap builds.
