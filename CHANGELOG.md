@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.86.1 · 2026-10-28 · Plans for the next playtest fixes
+### New
+- Nothing in the game yet: the plans are written down for building from your own pockets when the hub runs short, trees that last longer, and real birdsong.
+
+### Fixed
+- The plans page and the list of decisions are up to date.
+
 ## 0.86.0 · 2026-10-28 · Smoother on phones
 ### New
 - On a touch screen, once a building goes up its tool is put down, so your next tap selects or walks. **Double-tap a tool** to keep it for several (a 📌 shows on it). Belts, rollers and walls keep their tool as before.
