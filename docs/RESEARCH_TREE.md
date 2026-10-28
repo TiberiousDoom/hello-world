@@ -1,7 +1,7 @@
-# The research tree in four ages (planned)
+# The research tree in four ages
 
-The research tree as decided on 2026-10-26 (D-089). It replaces today's tree step by step: the Wood and
-Iron Ages are built, and so are the Steam and Electric Ages. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
+The research tree as decided on 2026-10-26 (D-089), and built age by age: all four ages are in the game.
+Where this plan and the code differ, `data.ts` wins. [GAME_DESIGN.md](GAME_DESIGN.md) describes the game as it is on `master`.
 
 It came from the owner's version ("More wood") in the shared research tree, worked through with
 playtesters, and the answers on the decisions page. Costs marked *to set* need a balance pass; the

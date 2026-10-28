@@ -5,7 +5,7 @@
 | [VISION.md](VISION.md) | What the game is, who it's for, and what it is not | the direction changes |
 | [GAME_DESIGN.md](GAME_DESIGN.md) | How the game works right now: rules, content, numbers | a mechanic is added or changed |
 | [ROADMAP.md](ROADMAP.md) | Milestones and every workstream, with status | work starts, finishes or gets reprioritized |
-| [RESEARCH_TREE.md](RESEARCH_TREE.md) | The planned research tree in four ages (not built yet) | the tree's plan changes or an age is built |
+| [RESEARCH_TREE.md](RESEARCH_TREE.md) | The research tree in four ages: the plan it was built from | the tree's plan changes or an age is built |
 | [STORY.md](STORY.md) | The original story proposal (mostly dropped, D-040) | the story direction changes |
 | [DECISIONS.md](DECISIONS.md) | Choices we've made and why, plus open questions | a choice is made or a question is raised |
 | [ART_LIST.md](ART_LIST.md) | Every art asset the game needs, with specs and status | an asset is added, delivered or changes |
