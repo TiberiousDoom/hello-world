@@ -994,7 +994,9 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v39**). v39 (D-130) makes the engine, life support and navigation Electric Age
+- Save files are versioned (currently **v43**). v43 (D-142) turns defences plated with Chitin Plating into Tier 3
+  defences, which have the same health. v42 (D-138) gives older games Normal difficulty. v41 (D-135) adds wasps and
+  beetles to nests' broods. v40 (D-132) gives nests their kinds and stages. v39 (D-130) makes the engine, life support and navigation Electric Age
   stages: a ship past the engine gets Ship Systems, and one building one of them gets back what it had brought in.
   v38 (D-128) adds drones in flight. v37 (D-126) turns the Tesla blueprint, or teslas already built, into
   Electric Defense, with stock for a boiler, turbine, well and poles to power them. v36 (D-124) makes the hull a steel stage after its research: a ship past

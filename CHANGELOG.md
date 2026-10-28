@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.85.1 · 2026-10-28 · Docs catch up
+### New
+- Nothing new in the game: the roadmap, research tree and save notes now match what's built, and the latest playtest notes are on the roadmap.
+
 ## 0.85.0 · 2026-10-27 · Undo, copy and settings
 ### New
 - **Undo** your last building or demolishing with Ctrl+Z, Z or the new Undo button. A dragged line undoes in one go.
