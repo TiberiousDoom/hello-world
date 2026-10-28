@@ -27,6 +27,7 @@ import {
   REPAIR,
   SPIKES,
   RESEARCH,
+  Research,
   RESEARCH_BY_ID,
   SHIP,
   TUNNEL_RANGE,
@@ -55,6 +56,8 @@ import { PlaceError, World, canCollect, defenceTier, nextDefenceTier, nextTier }
 import { Player, held } from '../sim/player';
 import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
+import { byDevice } from './device';
+import { researchOrder } from './researchOrder';
 import { isKey, keyFor, keyName, keysVersion, toolIndex, toolKey } from './keys';
 import { shipSideView } from './shipview';
 import { Tool, UIState, turnTool } from './state';
@@ -227,6 +230,9 @@ export function hydrateIcons(root: ParentNode = document): void {
   }
 }
 
+/** Two taps on the same tool this close together (ms) keep it in hand (#164). */
+const DOUBLE_TAP_MS = 400;
+
 const ico = (name: string) => `<i data-icon="${name}">${icon(name)}</i>`;
 
 /** Image markup for a building's sprite (turrets get their barrel on top, pointing up). */
@@ -331,6 +337,8 @@ function formatTime(sec: number): string {
 export class Hud {
   private lastUpdate = 0;
   private toolbarKey = '';
+  /** The last toolbar tool tapped, and when (page clock, ms): a quick second tap pins it (#164). */
+  private lastToolTap: { tool: Tool; at: number } | null = null;
   private infoKey = '';
   /** The engineer's inventory window (#87) is open. It shares its place with the building panel. */
   private packOpen = false;
@@ -470,7 +478,17 @@ export class Hud {
       else if (tool === 'undo') this.actions.undo();
       else if (tool === 'copy') this.actions.toggleCopy();
       else if (tool === 'rotate') this.rotate();
-      else this.setTool(this.ui.tool === tool ? null : tool);
+      else {
+        // A second tap soon after the first keeps the tool in hand after building (#164, D-145).
+        const now = performance.now();
+        const twice = this.lastToolTap?.tool === tool && now - this.lastToolTap.at < DOUBLE_TAP_MS;
+        this.lastToolTap = { tool, at: now };
+        if (twice) {
+          this.setTool(tool);
+          this.ui.pinned = true;
+          this.refresh();
+        } else this.setTool(this.ui.tool === tool ? null : tool);
+      }
     });
 
     $('pack').addEventListener('click', (e) => {
@@ -511,7 +529,7 @@ export class Hud {
           // The next tap on the map picks the target (D-131).
           if (id != null) {
             this.ui.aiming = id;
-            this.toast('Tap an explored spot for the strike. Right-click or Esc cancels.');
+            this.toast(byDevice('Tap an explored spot for the strike.', 'Click an explored spot for the strike. Right-click or Esc cancels.'));
           }
           break;
         case 'collect':
@@ -541,7 +559,12 @@ export class Hud {
           this.ui.moving = b.id;
           this.ui.dir = b.dir;
           this.ui.dirSet = true;
-          this.toast(`Tap where the ${BUILDINGS[b.type].name.toLowerCase()} goes. Rotate turns it; right-click or tap its tool to cancel.`);
+          this.toast(
+            byDevice(
+              `Tap where the ${BUILDINGS[b.type].name.toLowerCase()} goes. Rotate turns it; tap its tool to cancel.`,
+              `Click where the ${BUILDINGS[b.type].name.toLowerCase()} goes. R or Rotate turns it; right-click cancels.`,
+            ),
+          );
           break;
         }
         case 'ship-view':
@@ -591,6 +614,7 @@ export class Hud {
 
   setTool(tool: Tool): void {
     if (tool !== this.ui.tool) this.ui.dirSet = false; // a new tool lines up with belts again (#85)
+    this.ui.pinned = false;
     this.ui.moving = null;
     this.ui.clipMode = null;
     this.ui.selecting = null;
@@ -739,12 +763,22 @@ export class Hud {
     const tools = this.unlockedTools();
     const inv = world.state.inventory;
     const me = this.me(world);
-    const key = [tools.join(), this.ui.tool, this.ui.dir, this.packOpen, this.ui.clipMode, keysVersion(), me ? held(me) : 0, ...tools.map((t) => world.canAfford(BUILDINGS[t].cost))].join('|');
+    const key = [
+      tools.join(),
+      this.ui.tool,
+      this.ui.dir,
+      this.packOpen,
+      this.ui.clipMode,
+      this.ui.pinned,
+      keysVersion(),
+      me ? held(me) : 0,
+      ...tools.map((t) => world.canAfford(BUILDINGS[t].cost)),
+    ].join('|');
     if (key === this.toolbarKey) return;
     this.toolbarKey = key;
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
-      const cls = ['tool', this.ui.tool === t ? 'active' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
+      const cls = ['tool', this.ui.tool === t ? 'active' : '', this.ui.tool === t && this.ui.pinned ? 'pinned' : '', world.canAfford(def.cost) ? '' : 'poor'].join(' ');
       return `<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, toolKey(i)))}">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
@@ -752,7 +786,7 @@ export class Hud {
     });
     buttons.push(
       `<button class="tool util" data-tool="undo" title="Undo the last building or demolishing (${keyName(keyFor('undo'))}, Ctrl+Z)"><span class="icon">${ico('undo')}</span><span class="label">Undo</span></button>`,
-      `<button class="tool util ${this.ui.clipMode ? 'active' : ''}" data-tool="copy" title="Copy an area: drag over buildings, then tap to paste (${keyName(keyFor('copy'))}; ${keyName(keyFor('paste'))} pastes again)"><span class="icon">${ico('copy')}</span><span class="label">${this.ui.clipMode === 'paste' ? 'Pasting' : this.ui.clipMode === 'copy' ? 'Copying' : 'Copy'}</span></button>`,
+      `<button class="tool util ${this.ui.clipMode ? 'active' : ''}" data-tool="copy" title="Copy an area: drag over buildings, then click to paste (${keyName(keyFor('copy'))}; ${keyName(keyFor('paste'))} pastes again)"><span class="icon">${ico('copy')}</span><span class="label">${this.ui.clipMode === 'paste' ? 'Pasting' : this.ui.clipMode === 'copy' ? 'Copying' : 'Copy'}</span></button>`,
       `<button class="tool util" data-tool="rotate" title="Rotate (${keyName(keyFor('rotate'))})"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
       `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (${keyName(keyFor('demolish'))})"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
       `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (${keyName(keyFor('inventory'))})"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
@@ -1116,7 +1150,8 @@ export class Hud {
     const key = JSON.stringify([rs.active, rs.stalled, rs.paid, world.state.researched.length, ITEM_IDS.map((i) => inv[i] ?? 0), world.state.ship.blueprints, world.state.ship.offer]);
     if (key === this.researchKey) return;
     this.researchKey = key;
-    const rows = RESEARCH.map((r) => {
+    const order = researchOrder(world.state.researched);
+    const row = (r: Research) => {
       const err = world.checkResearch(r.id);
       const unlocks = r.unlocks.map((t) => BUILDINGS[t].name).join(', ');
       const active = rs.active === r.id;
@@ -1150,7 +1185,9 @@ export class Hud {
         <div><b>${esc(r.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br>
         <span class="muted">${esc(r.description)}</span><br>${items}${state ? '<br>' + state : ''}${bar}</div>
         <div>${action}</div></div>`;
-    });
+    };
+    const rows = [...order.open.map(row), ...order.locked.map(row)];
+    if (order.done.length) rows.push(`<h3>Done</h3>`, ...order.done.map(row));
     const ship = world.state.ship;
     const colony = BLUEPRINTS.map((bp) => {
       const have = ship.blueprints.includes(bp.id);

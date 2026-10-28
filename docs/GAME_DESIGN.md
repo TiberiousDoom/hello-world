@@ -313,6 +313,9 @@ which come as blueprints from supply runs (D-131). **Select the hub** and press 
 - If the hub runs out of an item it needs, the research **stalls** until more arrives.
 - Only one research is active at a time. **Switching** keeps what's already been put in, and
   **Pause** stops drawing. The hub's panel shows the active research and its progress.
+- **The list's order (#154, D-145):** what can be started comes first, then what still needs other
+  research, each in the tree's order (a research after the ones it needs). Finished research comes last,
+  under Done, in the order it was finished.
 
 | Research | Items | Time | Needs | Unlocks |
 |---|---|---|---|---|
@@ -934,9 +937,17 @@ The keys are the defaults; Settings changes them (D-144).
 - **Dragging a building into place (D-057).** Every building that isn't laid as a line (belts, express
   belts, walls and palisades are) is placed one at a time, never in rows. Pressing with it in hand and
   dragging moves its blueprint, which keeps its offset from your finger so it isn't hidden under it.
+  On touch, a new blueprint jumps above the finger as the drag starts (about 70 px, more for tall
+  buildings), so it shows while you aim (#157, D-145).
   After a drag the blueprint waits: on desktop, click it (or ✓ or Enter) to build; on touch, ✓.
   Pressing a waiting blueprint and dragging moves it again; clicking or tapping it builds it. With
   touch confirmation switched off, letting go builds.
+- **Putting the tool down (#164, D-145).** On touch screens, once a single building goes up its tool is
+  put down, so the next tap selects or walks. **Double-tap** a tool to keep it for several (a 📌 shows
+  on it); picking another tool unpins it. Lines (belts, rollers, walls) keep their tool, and so does the
+  mouse.
+- **Words for the device (#155, D-145):** the tutorial, tips and How to play say "tap" on touch screens
+  and "click" (with the keys) with a mouse, and How to play shows only that device's controls.
 - **The research menu's ✕** sits at its top right and stays there while the list scrolls.
 
 ## Music
@@ -964,7 +975,9 @@ strings and light percussion, with a roomy reverb.
   (1.5 s crossfade); after a season piece, the game tracks carry on.
 - Every track is brought to the same average loudness, so the playlist doesn't jump in volume.
 - Nothing plays until the first click or tap (browsers require it). Music pauses while the page is hidden.
-- Menu → Music sets the volume (saved per device). Zero mutes it. The slider follows the ear: its low end is
+  When the system stops it (on iOS: the lock screen, a call, another app's sound), it plays on when you come
+  back, at the next touch, or within a few seconds (#161).
+- Settings → Music sets the volume (saved per device). Zero mutes it. The slider follows the ear: its low end is
   very quiet, and even at full the music sits under the sound effects (#97). Sound effects have their own slider ([Sound effects](#sound-effects)).
 - The tunes live in `audio/compose/` (`menu-theme.mjs`, `tracks.mjs`, and the instruments in `lib.mjs`).
   `node audio/compose/render.mjs` renders every track to `public/music/` (22 kHz, 16-bit mono WAV);

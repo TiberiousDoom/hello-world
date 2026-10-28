@@ -47,6 +47,10 @@ export class Music {
   private current: Playing | null = null;
   private volume: number;
   private started = false;
+  /** The tracks can't be fetched (the single-page build has none): don't keep asking for them. */
+  private missing = false;
+  /** When check() last tried to restart stopped music (page clock, ms). */
+  private wokeAt = 0;
 
   constructor(volume: number) {
     this.volume = volume;
@@ -61,10 +65,14 @@ export class Music {
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+    // iOS stops the audio when the phone locks, a call comes in or another app plays, and doesn't start it
+    // again by itself (#161). Coming back, and every touch after that, picks the music up where it stopped.
+    window.addEventListener('pointerdown', () => this.wake());
+    window.addEventListener('keydown', () => this.wake());
     document.addEventListener('visibilitychange', () => {
       if (!this.ctx) return;
       if (document.visibilityState === 'hidden') void this.ctx.suspend();
-      else void this.ctx.resume();
+      else this.wake();
     });
     setInterval(() => this.check(), 250);
   }
@@ -151,15 +159,32 @@ export class Music {
     const playing: Playing = { el, gain, name, next: false };
     this.current = playing;
     el.addEventListener('error', () => {
-      if (this.current === playing) this.current = null; // e.g. the single-page build has no music
+      if (this.current !== playing) return;
+      this.current = null;
+      this.missing = true; // e.g. the single-page build has no music
     });
     void el.play().catch(() => {
       if (this.current === playing) this.current = null;
     });
   }
 
+  /** Gets stopped music going again: the audio context, the track playing, or a new one if none started. */
+  private wake(): void {
+    if (!this.started || !this.ctx || this.volume <= 0 || document.visibilityState === 'hidden') return;
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
+    const p = this.current;
+    if (p && p.el.paused && !p.el.ended) void p.el.play().catch(() => undefined);
+    else if (!p && !this.missing) this.playNext(MOOD_FADE);
+  }
+
   /** Starts the next track a little before this one ends, so they overlap. */
   private check(): void {
+    // Stopped from outside (a phone call, another app's sound): try again; a touch also does (#161).
+    const now = performance.now();
+    if (this.current?.el.paused && !this.current.el.ended && now - this.wokeAt > 2000) {
+      this.wokeAt = now;
+      this.wake();
+    }
     const p = this.current;
     if (!p || p.next || !p.el.duration) return;
     if (p.el.duration - p.el.currentTime <= FADE) this.playNext(FADE);

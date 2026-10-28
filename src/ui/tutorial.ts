@@ -7,6 +7,7 @@
 // The spotlight darkens everything except a circle or rounded box around the
 // thing being explained.
 
+import { byDevice, touchScreen } from './device';
 import { shipyard } from '../sim/ship';
 import { heldOf } from '../sim/player';
 import { Nest, isAngry, nestAlive, nestCentre } from '../sim/nests';
@@ -229,7 +230,7 @@ function campTarget(w: World): TileTarget | null {
 }
 
 /** On touch screens (with confirming switched on), building shows a blueprint first. */
-const confirmHint = (c: StepContext) => (c.ui.confirmTouch && matchMedia('(pointer: coarse)').matches ? ' A blueprint appears first: tap ✓ to build it, or tap the same spot again.' : '');
+const confirmHint = (c: StepContext) => (c.ui.confirmTouch && touchScreen() ? ' A blueprint appears first: tap ✓ to build it, or tap the same spot again.' : '');
 
 /** Points at a toolbar button until that tool is picked, then at `then`. */
 function toolThen(ctx: StepContext, tool: BuildingType, then: Target = {}): Target {
@@ -249,19 +250,21 @@ export const LESSONS: Lesson[] = [
       },
       {
         target: (c) => ({ tiles: playerTarget(c), shape: 'circle' }),
-        text: () => 'This is your engineer. Tap or click the ground to walk there; on a keyboard, WASD or the arrow keys walk too.',
+        text: () => byDevice('This is your engineer. Tap the ground to walk there.', 'This is your engineer. Click the ground to walk there, or walk with WASD or the arrow keys.'),
       },
       {
         target: (c) => ({ tiles: nearestTrees(c.world), shape: 'circle' }),
         done: (c) => got(c, 'log') >= FIRST_LOGS,
         text: (c) =>
-          `Everything starts with wood. Tap a tree (or click it): your engineer walks over, and every ${HAND_MINING.taps} taps fell it for ${LUMBER.logsPerTree} logs, which they carry. Hold your finger or the mouse button down to keep chopping. ` +
-          `Forestry and a Lumber Camp need ${FIRST_LOGS} logs: ${Math.min(FIRST_LOGS, got(c, 'log'))} of ${FIRST_LOGS}.`,
+          byDevice(
+            `Everything starts with wood. Tap a tree: your engineer walks over, and every ${HAND_MINING.taps} taps fell it for ${LUMBER.logsPerTree} logs, which they carry. Hold your finger down to keep chopping. `,
+            `Everything starts with wood. Click a tree: your engineer walks over, and every ${HAND_MINING.taps} clicks fell it for ${LUMBER.logsPerTree} logs, which they carry. Hold the mouse button down to keep chopping. `,
+          ) + `Forestry and a Lumber Camp need ${FIRST_LOGS} logs: ${Math.min(FIRST_LOGS, got(c, 'log'))} of ${FIRST_LOGS}.`,
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
         done: (c) => heldOf(engineer(c)!, 'log') === 0,
-        text: () => 'Walk back to the hub (tap the ground next to it). Your engineer drops off everything they carry as soon as they reach it.',
+        text: () => `Walk back to the hub (${byDevice('tap', 'click')} the ground next to it). Your engineer drops off everything they carry as soon as they reach it.`,
       },
       {
         // Once the hub is selected, point at its Research button.
@@ -296,17 +299,18 @@ export const LESSONS: Lesson[] = [
             ? "Place the sawmill touching the camp's arrow, so the logs go straight in. Each log becomes two planks." + confirmHint(c)
             : (c.world.state.inventory.log ?? 0) >= SAWMILL_LOGS
               ? 'Logs need sawing into planks. Pick the Sawmill.'
-              : `A Sawmill costs ${SAWMILL_LOGS} logs: ${c.world.state.inventory.log ?? 0} in stock. Select the camp and tap Collect to fetch its logs (or chop some more), then bring them to the hub.`,
+              : `A Sawmill costs ${SAWMILL_LOGS} logs: ${c.world.state.inventory.log ?? 0} in stock. Select the camp and ${byDevice('tap', 'click')} Collect to fetch its logs (or chop some more), then bring them to the hub.`,
       },
       {
         // Once the sawmill is selected, point at its Collect button.
         target: (c) => (document.querySelector('#info:not([hidden]) [data-action="collect"]') ? { el: '#info [data-action="collect"]' } : { tiles: sawmillTarget(c.world), shape: 'circle' }),
         done: (c) => (c.world.delivered.plank ?? 0) > (c.start.delivered.plank ?? 0),
-        text: () => 'Planks pile up in the sawmill. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub.',
+        text: () => `Planks pile up in the sawmill. Select it and ${byDevice('tap', 'click')} Collect: your engineer fetches them. Then walk them back to the hub.`,
       },
       {
         target: () => ({ el: '#inventory' }),
-        text: () => 'Your stock went up. It shows above the hub while you point at it or select it. Right-click (or tap the tool again) to put a tool down.',
+        text: () =>
+          `Your stock went up. It shows above the hub while you ${byDevice('select it', 'point at it or select it')}. ${byDevice('Tap a tool again to put it down.', 'Right-click (or press Esc) to put a tool down.')}`,
       },
       {
         target: (c) => ({ tiles: hubTarget(c.world), shape: 'circle' }),
@@ -327,7 +331,10 @@ export const LESSONS: Lesson[] = [
         text: (c) =>
           c.ui.tool === 'roller'
             ? "Drag from the sawmill's arrow toward the hub to lay a line of rollers. Each one points the way you dragged. " +
-              'The line appears as a blueprint: tap ✓ (or press Enter) to build it, ⟳ to reverse it, or ✕ to cancel.'
+              byDevice(
+                'The line appears as a blueprint: tap ✓ to build it, ⟳ to reverse it, or ✕ to cancel.',
+                'The line appears as a blueprint: click ✓ (or press Enter) to build it, ⟳ (or R) to reverse it, or ✕ (or Esc) to cancel.',
+              )
             : 'Rollers carry items without power, so you can stop carrying by hand. Pick the Wooden Roller.',
       },
       {
@@ -380,7 +387,10 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'extractor'),
         text: (c) =>
           c.ui.tool === 'extractor'
-            ? 'Now tap the iron ore to place the extractor over it. Its arrow shows the side ore comes out of; turn it with Rotate (or the mouse wheel) first.' + confirmHint(c)
+            ? byDevice(
+                'Now tap the iron ore to place the extractor over it. Its arrow shows the side ore comes out of; turn it with Rotate first.',
+                'Now click the iron ore to place the extractor over it. Its arrow shows the side ore comes out of; turn it with R or the mouse wheel first.',
+              ) + confirmHint(c)
             : 'An extractor mines for you, and faster over a bigger patch. A patch runs out in the end, so look further out for more. Pick the Extractor.',
       },
       {
@@ -396,7 +406,7 @@ export const LESSONS: Lesson[] = [
         target: (c) => (document.querySelector('#info:not([hidden]) [data-action="collect"]') ? { el: '#info [data-action="collect"]' } : { tiles: furnaceTarget(c.world), shape: 'circle' }),
         done: (c) => (c.world.delivered.iron_ingot ?? 0) > (c.start.delivered.iron_ingot ?? 0),
         text: () =>
-          'Iron ingots pile up in the furnace. Select it and tap Collect: your engineer fetches them. Then walk them back to the hub. ' +
+          `Iron ingots pile up in the furnace. Select it and ${byDevice('tap', 'click')} Collect: your engineer fetches them. Then walk them back to the hub. ` +
           'A furnace burns logs as it works: when its orange fuel bar runs low, drop off logs or roll them in. Out of fuel, it stops.',
       },
       {
@@ -511,7 +521,7 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'shipyard'),
         text: (c) =>
           c.ui.tool === 'shipyard'
-            ? `It goes on the site staked out for it near the hub: tap there. Defend it well: when the ship launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles, and they come for the shipyard.` +
+            ? `It goes on the site staked out for it near the hub: ${byDevice('tap', 'click')} there. Defend it well: when the ship launches, the engines wake every bug nest within ${SHIP.wakeRadius} tiles, and they come for the shipyard.` +
               confirmHint(c)
             : 'You can build a ship to carry supplies to the colony. Pick the Shipyard.',
       },

@@ -1,5 +1,5 @@
 import { type Page } from '@playwright/test';
-import { buildTile, calm, expect, isTouch, newGame, tap, test, uncoveredTile } from './helpers';
+import { buildTile, calm, pickTool, expect, isTouch, newGame, tap, test, uncoveredTile } from './helpers';
 
 /** Open ground to the right of the hub, `w`×`h` tiles, cleared of ore and trees. Returns its corner. */
 async function clearing(page: Page, w: number, h: number): Promise<[number, number]> {
@@ -28,6 +28,7 @@ test('undo takes back building, then demolishing', async ({ page }, info) => {
   await expect.poll(() => typeAt(page, x + 1, y + 1)).toBeNull();
 
   // Built again and set to bricks, then demolished: undo puts it back, still making bricks.
+  await pickTool(page, 'furnace');
   await buildTile(page, info, x + 1, y + 1);
   await page.evaluate(([x, y]) => window.game.world.setRecipe(window.game.world.buildingAt(x, y).id, 'brick'), [x + 1, y + 1] as const);
   await page.click('[data-tool="demolish"]');

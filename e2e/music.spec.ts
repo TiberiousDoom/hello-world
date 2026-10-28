@@ -75,3 +75,17 @@ test('a new season plays its interlude, then the game tracks carry on', async ({
   });
   await expect.poll(async () => GAME_TRACKS.includes((await music()).track!), { timeout: 10_000 }).toBe(true);
 });
+
+test('music stopped from outside (a phone call, the lock screen) starts again (#161)', async ({ page }) => {
+  await setProfile(page, { lessonsSeen: ['essentials'], tipsOff: true });
+  await page.goto('/');
+  await page.mouse.click(900, 600);
+  const paused = () => page.evaluate(() => window.game.music.current.el.paused as boolean);
+  await expect.poll(paused, { timeout: 10_000 }).toBe(false);
+  // The system pauses the track, as iOS does: the next touch, or a moment later, it plays on.
+  await page.evaluate(() => window.game.music.current.el.pause());
+  await page.mouse.click(900, 600);
+  await expect.poll(paused).toBe(false);
+  await page.evaluate(() => window.game.music.current.el.pause());
+  await expect.poll(paused, { timeout: 5000 }).toBe(false);
+});
