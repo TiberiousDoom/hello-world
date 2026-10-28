@@ -279,7 +279,7 @@ export const LESSONS: Lesson[] = [
           !c.world.isUnlocked('lumber_camp')
             ? 'Forestry is researching. This step goes on once it is done.'
             : c.ui.tool === 'lumber_camp'
-              ? `Place it beside the trees: the blue circle shows its reach of ${LUMBER.range} tiles. It cuts the nearest tree into ${LUMBER.logsPerTree} logs every ${LUMBER.period} seconds, and sends them out of the side its arrow marks. ` +
+              ? `Place it beside the trees, or over some: their logs pay for it. The blue circle shows its reach of ${LUMBER.range} tiles. It cuts the nearest tree into ${LUMBER.logsPerTree} logs every ${LUMBER.period} seconds, and sends them out of the side its arrow marks. ` +
                 `A cut tree leaves a stump, which grows back in about ${Math.round(LUMBER.regrow / 60)} minutes.` +
                 confirmHint(c)
               : 'A Lumber Camp cuts trees for you. Pick the Lumber Camp.',

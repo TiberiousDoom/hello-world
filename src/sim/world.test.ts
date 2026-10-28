@@ -746,6 +746,54 @@ describe('Wood', () => {
     expect(w.treeAt(x, y)).toBe(NO_TREE);
   });
 
+  it('only a lumber camp goes over trees: it cuts them at once, their logs pay for it and the rest fill its output (D-147)', () => {
+    const w = emptyWorld();
+    const x = w.hub!.x - 20;
+    const y = w.hub!.y;
+    grove(w, x, y, 2);
+    w.state.inventory.log = 0;
+    expect(w.place('wall', x, y, 0)).toBe('tree');
+    const camp = placed(w.place('lumber_camp', x, y, 0));
+    expect(w.state.inventory.log).toBe(0);
+    expect(camp.outputs).toEqual(Array(4 * LUMBER.logsPerTree - BUILDINGS.lumber_camp.cost.log!).fill('log'));
+    expect(camp.outputs.length).toBeLessThanOrEqual(LUMBER.buffer);
+    for (const [dx, dy] of [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1],
+    ])
+      expect(w.treeAt(x + dx, y + dy)).toBe(NO_TREE);
+    // Over one tree, its logs pay part of the cost.
+    const x2 = x - 10;
+    w.state.trees[w.idx(x2, y)] = TREE;
+    expect(w.buildCost('lumber_camp', x2, y, 0)).toEqual({ log: BUILDINGS.lumber_camp.cost.log! - LUMBER.logsPerTree });
+    w.state.inventory.log = BUILDINGS.lumber_camp.cost.log! - LUMBER.logsPerTree;
+    expect(placed(w.place('lumber_camp', x2, y, 0)).outputs).toEqual([]);
+    expect(w.state.inventory.log).toBe(0);
+    // A camp being moved doesn't go over trees.
+    w.state.trees[w.idx(x - 5, y)] = TREE;
+    expect(w.relocate(camp.id, x - 5, y, 0)).toBe('tree');
+  });
+
+  it('building is paid from hub stock first, then from the engineer’s inventory, wherever it is (D-147)', () => {
+    const w = emptyWorld();
+    const x = w.hub!.x - 30;
+    const y = w.hub!.y;
+    w.state.trees[w.idx(x - 1, y)] = TREE;
+    const p = w.state.players[0];
+    p.slots = emptySlots();
+    p.slots[0] = { item: 'log', n: 5 };
+    w.state.inventory.log = 5;
+    expect(w.canAfford(BUILDINGS.lumber_camp.cost)).toBe(false);
+    expect(w.canAfford(BUILDINGS.lumber_camp.cost, 0)).toBe(true);
+    expect(w.place('lumber_camp', x, y, 0)).toBe('cost'); // with no player, hub stock alone pays
+    placed(applyCommand(w, { kind: 'place', type: 'lumber_camp', x, y, dir: 0, replaceBelt: false }, 0));
+    expect(w.state.inventory.log).toBe(0);
+    expect(heldOf(p, 'log')).toBe(2);
+    expect(w.funds(0).log).toBe(2);
+  });
+
   it('lumber camps go near trees, cut the nearest into logs, and stumps grow back', () => {
     const w = emptyWorld();
     const x = w.hub!.x - 20;

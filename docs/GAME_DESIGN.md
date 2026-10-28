@@ -60,7 +60,7 @@ How the game works on `master` today. Balance numbers live in
 | Gear | Machine Shop | 2 iron plates | 2 s |
 | Copper wire ×2 | Machine Shop | 1 copper ingot | 1.5 s |
 | Motor | Assembler | 1 gear + 2 wire + 1 iron plate | 4 s |
-| Log ×2 | Lumber Camp | 1 tree in reach | 3 s |
+| Log ×4 | Lumber Camp | 1 tree in reach | 3 s |
 | Plank ×2 | Sawmill | 1 log | 1.5 s |
 | Stake ×3 | Sawmill | 1 plank | 1.5 s |
 | Dowel ×4 | Sawmill | 1 plank | 1.5 s |
@@ -148,7 +148,8 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 - Sizes are width × depth when facing east (the first number runs along the direction the building
   faces). Turning a building sideways swaps them, and a placed building only turns if its new footprint is free.
 - Bigger buildings centre on the tile you pick.
-- Building costs are paid from hub stock. Demolishing a building refunds its
+- Building costs are paid from hub stock first; what the hub lacks comes out of your engineer's inventory,
+  wherever the engineer is (D-147). Research and upgrades are paid from hub stock only. Demolishing a building refunds its
   cost, scaled by the HP it has left.
 - **Hub:** 8×8 (D-108), 1,000 HP. Accepts any item from any side. **Select it to open Research.**
   It has a **built-in gun**: 9 damage, 1.2 shots/s, range 8 from its centre, and no ammo needed.
@@ -273,17 +274,21 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
 - **Engineers and bugs walk under the trees** (#95): the canopy is drawn over them. An engineer under a tree
   shows through faintly, so it isn't lost.
 - **Chopping by hand (D-093):** with no tool in hand, tap a tree. Like mining, the engineer walks over,
-  and **8 taps** fell it for **2 logs**, with wood chips and a chop on each tap. The tree leaves a stump
-  that grows back, like a lumber camp's. There must be room for both logs in the inventory.
-- **Trees block building.** Every building, belts included, needs tree-free ground. Underground belts
-  can still pass under trees.
-- A **Lumber Camp** (2×2) must have at least one tree or stump within **4 tiles** of its centre. Every
-  3 s it cuts the nearest tree in reach into **2 logs**, and outputs them like an extractor. It waits
-  while its output is full, and goes idle when nothing in reach is grown.
+  and **8 taps** fell it for **4 logs**, with wood chips and a chop on each tap. The tree leaves a stump
+  that grows back, like a lumber camp's. There must be room for all 4 logs in the inventory.
+- **Trees block building.** Every building but the Lumber Camp, belts included, needs tree-free ground.
+  Underground belts can still pass under trees.
+- A **Lumber Camp** (2×2) must have at least one tree or stump within **4 tiles** of its centre, or go
+  over trees. Every 3 s it cuts the nearest tree in reach into **4 logs**, and outputs them like an
+  extractor. It holds up to **8 logs**, waits while it can't fit another tree's, and goes idle when
+  nothing in reach is grown.
+- **A camp built over trees (D-147)** cuts them at once, 4 logs each, and the ground under it stays clear.
+  Those logs pay for the camp first; what's left starts in its output. Over all four tiles of trees it's
+  free and starts with 8 logs. A camp being moved can't go over trees.
 - A cut tree leaves a **stump**, which grows back into a tree after **2 to 4 minutes** (3 on average,
   at random, so a grove grows back gradually and a camp's logs come steadily, #50). Stumps don't block
   building: building over one clears it for good. So a camp can clear land, or keep cutting the same
-  woods as they regrow, but only so long: **a tree grows back 3 times**, and when it's cut a fourth time
+  woods as they regrow, but only so long: **a tree grows back 10 times**, and when it's cut an eleventh time
   the ground stays clear (D-094). Forests thin out over a long game, so camps move outward.
 - The **Sawmill** (2×2 machine) turns 1 log into 2 planks.
 - The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
@@ -433,7 +438,7 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 (D-093). The first minutes go:
 
 1. **Chop trees by hand.** With no tool in hand, tap or click a tree. The engineer walks over, and every
-   **8 taps** in a row fell it for **2 logs**, which it carries; a ring around the tile fills with each
+   **8 taps** in a row fell it for **4 logs**, which it carries; a ring around the tile fills with each
    tap. Holding the finger or mouse button down taps **4 times a second**. Tapping another tile, or
    **3 s** without a tap, starts the count over. Dragging from there pans, as usual. With a full
    inventory, chopping stops and a message says so. Ore and stone are mined by hand the same way, one at
@@ -724,7 +729,7 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   - **Greenhouse** (2×2, uses 3): grows **2 logs every 6 s** with electricity, from nothing.
   - **Tree Nursery** (2×2, no electricity; 40 planks, 10 rope, 10 steel; D-134): every **15 s** it plants a tree on
     a random open tile within **5 tiles** of its centre: bare ground or a stump, not under a building, on ore, in a
-    pond, on a mound or on the shipyard's site. A planted tree can be cut and grow back 3 times, like any other.
+    pond, on a mound or on the shipyard's site. A planted tree can be cut and grow back 10 times, like any other.
 
   Research lists them under "From the colony", with what you've received and what's on offer.
 

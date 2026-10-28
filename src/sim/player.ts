@@ -93,6 +93,20 @@ export function give(p: Player, item: ItemId): boolean {
   return true;
 }
 
+/** Takes up to `n` of `item` out of the inventory, from the last stack first. Returns how many it took. */
+export function take(p: Player, item: ItemId, n: number): number {
+  let took = 0;
+  for (let i = p.slots.length - 1; i >= 0 && took < n; i--) {
+    const s = p.slots[i];
+    if (s?.item !== item) continue;
+    const k = Math.min(s.n, n - took);
+    s.n -= k;
+    took += k;
+    if (!s.n) p.slots[i] = null;
+  }
+  return took;
+}
+
 /**
  * Hands everything a player holds to `put`, one item at a time, slot by slot; what it refuses stays.
  * Returns how many went.

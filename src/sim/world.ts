@@ -102,7 +102,7 @@ import {
   tickMerge,
   tickSpread,
 } from './nests';
-import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, tickPlayers, walk } from './player';
+import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, heldOf, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, take, tickPlayers, walk } from './player';
 import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
 
 export { createResearchState };
@@ -1584,8 +1584,16 @@ export class World {
     return RESEARCH.filter((r) => this.checkResearch(r.id) === null);
   }
 
-  private pay(cost: ItemCounts): void {
-    for (const [item, n] of Object.entries(cost)) this.state.inventory[item as ItemId]! -= n!;
+  /** Pays from hub stock; with a `player`, their engineer's inventory covers what the hub lacks (D-147). */
+  private pay(cost: ItemCounts, player?: number): void {
+    const p = player == null ? undefined : this.playerById(player);
+    const inv = this.state.inventory;
+    for (const [k, n] of Object.entries(cost)) {
+      const item = k as ItemId;
+      const fromHub = Math.min(n!, inv[item] ?? 0);
+      inv[item] = (inv[item] ?? 0) - fromHub;
+      if (p && n! > fromHub) take(p, item, n! - fromHub);
+    }
   }
 
   /** Direction pointing away from an adjacent hub, if there is one. */
@@ -1596,8 +1604,39 @@ export class World {
     return null;
   }
 
-  canAfford(cost: ItemCounts): boolean {
-    return Object.entries(cost).every(([item, n]) => (this.state.inventory[item as ItemId] ?? 0) >= n!);
+  /**
+   * Whether `cost` can be paid. With a `player`, for building (D-147): from hub stock and that player's
+   * engineer's inventory together, wherever the engineer is.
+   */
+  canAfford(cost: ItemCounts, player?: number): boolean {
+    const p = player == null ? undefined : this.playerById(player);
+    return Object.entries(cost).every(([item, n]) => (this.state.inventory[item as ItemId] ?? 0) + (p ? heldOf(p, item as ItemId) : 0) >= n!);
+  }
+
+  /** What a player could spend on building: hub stock plus what their engineer carries (D-147). */
+  funds(player?: number): ItemCounts {
+    const out: ItemCounts = { ...this.state.inventory };
+    const p = player == null ? undefined : this.playerById(player);
+    for (const s of p?.slots ?? []) if (s) out[s.item] = (out[s.item] ?? 0) + s.n;
+    return out;
+  }
+
+  private playerById(id: number): Player | undefined {
+    return this.state.players.find((p) => p.id === id);
+  }
+
+  /** Trees under a w×h area at (x, y): a lumber camp built there cuts them at once (D-147). */
+  treesUnder(x: number, y: number, w: number, h: number): number {
+    let n = 0;
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (this.inBounds(x + dx, y + dy) && this.treeAt(x + dx, y + dy) === TREE) n++;
+    return n;
+  }
+
+  /** What building `type` at (x, y) costs: a lumber camp's cost is less the logs of the trees under it (D-147). */
+  buildCost(type: BuildingType, x: number, y: number, dir: Dir): ItemCounts {
+    const cost: ItemCounts = { ...BUILDINGS[type].cost };
+    if (type === 'lumber_camp') cost.log = Math.max(0, (cost.log ?? 0) - this.treesUnder(x, y, ...footprint(type, dir)) * LUMBER.logsPerTree);
+    return cost;
   }
 
   /** `changed`: false while building the index from a save, whose path timers already say what's due. */
@@ -1746,15 +1785,18 @@ export class World {
    * Whether a building can go with its top-left at (x, y), facing `dir`.
    * `replaceBelt`: allow building over a belt (single placements, not drags across a line).
    */
-  /** Whether `type` can go at (x, y) facing `dir`. Moving (#76, #83): `moving` itself is no obstacle, and it's free. */
-  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false, moving?: Building): PlaceError | null {
+  /**
+   * Whether `type` can go at (x, y) facing `dir`. Moving (#76, #83): `moving` itself is no obstacle, and it's free.
+   * `player`: whose engineer's inventory helps pay (D-147).
+   */
+  checkPlace(type: BuildingType, x: number, y: number, dir: Dir = 0, replaceBelt = false, moving?: Building, player?: number): PlaceError | null {
     const [w, h] = footprint(type, dir);
     for (let dy = 0; dy < h; dy++) {
       for (let dx = 0; dx < w; dx++) {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
         const b = this.buildingAt(x + dx, y + dy);
         if (b && b !== moving && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
-        if (this.treeAt(x + dx, y + dy) === TREE) return 'tree';
+        if (this.treeAt(x + dx, y + dy) === TREE && (type !== 'lumber_camp' || moving)) return 'tree'; // only a new lumber camp goes over trees (D-147)
         if (moundAt(this, x + dx, y + dy) && this.state.mode !== 'hardcore') return 'nest'; // Hardcore nests are destroyed by building over them (D-133)
         if (type !== 'water_wheel' && this.isWater(x + dx, y + dy)) return 'water';
       }
@@ -1776,10 +1818,10 @@ export class World {
     if (type === 'extractor' && !this.oreUnder(x, y, w, h)) return 'needs-resource';
     if (type === 'lumber_camp') {
       const reach = this.treesInReach(x, y, w, h);
-      if (!reach.trees.length && !reach.stumps) return 'needs-trees';
+      if (!reach.trees.length && !reach.stumps && !this.treesUnder(x, y, w, h)) return 'needs-trees';
     }
     if (type === 'port' && this.awayFromHub(x, y) == null) return 'needs-hub';
-    if (!moving && !this.canAfford(BUILDINGS[type].cost)) return 'cost';
+    if (!moving && !this.canAfford(this.buildCost(type, x, y, dir), player)) return 'cost';
     return null;
   }
 
@@ -1807,10 +1849,14 @@ export class World {
     return b;
   }
 
-  place(type: BuildingType, x: number, y: number, dir: Dir, replaceBelt = false): Building | PlaceError {
-    const err = this.checkPlace(type, x, y, dir, replaceBelt);
+  /** Builds `type` at (x, y). `player`: whose engineer's inventory covers what hub stock lacks (D-147). */
+  place(type: BuildingType, x: number, y: number, dir: Dir, replaceBelt = false, player?: number): Building | PlaceError {
+    const err = this.checkPlace(type, x, y, dir, replaceBelt, undefined, player);
     if (err) return err;
-    this.pay(BUILDINGS[type].cost);
+    // A lumber camp cuts the trees under it at once; their logs pay for it, and what's left fills its output (D-147).
+    const cut = type === 'lumber_camp' ? this.treesUnder(x, y, ...footprint(type, dir)) * LUMBER.logsPerTree : 0;
+    const spare = Math.min(LUMBER.buffer, Math.max(0, cut - (BUILDINGS[type].cost.log ?? 0)));
+    this.pay(this.buildCost(type, x, y, dir), player);
     // Replacing belts: refund them, keeping what they carried for the new building.
     const carried: ItemId[] = [];
     if (replaceBelt) {
@@ -1825,11 +1871,15 @@ export class World {
       }
     }
     if (type === 'port') dir = this.awayFromHub(x, y)!;
-    // Building over stumps clears them for good.
+    // Building over stumps (or a lumber camp over trees) clears them for good.
     const [fw, fh] = footprint(type, dir);
     for (let dy = 0; dy < fh; dy++) {
       for (let dx = 0; dx < fw; dx++) {
         const i = this.idx(x + dx, y + dy);
+        if (this.state.trees[i] === TREE) {
+          this.fell(i);
+          delete this.state.cuts?.[i];
+        }
         this.state.trees[i] = NO_TREE;
         delete this.state.regrow[i];
       }
@@ -1843,6 +1893,8 @@ export class World {
     // Items that were on the belt go into the new building if it takes them.
     for (const item of carried) this.insert(b, item, x - DX[dir], y - DY[dir]);
     if (type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(type, dir));
+    for (let k = 0; k < spare; k++) b.outputs.push('log');
+    if (spare) this.noteMade(b, spare);
     onBuilt(this, b);
     return b;
   }
@@ -2520,7 +2572,7 @@ export class World {
   /** Cuts the nearest tree in reach into logs, one tree every LUMBER.period seconds. */
   private tickLumberCamp(b: Building, dt: number): void {
     const s = this.state;
-    if (b.outputs.length + LUMBER.logsPerTree <= OUTPUT_BUFFER) {
+    if (b.outputs.length + LUMBER.logsPerTree <= LUMBER.buffer) {
       const [w, h] = this.footprintOf(b);
       const { trees } = this.treesInReach(b.x, b.y, w, h);
       if (!trees.length) {

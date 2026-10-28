@@ -256,7 +256,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     size: [2, 2],
     cost: { log: 8 },
     blocking: true,
-    description: 'Place near trees. It cuts the nearest one into logs; the stump grows back in time.',
+    description: 'Place near trees, or over them: trees under it are cut at once, and their logs pay for it. It cuts the nearest tree into logs; the stump grows back in time.',
   },
   sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
   blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
@@ -447,10 +447,11 @@ export const FOG = {
 
 /** Trees and the Lumber Camp (D-044). Unlike ore, wood runs out until the stumps grow back. */
 export const LUMBER = {
-  regrowths: 3, // a tree's stump grows back this many times; cut again after that, the ground stays clear (D-094)
+  regrowths: 10, // a tree's stump grows back this many times; cut again after that, the ground stays clear (D-094, D-147)
   range: 4, // tiles from the camp's centre to a tree's centre
   period: 3, // seconds to cut one tree
-  logsPerTree: 2,
+  logsPerTree: 4, // D-147
+  buffer: 8, // logs a camp holds: two trees' worth, so one built over four trees keeps what's left after its cost (D-147)
   regrow: 180, // average seconds for a stump to become a tree again
   regrowSpread: 60, // each stump takes regrow ± this, at random, so a grove grows back gradually (#50)
 };

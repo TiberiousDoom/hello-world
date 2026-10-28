@@ -24,33 +24,36 @@ export interface PlanStep {
  * tiles before it, so a line longer than the stock allows shows where it runs out. An underground
  * crossing that can't be paid for stops the line there (#65).
  */
-export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false): PlanStep[] {
+/** `player`: whose engineer's inventory helps pay (D-147). */
+export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false, player?: number): PlanStep[] {
   const single = plan.tiles.length === 1; // only a single placement may go over a belt
   const dirs = planDirs(plan, dir);
   const steps: PlanStep[] = plan.tiles.map((tile, i) => ({ tile, tool: plan.tool, dir: dirs[i], status: null }));
   // Rollers have no underground (D-102): only belts tunnel.
   if (isBeltPath(plan) && isBelt(plan.tool) && plan.tool !== 'roller' && world.isUnlocked('tunnel')) tunnelUnder(world, steps);
   const spent: ItemCounts = {};
-  const afford = (tools: BuildingType[]) => {
+  const funds = world.funds(player);
+  const afford = (costs: ItemCounts[]) => {
     const need: ItemCounts = {};
-    for (const t of tools) for (const [k, n] of Object.entries(BUILDINGS[t].cost)) need[k as ItemId] = (need[k as ItemId] ?? 0) + n!;
-    return (Object.entries(need) as [ItemId, number][]).every(([k, n]) => (world.state.inventory[k] ?? 0) - (spent[k] ?? 0) >= n);
+    for (const c of costs) for (const [k, n] of Object.entries(c)) need[k as ItemId] = (need[k as ItemId] ?? 0) + n!;
+    return (Object.entries(need) as [ItemId, number][]).every(([k, n]) => (funds[k] ?? 0) - (spent[k] ?? 0) >= n);
   };
   let stopped = false;
   steps.forEach((s, i) => {
     if (stopped) return void (s.status = 'cost');
     if (s.over) return void (s.status = 'occupied');
     const at = placementAt(world, s.tool, s.tile, s.dir, single, keepDir);
-    const err = world.checkPlace(s.tool, at.x, at.y, at.dir, single);
+    const err = world.checkPlace(s.tool, at.x, at.y, at.dir, single, undefined, player);
     if (err && err !== 'cost') return void (s.status = err);
     // An entrance is paid for together with its exit: both, or the line stops here.
     const exit = s.tool === 'tunnel' && !s.exit ? steps.slice(i + 1).find((q) => q.exit) : undefined;
-    if (!afford(exit ? [s.tool, exit.tool] : [s.tool])) {
+    const cost = world.buildCost(s.tool, at.x, at.y, at.dir);
+    if (!afford(exit ? [cost, BUILDINGS[exit.tool].cost] : [cost])) {
       s.status = 'cost';
       if (exit) stopped = true;
       return;
     }
-    for (const [k, n] of Object.entries(BUILDINGS[s.tool].cost)) spent[k as ItemId] = (spent[k as ItemId] ?? 0) + n!;
+    for (const [k, n] of Object.entries(cost)) spent[k as ItemId] = (spent[k as ItemId] ?? 0) + n!;
   });
   return steps;
 }
@@ -92,8 +95,8 @@ function tunnelUnder(world: World, steps: PlanStep[]): void {
 }
 
 /** Whether each planned tile can be built (see planSteps). */
-export function planStatus(world: World, plan: Plan, dir: Dir, keepDir = false): (PlaceError | null)[] {
-  return planSteps(world, plan, dir, keepDir).map((s) => s.status);
+export function planStatus(world: World, plan: Plan, dir: Dir, keepDir = false, player?: number): (PlaceError | null)[] {
+  return planSteps(world, plan, dir, keepDir, player).map((s) => s.status);
 }
 
 /**
@@ -144,7 +147,7 @@ export class PlanBar {
     const show = visible && !!this.ui.plan;
     this.el.hidden = !show;
     if (!show || !plan) return;
-    const status = planStatus(world, plan, this.ui.dir, this.ui.dirSet);
+    const status = planStatus(world, plan, this.ui.dir, this.ui.dirSet, this.ui.player);
     const ok = status.filter((s) => s === null).length;
     this.count.textContent = plan.tiles.length > 1 ? `${ok} of ${plan.tiles.length}` : '';
     this.count.hidden = plan.tiles.length < 2;
