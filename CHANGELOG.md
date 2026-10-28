@@ -3,6 +3,18 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.86.0 · 2026-10-28 · Smoother on phones
+### New
+- On a touch screen, once a building goes up its tool is put down, so your next tap selects or walks. **Double-tap a tool** to keep it for several (a 📌 shows on it). Belts, rollers and walls keep their tool as before.
+- Dragging a building with your finger lifts its blueprint **above your finger**, so you can see where it goes.
+- The tutorial, tips and How to play now say **tap** on phones and **click** on computers, and How to play shows only your device's controls.
+- The research list shows what you can start first, then what's locked, then what's **done**, in the order you finished it.
+- **Rollers curve** round corners like belts, and look right where they run into the hub's corner.
+
+### Fixed
+- Music that stopped (after the phone locked, a call or another app's sound) now starts again by itself.
+- Blowing leaves no longer race across the screen while you zoom.
+
 ## 0.85.1 · 2026-10-28 · Docs catch up
 ### New
 - Nothing new in the game: the roadmap, research tree and save notes now match what's built, and the latest playtest notes are on the roadmap.

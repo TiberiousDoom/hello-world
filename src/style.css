@@ -277,6 +277,7 @@ body.in-menu #toasts {
   display: none;
 }
 .tool {
+  position: relative;
   flex: 0 0 auto;
   flex-direction: column;
   gap: 3px;
@@ -315,6 +316,14 @@ body.in-menu #toasts {
 }
 .tool.active .costs {
   color: var(--navy-ink);
+}
+/* A pinned tool stays in hand after building (#164). */
+.tool.pinned::after {
+  content: '📌';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 13px;
 }
 .tool.poor {
   opacity: 0.55;
@@ -1784,5 +1793,17 @@ body.reduce-motion *::after {
   .toggle input[type='checkbox'] {
     width: 24px;
     height: 24px;
+  }
+}
+
+/* Help written for the device in hand (#155): touch steps on touch screens, mouse and keys otherwise. */
+@media (pointer: coarse) {
+  .only-mouse {
+    display: none;
+  }
+}
+@media not (pointer: coarse) {
+  .only-touch {
+    display: none;
   }
 }

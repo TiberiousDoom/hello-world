@@ -41,6 +41,11 @@ export interface UIState {
   clip: Clip | null;
   /** Copying: a drag picks an area. Pasting: a tap puts the copy down. */
   clipMode: 'copy' | 'paste' | null;
+  /**
+   * The tool stays in hand after placing (#164, D-145). On touch screens a single building's tool is put down
+   * once it's built, unless the player double-tapped it to keep it.
+   */
+  pinned: boolean;
   /** The area being dragged out while copying, corner to corner. */
   selecting: { from: Spot; to: Spot } | null;
 }
@@ -74,6 +79,7 @@ export function createUIState(): UIState {
     clip: null,
     clipMode: null,
     selecting: null,
+    pinned: false,
   };
 }
 

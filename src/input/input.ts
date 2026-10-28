@@ -35,6 +35,7 @@ import { buzz } from './haptics';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
 import { clipCorner, copyArea, pasteChunks, rotateClip } from '../ui/clipboard';
 import { isKey } from '../ui/keys';
+import { byDevice } from '../ui/device';
 
 type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine' | 'select' | 'stamp';
 
@@ -73,6 +74,7 @@ const WALK_KEYS: Record<string, [number, number]> = {
 const TAP_SLOP = 8; // px a pointer may move and still count as a tap
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 const LONG_PRESS = 450; // ms a finger rests on a building to pick it
+const LIFT_PX = 70; // how far above the finger a dragged blueprint sits (#157)
 /** Tools drawn out as lines by dragging; everything else is dragged into place. */
 const LINE_TOOLS: readonly string[] = ['belt', 'express_belt', 'roller', 'wall', 'reinforced_wall', 'steel_wall', 'arc_fence', 'palisade', 'shaft'];
 
@@ -85,6 +87,8 @@ export class Input {
   private lastPlaced: { x: number; y: number; type: BuildingType } | null = null;
   private reportedError = false;
   private pinch = { dist: 0, midX: 0, midY: 0 };
+  /** The kind of pointer that last pressed the map: 'mouse', 'touch' or 'pen'. */
+  private pointerType = 'mouse';
   private wheelTurn = 0;
   private prevPlan: Plan | null = null; // the blueprint before this gesture started a new one
   private pressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -188,6 +192,7 @@ export class Input {
     if (this.pointers.size > 2) return;
 
     this.downAt = { x, y };
+    this.pointerType = e.pointerType;
     if (e.pointerType !== 'mouse' && !this.ui.clipMode) this.startLongPress(this.ui.hover);
     if (e.pointerType === 'mouse' && e.button === 2) {
       this.mode = 'right'; // a click clears; a drag pans
@@ -441,7 +446,14 @@ export class Input {
   private movePlan(t: Tile, moved: boolean): void {
     const plan = this.ui.plan;
     if (!plan) return;
-    if (moved) this.moving.dragged = true;
+    if (moved && !this.moving.dragged) {
+      this.moving.dragged = true;
+      // A finger hides what's under it (#157, D-145): a new blueprint dragged by touch sits above it.
+      if (!this.moving.existing && this.pointerType !== 'mouse' && !plan.along) {
+        const [, fh] = footprint(plan.tool, this.ui.dir);
+        this.moving.start = { x: this.moving.start.x, y: this.moving.start.y - Math.max(1, Math.round(LIFT_PX / this.camera.zoom)) - Math.ceil((fh - 1) / 2) };
+      }
+    }
     if (!this.moving.dragged) return;
     plan.tiles[0] = { x: this.moving.start.x + t.x - this.moving.from.x, y: this.moving.start.y + t.y - this.moving.from.y };
     // An underground exit stays on the line ahead of its entrance, within reach (#64).
@@ -523,6 +535,10 @@ export class Input {
         break;
       }
       this.paintTile(s.tile, s.dir, single, s.tool);
+    }
+    // On a touch screen a single building's tool is put down once it's built, unless pinned (#164, D-145).
+    if (single && this.lastPlaced && !this.ui.plan && this.pointerType !== 'mouse' && !this.ui.pinned && !LINE_TOOLS.includes(plan.tool) && this.ui.tool === plan.tool) {
+      this.ui.tool = null;
     }
     this.cb.onChange();
   }
@@ -730,7 +746,7 @@ export class Input {
         this.ui.clip = clip;
         this.ui.clipMode = 'paste';
         const n = clip.items.length;
-        this.cb.onNotice(`Copied ${n} building${n === 1 ? '' : 's'}. Tap where the copy goes; R turns it.`);
+        this.cb.onNotice(`Copied ${n} building${n === 1 ? '' : 's'}. ${byDevice('Tap where the copy goes.', 'Click where the copy goes; R turns it.')}`);
       }
     }
     this.cb.onChange();

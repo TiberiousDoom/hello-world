@@ -202,7 +202,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     hp: 40,
     cost: { iron_plate: 1, gear: 1 },
     blocking: false,
-    description: 'Moves items twice as fast as a belt, with electricity from a power pole; without it, at roller speed. Tap a belt to upgrade its whole line.',
+    description: 'Moves items twice as fast as a belt, with electricity from a power pole; without it, at roller speed. Tap or click a belt with it to upgrade its whole line.',
   },
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, size: [1, 2], cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Spans two belt lanes. Takes items from behind either lane and sends them out of both in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },

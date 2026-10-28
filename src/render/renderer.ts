@@ -136,7 +136,8 @@ const FOG_COLOR = [14, 24, 18];
 const NIGHT = { color: '8,14,40', alpha: 0.58 };
 const FOREST_CANOPY = '#1f4a2e';
 const FIREFLIES = 70;
-const LEAVES = 9;
+const LEAVES = 3; // in each LEAF_CELL square of the map
+const LEAF_CELL = 18; // tiles
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
 
 /** A cheap integer hash, for choosing decorations per tile. */
@@ -331,7 +332,7 @@ export class Renderer {
     const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
     belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
-    for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b);
+    for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b, z);
     const standing = s.buildings.filter((b) => {
       if (isBelt(b.type)) return false;
       const [fw, fh] = world.footprintOf(b);
@@ -1124,22 +1125,33 @@ export class Renderer {
       dot(ctx, fx, fy, Math.max(0.035, 1.6 / z));
     }
     ctx.restore();
-    // Leaves wrap around the visible area as they blow across it.
-    const vw = x1f - x0f + 2;
-    const vh = y1f - y0f + 2;
+    // Leaves blow across the map, not the screen (#160): each square of LEAF_CELL tiles has the same few,
+    // so zooming or panning never moves them. Zoomed far out they'd be specks by the hundred: left out.
+    const c0x = Math.floor(x0f / LEAF_CELL) - 1;
+    const c0y = Math.floor(y0f / LEAF_CELL) - 1;
+    const c1x = Math.floor(x1f / LEAF_CELL);
+    const c1y = Math.floor(y1f / LEAF_CELL);
+    if ((c1x - c0x + 1) * (c1y - c0y + 1) > 40) return;
     for (let i = 0; i < LEAVES; i++) {
       const hv = hash(i, 131);
-      const lx = x0f - 1 + ((((hv % 997) / 997) * vw + t * (0.5 + (i % 3) * 0.15)) % vw);
-      const ly = y0f - 1 + (((((hv >>> 10) % 997) / 997) * vh + t * 0.35 + Math.sin(t + i) * 0.4) % vh);
-      ctx.save();
-      ctx.translate(lx, ly);
-      ctx.rotate(t * (1 + (i % 4) * 0.3) + i);
-      ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 2 + i)); // tumbling
-      ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length];
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 0.13, 0.06, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      const ox = (((hv % 997) / 997) * LEAF_CELL + t * (0.5 + (i % 3) * 0.15)) % LEAF_CELL;
+      const oy = (((((hv >>> 10) % 997) / 997) * LEAF_CELL + t * 0.35) % LEAF_CELL) + Math.sin(t + i) * 0.4;
+      for (let cy = c0y; cy <= c1y; cy++) {
+        for (let cx = c0x; cx <= c1x; cx++) {
+          const lx = cx * LEAF_CELL + ox;
+          const ly = cy * LEAF_CELL + oy;
+          if (lx < x0f - 1 || lx > x1f + 1 || ly < y0f - 1 || ly > y1f + 1) continue;
+          ctx.save();
+          ctx.translate(lx, ly);
+          ctx.rotate(t * (1 + (i % 4) * 0.3) + i);
+          ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 2 + i)); // tumbling
+          ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length];
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 0.13, 0.06, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
     }
   }
 
@@ -1224,6 +1236,7 @@ export class Renderer {
    * single file down the middle. A corner is drawn as an L, its items turning at the tile's centre.
    */
   private drawRoller(b: Building, look: BeltLook, z: number): void {
+    if (look.curved) return this.drawCurvedRoller(b, look, z);
     const ctx = this.ctx;
     const cx = b.x + 0.5;
     const cy = b.y + 0.5;
@@ -1301,6 +1314,67 @@ export class Renderer {
       const [d, u] = it.pos < 0.5 ? [legs[0][0], it.pos - 0.5] : [b.dir, it.pos - 0.5];
       this.drawItem(it.item, ...this.smooth(it, cx + DX[d] * u, cy + DY[d] * u), ITEM_ON_BELT);
     }
+  }
+
+  /**
+   * A wooden roller round a bend (#158): the frame curves about the tile corner its entry and exit sides
+   * share, like a belt's, with the rollers fanned out along it and the items following the curve.
+   */
+  private drawCurvedRoller(b: Building, look: BeltLook, z: number): void {
+    const ctx = this.ctx;
+    const from = look.from;
+    const px = b.x + 0.5 + (DX[from] + DX[b.dir]) * 0.5;
+    const py = b.y + 0.5 + (DY[from] + DY[b.dir]) * 0.5;
+    const a0 = Math.atan2(b.y + 0.5 + DY[from] * 0.5 - py, b.x + 0.5 + DX[from] * 0.5 - px);
+    let sweep = Math.atan2(b.y + 0.5 + DY[b.dir] * 0.5 - py, b.x + 0.5 + DX[b.dir] * 0.5 - px) - a0;
+    if (sweep > Math.PI) sweep -= Math.PI * 2;
+    if (sweep < -Math.PI) sweep += Math.PI * 2;
+    const ccw = sweep < 0;
+    const a1 = a0 + sweep;
+    const W = 0.3; // half the frame's width, as on a straight roller
+    const at = (a: number, r: number): [number, number] => [px + Math.cos(a) * r, py + Math.sin(a) * r];
+    // The bed.
+    ctx.fillStyle = '#3a2a1c';
+    ctx.beginPath();
+    ctx.arc(px, py, 0.5 + W, a0, a1, ccw);
+    ctx.arc(px, py, 0.5 - W, a1, a0, !ccw);
+    ctx.closePath();
+    ctx.fill();
+    // Rollers fanned out round the bend, about a tenth of a tile apart along its middle.
+    const spin = (this.beltPhaseOf(b) / 0.25) * 0.2;
+    const n = 8;
+    ctx.lineCap = 'butt';
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (sweep * (i + 0.5)) / n;
+      ctx.strokeStyle = '#c9a06a';
+      ctx.lineWidth = 0.07;
+      ctx.beginPath();
+      ctx.moveTo(...at(a, 0.5 - W + 0.04));
+      ctx.lineTo(...at(a, 0.5 + W - 0.04));
+      ctx.stroke();
+      const h = a + (sweep / n) * (((spin * 5) % 0.04) / 0.1 - 0.2);
+      ctx.strokeStyle = 'rgba(255,236,200,0.6)';
+      ctx.lineWidth = 0.02;
+      ctx.beginPath();
+      ctx.moveTo(...at(h, 0.5 - W + 0.06));
+      ctx.lineTo(...at(h, 0.5 + W - 0.06));
+      ctx.stroke();
+    }
+    // The two rails, dark edge first.
+    for (const [style, width] of [
+      ['#0f1a2e', 3 / z],
+      ['#8a5a32', 0.06],
+    ] as const) {
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width;
+      for (const r of [0.5 - W, 0.5 + W]) {
+        ctx.beginPath();
+        ctx.arc(px, py, r, a0, a1, ccw);
+        ctx.stroke();
+      }
+    }
+    // Items, single file round the middle of the bend.
+    for (const it of b.belt) this.drawItem(it.item, ...this.smooth(it, ...at(a0 + sweep * Math.min(1, Math.max(0, it.pos)), 0.5)), ITEM_ON_BELT);
   }
 
   /**
@@ -1461,7 +1535,7 @@ export class Renderer {
    * A belt feeding one of the hub's corner tiles carries on into that tile, drawn before the hub: the
    * hub's corners are cut off, so the belt shows in the gap and seems to run under its wall (#78).
    */
-  private drawUnderHub(b: Building): void {
+  private drawUnderHub(b: Building, z: number): void {
     const x = b.x + DX[b.dir];
     const y = b.y + DY[b.dir];
     const ctx = this.ctx;
@@ -1469,7 +1543,10 @@ export class Renderer {
     ctx.beginPath();
     ctx.rect(x, y, 1, 1);
     ctx.clip();
-    if (!this.drawSprite(`buildings/${b.type}`, x, y, 1, (b.dir * Math.PI) / 2)) {
+    if (b.type === 'roller') {
+      // Rollers are drawn in code (#163): the next tile's worth of frame, without its items.
+      this.drawRoller({ ...b, id: -b.id, x, y, belt: [] }, { from: ((b.dir + 2) % 4) as Dir, curved: false, fed: true, joined: true }, z);
+    } else if (!this.drawSprite(`buildings/${b.type}`, x, y, 1, (b.dir * Math.PI) / 2)) {
       ctx.fillStyle = BELT_SURFACE;
       ctx.fillRect(x, y, 1, 1);
     }
