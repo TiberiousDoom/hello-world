@@ -51,7 +51,7 @@ import {
   nestKindFor,
   stageSize,
 } from './data';
-import { Nest, anyAngry, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
+import { Nest, anyAngry, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, onBugHurt, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, defenceTierCost, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
@@ -545,6 +545,43 @@ describe('Bugs', () => {
     }
     // The first spreads can only come from a or b; each new nest borders an older live one.
     expect(w.state.nests.slice(3).every((n) => w.state.nests.some((o) => o.id < n.id && Math.abs(o.x - n.x) + Math.abs(o.y - n.y) === NESTS.cell))).toBe(true);
+  });
+
+  it('a new territory clears the trees from its mound and the ring around it', () => {
+    const w = emptyWorld();
+    addNest(w, 50, 50, 2);
+    w.state.trees.fill(TREE);
+    w.state.nextSpread = w.state.time;
+    w.tick();
+    const fresh = w.state.nests[1];
+    expect(fresh).toBeDefined();
+    const [mx, my] = moundTile(fresh);
+    for (let y = my - 1; y <= my + 2; y++) for (let x = mx - 1; x <= mx + 2; x++) expect(w.treeAt(x, y)).toBe(NO_TREE);
+  });
+
+  it('a nest that merged wakes the neighbours of every cell it holds when its bugs are hurt', () => {
+    const w = emptyWorld();
+    const a = addNest(w, 50, 50, 1);
+    a.cells = [[60, 50]]; // took over the cell to its east
+    w.nestCells.set(cellKey(6, 5), a);
+    const far = addNest(w, 70, 50, 1); // next to the merged cell only
+    const e = w.state.enemies.find((x) => x.nest === a.id)!;
+    e.hp -= 1;
+    onBugHurt(w, e);
+    expect(isAngry(w, far)).toBe(true);
+  });
+
+  it('a flying bug with nothing left to go for heads home', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 0);
+    const wasp = w.spawnBug('wasp', n, 1);
+    n.angryUntil = w.state.time + 60;
+    // Only walls nearby (flyers pass over them), so it keeps chasing but has nothing to go for.
+    for (let i = 0; i < 4; i++) placed(w.place('wall', 78 + i, 80, 0));
+    [wasp.x, wasp.y, wasp.tx, wasp.ty] = [80.5, 81.5, 100.5, 100.5];
+    w.state.buildings = w.state.buildings.filter((b) => b.type === 'wall');
+    run(w, 1);
+    expect([wasp.tx, wasp.ty]).toEqual(nestCentre(n));
   });
 
   it('spread on a timer, a few minutes apart', () => {
@@ -1316,6 +1353,18 @@ describe('Colony blueprints', () => {
     expect(w.upgradeBeltLine(x0 + 6, y)).toBe('occupied'); // a splitter, not a belt
   });
 
+  it('a damaged belt is refunded as demolishing it would be, not as new', () => {
+    const w = emptyWorld();
+    w.state.ship.blueprints = ['express_belt'];
+    const y = w.hub!.y - 8;
+    const x0 = w.hub!.x - 20;
+    const belt = placed(w.place('belt', x0, y, 0));
+    belt.hp = BUILDINGS.belt.hp / 2;
+    const plates = w.state.inventory.iron_plate!;
+    expect(w.upgradeBeltLine(x0, y)).toEqual({ upgraded: 1, left: 0 });
+    expect(w.state.inventory.iron_plate).toBe(plates + Math.floor(BUILDINGS.belt.cost.iron_plate! / 2) - (BUILDINGS.express_belt.cost.iron_plate ?? 0));
+  });
+
   it('with too little stock, it upgrades the belts nearest the tap and says how many were left', () => {
     const w = emptyWorld();
     w.state.ship.blueprints = ['express_belt'];
@@ -1643,6 +1692,16 @@ describe('The player character (#40)', () => {
     const at = [p.x, p.y];
     run(w, 1);
     expect([p.x, p.y]).toEqual(at);
+  });
+
+  it("a command from a player with no engineer moves nobody's", () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    stand(w, 20, 20);
+    expect(w.moveTo(30, 20, 7)).toBe(false);
+    w.walk(1, 0, 7);
+    run(w, 1);
+    expect([p.x, p.y]).toEqual([20.5, 20.5]);
   });
 
   it('walks with the keys out of a building put up where it stands', () => {

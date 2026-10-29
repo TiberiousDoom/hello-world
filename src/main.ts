@@ -59,6 +59,34 @@ function loadWorld(key = SAVE_KEY): World | null {
   return null;
 }
 
+/**
+ * A save loaded only to describe it (the main menu's Continue, the lobby), kept so playing it doesn't load
+ * it all again: a big save takes a while. Used once, and only while the stored text is still the same.
+ */
+let peeked: { key: string; json: string; world: World } | null = null;
+
+/** The saved game at `key`, to look at; the same one `takeWorld` then hands over to play. */
+function peekWorld(key = SAVE_KEY): World | null {
+  let json: string | null;
+  try {
+    json = localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+  if (!json) return null;
+  if (peeked?.key === key && peeked.json === json) return peeked.world;
+  const world = loadWorld(key);
+  peeked = world ? { key, json, world } : null;
+  return world;
+}
+
+/** The saved game at `key`, to play: the one already looked at if the save hasn't changed since. */
+function takeWorld(key = SAVE_KEY): World | null {
+  const world = peekWorld(key);
+  peeked = null;
+  return world;
+}
+
 interface Profile {
   lessonsSeen: string[];
   tipsOff: boolean;
@@ -314,7 +342,7 @@ function showMainMenu(): void {
 function refreshMainMenu(): void {
   const btn = document.getElementById('mm-continue')!;
   let saved: World | null = game;
-  if (!saved && hasSave()) saved = loadWorld();
+  if (!saved && hasSave()) saved = peekWorld();
   btn.hidden = !saved;
   if (saved) {
     const s = saved.state;
@@ -535,11 +563,16 @@ const openSettings = (fromPause: boolean) => {
 };
 document.getElementById('mm-settings')!.addEventListener('click', () => openSettings(false));
 document.getElementById('btn-settings')!.addEventListener('click', () => openSettings(true));
-document.querySelector('#settings [data-close]')!.addEventListener('click', () => {
-  if (settingsFromPause && !inMenu) hud.openModal('menu');
-});
+// However Settings closes (its ✕ or a click outside it), it goes back to the pause menu it came from,
+// unless something else opened in its place.
 new MutationObserver(() => {
-  if (document.getElementById('settings')!.hidden) keyList.stop();
+  if (!document.getElementById('settings')!.hidden) return;
+  keyList.stop();
+  if (!settingsFromPause) return;
+  settingsFromPause = false;
+  queueMicrotask(() => {
+    if (!inMenu && !document.querySelector('.modal:not([hidden])')) hud.openModal('menu');
+  });
 }).observe(document.getElementById('settings')!, { attributes: true, attributeFilter: ['hidden'] });
 
 const confirmToggle = document.getElementById('confirm-toggle') as HTMLInputElement;
@@ -550,7 +583,7 @@ confirmToggle.addEventListener('change', () => {
 });
 
 document.getElementById('mm-continue')!.addEventListener('click', () => {
-  const world = game ?? loadWorld();
+  const world = game ?? takeWorld();
   if (world) play(world);
   else refreshMainMenu();
 });
@@ -566,12 +599,12 @@ function describeSave(world: World | null): string | null {
 
 const lobby = new Lobby(coop, {
   saves: () => ({
-    solo: describeSave(saveKey === SAVE_KEY && game ? game : hasSave() ? loadWorld() : null),
-    coop: describeSave(hasSave(COOP_SAVE_KEY) ? loadWorld(COOP_SAVE_KEY) : null),
+    solo: describeSave(saveKey === SAVE_KEY && game ? game : hasSave() ? peekWorld() : null),
+    coop: describeSave(hasSave(COOP_SAVE_KEY) ? peekWorld(COOP_SAVE_KEY) : null),
   }),
   start: (choice) => {
     hostSaveKey = choice === 'solo' ? SAVE_KEY : COOP_SAVE_KEY;
-    const world = choice === 'solo' ? (saveKey === SAVE_KEY && game ? game : loadWorld()) : choice === 'coop' ? loadWorld(COOP_SAVE_KEY) : null;
+    const world = choice === 'solo' ? (saveKey === SAVE_KEY && game ? game : takeWorld()) : choice === 'coop' ? takeWorld(COOP_SAVE_KEY) : null;
     void coop.start(world ?? World.create(undefined, 'standard'));
   },
   openModal: (id) => hud.openModal(id),

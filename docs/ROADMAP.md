@@ -68,7 +68,8 @@ quality and business work don't get left until the end.
 37. 🚧 **Playtest batch 7** (owner on an iPhone, 0.85.0, #154 to #164): ✅ in 0.86.0 (D-145): music starting again after iOS stops it (#161), leaves that no longer speed up while zooming (#160), curved roller corners and rollers into the hub's corner (#158, #163), the tool put down after building on touch, with a double tap to keep it (#164), the blueprint above the finger (#157), words for the device in use (#155), research in the order it can be done (#154). ✅ in 0.87.0 (D-147): building paid from the hub's stock first, then the engineer's inventory (#156); 4 logs a tree, 10 regrowths, and lumber camps built over trees (#162). ⬜ Decided, not built yet (D-146): recorded CC0 birdsong (#159), waiting on the recordings.
 38. ✅ **Code review fixes** (0.87.1): co-op hardening (relay messages checked, a `-0` desync, big pastes, missed turns), drones mixing items, turrets wasting shots, turning and moving buildings, the engineer stuck in a building, saves that fail, shortcuts behind dialogs, and the dedicated server's saves.
 39. ✅ **More review fixes** (0.87.2): guests take only plain data from a host, oversized host messages split or refused instead of disconnecting the host, a capped command log, and power networks rebuilt only when buildings change.
-40. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+40. ✅ **Last review fixes** (0.87.3): co-op command limits, rejoin limits and stray engineers, relay status caching, nest edge cases, damaged belt refunds, Settings back to the pause menu, and one save load on the main menu.
+41. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 

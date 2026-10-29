@@ -4,7 +4,7 @@ import { fightingWorld } from '../sim/scenario';
 import { Session, summaryHash } from '../sim/session';
 import { TICK, World } from '../sim/world';
 import { Coop } from './coop';
-import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_RATE, plainData, validCommand } from './lockstep';
+import { COMMAND_BURST, FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_RATE, commandFields, plainData, validCommand } from './lockstep';
 import { pack, unpack } from './pack';
 import { held } from '../sim/player';
 import { roomStatus } from './client';
@@ -185,6 +185,22 @@ describe('Co-op lockstep', () => {
     expect(count(1, 'move')).toBe(WALK_RATE * 2 + WALK_RATE);
     expect(count(2, 'move')).toBe(WALK_RATE * 2);
     expect(count(1, 'rotate')).toBe(30);
+  });
+
+  it('takes at most COMMAND_BURST other commands at once from a guest, passing on only the fields commands have', () => {
+    const turns: HostMessage[] = [];
+    const { w } = fightingWorld(5);
+    const host = new HostLockstep(new Session(w), (m) => turns.push(m));
+    const many = Array.from({ length: COMMAND_BURST + 100 }, (_, i) => ({ kind: 'rotate', id: 1 + i, junk: 'x'.repeat(50) }));
+    host.receive(1, JSON.stringify({ t: 'cmds', cmds: many.slice(0, 150) }), 0);
+    host.receive(1, JSON.stringify({ t: 'cmds', cmds: many.slice(150) }), 0);
+    host.receive(1, JSON.stringify({ t: 'cmds', cmds: [{ kind: 'rotate', id: 9 }] }), 1000); // a second later: room again
+    host.flush(1, 0);
+    const cmds = turns[0].t === 'turn' ? turns[0].cmds.filter((e) => e.player === 1) : [];
+    expect(cmds.length).toBe(COMMAND_BURST + 1);
+    expect(cmds[0].command).toEqual({ kind: 'rotate', id: 1 });
+    const paste = commandFields({ kind: 'paste', x: 1, y: 2, items: [{ type: 'belt', dx: 0, dy: 0, dir: 0, extra: 1 } as never] });
+    expect(paste).toEqual({ kind: 'paste', x: 1, y: 2, items: [{ type: 'belt', dx: 0, dy: 0, dir: 0 }] });
   });
 
   it('passes pings to every guest beside the turns, without touching the world', () => {

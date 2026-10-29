@@ -61,11 +61,14 @@ function socket(relay: string, code: string, role: Role, version: string, key: s
     onClose: () => {},
   };
   ws.onmessage = (e) => {
+    let message: RelayMessage;
     try {
-      link.onMessage(JSON.parse(String(e.data)) as RelayMessage);
+      message = JSON.parse(String(e.data)) as RelayMessage;
     } catch {
-      // Not ours to understand.
+      return; // not ours to understand
     }
+    // Outside the try: an error in the game's own handling shows up (as a page error) instead of vanishing.
+    link.onMessage(message);
   };
   ws.onclose = () => link.onClose();
   return link;
