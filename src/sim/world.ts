@@ -1764,10 +1764,13 @@ export class World {
     if (start?.type !== 'belt') return 'occupied';
     if (!this.isUnlocked('express_belt')) return 'locked';
     const line = this.beltLine(start);
-    const refund = BUILDINGS.belt.cost;
     const cost = BUILDINGS.express_belt.cost;
     let upgraded = 0;
     for (const b of line) {
+      // The old belt is refunded as demolishing it would be: in proportion to the HP it has left.
+      const frac = b.hp / this.maxHp(b);
+      const refund: ItemCounts = {};
+      for (const [item, n] of Object.entries(BUILDINGS.belt.cost)) refund[item as ItemId] = Math.floor(n! * frac);
       this.refund(refund);
       if (!this.canAfford(cost)) {
         this.pay(refund);
@@ -2187,7 +2190,7 @@ export class World {
     if (!ore) return 'no-ore';
     if (this.buildingAt(x, y)) return 'occupied';
     const p = playerOf(this, player);
-    if (isDown(p)) return 'down';
+    if (!p || isDown(p)) return 'down';
     if (!inReach(p.x, p.y, x, y)) {
       goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
       return 'far';
@@ -2229,7 +2232,7 @@ export class World {
     const b = this.byId.get(id);
     if (!b || !canCollect(b.type)) return 0;
     const p = playerOf(this, player);
-    if (isDown(p)) return 0;
+    if (!p || isDown(p)) return 0;
     if (!reaches(this, p, b)) {
       const [fw, fh] = this.footprintOf(b);
       goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'collect', id });
@@ -2248,7 +2251,7 @@ export class World {
     const b = this.byId.get(id);
     if (!b || !(isBelt(b.type) || b.type === 'splitter' || b.type === 'tunnel')) return 0;
     const p = playerOf(this, player);
-    if (isDown(p)) return 0;
+    if (!p || isDown(p)) return 0;
     if (!reaches(this, p, b)) {
       const [fw, fh] = this.footprintOf(b);
       goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'pickup', id });
@@ -2275,7 +2278,9 @@ export class World {
 
   /** Whether walking up to the hub empties a player's inventory into it (#87). */
   setAutoDrop(on: boolean, player = 0): boolean {
-    playerOf(this, player).autoDrop = on;
+    const p = playerOf(this, player);
+    if (!p) return false;
+    p.autoDrop = on;
     return true;
   }
 
@@ -2287,7 +2292,7 @@ export class World {
     const b = this.byId.get(id);
     if (!b) return 0;
     const p = playerOf(this, player);
-    if (isDown(p)) return 0;
+    if (!p || isDown(p)) return 0;
     if (!reaches(this, p, b)) {
       const [fw, fh] = this.footprintOf(b);
       goAndDo(this, p, b.x, b.y, fw, fh, { kind: 'drop', id });
@@ -2316,12 +2321,14 @@ export class World {
 
   /** The character walks to tile (x, y) (#40). */
   moveTo(x: number, y: number, player = 0): boolean {
-    return moveTo(this, playerOf(this, player), x, y);
+    const p = playerOf(this, player);
+    return !!p && moveTo(this, p, x, y);
   }
 
   /** Keyboard walking: hold a direction, or [0, 0] to stop (#40). */
   walk(dx: number, dy: number, player = 0): void {
-    walk(playerOf(this, player), dx, dy);
+    const p = playerOf(this, player);
+    if (p) walk(p, dx, dy);
   }
 
   /** A message when night falls, at dawn and when a season begins (#42). */

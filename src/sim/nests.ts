@@ -429,6 +429,17 @@ export function tickSpread(w: World): void {
   const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare, from.kind === 'queen' ? nestKindFor(distance, w.random()) : from.kind);
   s.nests.push(nest);
   w.nestCells.set(cellKey(x / C, y / C), nest);
+  // Its mound and the ring around it are cleared of trees, as for a nest on a new map: in Hardcore the
+  // ring must be built over to destroy it (D-133).
+  const [mx, my] = moundTile(nest);
+  for (let ty = my - 1; ty <= my + 2; ty++) {
+    for (let tx = mx - 1; tx <= mx + 2; tx++) {
+      const i = w.idx(tx, ty);
+      s.trees[i] = 0;
+      delete s.regrow[i];
+    }
+  }
+  w.layout++;
   populate(w, nest, distance, threatToughness(w));
   w.events.push('Bugs have spread into a new territory.');
 }
@@ -522,10 +533,13 @@ export function onBugHurt(w: World, e: Enemy): void {
   if (!n) return;
   provoke(w, n);
   if (n.destroyed) return;
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const nb = w.nestCells.get(cellKey(n.x / C + dx, n.y / C + dy));
-      if (nb && nb !== n && !nb.destroyed) provoke(w, nb);
+  // Neighbours of every cell it holds, the ones it took over by merging too.
+  for (const [tx, ty] of territory(n)) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nb = w.nestCells.get(cellKey(tx / C + dx, ty / C + dy));
+        if (nb && nb !== n && !nb.destroyed) provoke(w, nb);
+      }
     }
   }
 }
@@ -733,6 +747,7 @@ function fly(w: World, e: Enemy, n: Nest, dt: number, ship: boolean, angers: boo
       const d = (x - e.x) ** 2 + (y - e.y) ** 2;
       if (d < best) [best, e.tx, e.ty] = [d, x, y];
     }
+    if (best === Infinity) [e.tx, e.ty] = nestCentre(n); // nothing left to go for: home, not the old target
   }
   const d = hypot(e.tx - e.x, e.ty - e.y);
   if (d < 0.01) return;

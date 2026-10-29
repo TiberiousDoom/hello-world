@@ -105,6 +105,8 @@ export class Coop {
   private retry: ReturnType<typeof setTimeout> | null = null;
   /** When the host last sent each guest a copy it asked for. */
   private copied = new Map<number, number>();
+  /** Copies held back by that limit, sent when it allows: [timer, whether it's for a joining player]. */
+  private held = new Map<number, [ReturnType<typeof setTimeout>, boolean]>();
 
   constructor(
     private relay: string,
@@ -168,6 +170,8 @@ export class Coop {
       if (player !== 0) this.onPing(player, x, y);
     };
     this.host = host;
+    // Anyone who left while the game was being packed got an engineer and no send-home (that needs the host).
+    for (const slot of starters) if (slot !== 0 && !this.players.includes(slot)) host.bookkeeping({ kind: 'send-home', id: slot });
     this.phase = 'playing';
     this.onChange();
     this.onStart(session, false);
@@ -296,7 +300,7 @@ export class Coop {
         }
         if (this.host && this.phase === 'playing') {
           if (!back) this.onNotice(`Player ${m.slot + 1} joined.`);
-          void this.sendCopy(m.slot, true);
+          this.copyLimited(m.slot, true);
         }
         return this.onChange();
       }
@@ -342,6 +346,33 @@ export class Coop {
   }
 
   /** The host sends a guest a copy of the game: a player joining under way, or a guest that asked again. */
+  /**
+   * A copy for a player (re)joining, at most one every RESYNC_MS per slot: each costs the host a save and
+   * an upload, and a client that keeps rejoining would otherwise make it do that over and over. One held
+   * back goes once the time is up.
+   */
+  private copyLimited(slot: number, joining: boolean): void {
+    const wait = (this.copied.get(slot) ?? -Infinity) + RESYNC_MS - Date.now();
+    const held = this.held.get(slot);
+    if (wait <= 0 && !held) {
+      this.copied.set(slot, Date.now());
+      void this.sendCopy(slot, joining);
+      return;
+    }
+    if (held) {
+      held[1] ||= joining;
+      return;
+    }
+    const timer = setTimeout(() => {
+      const still = this.held.get(slot);
+      this.held.delete(slot);
+      if (!still || !this.host || !this.players.includes(slot)) return;
+      this.copied.set(slot, Date.now());
+      void this.sendCopy(slot, still[1]);
+    }, wait);
+    this.held.set(slot, [timer, joining]);
+  }
+
   private async sendCopy(slot: number, joining: boolean): Promise<void> {
     const host = this.host;
     if (!host) return;
@@ -434,6 +465,8 @@ export class Coop {
     this.guest = null;
     this.recent = [];
     this.copied.clear();
+    for (const [timer] of this.held.values()) clearTimeout(timer);
+    this.held.clear();
     this.key = '';
     this.reconnecting = 0;
   }

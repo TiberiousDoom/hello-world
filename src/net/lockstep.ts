@@ -41,6 +41,12 @@ export const FAR_BEHIND = 400;
  */
 export const WALKING: readonly string[] = ['move', 'mine', 'collect', 'drop', 'pickup'];
 export const WALK_RATE = 5;
+/**
+ * Every other command, from each guest: the host sends each one on to every game, so one guest
+ * flooding them would load everyone. Generous for real play: a long belt drag is a few hundred at once.
+ */
+export const COMMAND_RATE = 100;
+export const COMMAND_BURST = 400;
 /** Commands the host stamps for itself (adding engineers, checkpoints): first on their tick. */
 export const BOOKKEEPING = -1;
 
@@ -129,6 +135,24 @@ export function validCommand(c: unknown): c is Command {
   return true;
 }
 
+/** Fields a command can have, and a paste's buildings: anything else a guest sends is left out. */
+const COMMAND_FIELDS = ['kind', 'type', 'x', 'y', 'dir', 'id', 'replaceBelt', 'recipe', 'item', 'side', 'on', 'dx', 'dy'] as const;
+const PASTE_FIELDS = ['type', 'dx', 'dy', 'dir', 'recipe', 'filter', 'side'] as const;
+
+function pick(o: object, keys: readonly string[]): Record<string, unknown> {
+  const from = o as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const k of keys) if (from[k] !== undefined) out[k] = from[k];
+  return out;
+}
+
+/** A guest's command with only the fields commands have. */
+export function commandFields(c: Command): Command {
+  const out = pick(c, COMMAND_FIELDS);
+  if (c.kind === 'paste') out.items = c.items.map((it) => pick(it, PASTE_FIELDS));
+  return out as Command;
+}
+
 /** One building of a paste (D-144), checked like a place command and the settings commands. */
 function validPasteItem(it: unknown): boolean {
   if (!it || typeof it !== 'object') return false;
@@ -155,6 +179,7 @@ export class HostLockstep {
   private pings: [number, number, number][] = [];
   /** Each guest's allowance of walking commands, as [tokens, at (ms)]. */
   private walks = new Map<number, [number, number]>();
+  private commands = new Map<number, [number, number]>();
   /** Shows a ping from any player, the host's own included. */
   onPing: (player: number, x: number, y: number) => void = () => {};
 
@@ -220,22 +245,29 @@ export class HostLockstep {
     }
     if (msg?.t !== 'cmds' || !Array.isArray(msg.cmds)) return;
     for (const c of msg.cmds) {
-      if (!validCommand(c) || (WALKING.includes(c.kind) && !this.mayWalk(player, now))) continue;
-      // Applied as every guest will get it: JSON writes -0 as 0, and a -0 kept here would make this
-      // world differ from every other, for good.
-      this.submit(player, JSON.parse(JSON.stringify(c)) as Command);
+      if (!validCommand(c)) continue;
+      if (WALKING.includes(c.kind) ? !this.mayWalk(player, now) : !this.allow(this.commands, player, now, COMMAND_RATE, COMMAND_BURST)) continue;
+      // Applied as every guest will get it: only the fields commands have (nothing extra passed on to
+      // everyone), and through JSON, which writes -0 as 0 (a -0 kept here would make this world differ from
+      // every other, for good).
+      this.submit(player, JSON.parse(JSON.stringify(commandFields(c))) as Command);
     }
   }
 
   /** Whether a guest may send its engineer walking once more now (a token bucket, see WALKING). */
   private mayWalk(player: number, now: number): boolean {
-    const [tokens, at] = this.walks.get(player) ?? [WALK_RATE * 2, now];
-    const left = Math.min(WALK_RATE * 2, tokens + ((now - at) / 1000) * WALK_RATE);
+    return this.allow(this.walks, player, now, WALK_RATE, WALK_RATE * 2);
+  }
+
+  /** A token bucket per guest: `rate` a second on average, `burst` at most at once. */
+  private allow(buckets: Map<number, [number, number]>, player: number, now: number, rate: number, burst: number): boolean {
+    const [tokens, at] = buckets.get(player) ?? [burst, now];
+    const left = Math.min(burst, tokens + ((now - at) / 1000) * rate);
     if (left < 1) {
-      this.walks.set(player, [left, now]);
+      buckets.set(player, [left, now]);
       return false;
     }
-    this.walks.set(player, [left - 1, now]);
+    buckets.set(player, [left - 1, now]);
     return true;
   }
 

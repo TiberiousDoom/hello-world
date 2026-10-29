@@ -173,8 +173,9 @@ export function playerNear(w: World, x: number, y: number, range: number): Playe
   return best;
 }
 
-export function playerOf(w: World, id = 0): Player {
-  return w.state.players.find((p) => p.id === id) ?? w.state.players[0];
+export function playerOf(w: World, id = 0): Player | undefined {
+  // No stand-in: a command from a player with no engineer must not move someone else's.
+  return w.state.players.find((p) => p.id === id);
 }
 
 /** Whether the character can't stand on tile (x, y): off the map, a pond, a solid building or a nest's mound. */

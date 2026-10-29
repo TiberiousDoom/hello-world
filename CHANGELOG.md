@@ -3,6 +3,19 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.3 · 2026-10-29 · More fixes from the review
+### New
+- Nothing new to play: the last small fixes from the code review.
+
+### Fixed
+- **Co-op:** the host takes at most a few hundred building commands at once from each player (plenty for long belt drags), and passes on only what a command needs. A player who keeps rejoining gets a fresh copy of the game at most every 5 seconds.
+- **Co-op:** a player who leaves while the host is starting the game has their engineer sent home. A command from a player with no engineer no longer moves someone else's.
+- **Co-op:** the relay answers repeated status checks for a room from a short cache.
+- **Bugs:** a new territory clears the trees from its mound and the ring around it, as nests on a new map do. A nest that merged wakes the neighbours of every cell it holds. A flying bug with nothing left to attack flies home instead of to its old target.
+- **Upgrading a damaged belt** refunds the old belt as demolishing it would, not as new.
+- **Settings** opened from the pause menu goes back to it however you close it, a click outside it included.
+- The main menu no longer loads your whole save twice to show it and then continue it.
+
 ## 0.87.2 · 2026-10-29 · Safer, smoother co-op
 ### New
 - Nothing new to play: this release makes co-op safer and big factories smoother.

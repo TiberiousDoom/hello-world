@@ -43,3 +43,18 @@ test('Save says so when the browser refuses to store the game', async ({ page })
   await expect(page.locator('#toasts')).toContainText("couldn't be saved");
   await expect(page.locator('#toasts')).not.toContainText('Game saved.');
 });
+
+test('Settings opened from the pause menu goes back to it, however it is closed', async ({ page }) => {
+  await newGame(page);
+  for (const close of ['button', 'backdrop'] as const) {
+    await page.click('#menu-btn');
+    await page.click('#btn-settings');
+    await expect(page.locator('#settings')).toBeVisible();
+    if (close === 'button') await page.click('#settings [data-close]');
+    else await page.mouse.click(15, 740);
+    await expect(page.locator('#settings')).toBeHidden();
+    await expect(page.locator('#menu')).toBeVisible();
+    await page.click('#btn-resume');
+    await expect(page.locator('#menu')).toBeHidden();
+  }
+});

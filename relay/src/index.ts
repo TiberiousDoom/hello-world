@@ -21,6 +21,27 @@ function allowedOrigin(origin: string | null): boolean {
   return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 }
 
+/**
+ * Room statuses answered in the last STATUS_MS, per Worker instance: a page polling, or many pages at
+ * once, don't each wake the room's Durable Object. Kept small and short; a status a few seconds old is fine.
+ */
+const STATUS_MS = 3000;
+const STATUS_KEEP = 500;
+const statuses = new Map<string, { at: number; body: string }>();
+
+async function roomStatus(code: string, request: Request, env: Env): Promise<Response> {
+  const now = Date.now();
+  let hit = statuses.get(code);
+  if (!hit || now - hit.at > STATUS_MS) {
+    const res = await env.ROOMS.getByName(code).fetch(request);
+    hit = { at: now, body: await res.text() };
+    statuses.delete(code);
+    statuses.set(code, hit);
+    if (statuses.size > STATUS_KEEP) statuses.delete(statuses.keys().next().value!);
+  }
+  return new Response(hit.body, { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'no-store' } });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -28,7 +49,7 @@ export default {
     const m = url.pathname.match(/^\/rooms\/([A-Z0-9]+)(\/status)?$/);
     if (!m || !validCode(m[1])) return new Response('Not found', { status: 404 });
     // A room's status, for the Play together screen (D-086): public, read by any page.
-    if (m[2]) return request.method === 'GET' ? env.ROOMS.getByName(m[1]).fetch(request) : new Response('Use GET', { status: 405 });
+    if (m[2]) return request.method === 'GET' ? roomStatus(m[1], request, env) : new Response('Use GET', { status: 405 });
     if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
     if (!allowedOrigin(request.headers.get('Origin'))) return new Response('Forbidden', { status: 403 });
     return env.ROOMS.getByName(m[1]).fetch(request);
