@@ -2547,6 +2547,17 @@ describe('Electricity (D-119, D-121)', () => {
     return { well, boiler, turbine, pole };
   }
 
+  it('networks are worked out again when buildings change, not when trees or ore do', () => {
+    const w = emptyWorld();
+    const { pole } = plant(w, 20, 20);
+    const net = w.electricNet(pole);
+    expect(net).toBeDefined();
+    w.layout += 5; // trees felled or growing back, ore running out
+    expect(w.electricNet(pole)).toBe(net);
+    placed(w.place('power_pole', 30, 20, 0));
+    expect(w.electricNet(pole)).not.toBe(net);
+  });
+
   it('a boiler with fuel and water makes steam for its turbine, burning fuel; without water or fuel it stops', () => {
     const w = emptyWorld();
     w.freePower = false;

@@ -8,7 +8,7 @@ import { applyCommand } from '../sim/commands';
 import { Session } from '../sim/session';
 import { World } from '../sim/world';
 import { RelayLink, connect } from './client';
-import { GuestLockstep, HostLockstep, HostMessage } from './lockstep';
+import { GuestLockstep, HostLockstep, HostMessage, plainData } from './lockstep';
 import { pack, unpack } from './pack';
 import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RoomInfo, infoMessage, RefuseReason, RelayMessage, Role, makeCode, passHash, validCode, validRelayMessage } from './protocol';
 
@@ -348,8 +348,8 @@ export class Coop {
     const snapshot = host.snapshot(slot, joining);
     const packed = await pack(snapshot.world);
     if (this.host !== host) return;
-    if (packed.length > MAX_HOST_MESSAGE - 200) return this.onNotice(`The factory is too big to send to player ${slot + 1}.`);
-    this.toGuest({ t: 'start', slot, ...snapshot, world: packed }, slot);
+    // Measured as sent: the copy travels with the commands waiting for their tick.
+    if (!this.toGuest({ t: 'start', slot, ...snapshot, world: packed }, slot)) this.onNotice(`The factory is too big to send to player ${slot + 1}.`);
   }
 
   private fromHost(data: string): void {
@@ -380,7 +380,10 @@ export class Coop {
     const again = this.guest != null;
     let world: World;
     try {
-      world = World.fromJSON(await unpack(start.world));
+      const json = await unpack(start.world);
+      // Plain data only: nothing in the host's world or its waiting commands may carry markup (plainData).
+      if (!plainData(JSON.parse(json)) || !plainData(start.cmds)) throw new Error('not plain data');
+      world = World.fromJSON(json);
     } catch {
       return this.end("The host's game couldn't be loaded.");
     }
@@ -397,9 +400,15 @@ export class Coop {
     this.onStart(session, again);
   }
 
-  /** A lockstep message to one guest, or to all. */
-  private toGuest(message: HostMessage, to?: number): void {
-    this.link?.send(JSON.stringify({ to, data: JSON.stringify(message) } satisfies HostSend));
+  /**
+   * A lockstep message to one guest, or to all. False if it's too big to send: the relay would close the
+   * host's connection for it. (A turn that can't go leaves a gap guests notice, and they ask for a copy.)
+   */
+  private toGuest(message: HostMessage, to?: number): boolean {
+    const text = JSON.stringify({ to, data: JSON.stringify(message) } satisfies HostSend);
+    if (text.length > MAX_HOST_MESSAGE) return false;
+    this.link?.send(text);
+    return true;
   }
 
   private end(why: string, replaced = false): void {

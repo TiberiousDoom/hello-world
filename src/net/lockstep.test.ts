@@ -4,11 +4,11 @@ import { fightingWorld } from '../sim/scenario';
 import { Session, summaryHash } from '../sim/session';
 import { TICK, World } from '../sim/world';
 import { Coop } from './coop';
-import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_RATE, validCommand } from './lockstep';
+import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_RATE, plainData, validCommand } from './lockstep';
 import { pack, unpack } from './pack';
 import { held } from '../sim/player';
 import { roomStatus } from './client';
-import { HEARTBEAT, MAX_PLAYERS, passHash, validRelayMessage } from './protocol';
+import { HEARTBEAT, MAX_HOST_MESSAGE, MAX_PLAYERS, passHash, validRelayMessage } from './protocol';
 import { Allowance } from './room';
 
 /** A host and a guest on the same world, wired together with message queues standing in for the relay. */
@@ -284,6 +284,24 @@ describe('Co-op lockstep', () => {
     expect(refused).toBe(0);
   });
 
+  it('splits a turn too big for the relay, and the guest stays in step without running ahead of it', () => {
+    const { host, guest, frame, settle, turns } = pair();
+    for (let t = 0; t < 5; t++) frame();
+    const before = turns.length;
+    // A stalled host tab with a flood of commands waiting: far more than one message can carry.
+    for (let i = 0; i < 6000; i++) host.submit(0, { kind: 'walk', dx: i % 2, dy: 0 });
+    frame();
+    const sent = turns.slice(before).filter((m) => m.t === 'turn');
+    expect(sent.length).toBeGreaterThan(1);
+    for (const m of sent) expect(JSON.stringify(JSON.stringify(m)).length).toBeLessThan(MAX_HOST_MESSAGE);
+    // Every part but the last keeps the guest where it was.
+    for (const m of sent.slice(0, -1)) expect(m.t === 'turn' && m.through).toBeLessThanOrEqual(host.session.ticks - 1);
+    for (let t = 0; t < 30; t++) frame();
+    settle();
+    expect(guest.desyncedAt).toBeNull();
+    expect(guest.session.world.toJSON()).toBe(host.session.world.toJSON());
+  });
+
   it('sends turns at most every FLUSH_MS, and nothing when nothing changed', () => {
     const { w } = fightingWorld(5);
     const sent: HostMessage[] = [];
@@ -308,6 +326,35 @@ describe('Co-op lockstep', () => {
     expect(validRelayMessage({ t: 'heartbeat' })).toBe(true);
     expect(validRelayMessage({ t: 'other' })).toBe(false);
     expect(validRelayMessage(null)).toBe(false);
+  });
+
+  it("takes only plain data from a host: every real game is, and markup anywhere in one isn't", () => {
+    for (const w of [fightingWorld(5).w, World.create(3), World.create(4, 'hardcore')]) {
+      for (let i = 0; i < 200; i++) w.tick(TICK);
+      expect(plainData(JSON.parse(w.toJSON()))).toBe(true);
+    }
+    const w = JSON.parse(fightingWorld(5).w.toJSON());
+    w.buildings[0].recipe = '<img src=x onerror=alert(1)>';
+    expect(plainData(w)).toBe(false);
+    expect(plainData({ inventory: { 'iron_plate"><b>': 3 } })).toBe(false);
+    expect(plainData({ t: 'turn', cmds: [{ tick: 3, player: 0, command: { kind: 'recipe', id: 4, recipe: 'a b' } }] })).toBe(false);
+    expect(plainData({ t: 'turn', cmds: [{ tick: 3, player: 0, command: { kind: 'recipe', id: 4, recipe: 'iron_plate' } }], hashes: [[20, '9f0a']] })).toBe(true);
+  });
+
+  it('a guest leaves out a turn that is not plain data, and asks for a fresh copy', () => {
+    const { host, guest, frame, turns } = pair();
+    for (let t = 0; t < 10; t++) frame();
+    const sent: string[] = [];
+    const g = new GuestLockstep(new Session(World.fromJSON(guest.session.world.toJSON()), 1), (t) => sent.push(t));
+    const got = turns.filter((m) => m.t === 'turn');
+    g.receive(got[0]);
+    const bad = JSON.parse(JSON.stringify(got[1]));
+    bad.cmds = [{ tick: host.session.ticks + 5, player: 0, command: { kind: 'recipe', id: 1, recipe: '<b>' } }];
+    g.receive(bad);
+    g.receive(got[2]);
+    expect(g.missed).toBe(true);
+    g.checkHealth();
+    expect(sent.map((t) => JSON.parse(t).t)).toEqual(['resync']);
   });
 
   it("accepts guests' commands, and nothing that would break the rules", () => {

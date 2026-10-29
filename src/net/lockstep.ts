@@ -8,12 +8,18 @@
 import { BLUEPRINT_BY_ID, BUILDINGS, ITEMS, RECIPE_BY_ID, RESEARCH_BY_ID } from '../sim/data';
 import { type Command, PASTE_MAX } from '../sim/commands';
 import { LoggedCommand, Session, summaryHash } from '../sim/session';
-import { MAX_GUEST_MESSAGE } from './protocol';
+import { MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE } from './protocol';
 
 /** Ticks between the host stamping a command and every game applying it (150 ms). */
 export const INPUT_DELAY = 3;
 /** The host sends turns at most this often (ms): 20 a second at most, a few commands each. */
 export const FLUSH_MS = 45;
+/**
+ * The most command text one turn carries. A turn travels as text inside the relay's message, escaped a
+ * second time, and the relay closes a host that sends more than MAX_HOST_MESSAGE; a host tab that stalled
+ * while guests kept sending can have far more waiting, so it goes out over several turns.
+ */
+export const TURN_BUDGET = MAX_HOST_MESSAGE / 4;
 /**
  * The host sends a turn at least this often (ms), even paused with nothing new, so a guest that hears
  * nothing for a while knows its connection is gone (D-081).
@@ -250,7 +256,14 @@ export class HostLockstep {
     if (quiet && now - this.lastFlush < KEEPALIVE_MS) return;
     if (now - this.lastFlush < FLUSH_MS) return;
     const pings = this.pings.length ? this.pings : undefined;
-    this.send({ t: 'turn', seq: ++this.seq, through, speed, cmds: this.pending, hashes: this.hashes, pings });
+    // Every turn but the last leaves `through` where it was: guests run no further until they have it all.
+    const parts = chunks(this.pending, TURN_BUDGET);
+    parts.forEach((cmds, i) => {
+      const last = i === parts.length - 1;
+      this.send(
+        last ? { t: 'turn', seq: ++this.seq, through, speed, cmds, hashes: this.hashes, pings } : { t: 'turn', seq: ++this.seq, through: this.sentThrough, speed: this.sentSpeed, cmds, hashes: [] },
+      );
+    });
     this.pings = [];
     this.pending = [];
     this.hashes = [];
@@ -258,6 +271,47 @@ export class HostLockstep {
     this.sentSpeed = speed;
     this.lastFlush = now;
   }
+}
+
+/**
+ * Whether every string and key in a value from the host is a plain name (letters, digits, `_`, `-`, `.`,
+ * `:`): every id, recipe, item and mode in a game is one. A guest takes nothing else from a host, so no
+ * markup a modified host might slip into its world or its commands can reach this player's screen,
+ * wherever the interface shows a value.
+ */
+export function plainData(value: unknown): boolean {
+  const PLAIN = /^[\w.:-]*$/;
+  const stack: unknown[] = [value];
+  while (stack.length) {
+    const v = stack.pop();
+    if (typeof v === 'string') {
+      if (!PLAIN.test(v)) return false;
+    } else if (Array.isArray(v)) {
+      for (const x of v) stack.push(x);
+    } else if (v && typeof v === 'object') {
+      for (const [k, x] of Object.entries(v)) {
+        if (!PLAIN.test(k)) return false;
+        stack.push(x);
+      }
+    }
+  }
+  return true;
+}
+
+/** Commands split into runs of at most `budget` characters of JSON each (always at least one run). */
+function chunks(cmds: LoggedCommand[], budget: number): LoggedCommand[][] {
+  const out: LoggedCommand[][] = [[]];
+  let size = 0;
+  for (const c of cmds) {
+    const n = JSON.stringify(c).length + 1;
+    if (out[out.length - 1].length && size + n > budget) {
+      out.push([]);
+      size = 0;
+    }
+    out[out.length - 1].push(c);
+    size += n;
+  }
+  return out;
 }
 
 /** A guest's side: sends its commands to the host, and runs ticks only as far as the host's turns allow. */
@@ -307,6 +361,8 @@ export class GuestLockstep {
   /** A message from the host. */
   receive(msg: HostMessage): void {
     if (msg.t !== 'turn' || msg.seq <= this.seq || this.missed) return;
+    // A turn that isn't plain data is left out: the gap it leaves gets this game a fresh copy (also checked).
+    if (!plainData(msg)) return;
     if (msg.seq !== this.seq + 1) {
       this.missed = true;
       return;
