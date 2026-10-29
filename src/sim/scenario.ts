@@ -4,7 +4,8 @@
 // exactly the same game (co-op phase 0, D-058).
 
 import { Command } from './commands';
-import { RESEARCH } from './data';
+import { BLUEPRINTS, BuildingType, CLOCK, Dir, HUB_SIZE, ITEM_IDS, RESEARCH } from './data';
+import { hypot } from './math';
 import { nestCentre } from './nests';
 import { Session, hashText, summaryHash } from './session';
 import { World } from './world';
@@ -61,4 +62,84 @@ export function runScenario(seed = 7, ticks = 1200): { summary: string; full: st
   const s = new Session(w);
   play(s, script(cx, cy), ticks);
   return { summary: summaryHash(s.world), full: hashText(s.world.toJSON()) };
+}
+
+/**
+ * The performance budget's case (ROADMAP: 60 fps on a mid-range phone with 1,000 buildings and 200 bugs):
+ * a big base around the hub — belts carrying items, furnaces at work, turrets, repair stations,
+ * teleporters, spike pits and walls — with 200 angry bugs at its edge, at night (when bugs reach furthest).
+ */
+export function benchWorld(seed = 11): World {
+  const w = World.create(seed);
+  w.freePower = true;
+  w.clearWater();
+  const s = w.state;
+  s.researched = RESEARCH.map((r) => r.id);
+  s.ship.blueprints = BLUEPRINTS.map((bp) => bp.id);
+  s.inventory = Object.fromEntries(ITEM_IDS.map((i) => [i, 99999]));
+  s.time = CLOCK.day + 60; // night
+  const hub = w.hub!;
+  const [hx, hy] = [hub.x + HUB_SIZE / 2, hub.y + HUB_SIZE / 2];
+  const R = 34;
+  for (let y = hy - R; y <= hy + R; y++) for (let x = hx - R; x <= hx + R; x++) if (w.inBounds(x, y)) s.resources[w.idx(x, y)] = s.trees[w.idx(x, y)] = 0;
+  const place = (type: BuildingType, x: number, y: number, dir: Dir = 0) => {
+    const b = w.place(type, x, y, dir);
+    return typeof b === 'string' ? null : b;
+  };
+  // Rows of belts, each fed by a furnace and passing a turret; a spike pit, a repair station and a
+  // teleporter every so often.
+  let i = 0;
+  for (let y = hy - R + 2; y <= hy + R - 3; y += 4) {
+    for (let x = hx - R + 2; x <= hx + R - 3; x++) {
+      if (x >= hub.x - 2 && x <= hub.x + HUB_SIZE + 1 && y >= hub.y - 3 && y <= hub.y + HUB_SIZE + 1) continue;
+      const belt = place('belt', x, y, 0);
+      if (belt && i % 3 === 0) belt.belt.push({ item: 'iron_plate', pos: 0.5, lane: 0 });
+      const k = i++ % 12;
+      if (k === 0) {
+        const f = place('furnace', x, y + 1, 0);
+        if (f) {
+          f.recipe = 'iron_ingot';
+          f.inputs = { iron_ore: 3 };
+        }
+      } else if (k === 4) place('turret', x, y + 1, 0);
+      else if (k === 6) place('spike_pit', x, y + 1, 0);
+      else if (k === 8 && i % 5 === 0) {
+        const t = place('teleporter', x, y + 1, 0);
+        if (t && i % 2) w.setFilter(t.id, 'iron_plate'); // every other one receives
+      } else if (k === 8) place('repair', x, y + 1, 0);
+    }
+  }
+  // A wall around it all.
+  for (let d = -R; d <= R; d++)
+    for (const [x, y] of [
+      [hx + d, hy - R],
+      [hx + d, hy + R],
+      [hx - R, hy + d],
+      [hx + R, hy + d],
+    ])
+      place('wall', x, y, 0);
+  // 200 angry bugs from the nearest nests, waiting just outside the wall.
+  const near = s.nests
+    .filter((n) => !n.destroyed)
+    .sort((a, b) => hypot(a.x - hx, a.y - hy) - hypot(b.x - hx, b.y - hy))
+    .slice(0, 8);
+  s.enemies = [];
+  for (let k = 0; k < 200; k++) {
+    const n = near[k % near.length];
+    const e = w.spawnBug(k % 10 === 0 ? 'wasp' : k % 4 === 0 ? 'runner' : 'crawler', n, 1);
+    // Spread around the square just outside the wall (no trig: the same numbers in every browser).
+    const t = (k / 200) * 4;
+    const side = Math.floor(t);
+    const f = (t - side) * 2 - 1;
+    const o = R + 3;
+    [e.x, e.y] = [
+      [hx + f * o, hy - o],
+      [hx + o, hy + f * o],
+      [hx - f * o, hy + o],
+      [hx - o, hy - f * o],
+    ][side];
+  }
+  for (const n of near) n.angryUntil = 1e9;
+  w.markFlowDirty();
+  return w;
 }

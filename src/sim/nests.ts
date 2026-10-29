@@ -50,7 +50,7 @@ import {
 } from './data';
 import { clockAt } from './clock';
 import { hypot } from './math';
-import { TREE } from './world';
+import { BLOCK, TREE } from './world';
 import type { Building, Enemy, World } from './world';
 import { Player, hurtPlayer, playerNear } from './player';
 
@@ -794,10 +794,24 @@ function bite(w: World, b: Building, n: Nest, amount: number, angers: boolean, e
 function buildingNear(w: World, x: number, y: number, r: number): boolean {
   const cx = Math.floor(x);
   const cy = Math.floor(y);
-  for (let dy = -r; dy <= r; dy++) {
-    for (let dx = -r; dx <= r; dx++) {
-      if (dx * dx + dy * dy > r * r) continue;
-      if (w.buildingAt(cx + dx, cy + dy)) return true;
+  // Block by block (BLOCK tiles square), looking only inside blocks that hold a building at all: at night
+  // a bug's reach covers thousands of tiles, mostly empty ground.
+  const wb = Math.ceil(w.state.width / BLOCK);
+  const hb = Math.ceil(w.state.height / BLOCK);
+  const bx0 = Math.max(0, Math.floor((cx - r) / BLOCK));
+  const by0 = Math.max(0, Math.floor((cy - r) / BLOCK));
+  const bx1 = Math.min(wb - 1, Math.floor((cx + r) / BLOCK));
+  const by1 = Math.min(hb - 1, Math.floor((cy + r) / BLOCK));
+  for (let by = by0; by <= by1; by++) {
+    for (let bx = bx0; bx <= bx1; bx++) {
+      if (!w.blocks[by * wb + bx]) continue;
+      for (let ty = Math.max(by * BLOCK, cy - r); ty <= Math.min(by * BLOCK + BLOCK - 1, cy + r); ty++) {
+        for (let tx = Math.max(bx * BLOCK, cx - r); tx <= Math.min(bx * BLOCK + BLOCK - 1, cx + r); tx++) {
+          const dx = tx - cx;
+          const dy = ty - cy;
+          if (dx * dx + dy * dy <= r * r && w.buildingAt(tx, ty)) return true;
+        }
+      }
     }
   }
   return false;
