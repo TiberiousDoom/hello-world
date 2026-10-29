@@ -8,7 +8,8 @@ import { FLUSH_MS, GuestLockstep, HostLockstep, HostMessage, INPUT_DELAY, WALK_R
 import { pack, unpack } from './pack';
 import { held } from '../sim/player';
 import { roomStatus } from './client';
-import { HEARTBEAT, MAX_PLAYERS, passHash } from './protocol';
+import { HEARTBEAT, MAX_PLAYERS, passHash, validRelayMessage } from './protocol';
+import { Allowance } from './room';
 
 /** A host and a guest on the same world, wired together with message queues standing in for the relay. */
 function pair() {
@@ -61,7 +62,9 @@ function pair() {
     addGuest(slot, g, 0);
     return g;
   };
-  return { host, guest, frame, settle, join, cx, cy };
+  /** Text from the guest as it arrives at the host, whatever a game would send. */
+  const raw = (text: string) => toHost.push([1, text]);
+  return { host, guest, frame, settle, join, raw, turns, cx, cy };
 }
 
 describe('Co-op lockstep', () => {
@@ -231,6 +234,56 @@ describe('Co-op lockstep', () => {
     expect(guest.desyncedAt).not.toBeNull();
   });
 
+  it('applies a guest command as every guest gets it: a -0 in it stays in step', () => {
+    const { host, guest, frame, settle, raw, cx, cy } = pair();
+    // JSON can carry -0, which a modified game can send; JSON.stringify writes it as 0 for the guests.
+    raw(`{"t":"cmds","cmds":[{"kind":"place","type":"wall","x":${cx - 2},"y":${cy + 2},"dir":-0,"replaceBelt":false}]}`);
+    for (let t = 0; t < 80; t++) frame();
+    settle();
+    const wall = host.session.world.state.buildings.find((b) => b.type === 'wall');
+    expect(wall && Object.is(wall.dir, -0)).toBe(false);
+    expect(guest.desyncedAt).toBeNull();
+    expect(guest.session.world.toJSON()).toBe(host.session.world.toJSON());
+  });
+
+  it('stops at a turn it never got, and asks for a fresh copy instead of running past it', () => {
+    const { host, guest, frame, turns } = pair();
+    const sent: string[] = [];
+    const g = new GuestLockstep(new Session(World.fromJSON(guest.session.world.toJSON()), 1), (t) => sent.push(t));
+    for (let t = 0; t < 30; t++) {
+      if (t === 5) host.submit(0, { kind: 'walk', dx: 1, dy: 0 });
+      frame();
+    }
+    const got = turns.filter((m) => m.t === 'turn');
+    expect(got.length).toBeGreaterThan(3);
+    g.receive(got[0]);
+    const through = g.through;
+    g.receive(got[2]); // the second turn was lost
+    g.receive(got[3]);
+    expect(g.through).toBe(through);
+    expect(g.missed).toBe(true);
+    g.checkHealth();
+    expect(sent.map((t) => JSON.parse(t).t)).toEqual(['resync']);
+  });
+
+  it('sends a big paste over several flushes, within what the relay allows a guest', () => {
+    const { guest } = pair();
+    // The relay's own allowance for a guest: it closes a guest that runs out.
+    const relay = new Allowance(0);
+    let refused = 0;
+    let sent = 0;
+    let now = 0;
+    const g = new GuestLockstep(guest.session, () => {
+      sent++;
+      if (!relay.take(now)) refused++;
+    });
+    const items = Array.from({ length: 40 }, (_, i) => ({ type: 'belt' as const, dx: i, dy: 0, dir: 0 as const }));
+    for (let i = 0; i < 200; i++) g.submit({ kind: 'paste', x: 10, y: 10 + i, items });
+    for (let f = 0; f < 60 * 30 && sent < 200; f++) g.flush((now += 1000 / 60));
+    expect(sent).toBe(200);
+    expect(refused).toBe(0);
+  });
+
   it('sends turns at most every FLUSH_MS, and nothing when nothing changed', () => {
     const { w } = fightingWorld(5);
     const sent: HostMessage[] = [];
@@ -242,6 +295,19 @@ describe('Co-op lockstep', () => {
     expect(sent.length).toBe(1); // no tick, no command, same speed
     host.flush(0, FLUSH_MS + 2);
     expect(sent.length).toBe(2); // paused
+  });
+
+  it("takes the relay's messages only with whole-number slots (the relay can be any server, ?relay=)", () => {
+    expect(validRelayMessage({ t: 'welcome', slot: 1, players: [0, 1] })).toBe(true);
+    expect(validRelayMessage({ t: 'welcome', slot: 1, players: ['<img src=x onerror=alert(1)>'] })).toBe(false);
+    expect(validRelayMessage({ t: 'welcome', slot: '1', players: [0] })).toBe(false);
+    expect(validRelayMessage({ t: 'joined', slot: MAX_PLAYERS })).toBe(false);
+    expect(validRelayMessage({ t: 'left', slot: -1 })).toBe(false);
+    expect(validRelayMessage({ t: 'from', slot: 2, data: {} })).toBe(false);
+    expect(validRelayMessage({ t: 'host', data: '{}' })).toBe(true);
+    expect(validRelayMessage({ t: 'heartbeat' })).toBe(true);
+    expect(validRelayMessage({ t: 'other' })).toBe(false);
+    expect(validRelayMessage(null)).toBe(false);
   });
 
   it("accepts guests' commands, and nothing that would break the rules", () => {

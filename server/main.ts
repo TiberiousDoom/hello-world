@@ -15,7 +15,7 @@
 // A connection that dies without closing (a router restarting, a new IP address) is noticed by the
 // heartbeat in Coop (D-085): the server reconnects and the relay hands it the room.
 
-import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, closeSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { Coop } from '../src/net/coop';
 import { RELAY_URL } from '../src/net/client';
@@ -55,8 +55,16 @@ function log(text: string): void {
 
 /** Writes a file whole or not at all: a crash mid-write leaves the old one. `mode`: its permissions. */
 function writeAtomic(file: string, text: string, mode = 0o644): void {
-  writeFileSync(`${file}.tmp`, text, { mode });
-  chmodSync(`${file}.tmp`, mode); // writeFileSync's mode only applies to a new file
+  // Written in full and flushed to the disk before it takes the old file's place: a crash or power
+  // cut leaves the old file or the new one, never a half-written one.
+  const fd = openSync(`${file}.tmp`, 'w', mode);
+  try {
+    writeSync(fd, text);
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+  chmodSync(`${file}.tmp`, mode); // openSync's mode only applies to a new file
   renameSync(`${file}.tmp`, file);
 }
 
@@ -130,7 +138,7 @@ function save(force = false): void {
     const hour = new Date().toISOString().slice(0, 13).replace('T', '-');
     if (hour !== lastBackupHour) {
       lastBackupHour = hour;
-      writeFileSync(join(BACKUP_DIR, `world-${hour}.json`), json);
+      writeAtomic(join(BACKUP_DIR, `world-${hour}.json`), json);
       const old = readdirSync(BACKUP_DIR)
         .filter((f) => f.startsWith('world-'))
         .sort()
@@ -272,6 +280,17 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.exit(0);
   });
 }
+
+// Anything unexpected stops the server with a clear log line; systemd starts it again from the last save.
+// The world isn't saved then: an error in the middle of a tick can leave it half-updated.
+process.on('uncaughtException', (err) => {
+  log(`Stopping on an unexpected error: ${err.stack ?? err}`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  log(`Stopping on an unexpected error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
+  process.exit(1);
+});
 
 // Only this server may ever open its room once the relay reserves it (D-140): this is the line to give it.
 log(`To reserve room ${room.code} on the relay, add "${room.code}:${await sha256(room.key)}" to its RESERVED_ROOMS secret (see server/README.md).`);

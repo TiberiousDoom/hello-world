@@ -206,13 +206,15 @@ export function onShipyardRemoved(w: World, destroyed: boolean): void {
 export function runStats(w: World): { label: string; value: string }[] {
   const s = w.state;
   const mins = Math.floor(s.time / 60);
-  const cleared = s.nests.filter((n) => !s.enemies.some((e) => e.nest === n.id)).length;
+  // Mounds destroyed; nests that merged into another one count only as that one.
+  const counted = s.nests.filter((n) => n.into == null);
+  const cleared = counted.filter((n) => n.destroyed).length;
   return [
     { label: 'Time on the planet', value: `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` },
     { label: 'Supply runs delivered', value: String(s.ship.runs) },
     { label: 'Buildings standing', value: String(s.buildings.length) },
     { label: 'Research done', value: String(s.researched.length) },
-    { label: 'Bug nests cleared', value: `${cleared} of ${s.nests.length}` },
+    { label: 'Bug nests cleared', value: `${cleared} of ${counted.length}` },
     { label: 'Hub breaches', value: String(s.breaches) },
   ];
 }

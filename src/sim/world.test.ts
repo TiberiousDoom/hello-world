@@ -51,7 +51,7 @@ import {
   nestKindFor,
   stageSize,
 } from './data';
-import { Nest, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
+import { Nest, anyAngry, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, defenceTierCost, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
@@ -458,6 +458,35 @@ describe('Bugs', () => {
     expect(isAngry(w, n)).toBe(false);
     run(w, 1);
     expect(isAngry(w, n)).toBe(true);
+  });
+
+  it('need no attack paths once a destroyed nest has no bugs left', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    n.destroyed = true;
+    expect(anyAngry(w)).toBe(true); // its survivor still roams
+    w.state.enemies = [];
+    expect(anyAngry(w)).toBe(false);
+    n.angryUntil = w.state.time + 10;
+    expect(anyAngry(w)).toBe(false);
+  });
+
+  it('a bug killed this tick is not shot again by the next turret', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 50, 50, 1);
+    const bug = w.state.enemies[0];
+    bug.hp = 1;
+    const a = placed(w.place('turret', 40, 70, 0));
+    const b = placed(w.place('turret', 41, 70, 0));
+    bug.x = 40.5;
+    bug.y = 72.5;
+    bug.tx = bug.x;
+    bug.ty = bug.y;
+    const before = a.ammo + b.ammo;
+    w.tick(TICK);
+    expect(isAngry(w, n)).toBe(true);
+    expect(w.state.enemies).toHaveLength(0);
+    expect(before - (a.ammo + b.ammo)).toBe(1); // one shot, not two
   });
 
   it('are provoked by being shot, then go for the nearest buildings and chew them', () => {
@@ -995,6 +1024,49 @@ describe('Moving a building (#76, #83)', () => {
     placed(w.place('wall', hub.x - 25, hub.y, 0));
     expect(w.relocate(f.id, hub.x - 26, hub.y, 0)).toBe('occupied');
     expect(w.relocate(hub.id, hub.x - 40, hub.y, 0)).toBe('unmovable');
+  });
+
+  it('a building that replaces a belt keeps what the belt carried, in hub stock if it cannot take it', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 20, w.hub!.y + 6];
+    const belt = placed(w.place('belt', x, y, 0));
+    belt.belt.push({ item: 'iron_ore', pos: 0.5, lane: LEFT });
+    const ore = w.state.inventory.iron_ore ?? 0;
+    placed(w.place('wall', x, y, 0, true));
+    expect(w.state.inventory.iron_ore).toBe(ore + 1);
+  });
+
+  it('a turned building must fit as a new one would: not onto a tree', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 20, w.hub!.y + 6];
+    const s = placed(w.place('storage', x, y, 0)); // 1×2 facing east, 2×1 turned
+    w.state.trees[w.idx(x + 1, y)] = TREE;
+    expect(w.rotate(s.id, 1)).toBe(false);
+    expect(s.dir).toBe(0);
+    w.state.trees[w.idx(x + 1, y)] = NO_TREE;
+    expect(w.rotate(s.id, 1)).toBe(true);
+  });
+
+  it('no tree grows back under a moved or turned building', () => {
+    const w = emptyWorld();
+    const [x, y] = [w.hub!.x - 20, w.hub!.y + 6];
+    const f = placed(w.place('furnace', x, y, 0));
+    const stump = w.idx(x + 4, y);
+    w.state.trees[stump] = STUMP;
+    w.state.regrow[stump] = w.state.time + 1;
+    expect(w.relocate(f.id, x + 3, y, 0)).toBe(f);
+    run(w, 3);
+    expect(w.state.trees[stump]).toBe(NO_TREE);
+    expect(w.state.regrow[stump]).toBeUndefined();
+  });
+
+  it('a moved hub port faces away from the hub, whatever it was told', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const port = placed(w.place('port', hub.x - 1, hub.y, 0));
+    expect(port.dir).toBe(2);
+    expect(w.relocate(port.id, hub.x - 1, hub.y + 1, 0)).toBe(port);
+    expect(port.dir).toBe(2);
   });
 
   it('an extractor moved onto other ore mines that ore', () => {
@@ -1571,6 +1643,16 @@ describe('The player character (#40)', () => {
     const at = [p.x, p.y];
     run(w, 1);
     expect([p.x, p.y]).toEqual(at);
+  });
+
+  it('walks with the keys out of a building put up where it stands', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    stand(w, 20, 20);
+    placed(w.place('wall', 20, 20, 0));
+    w.walk(1, 0);
+    run(w, 1);
+    expect(p.x).toBeGreaterThan(21);
   });
 
   it('fills its inventory, drops it all into the hub on walking up, and hands buildings what they take', () => {
@@ -2921,6 +3003,27 @@ describe('Drone pads (D-128)', () => {
     w.setFilter(send.id, 'gear');
     expect(send.outputs.length).toBe(0);
     expect(w.state.inventory.iron_plate).toBe(plates + 8);
+  });
+
+  it('a pad switched to sending while a drone flies to it sends the load home; pickups never mix items', () => {
+    const { w, send, get } = pads(10, 8);
+    w.tick();
+    expect(w.state.drones[0]).toMatchObject({ to: get.id, item: 'iron_plate', count: 8 });
+    w.setFilter(get.id, null); // now a sending pad
+    for (let i = 0; i < 4; i++) expect(w.insert(get, 'gear', 29, 20)).toBe(true);
+    run(w, 2 * (10 / DRONES.speed) + 1);
+    expect(get.outputs).toEqual(['gear', 'gear', 'gear', 'gear']);
+    expect(send.outputs.filter((i) => i === 'iron_plate').length).toBe(8);
+    // A pad asking for gears takes only the gears at the front of a mixed pad.
+    const mixed = placed(w.place('drone_pad', 20, 26, 0));
+    mixed.outputs.push('gear', 'gear', 'iron_plate');
+    const want = placed(w.place('drone_pad', 26, 26, 0));
+    w.setFilter(want.id, 'gear');
+    w.demolish(get.id);
+    w.tick();
+    const d = w.state.drones.find((x) => x.to === want.id)!;
+    expect(d).toMatchObject({ home: mixed.id, item: 'gear', count: 2 });
+    expect(mixed.outputs).toEqual(['iron_plate']);
   });
 
   it('v37 saves get an empty list of drones', () => {

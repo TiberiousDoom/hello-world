@@ -790,5 +790,7 @@ function buildingNear(w: World, x: number, y: number, r: number): boolean {
 
 /** Any nest angry, or any raid out, right now (the flow field is only needed then). */
 export function anyAngry(w: World): boolean {
-  return w.state.nests.some((n) => isAngry(w, n)) || w.state.enemies.some((e) => e.raid);
+  // A destroyed nest counts as angry for its survivors' sake: with none left, it needs no paths.
+  const s = w.state;
+  return s.nests.some((n) => !n.destroyed && s.time < n.angryUntil) || s.enemies.some((e) => e.raid || s.nests[e.nest]?.destroyed);
 }

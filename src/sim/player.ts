@@ -283,7 +283,10 @@ export function tickPlayers(w: World, dt: number, act: (p: Player, a: PlayerActi
 
 /** Keyboard walking moves freely, sliding along whatever is in the way. */
 function slide(w: World, p: Player, dx: number, dy: number): void {
-  const free = (x: number, y: number) => !blocked(w, Math.floor(x), Math.floor(y));
+  // The tile the engineer stands on always counts as free: a building put up on it (or one standing
+  // where they get back on their feet) must not hold them in place.
+  const [tx, ty] = [Math.floor(p.x), Math.floor(p.y)];
+  const free = (x: number, y: number) => (Math.floor(x) === tx && Math.floor(y) === ty) || !blocked(w, Math.floor(x), Math.floor(y));
   if (free(p.x + dx, p.y + dy)) {
     p.x += dx;
     p.y += dy;

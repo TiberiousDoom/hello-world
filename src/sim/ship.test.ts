@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BLUEPRINTS, BLUEPRINT_BY_ID, BUILDINGS, ItemId, NESTS, RESEARCH, RESEARCH_BY_ID, SHIP, SHIP_SITE, cargoFor } from './data';
 import { Nest, cellKey, isAngry, newNest } from './nests';
-import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, shipAway, shipyard, stageNeeds, wakeRadius } from './ship';
+import { cargoLoaded, insertShip, launch, nestsToWake, pickBlueprint, runStats, shipAway, shipyard, stageNeeds, wakeRadius } from './ship';
 import { Building, SAVE_VERSION, TICK, World } from './world';
 
 function run(w: World, seconds: number) {
@@ -484,5 +484,21 @@ describe('Supply ship', () => {
       expect(loaded.state.ship.delivered).toEqual(refunded ? {} : { wire: 50, gear: 20 });
       if (refunded) expect(loaded.state.inventory).toEqual({ wire: 50, gear: 20 });
     }
+  });
+});
+
+describe('Run stats', () => {
+  it('count destroyed mounds as cleared, and a merged nest only as the one it joined', () => {
+    const w = quiet();
+    const s = w.state;
+    const gone = newNest(0, 0, 0, 100);
+    gone.destroyed = true;
+    const merged = newNest(1, 10, 0, 100);
+    merged.destroyed = true;
+    merged.into = 0;
+    const emptied = newNest(2, 20, 0, 100); // its bugs shot, its mound still standing
+    s.nests = [gone, merged, emptied];
+    s.enemies = [];
+    expect(runStats(w).find((r) => r.label === 'Bug nests cleared')?.value).toBe('1 of 2');
   });
 });

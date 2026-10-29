@@ -146,7 +146,9 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Storage Unit | 1×2 | 12 iron plates, 8 rivets | 160 | Metal Logistics |
 
 - Sizes are width × depth when facing east (the first number runs along the direction the building
-  faces). Turning a building sideways swaps them, and a placed building only turns if its new footprint is free.
+  faces). Turning a building sideways swaps them, and a placed building only turns if it would fit there as a
+  new one would: its new footprint free of other buildings, trees, water and mounds, and a water wheel's front
+  still in its pond.
 - Bigger buildings centre on the tile you pick.
 - Building costs are paid from hub stock first; what the hub lacks comes out of your engineer's inventory,
   wherever the engineer is (D-147). Research and upgrades are paid from hub stock only. Demolishing a building refunds its
@@ -210,7 +212,9 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
   item instead: when it has room, the nearest sending pad within **24 tiles** holding it sends its drone with up to
   **8**, flying **5 tiles a second**, and the drone flies home for the next load. A belt leaving a receiving pad's
   front takes the items out. Each sending pad has one drone; both pads need electricity. Switching a pad empties
-  what it holds into the hub. A drone whose pad is demolished comes home with its load.
+  what it holds into the hub. A drone whose pad is demolished, or switched to another item, comes home with
+  its load, and what no longer fits on its own pad goes to hub stock. A drone only picks up the item it was
+  sent for, from the front of the sending pad.
 - **Mk2 machines (D-122):** after **Mk2 Machines**, select an extractor or furnace and press **Upgrade to Mk2**
   (6 steel beams, 4 bearings, 2 motors). It stays where it is with what it holds, gets a gold plate, and uses
   **2** electricity: with all of it, it works **twice as fast**; short of it, proportionally less; with none, at
@@ -891,7 +895,8 @@ one research tree, one supply ship.
 tool in hand, facing as it does (Rotate turns it); the next click or tap puts it there, with everything it
 holds (inputs, outputs, ammo, items on a belt), for free. It can go anywhere a new one could, its own tiles
 included. Right-click, or tapping its tool, cancels. The hub, the shipyard (it has its site) and
-underground belts (they'd lose their pair) can't be moved.
+underground belts (they'd lose their pair) can't be moved. A moved hub port turns to face away from the hub,
+and stumps under a moved or turned building are cleared, as under a new one.
 
 | | Desktop | Touch |
 |---|---|---|

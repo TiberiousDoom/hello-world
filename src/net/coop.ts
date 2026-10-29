@@ -10,7 +10,7 @@ import { World } from '../sim/world';
 import { RelayLink, connect } from './client';
 import { GuestLockstep, HostLockstep, HostMessage } from './lockstep';
 import { pack, unpack } from './pack';
-import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RoomInfo, infoMessage, RefuseReason, RelayMessage, Role, makeCode, passHash, validCode } from './protocol';
+import { HEARTBEAT, HostSend, MAX_HOST_MESSAGE, RoomInfo, infoMessage, RefuseReason, RelayMessage, Role, makeCode, passHash, validCode, validRelayMessage } from './protocol';
 
 export type CoopPhase = 'idle' | 'connecting' | 'lobby' | 'starting' | 'playing';
 
@@ -217,7 +217,7 @@ export class Coop {
     this.beatAt = 0;
     this.beatAnswered = false;
     link.onMessage = (m) => {
-      if (this.link !== link) return;
+      if (this.link !== link || !validRelayMessage(m)) return;
       this.heardAt = Date.now();
       if (m.t === 'heartbeat') {
         this.beatAnswered = true;

@@ -235,6 +235,7 @@ export class Renderer {
   private drawnAt = 0;
   /** Each belt's arrow offset: it moves with game time, and stops while the belt is backed up. */
   private beltPhase = new Map<number, number>();
+  private frames = 0;
   /** Where moving things were on the last two ticks, to draw them part way between (#49). */
   private smoothed = new WeakMap<object, { t: number; x: number; y: number; px: number; py: number }>();
 
@@ -273,6 +274,11 @@ export class Renderer {
       this.breaches = world.state.breaches;
       this.beltPhase.clear();
       this.drawnAt = world.state.time;
+    }
+    // Now and then, forget buildings that are gone, so a long game doesn't keep them all.
+    if (++this.frames % 600 === 0) {
+      for (const id of this.aims.keys()) if (!world.byId.has(id)) this.aims.delete(id);
+      for (const id of this.beltPhase.keys()) if (!world.byId.has(id)) this.beltPhase.delete(id);
     }
     this.alpha = alpha;
     const gameNow = world.state.time + alpha * TICK;

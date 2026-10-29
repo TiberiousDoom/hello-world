@@ -58,7 +58,7 @@ import { Camera } from '../render/camera';
 import { buildingRates, toolTitle } from './rates';
 import { byDevice } from './device';
 import { researchOrder } from './researchOrder';
-import { isKey, keyFor, keyName, keysVersion, toolIndex, toolKey } from './keys';
+import { dialogOpen, isKey, keyHtml, keysVersion, toolIndex, toolKey } from './keys';
 import { shipSideView } from './shipview';
 import { Tool, UIState, turnTool } from './state';
 
@@ -202,7 +202,8 @@ export interface HudActions {
   newGame(mode: GameMode, tutorial: boolean, difficulty: Difficulty): void;
   /** Whether the Essentials lesson has been shown on this device. */
   essentialsSeen(): boolean;
-  save(): void;
+  /** Whether it worked; `manual`: the player pressed Save (a failure always says so). */
+  save(manual?: boolean): boolean;
   hardcoreUnlocked(): boolean;
   lessons(): { id: string; title: string; seen: boolean }[];
   playLesson(id: string): void;
@@ -401,8 +402,7 @@ export class Hud {
       actions.toMainMenu();
     });
     $('btn-save').addEventListener('click', () => {
-      actions.save();
-      this.toast('Game saved.');
+      if (actions.save(true)) this.toast('Game saved.');
       this.closeModals();
     });
     $('btn-new').addEventListener('click', () => this.openNewGame());
@@ -582,7 +582,7 @@ export class Hud {
 
     window.addEventListener('keydown', (e) => {
       // Typing in a text box (the feedback form) isn't a shortcut.
-      if (document.body.classList.contains('in-menu') || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      if (document.body.classList.contains('in-menu') || dialogOpen() || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (isKey(e, 'pause')) {
         e.preventDefault();
         this.setSpeed(this.ui.speed === 0 ? 1 : 0);
@@ -694,7 +694,9 @@ export class Hud {
     if (!$('research').hidden) this.renderResearch(world);
     if (!$('ship-view').hidden) this.renderShipView(world);
     for (const b of document.querySelectorAll<HTMLElement>('#speed [data-speed]')) {
-      b.classList.toggle('active', Number(b.dataset.speed) === this.ui.speed);
+      const on = Number(b.dataset.speed) === this.ui.speed;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
     }
 
     // Inventory.
@@ -773,6 +775,12 @@ export class Hud {
       keysVersion(),
       me ? held(me) : 0,
       ...tools.map((t) => world.canAfford(BUILDINGS[t].cost, this.ui.player)),
+      // Which ingredients are short, not only whether a tool is affordable: a second one can run short too.
+      ...tools.map((t) =>
+        Object.entries(BUILDINGS[t].cost)
+          .map(([k, n]) => ((inv[k as ItemId] ?? 0) < n! ? 1 : 0))
+          .join(''),
+      ),
     ].join('|');
     if (key === this.toolbarKey) return;
     this.toolbarKey = key;
@@ -785,11 +793,11 @@ export class Hud {
         <span class="costs">${costHtml(def.cost, inv)}</span></button>`;
     });
     buttons.push(
-      `<button class="tool util" data-tool="undo" title="Undo the last building or demolishing (${keyName(keyFor('undo'))}, Ctrl+Z)"><span class="icon">${ico('undo')}</span><span class="label">Undo</span></button>`,
-      `<button class="tool util ${this.ui.clipMode ? 'active' : ''}" data-tool="copy" title="Copy an area: drag over buildings, then click to paste (${keyName(keyFor('copy'))}; ${keyName(keyFor('paste'))} pastes again)"><span class="icon">${ico('copy')}</span><span class="label">${this.ui.clipMode === 'paste' ? 'Pasting' : this.ui.clipMode === 'copy' ? 'Copying' : 'Copy'}</span></button>`,
-      `<button class="tool util" data-tool="rotate" title="Rotate (${keyName(keyFor('rotate'))})"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
-      `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (${keyName(keyFor('demolish'))})"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
-      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (${keyName(keyFor('inventory'))})"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
+      `<button class="tool util" data-tool="undo" title="Undo the last building or demolishing (${keyHtml('undo')}, Ctrl+Z)"><span class="icon">${ico('undo')}</span><span class="label">Undo</span></button>`,
+      `<button class="tool util ${this.ui.clipMode ? 'active' : ''}" data-tool="copy" title="Copy an area: drag over buildings, then click to paste (${keyHtml('copy')}; ${keyHtml('paste')} pastes again)"><span class="icon">${ico('copy')}</span><span class="label">${this.ui.clipMode === 'paste' ? 'Pasting' : this.ui.clipMode === 'copy' ? 'Copying' : 'Copy'}</span></button>`,
+      `<button class="tool util" data-tool="rotate" title="Rotate (${keyHtml('rotate')})"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
+      `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (${keyHtml('demolish')})"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
+      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (${keyHtml('inventory')})"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
     );
     // In place, so a tap isn't lost when a count changes under the finger (#86).
     setHtml($('toolbar'), buttons.join(''));

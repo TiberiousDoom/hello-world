@@ -1,7 +1,7 @@
 // The Settings screen's own parts (D-144): the size of text and buttons, reduced motion and the key list.
 // The volumes and toggles are wired in main.ts, next to what they control.
 
-import { KEY_ACTIONS, KeyAction, bindKey, keyFor, keyName, resetKeys } from './keys';
+import { KEY_ACTIONS, KeyAction, bindKey, keyHtml, resetKeys } from './keys';
 
 /** Settings' size steps run from 80% to 140%. */
 export const UI_SCALE_MIN = 0.8;
@@ -81,7 +81,7 @@ export class KeyList {
   render(): void {
     this.el.innerHTML = KEY_ACTIONS.map(
       (a) =>
-        `<div class="key-row"><span>${a.label}</span><button data-key="${a.id}" class="${this.waiting === a.id ? 'waiting' : ''}">${this.waiting === a.id ? 'Press a key…' : keyName(keyFor(a.id))}</button></div>`,
+        `<div class="key-row"><span>${a.label}</span><button data-key="${a.id}" class="${this.waiting === a.id ? 'waiting' : ''}">${this.waiting === a.id ? 'Press a key…' : keyHtml(a.id)}</button></div>`,
     ).join('');
   }
 }

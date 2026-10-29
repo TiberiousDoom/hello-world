@@ -1811,7 +1811,7 @@ export class World {
         }
       }
     }
-    if (type === 'shipyard' && shipyard(this)) return 'unique';
+    if (type === 'shipyard' && shipyard(this) && shipyard(this) !== moving) return 'unique';
     const site = this.state.shipSite;
     if (type === 'shipyard' && site && (x !== site.x || y !== site.y)) return 'site'; // only on its stakes (D-109)
     if (!this.isUnlocked(type)) return 'locked';
@@ -1838,12 +1838,14 @@ export class World {
     const b = this.byId.get(id);
     if (!b) return 'occupied';
     if (!this.canMove(b)) return 'unmovable';
+    if (b.type === 'port') dir = this.awayFromHub(x, y) ?? dir; // ports always face away from the hub
     const err = this.checkPlace(b.type, x, y, dir, false, b);
     if (err) return err;
     this.unindex(b);
     [b.x, b.y, b.dir] = [x, y, dir];
     if (b.type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(b.type, dir));
     this.index(b);
+    this.clearStumps(x, y, ...footprint(b.type, dir));
     revealBuilding(this.state, b, ...footprint(b.type, dir));
     checkBuiltOver(this, b); // moved onto the last open tile around a Hardcore mound (D-133)
     return b;
@@ -1890,13 +1892,25 @@ export class World {
       entrance.link = b.id;
       b.link = entrance.id;
     }
-    // Items that were on the belt go into the new building if it takes them.
-    for (const item of carried) this.insert(b, item, x - DX[dir], y - DY[dir]);
+    // Items that were on the belt go into the new building if it takes them, and to hub stock if not.
+    for (const item of carried) if (!this.insert(b, item, x - DX[dir], y - DY[dir])) this.refund({ [item]: 1 });
     if (type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(type, dir));
     for (let k = 0; k < spare; k++) b.outputs.push('log');
     if (spare) this.noteMade(b, spare);
     onBuilt(this, b);
     return b;
+  }
+
+  /** Stumps under a moved or turned building are gone for good, as under a new one: no tree grows back there. */
+  private clearStumps(x: number, y: number, w: number, h: number): void {
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const i = this.idx(x + dx, y + dy);
+        if (this.state.trees[i] === TREE) continue; // a lumber camp's own trees, which it cuts
+        this.state.trees[i] = NO_TREE;
+        delete this.state.regrow[i];
+      }
+    }
   }
 
   /** The ore covering most of a w×h area at (x, y), if any. */
@@ -1973,16 +1987,15 @@ export class World {
     // Tunnels would lose their pair, and ports always face away from the hub.
     if (!b || b.type === 'hub' || b.type === 'tunnel' || b.type === 'port') return false;
     const next = dir ?? (((b.dir + 1) % 4) as Dir);
-    const [w, h] = footprint(b.type, next);
-    for (let dy = 0; dy < h; dy++) {
-      for (let dx = 0; dx < w; dx++) {
-        const o = this.buildingAt(b.x + dx, b.y + dy);
-        if (!this.inBounds(b.x + dx, b.y + dy) || (o && o !== b)) return false;
-      }
-    }
+    // Turned, it must fit as a new one would: not onto trees, water or a mound, and a water wheel's front
+    // still in its pond.
+    const err = this.checkPlace(b.type, b.x, b.y, next, false, b);
+    if (err && err !== 'needs-trees' && err !== 'needs-resource') return false; // a camp or extractor that ran out still turns
     this.unindex(b);
     b.dir = next;
     this.index(b);
+    this.clearStumps(b.x, b.y, ...footprint(b.type, next));
+    checkBuiltOver(this, b);
     return true;
   }
 
@@ -2697,13 +2710,26 @@ export class World {
       d.flown += DRONES.speed * dt;
       if (d.flown < leg) return true;
       if (!d.back) {
-        for (let i = 0; i < d.count && to!.outputs.length < DRONES.hold; i++) to!.outputs.push(d.item);
-        d.count = 0;
+        // Only a pad still asking for this item takes it: a pad switched to sending meanwhile could hand
+        // it on as something else. What doesn't fit flies home.
+        if (to!.filter === d.item) {
+          while (d.count > 0 && to!.outputs.length < DRONES.hold) {
+            to!.outputs.push(d.item);
+            d.count--;
+          }
+        }
         d.back = true;
         d.flown = 0;
         return true;
       }
-      for (let i = 0; i < d.count && home.outputs.length < DRONES.hold; i++) home.outputs.push(d.item); // an undelivered load
+      // An undelivered load goes back on its pad if the pad still holds that item alone; what doesn't
+      // go back goes to hub stock.
+      const same = (home.filter == null || home.filter === d.item) && home.outputs.every((i) => i === d.item);
+      while (same && d.count > 0 && home.outputs.length < DRONES.hold) {
+        home.outputs.push(d.item);
+        d.count--;
+      }
+      if (d.count > 0) this.refund({ [d.item]: d.count });
       return false;
     });
     const busy = new Set(s.drones.map((d) => d.home));
@@ -2726,7 +2752,10 @@ export class World {
         }
       }
       if (!best) continue;
-      const count = Math.min(DRONES.load, best.outputs.length, need);
+      // Only the run of this item at the front: whatever is behind it stays for another pad.
+      let run = 0;
+      while (run < best.outputs.length && best.outputs[run] === item) run++;
+      const count = Math.min(DRONES.load, run, need);
       best.outputs.splice(0, count);
       s.drones.push({ home: best.id, to: want.id, item, count, flown: 0, back: false });
       busy.add(best.id);
@@ -3023,6 +3052,7 @@ export class World {
     let best = range * range;
     const min = (def.minRange ?? 0) ** 2; // the trebuchet's blind spot
     for (const e of this.state.enemies) {
+      if (e.hp <= 0) continue; // killed earlier this tick: it's only cleared away at the end of it
       if (def.lobbed && ENEMIES[e.type].flies) continue; // lobbed shots can't hit a flying bug (D-135)
       const d = (e.x - cx) ** 2 + (e.y - cy) ** 2;
       if (d <= best && d >= min) {
@@ -3053,6 +3083,7 @@ export class World {
       const ex = cx + ux * range;
       const ey = cy + uy * range;
       for (const e of this.state.enemies) {
+        if (e.hp <= 0) continue;
         const along = (e.x - cx) * ux + (e.y - cy) * uy;
         if (along < 0 || along > range) continue;
         const off = (e.x - cx) * uy - (e.y - cy) * ux;
@@ -3064,7 +3095,7 @@ export class World {
     }
     if (splash > 0) {
       for (const e of this.state.enemies) {
-        if ((e.x - target.x) ** 2 + (e.y - target.y) ** 2 > splash ** 2) continue;
+        if (e.hp <= 0 || (e.x - target.x) ** 2 + (e.y - target.y) ** 2 > splash ** 2) continue;
         if (def.lobbed && ENEMIES[e.type].flies) continue;
         this.shoot(e, damage, piercing, b);
       }

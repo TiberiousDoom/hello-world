@@ -106,12 +106,23 @@ function saveProfile(): void {
   }
 }
 
-function save(): void {
-  if (!game) return; // the menu's demo world is never saved
+/**
+ * Whether the game could be saved. A failure says so: always when the player pressed Save, and once
+ * for the saves made along the way (storage blocked or full).
+ */
+let saveWarned = false;
+function save(manual = false): boolean {
+  if (!game) return true; // the menu's demo world is never saved
   try {
     localStorage.setItem(saveKey, game.toJSON());
+    return true;
   } catch (err) {
     console.warn('Could not save game.', err);
+    if (manual || !saveWarned) {
+      saveWarned = true;
+      hud.toast("Your game couldn't be saved: this browser is blocking storage, or it's full.");
+    }
+    return false;
   }
 }
 
@@ -177,8 +188,9 @@ function issue<C extends Command>(command: C): ResultOf<C> | undefined {
   if (coop.host) coop.host.submit(0, command);
   else if (coop.guest) coop.guest.submit(command);
   else result = session.do(command);
-  if (undoing) undoSent.push(JSON.stringify(command));
-  else {
+  if (undoing) {
+    if (ui.coop) undoSent.push(JSON.stringify(command)); // only co-op answers late (lateResult)
+  } else {
     if (back && result !== false) undo.record(back, performance.now());
     if (result !== undefined) recordBuilt(command, result);
   }
@@ -251,9 +263,12 @@ function play(world: World, shared?: Session): void {
   undoSent = [];
   inMenu = false;
   document.body.classList.remove('in-menu');
+  // Nothing carries over from the last game: no tool, strike aim, move or copy under way, lesson or season.
+  hud.setTool(null);
   ui.selected = null;
-  ui.tool = null;
   ui.speed = 1;
+  if (tutorial.active) tutorial.abort();
+  lastSeason = null;
   centreOnHub(world);
   hud.closeModals();
   hud.refresh();
@@ -672,8 +687,8 @@ window.addEventListener('resize', () => renderer.resize());
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') save();
 });
-window.addEventListener('pagehide', save);
-setInterval(save, AUTOSAVE_MS);
+window.addEventListener('pagehide', () => save());
+setInterval(() => save(), AUTOSAVE_MS);
 
 hydrateIcons();
 renderer.resize();
