@@ -12,8 +12,15 @@ export interface LoggedCommand {
   command: Command;
 }
 
+/**
+ * The most commands a session keeps. Only tests replay the log; a game lasts hours and a co-op host's
+ * log would otherwise hold every step of every engineer. Past this, the older half goes (the dedicated
+ * server also empties it on every save).
+ */
+export const LOG_LIMIT = 20_000;
+
 export class Session {
-  /** The game as it was when the session began: replaying the log from here gives the same game. */
+  /** The game as it was when the session began: replaying the log from here gives the same game (while it's under LOG_LIMIT). */
   readonly start: string;
   readonly log: LoggedCommand[] = [];
   /** Commands waiting for their tick (from a replay now; from other players in co-op). */
@@ -37,8 +44,13 @@ export class Session {
 
   /** This player's action: applied at once, and logged for the tick it lands before. */
   do<C extends Command>(command: C): ResultOf<C> {
-    this.log.push({ tick: this.ticks, player: this.player, command });
+    this.record({ tick: this.ticks, player: this.player, command });
     return applyCommand(this.world, command, this.player);
+  }
+
+  private record(entry: LoggedCommand): void {
+    this.log.push(entry);
+    if (this.log.length > LOG_LIMIT) this.log.splice(0, this.log.length - LOG_LIMIT / 2);
   }
 
   /** Commands to apply when their tick comes. */
@@ -57,7 +69,7 @@ export class Session {
     const now = this.ticks;
     while (this.queued.length && this.queued[0].tick <= now) {
       const e = this.queued.shift()!;
-      this.log.push(e);
+      this.record(e);
       const result = applyCommand(this.world, e.command, e.player);
       this.onApplied?.(e, result);
     }

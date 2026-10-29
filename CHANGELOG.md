@@ -3,6 +3,16 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.2 · 2026-10-29 · Safer, smoother co-op
+### New
+- Nothing new to play: this release makes co-op safer and big factories smoother.
+
+### Fixed
+- **Co-op:** a guest only takes plain game data from the host. A world or a turn carrying anything else is refused, so a modified host can't put its own code on your screen.
+- **Co-op:** a host whose tab stalled while players kept building no longer gets disconnected for sending too much at once: the backlog goes out in parts. A copy of the game that's too big to send now says so instead of dropping the host.
+- **Co-op:** a host's game no longer keeps every command of a long session in memory.
+- **Big lumber operations** no longer slow the game down: power and electric networks are only worked out again when buildings change, not each time a tree is felled or grows back.
+
 ## 0.87.1 · 2026-10-29 · Fixes from a code review
 ### New
 - If your browser won't let the game save (storage blocked or full), it now tells you instead of saying "Game saved."

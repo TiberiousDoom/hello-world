@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Command } from './commands';
 import { fightingWorld, play, runScenario, script } from './scenario';
-import { Session, summaryHash } from './session';
+import { LOG_LIMIT, Session, summaryHash } from './session';
 import { World } from './world';
 
 describe('Sessions', () => {
@@ -15,6 +15,15 @@ describe('Sessions', () => {
     const again = Session.replay(live.start, live.log, live.ticks);
     expect(summaryHash(again.world)).toBe(summaryHash(live.world));
     expect(again.world.toJSON()).toBe(live.world.toJSON());
+  });
+
+  it('keep at most LOG_LIMIT commands, so a long game does not hold every step', () => {
+    const { w } = fightingWorld();
+    const s = new Session(w);
+    for (let i = 0; i < LOG_LIMIT + 10; i++) s.do({ kind: 'walk', dx: i % 2, dy: 0 });
+    expect(s.log.length).toBeLessThanOrEqual(LOG_LIMIT);
+    expect(s.log.length).toBeGreaterThanOrEqual(LOG_LIMIT / 2);
+    expect(s.log.at(-1)?.command).toEqual({ kind: 'walk', dx: (LOG_LIMIT + 9) % 2, dy: 0 });
   });
 
   it('let a game join from a checkpointed snapshot and stay in step', () => {

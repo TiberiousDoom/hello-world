@@ -425,6 +425,12 @@ export class World {
   taps: HandTap[] = [];
   /** Counts changes to what stands on the ground: buildings and trees (not saved). Lets the renderer keep a cached picture of the ground until it changes. */
   layout = 0;
+  /**
+   * Counts changes to the buildings alone (not saved): power networks are worked out again only then. Trees
+   * felled and growing back change `layout` several times a second in a big lumber operation, and the
+   * electric networks cost more the more poles there are.
+   */
+  private builds = 0;
   /** Items handed to the next belt this tick: they've had their move, even if that belt is updated later in the tick. */
   private movedThisTick = new Set<BeltItem>();
   /** When each building made something in the last minute, and since when it's been watched (not saved), for the rates in its panel. */
@@ -434,7 +440,7 @@ export class World {
   delivered: ItemCounts = {};
   /** Water tiles (D-115), from `state.water`. */
   private wet: Uint8Array;
-  /** Power networks (D-115), worked out from the buildings whenever they change (`layout`): each conductor's network. */
+  /** Power networks (D-115), worked out from the buildings whenever they change (`builds`): each conductor's network. */
   private nets = new Map<number, PowerNet>();
   private netsAt = -1;
   private enets = new Map<number, ElectricNet>();
@@ -1303,7 +1309,8 @@ export class World {
     if (!this.canAfford(next.cost)) return 'cost';
     this.pay(next.cost);
     b.tier = next.tier;
-    this.layout++; // it joins the electric network
+    this.layout++;
+    this.builds++; // it joins the electric network
     return null;
   }
 
@@ -1332,8 +1339,8 @@ export class World {
    * electric buildings within ELECTRIC.reach of them; express belts connect to the express belts they touch.
    */
   private refreshElectric(): void {
-    if (this.enetsAt === this.layout) return;
-    this.enetsAt = this.layout;
+    if (this.enetsAt === this.builds) return;
+    this.enetsAt = this.builds;
     this.enets.clear();
     const nodes = this.state.buildings.filter((b) => b.type === 'power_pole' || b.type === 'steam_turbine' || electricUse(b) > 0);
     const parent = new Map<number, number>(nodes.map((b) => [b.id, b.id]));
@@ -1378,8 +1385,8 @@ export class World {
    * hydraulic defences) connects to the conductors it touches, and an underground pair to its other end.
    */
   private refreshPower(): void {
-    if (this.netsAt === this.layout) return;
-    this.netsAt = this.layout;
+    if (this.netsAt === this.builds) return;
+    this.netsAt = this.builds;
     this.nets.clear();
     for (const start of this.state.buildings) {
       if (!CONDUCTS.includes(start.type) || this.nets.has(start.id)) continue;
@@ -1646,6 +1653,7 @@ export class World {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
     if (changed) this.state.paths.dirty = this.state.paths.shipDirty = true;
     this.layout++;
+    this.builds++;
     this.watchedSince.set(b.id, this.state.time);
   }
 
@@ -1655,6 +1663,7 @@ export class World {
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
     this.state.paths.dirty = this.state.paths.shipDirty = true;
     this.layout++;
+    this.builds++;
     this.made.delete(b.id);
     this.watchedSince.delete(b.id);
   }
@@ -1770,7 +1779,8 @@ export class World {
       upgraded++;
     }
     if (!upgraded) return 'cost';
-    this.layout++; // the line leaves the shaft network and joins the electric one
+    this.layout++;
+    this.builds++; // the line leaves the shaft network and joins the electric one
     const left = line.length - upgraded;
     this.events.push(left ? `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'}. Not enough stock for the other ${left}.` : `Upgraded ${upgraded} belt${upgraded === 1 ? '' : 's'} to express.`);
     return { upgraded, left };
