@@ -3,6 +3,27 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.1 · 2026-10-29 · Fixes from a code review
+### New
+- If your browser won't let the game save (storage blocked or full), it now tells you instead of saying "Game saved."
+
+### Fixed
+- **Co-op:** a crafted link to another relay could put its own code on the game's page; messages from the relay are now checked. One odd command from a modified game could leave every other player out of step for good. Pasting a very large copy no longer gets a guest disconnected. A guest that misses a turn waits for a fresh copy instead of running on without it.
+- **Drones** no longer turn one item into another when a pad changes what it does while a drone is on its way. A load that can't land goes home, and anything left over goes to hub stock.
+- **Turrets** no longer waste a shot on a bug another turret has just killed.
+- **Turning a building** now follows the same rules as building one: not onto trees, water or mounds, and a water wheel keeps its front in the pond.
+- **Moving a hub port** keeps it facing away from the hub. Trees no longer grow back under a building you moved or turned onto a stump.
+- **Building over a belt** keeps what the belt carried: in the new building if it takes it, in hub stock if not.
+- **Your engineer** can walk out with the keys after a building goes up where they stand (or where they get back on their feet).
+- Bug paths are no longer recalculated over and over after a nest is destroyed and its bugs are gone.
+- The first-delivery screen's **Bug nests cleared** counts destroyed mounds, not emptied ones.
+- **Starting a new game** clears a strike you were aiming, the tool in hand and any lesson under way, and no longer plays the season tune at once.
+- **Keyboard shortcuts** wait while a dialog is open: Space no longer unpauses a game under a dialog that paused it.
+- Season tunes no longer pile up while the music is muted.
+- The toolbar's red cost marks update when a second ingredient runs short. A key bound to `"` no longer breaks button tooltips.
+- The speed, menu and tutorial close buttons have names for screen readers.
+- **Dedicated server:** saves and backups are written safely to disk, and an unexpected error is logged before it restarts.
+
 ## 0.87.0 · 2026-10-28 · Wood that lasts
 ### New
 - **Build from your pockets:** when the hub is short, what your engineer carries pays the rest, wherever they are. The hub's stock is used first.

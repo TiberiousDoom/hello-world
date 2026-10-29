@@ -170,13 +170,18 @@ export class Lobby {
     if (c.phase === 'connecting') this.status(c.role === 'host' ? 'Opening a room…' : server ? 'Joining the server…' : 'Joining…');
     if (!inRoom) return;
     $('coop-room-code').textContent = c.code;
-    $('coop-players').innerHTML = c.players
-      .map((s) => {
+    // Built from elements, not HTML: the slots come from the relay, which the page's address picks.
+    $('coop-players').replaceChildren(
+      ...c.players.map((s) => {
+        const li = document.createElement('li');
+        const swatch = document.createElement('span');
+        swatch.className = 'swatch';
+        swatch.style.background = PLAYER_COLORS[s % PLAYER_COLORS.length];
         const who = s === c.slot ? 'You' : s === 0 && server ? 'Server' : `Player ${s + 1}`;
-        const role = s === 0 && !server ? ' (host)' : '';
-        return `<li><span class="swatch" style="background:${PLAYER_COLORS[s % PLAYER_COLORS.length]}"></span>${who}${role}</li>`;
-      })
-      .join('');
+        li.append(swatch, who + (s === 0 && !server ? ' (host)' : ''));
+        return li;
+      }),
+    );
     const host = c.role === 'host';
     const start = $<HTMLButtonElement>('coop-start');
     start.hidden = !host;

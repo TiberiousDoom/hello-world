@@ -213,7 +213,12 @@ export class HostLockstep {
       return;
     }
     if (msg?.t !== 'cmds' || !Array.isArray(msg.cmds)) return;
-    for (const c of msg.cmds) if (validCommand(c) && (!WALKING.includes(c.kind) || this.mayWalk(player, now))) this.submit(player, c);
+    for (const c of msg.cmds) {
+      if (!validCommand(c) || (WALKING.includes(c.kind) && !this.mayWalk(player, now))) continue;
+      // Applied as every guest will get it: JSON writes -0 as 0, and a -0 kept here would make this
+      // world differ from every other, for good.
+      this.submit(player, JSON.parse(JSON.stringify(c)) as Command);
+    }
   }
 
   /** Whether a guest may send its engineer walking once more now (a token bucket, see WALKING). */
@@ -265,6 +270,11 @@ export class GuestLockstep {
   desyncedAt: number | null = null;
   /** A fresh copy of the game has been asked for (D-079). */
   resyncing = false;
+  /**
+   * A turn never arrived (the relay drops them while this game is disconnected). Running past it would
+   * skip its commands, so this game stops at the gap and asks for a fresh copy instead.
+   */
+  missed = false;
   private out: Command[] = [];
   private expected = new Map<number, string>();
   private lastSend = -Infinity;
@@ -296,7 +306,11 @@ export class GuestLockstep {
 
   /** A message from the host. */
   receive(msg: HostMessage): void {
-    if (msg.t !== 'turn' || msg.seq <= this.seq) return;
+    if (msg.t !== 'turn' || msg.seq <= this.seq || this.missed) return;
+    if (msg.seq !== this.seq + 1) {
+      this.missed = true;
+      return;
+    }
     this.seq = msg.seq;
     const now = this.session.ticks;
     this.session.queue(msg.cmds.filter((e) => e.tick >= now)); // earlier ones were in this game's snapshot
@@ -310,7 +324,7 @@ export class GuestLockstep {
    * fallen far behind (D-079). The game carries on until the copy arrives.
    */
   checkHealth(): void {
-    if (this.resyncing || (this.desyncedAt == null && this.ahead < FAR_BEHIND)) return;
+    if (this.resyncing || (this.desyncedAt == null && !this.missed && this.ahead < FAR_BEHIND)) return;
     this.resyncing = true;
     this.send(JSON.stringify({ t: 'resync' } satisfies GuestMessage));
   }
@@ -337,20 +351,19 @@ export class GuestLockstep {
   }
 
   /**
-   * Sends waiting commands, a few at a time, at most about 20 messages a second (the relay allows a
-   * guest 30), each well under the relay's size limit.
+   * Sends waiting commands: one message, well under the relay's size limit, at most about 20 times a
+   * second (the relay allows a guest 30, and closes a guest that sends more). What doesn't fit waits
+   * for the next flush, so a big paste goes out over a few seconds instead of all at once.
    */
   flush(now: number): void {
     if (!this.out.length || now - this.lastSend < FLUSH_MS) return;
-    while (this.out.length) {
-      const cmds: Command[] = [];
-      let size = 0;
-      while (this.out.length && (cmds.length === 0 || size + JSON.stringify(this.out[0]).length < MAX_GUEST_MESSAGE / 2)) {
-        size += JSON.stringify(this.out[0]).length + 1;
-        cmds.push(this.out.shift()!);
-      }
-      this.send(JSON.stringify({ t: 'cmds', cmds } satisfies GuestMessage));
+    const cmds: Command[] = [];
+    let size = 0;
+    while (this.out.length && (cmds.length === 0 || size + JSON.stringify(this.out[0]).length < MAX_GUEST_MESSAGE / 2)) {
+      size += JSON.stringify(this.out[0]).length + 1;
+      cmds.push(this.out.shift()!);
     }
+    this.send(JSON.stringify({ t: 'cmds', cmds } satisfies GuestMessage));
     this.lastSend = now;
   }
 }

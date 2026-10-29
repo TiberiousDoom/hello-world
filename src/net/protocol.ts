@@ -58,6 +58,39 @@ export type RelayMessage =
   /** The host's connection dropped: the room waits HOST_GRACE_MS for it (D-081). It's back with `joined` slot 0. */
   | { t: 'host-away' };
 
+/** A player's slot: the host is 0. */
+const validSlot = (s: unknown): s is number => Number.isInteger(s) && (s as number) >= 0 && (s as number) < MAX_PLAYERS;
+
+/**
+ * Whether a message from the relay has the shape the game expects. The relay is picked by the page's
+ * address (`?relay=`), so a link can point a game at any server: its slots end up in the page, and must
+ * be small whole numbers, never text.
+ */
+export function validRelayMessage(m: unknown): m is RelayMessage {
+  if (!m || typeof m !== 'object') return false;
+  const o = m as Record<string, unknown>;
+  switch (o.t) {
+    case 'welcome':
+      return validSlot(o.slot) && Array.isArray(o.players) && o.players.length <= MAX_PLAYERS && o.players.every(validSlot);
+    case 'joined':
+    case 'left':
+      return validSlot(o.slot);
+    case 'from':
+      return validSlot(o.slot) && typeof o.data === 'string';
+    case 'host':
+      return typeof o.data === 'string';
+    case 'refused':
+      return typeof o.reason === 'string' && (o.hostVersion === undefined || typeof o.hostVersion === 'string');
+    case 'closed':
+      return o.reason === 'host-left' || o.reason === 'replaced';
+    case 'heartbeat':
+    case 'host-away':
+      return true;
+    default:
+      return false;
+  }
+}
+
 export type RefuseReason = 'version' | 'full' | 'no-room' | 'taken' | 'bad-request' | 'password';
 
 /** From the host to the relay: `data` goes to one guest (`to`), or to every guest. */

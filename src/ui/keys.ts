@@ -85,6 +85,11 @@ export function keyName(key: string): string {
   return key.length === 1 ? key.toUpperCase() : key[0].toUpperCase() + key.slice(1);
 }
 
+/** An action's key, ready to go into HTML: a key such as " or < would otherwise break the markup around it. */
+export function keyHtml(action: KeyAction): string {
+  return keyName(keyFor(action)).replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
 /** The hotkey for the toolbar's `i`th tool (from 0): 1–9, 0, then Shift+1–9. Null past the 19th. */
 export function toolKey(i: number): string | null {
   if (i < 9) return String(i + 1);
@@ -101,4 +106,13 @@ export function toolIndex(e: KeyboardEvent): number | null {
   if (Number.isNaN(d)) return null;
   if (e.shiftKey) return d >= 1 ? 9 + d : null;
   return d === 0 ? 9 : d - 1;
+}
+
+/**
+ * Whether a dialog is open over the game. Shortcuts wait while one is: Space would unpause a dialog
+ * that paused the game, and number keys and walking would act behind it. The blueprint offer shown as
+ * a small card leaves the game playable, so it doesn't count.
+ */
+export function dialogOpen(): boolean {
+  return !!document.querySelector('.modal:not([hidden]):not(.offer-card)');
 }

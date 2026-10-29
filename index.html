@@ -20,13 +20,13 @@
 
     <header id="topbar" class="hud">
       <div id="speed" class="seg">
-        <button data-speed="0" title="Pause (Space)"><i data-icon="pause"></i></button>
-        <button data-speed="1" title="Normal speed"><i data-icon="play"></i></button>
-        <button data-speed="2" title="2× speed"><i data-icon="fast"></i></button>
-        <button data-speed="4" title="4× speed"><i data-icon="fast"></i><b>4</b></button>
+        <button data-speed="0" title="Pause (Space)" aria-label="Pause" aria-pressed="false"><i data-icon="pause"></i></button>
+        <button data-speed="1" title="Normal speed" aria-label="Normal speed" aria-pressed="false"><i data-icon="play"></i></button>
+        <button data-speed="2" title="2× speed" aria-label="2× speed" aria-pressed="false"><i data-icon="fast"></i></button>
+        <button data-speed="4" title="4× speed" aria-label="4× speed" aria-pressed="false"><i data-icon="fast"></i><b>4</b></button>
       </div>
       <div id="clock" class="stat" title="Day and night, and the seasons"><span class="clock-icon"></span><span class="clock-text"></span><span class="clock-threat" hidden></span></div>
-      <button id="menu-btn" title="Menu"><i data-icon="menu"></i></button>
+      <button id="menu-btn" title="Menu" aria-label="Menu"><i data-icon="menu"></i></button>
     </header>
 
     <div id="inventory" class="hud"></div>
@@ -284,7 +284,7 @@
     <div id="tutorial" hidden>
       <div class="spot"></div>
       <div class="tip" role="dialog" aria-live="polite">
-        <div class="tip-head"><span class="step"></span><button class="tip-close" title="Close tutorial"><i data-icon="close"></i></button></div>
+        <div class="tip-head"><span class="step"></span><button class="tip-close" title="Close tutorial" aria-label="Close tutorial"><i data-icon="close"></i></button></div>
         <p class="tip-text"></p>
         <div class="tip-nav"><button class="tip-back">← Back</button><button class="tip-hide quiet" title="Stop lessons from appearing (turn them back on in Menu → Tutorials)">Hide tips</button><button class="tip-next">Next →</button></div>
       </div>

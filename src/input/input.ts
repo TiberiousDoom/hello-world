@@ -34,7 +34,7 @@ import { Camera } from '../render/camera';
 import { buzz } from './haptics';
 import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
 import { clipCorner, copyArea, pasteChunks, rotateClip } from '../ui/clipboard';
-import { isKey } from '../ui/keys';
+import { dialogOpen, isKey } from '../ui/keys';
 import { byDevice } from '../ui/device';
 
 type Mode = 'none' | 'pending' | 'right' | 'middle' | 'pan' | 'paint' | 'plan' | 'move' | 'pinch' | 'mine' | 'select' | 'stamp';
@@ -659,7 +659,7 @@ export class Input {
   }
 
   private key(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || document.body.classList.contains('in-menu')) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || document.body.classList.contains('in-menu') || dialogOpen()) return;
     const k = e.key.toLowerCase();
     if (WALK_KEYS[k] && !e.ctrlKey && !e.metaKey) {
       this.held.add(k);

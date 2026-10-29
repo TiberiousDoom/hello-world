@@ -102,8 +102,10 @@ export class Music {
 
   /** Plays one piece now (a season's interlude), then carries on with the current mood's tracks. */
   playNow(name: string): void {
+    // Muted, or before the first click: skipped, not saved up to play later one after another.
+    if (!this.started || this.volume <= 0) return;
     this.queue.unshift(name);
-    if (this.started) this.playNext(MOOD_FADE);
+    this.playNext(MOOD_FADE);
   }
 
   private ensureContext(): void {
