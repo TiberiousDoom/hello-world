@@ -140,6 +140,8 @@ export type { ResearchState };
  */
 export const SAVE_VERSION = 43;
 export const TICK = 1 / 20;
+/** The side of a block of tiles in `World.blocks`. */
+export const BLOCK = 8;
 
 /** What grows on a tile (GameState.trees). */
 export const NO_TREE = 0;
@@ -391,6 +393,8 @@ export class World {
   state: GameState;
   /** Building id per tile, 0 when empty. */
   tiles: Int32Array;
+  /** Building tiles in each BLOCK×BLOCK block of the map, so a search for buildings nearby can skip empty ground. */
+  blocks: Uint16Array;
   byId = new Map<number, Building>();
   /**
    * Cost for an angry bug on each tile to reach the nearest building. 64-bit,
@@ -431,6 +435,9 @@ export class World {
    * electric networks cost more the more poles there are.
    */
   private builds = 0;
+  /** Buildings below full HP, worked out once a tick (at `damagedAt`) for the repair stations. */
+  private damaged: Building[] = [];
+  private damagedAt = -1;
   /** Items handed to the next belt this tick: they've had their move, even if that belt is updated later in the tick. */
   private movedThisTick = new Set<BeltItem>();
   /** When each building made something in the last minute, and since when it's been watched (not saved), for the rates in its panel. */
@@ -449,6 +456,7 @@ export class World {
   constructor(state: GameState) {
     this.state = state;
     this.tiles = new Int32Array(state.width * state.height);
+    this.blocks = new Uint16Array(Math.ceil(state.width / BLOCK) * Math.ceil(state.height / BLOCK));
     this.wet = new Uint8Array(state.width * state.height);
     for (const i of state.water ?? []) this.wet[i] = 1;
     this.flow = new Float64Array(state.width * state.height);
@@ -1646,11 +1654,21 @@ export class World {
     return cost;
   }
 
+  /** The index in `blocks` of tile (x, y)'s block. */
+  blockOf(x: number, y: number): number {
+    return Math.floor(y / BLOCK) * Math.ceil(this.state.width / BLOCK) + Math.floor(x / BLOCK);
+  }
+
   /** `changed`: false while building the index from a save, whose path timers already say what's due. */
   private index(b: Building, changed = true): void {
     this.byId.set(b.id, b);
     const [w, h] = this.footprintOf(b);
-    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        this.tiles[this.idx(b.x + dx, b.y + dy)] = b.id;
+        this.blocks[this.blockOf(b.x + dx, b.y + dy)]++;
+      }
+    }
     if (changed) this.state.paths.dirty = this.state.paths.shipDirty = true;
     this.layout++;
     this.builds++;
@@ -1660,7 +1678,12 @@ export class World {
   private unindex(b: Building): void {
     this.byId.delete(b.id);
     const [w, h] = this.footprintOf(b);
-    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        this.tiles[this.idx(b.x + dx, b.y + dy)] = 0;
+        this.blocks[this.blockOf(b.x + dx, b.y + dy)]--;
+      }
+    }
     this.state.paths.dirty = this.state.paths.shipDirty = true;
     this.layout++;
     this.builds++;
@@ -2955,7 +2978,16 @@ export class World {
     if (b.ammo <= 0) return;
     let worst: Building | undefined;
     let worstFrac = 1;
-    for (const o of this.state.buildings) {
+    // Only damaged buildings, listed once a tick: looking through every building on the map, for every
+    // station, every tick, was most of a tick's work in a big base.
+    if (this.damagedAt !== this.state.time) {
+      this.damagedAt = this.state.time;
+      this.damaged = this.state.buildings.filter((o) => o.hp < this.maxHp(o));
+    }
+    const far = REPAIR.range + 1;
+    for (const o of this.damaged) {
+      // Clearly out of reach (no building is wider than the hub): skipped before any sums.
+      if (o.x - b.x > far || b.x - (o.x + HUB_SIZE) > far || o.y - b.y > far || b.y - (o.y + HUB_SIZE) > far) continue;
       const frac = o.hp / this.maxHp(o);
       if (frac >= worstFrac) continue;
       const [cx, cy] = this.centreOf(o);

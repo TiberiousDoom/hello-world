@@ -155,6 +155,13 @@ const BELT_SLAT = 'rgba(138,150,168,0.5)';
 
 /** Tiles of spare picture around the view in a cached layer, so panning doesn't redraw it every frame. */
 const LAYER_MARGIN = 6;
+/**
+ * While the zoom keeps changing (a pinch, the wheel), cached layers are stretched to fit instead of painted
+ * again every frame; they're painted afresh once it has held still this long (ms), or once stretching
+ * would be too far off (ZOOM_STRETCH either way).
+ */
+const ZOOM_SETTLE = 150;
+const ZOOM_STRETCH = 1.5;
 
 /**
  * A cached picture of tiles that rarely change (ground, decoration, ore, trees), so
@@ -192,6 +199,24 @@ function hubCornerAhead(world: World, b: Building): boolean {
   const rx = b.x + DX[b.dir] - hub.x;
   const ry = b.y + DY[b.dir] - hub.y;
   return (rx === 0 || rx === w - 1) && (ry === 0 || ry === h - 1);
+}
+
+/** The night's dark is drawn at this fraction of the screen's resolution (it has no sharp edges). */
+const NIGHT_RES = 0.25;
+let spotCanvas: HTMLCanvasElement | null = null;
+
+/** A light's soft spot, as the night cuts it out: clear in the middle, fading out to its edge. */
+function lightSpot(): HTMLCanvasElement {
+  if (spotCanvas) return spotCanvas;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g2 = c.getContext('2d')!;
+  const g = g2.createRadialGradient(32, 32, 32 * 0.2, 32, 32, 32);
+  g.addColorStop(0, 'rgba(0,0,0,0.85)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  g2.fillStyle = g;
+  g2.fillRect(0, 0, 64, 64);
+  return (spotCanvas = c);
 }
 
 export class Renderer {
@@ -236,6 +261,12 @@ export class Renderer {
   /** Each belt's arrow offset: it moves with game time, and stops while the belt is backed up. */
   private beltPhase = new Map<number, number>();
   private frames = 0;
+  /** Gathered while belts are drawn, then drawn all at once: chevron points (x, y, six per chevron), and items. */
+  private arrowPath: number[] = [];
+  private beltItems: [ItemId, number, number][] = [];
+  /** When the zoom last changed, and to what (canvas pixels per tile): see ZOOM_SETTLE. */
+  private zoomedAt = -Infinity;
+  private lastScale = 0;
   /** Where moving things were on the last two ticks, to draw them part way between (#49). */
   private smoothed = new WeakMap<object, { t: number; x: number; y: number; px: number; py: number }>();
 
@@ -286,6 +317,10 @@ export class Renderer {
     this.drawnAt = gameNow;
     const { ctx, camera } = this;
     const z = camera.zoom;
+    if (z * this.dpr !== this.lastScale) {
+      this.lastScale = z * this.dpr;
+      this.zoomedAt = performance.now();
+    }
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = '#0b0e14';
     ctx.fillRect(0, 0, camera.width, camera.height);
@@ -323,8 +358,20 @@ export class Renderer {
     // Blighted ground around standing nests, under everything built, so danger zones read from the ground's colour.
     for (const n of s.nests) if (!n.destroyed && territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n)) this.drawBlight(n);
 
-    // Paired tunnels: a faint dotted line where the belt runs underground.
+    // One pass over the buildings sorts out what this frame draws: belts on screen, everything else near
+    // it, every power pole (a wire between two off screen can still cross it), and paired tunnels'
+    // traces, a faint dotted line where the belt runs underground.
+    const belts: Building[] = [];
+    const standing: Building[] = [];
+    const poles: Building[] = [];
     for (const b of s.buildings) {
+      if (isBelt(b.type)) {
+        if (visible(b.x, b.y)) belts.push(b);
+        continue;
+      }
+      if (b.type === 'power_pole') poles.push(b);
+      const [fw, fh] = world.footprintOf(b);
+      if (visible(b.x - 2, b.y - 2, Math.max(fw, fh) + 4)) standing.push(b);
       if (b.type !== 'tunnel' || b.link == null || world.isTunnelExit(b)) continue;
       const exit = world.byId.get(b.link);
       if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
@@ -338,22 +385,15 @@ export class Renderer {
     if (hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
 
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
-    const belts = s.buildings.filter((b) => isBelt(b.type) && visible(b.x, b.y));
     const looks = belts.map((b) => beltLook(world, b));
     belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
+    this.strokeBeltArrows(z);
+    this.drawBeltItems();
     for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b, z);
-    const standing = s.buildings.filter((b) => {
-      if (isBelt(b.type)) return false;
-      const [fw, fh] = world.footprintOf(b);
-      return visible(b.x - 2, b.y - 2, Math.max(fw, fh) + 4);
-    });
     this.drawShadows(world, standing);
     for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
-    this.drawWires(
-      s.buildings.filter((b) => b.type === 'power_pole'),
-      z,
-    ); // all of them: a wire can cross the screen
+    this.drawWires(poles, z, [x0, y0, x1, y1]);
 
     if (!hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
     else for (const n of nests) this.drawCover(world, n, z, placing);
@@ -709,14 +749,15 @@ export class Renderer {
   private drawLayer(l: Layer, stamp: string, view: [number, number, number, number], paint: (x0: number, y0: number, x1: number, y1: number) => void): void {
     const [vx0, vy0, vx1, vy1] = view;
     const scale = this.camera.zoom * this.dpr;
-    const key = `${scale}|${stamp}`;
-    if (l.key !== key || vx0 < l.x0 || vy0 < l.y0 || vx1 > l.x1 || vy1 > l.y1) {
+    const ratio = scale / l.scale;
+    const zooming = performance.now() - this.zoomedAt < ZOOM_SETTLE && ratio < ZOOM_STRETCH && ratio > 1 / ZOOM_STRETCH;
+    if (l.key !== stamp || vx0 < l.x0 || vy0 < l.y0 || vx1 > l.x1 || vy1 > l.y1 || (l.scale !== scale && !zooming)) {
       l.x0 = vx0 - LAYER_MARGIN;
       l.y0 = vy0 - LAYER_MARGIN;
       l.x1 = vx1 + LAYER_MARGIN;
       l.y1 = vy1 + LAYER_MARGIN;
       l.scale = scale;
-      l.key = key;
+      l.key = stamp;
       l.canvas.width = Math.ceil((l.x1 - l.x0) * scale);
       l.canvas.height = Math.ceil((l.y1 - l.y0) * scale); // resizing also clears it
       const lctx = l.canvas.getContext('2d')!;
@@ -732,7 +773,8 @@ export class Renderer {
     const [sx, sy] = this.camera.toScreen(l.x0, l.y0);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(l.canvas, Math.round(sx * this.dpr), Math.round(sy * this.dpr));
+    if (l.scale === scale) ctx.drawImage(l.canvas, Math.round(sx * this.dpr), Math.round(sy * this.dpr));
+    else ctx.drawImage(l.canvas, sx * this.dpr, sy * this.dpr, l.canvas.width * (scale / l.scale), l.canvas.height * (scale / l.scale)); // mid-zoom
     ctx.restore();
   }
 
@@ -870,9 +912,12 @@ export class Renderer {
   private drawNight(world: World, x0: number, y0: number, x1: number, y1: number): void {
     const dark = darkness(world.state.time);
     if (dark <= 0) return;
+    // The dark is all soft edges, so it's drawn at a quarter of the screen's resolution and stretched over
+    // it: a sixteenth of the pixels to fill, every frame, for the same look.
+    const res = this.dpr * NIGHT_RES;
     const { width, height } = this.night;
-    const w = Math.ceil(this.camera.width * this.dpr);
-    const h = Math.ceil(this.camera.height * this.dpr);
+    const w = Math.ceil(this.camera.width * res);
+    const h = Math.ceil(this.camera.height * res);
     if (width !== w || height !== h) [this.night.width, this.night.height] = [w, h];
     const nctx = this.night.getContext('2d')!;
     nctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -880,19 +925,14 @@ export class Renderer {
     nctx.clearRect(0, 0, w, h);
     nctx.fillStyle = `rgba(${NIGHT.color},${NIGHT.alpha * dark})`;
     nctx.fillRect(0, 0, w, h);
-    // Lights cut holes in the dark.
+    // Lights cut holes in the dark: one soft spot, drawn once and stamped at each light's size.
     nctx.globalCompositeOperation = 'destination-out';
-    const scale = this.camera.zoom * this.dpr;
+    const spot = lightSpot();
+    const scale = this.camera.zoom * res;
     const light = (x: number, y: number, r: number) => {
       const [sx, sy] = this.camera.toScreen(x, y);
-      const px = sx * this.dpr;
-      const py = sy * this.dpr;
       const pr = r * scale;
-      const g = nctx.createRadialGradient(px, py, pr * 0.2, px, py, pr);
-      g.addColorStop(0, 'rgba(0,0,0,0.85)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      nctx.fillStyle = g;
-      nctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+      nctx.drawImage(spot, sx * res - pr, sy * res - pr, pr * 2, pr * 2);
     };
     let lights = 0;
     for (const b of world.state.buildings) {
@@ -911,7 +951,8 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(this.night, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(this.night, 0, 0, w / NIGHT_RES, h / NIGHT_RES);
     ctx.restore();
   }
 
@@ -1206,19 +1247,13 @@ export class Renderer {
     // Along the belt (u) and across it (v), from the tile's centre.
     const at = (u: number, v: number): [number, number] => [b.x + 0.5 + dx * u - dy * v, b.y + 0.5 + dy * u + dx * v];
     // Moving chevrons show the direction of travel.
+    // Gathered for all belts and stroked once (strokeBeltArrows): a stroke per belt was a large share of
+    // a frame with a thousand belts on screen.
     const arrows = this.beltArrows(b, z);
-    ctx.strokeStyle = BELT_SLAT;
-    ctx.lineWidth = 2.5 / z;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
     for (const t of arrows) {
       const u = t - 0.5;
-      ctx.moveTo(...at(u - 0.1, -0.24));
-      ctx.lineTo(...at(u + 0.04, 0));
-      ctx.lineTo(...at(u - 0.1, 0.24));
+      this.arrowPath.push(...at(u - 0.1, -0.24), ...at(u + 0.04, 0), ...at(u - 0.1, 0.24));
     }
-    ctx.stroke();
-    ctx.lineCap = 'butt';
     // Caps where a line starts or stops: a lip at the start, a hazard bumper at the end.
     if (!look.fed && !this.drawSprite(`buildings/${b.type}_start`, b.x, b.y, 1, angle)) {
       ctx.fillStyle = b.type === 'express_belt' ? EXPRESS_RAIL : BELT_RAIL;
@@ -1236,8 +1271,38 @@ export class Renderer {
         ctx.fill();
       }
     }
-    // Two lanes (#61): left and right of the middle, looking the way the belt runs.
-    for (const it of b.belt) this.drawItem(it.item, ...this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET)), ITEM_ON_BELT);
+    // Two lanes (#61): left and right of the middle, looking the way the belt runs. Drawn after every
+    // belt's arrows (drawBeltItems).
+    for (const it of b.belt) {
+      const [x, y] = this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET));
+      this.beltItems.push([it.item, x, y]);
+    }
+  }
+
+  /** Every straight belt's chevrons, gathered by drawBelt, in one stroke. */
+  private strokeBeltArrows(z: number): void {
+    const ctx = this.ctx;
+    const p = this.arrowPath;
+    if (p.length) {
+      ctx.strokeStyle = BELT_SLAT;
+      ctx.lineWidth = 2.5 / z;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < p.length; i += 6) {
+        ctx.moveTo(p[i], p[i + 1]);
+        ctx.lineTo(p[i + 2], p[i + 3]);
+        ctx.lineTo(p[i + 4], p[i + 5]);
+      }
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+    this.arrowPath = [];
+  }
+
+  /** The items on straight belts, gathered by drawBelt, over every belt and its arrows. */
+  private drawBeltItems(): void {
+    for (const [item, x, y] of this.beltItems) this.drawItem(item, x, y, ITEM_ON_BELT);
+    this.beltItems = [];
   }
 
   /**
@@ -1578,26 +1643,33 @@ export class Renderer {
   }
 
   /** Wires between linked power poles (D-121), sagging a little between their tops. */
-  private drawWires(poles: Building[], z: number): void {
-    const ctx = this.ctx;
-    ctx.lineCap = 'round';
+  /** The wires between power poles: only those crossing the screen, all in two strokes (outline, then copper). */
+  private drawWires(poles: Building[], z: number, [x0, y0, x1, y1]: [number, number, number, number]): void {
+    const wires: [number, number, number, number, number][] = [];
     for (const p of poles) {
       for (const q of poles) {
         if (q.id >= p.id || (p.x - q.x) ** 2 + (p.y - q.y) ** 2 > ELECTRIC.link ** 2) continue;
         const [ax, ay, bx, by] = [p.x + 0.5, p.y + 0.2, q.x + 0.5, q.y + 0.2];
         const sag = 0.12 + 0.03 * Math.hypot(bx - ax, by - ay);
-        for (const [style, width] of [
-          ['rgba(15,26,46,0.85)', 3],
-          ['#c98a3a', 1.6],
-        ] as const) {
-          ctx.strokeStyle = style;
-          ctx.lineWidth = width / z;
-          ctx.beginPath();
-          ctx.moveTo(ax, ay);
-          ctx.quadraticCurveTo((ax + bx) / 2, (ay + by) / 2 + sag, bx, by);
-          ctx.stroke();
-        }
+        if (Math.max(ax, bx) < x0 || Math.min(ax, bx) > x1 || Math.max(ay, by) + sag < y0 || Math.min(ay, by) > y1) continue;
+        wires.push([ax, ay, bx, by, sag]);
       }
+    }
+    if (!wires.length) return;
+    const ctx = this.ctx;
+    ctx.lineCap = 'round';
+    for (const [style, width] of [
+      ['rgba(15,26,46,0.85)', 3],
+      ['#c98a3a', 1.6],
+    ] as const) {
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width / z;
+      ctx.beginPath();
+      for (const [ax, ay, bx, by, sag] of wires) {
+        ctx.moveTo(ax, ay);
+        ctx.quadraticCurveTo((ax + bx) / 2, (ay + by) / 2 + sag, bx, by);
+      }
+      ctx.stroke();
     }
     ctx.lineCap = 'butt';
   }

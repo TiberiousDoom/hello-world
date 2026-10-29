@@ -69,7 +69,8 @@ quality and business work don't get left until the end.
 38. ✅ **Code review fixes** (0.87.1): co-op hardening (relay messages checked, a `-0` desync, big pastes, missed turns), drones mixing items, turrets wasting shots, turning and moving buildings, the engineer stuck in a building, saves that fail, shortcuts behind dialogs, and the dedicated server's saves.
 39. ✅ **More review fixes** (0.87.2): guests take only plain data from a host, oversized host messages split or refused instead of disconnecting the host, a capped command log, and power networks rebuilt only when buildings change.
 40. ✅ **Last review fixes** (0.87.3): co-op command limits, rejoin limits and stray engineers, relay status caching, nest edge cases, damaged belt refunds, Settings back to the pause menu, and one save load on the main menu.
-41. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+41. ✅ **Performance** (0.87.4): a performance test with a 1,000-building base under attack at night (tick and draw budgets), and faster repair stations, night, zooming, belt arrows, power lines and bugs' searches.
+42. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
@@ -222,7 +223,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Unit tests for the simulation, run in CI on every PR
 - ✅ Versioned saves with tested migrations (v8 started over with the new map, D-038)
 - ✅ Browser tests (Playwright, `e2e/`) in CI on desktop and phone viewports: lessons, blueprints, HUD, controls, music, the supply ship and wood (D-035)
-- ⬜ A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies
+- 🚧 A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies. ✅ A test holds the game to a tick and draw budget on such a base (0.87.4, `src/sim/perf.test.ts`, `e2e/perf.spec.ts`). ⬜ Measured on a real phone
 - ✅ Lint and format checks (0.85.0, D-144): ESLint and Prettier, run in CI (`npm run lint`)
 - 🚧 Error reporting (Q-7): the feedback form includes recent page errors when a player sends a report (D-064); automatic reporting is still open
 - 🚧 Save export and import: the feedback form can download the current game; importing a save is still to come

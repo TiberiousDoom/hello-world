@@ -9,7 +9,7 @@ import { loadArt } from './art';
 import { BLUEPRINTS, BLUEPRINT_BY_ID, DIFFICULTY, HUB_SIZE } from './sim/data';
 import { Command, ResultOf, applyCommand } from './sim/commands';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './sim/demo';
-import { runScenario } from './sim/scenario';
+import { benchWorld, runScenario } from './sim/scenario';
 import { LoggedCommand, Session } from './sim/session';
 import { OldSaveError, PlaceError, TICK, World } from './sim/world';
 import { VERSION, changelogHtml } from './ui/changelog';
@@ -843,6 +843,8 @@ requestAnimationFrame(frame);
   coop,
   /** The scripted game the cross-browser determinism test runs (D-058). */
   runScenario,
+  /** Plays the performance budget's big base under attack (the performance test). */
+  playBench: () => play(benchWorld()),
   /** The colony's blueprints, so a test can add a stand-in while the pool is empty (D-126). */
   blueprints: { list: BLUEPRINTS, byId: BLUEPRINT_BY_ID },
 };

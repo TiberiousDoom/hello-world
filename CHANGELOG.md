@@ -3,6 +3,17 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.4 · 2026-10-29 · A faster big base
+### New
+- A performance test: a big base of over 1,000 buildings under attack by 200 bugs at night must tick and draw within a budget, so slowdowns are caught before they ship.
+
+### Fixed
+- **Repair stations** no longer look through every building on the map every tick: a big base's game ticks about seven times faster.
+- **Night** is much cheaper to draw: its dark is drawn at a lower resolution (it has no sharp edges) with one soft light shape for every light.
+- **Zooming** (pinch or wheel) no longer repaints the ground and treetops on every frame: they stretch while you zoom and are painted afresh once you stop.
+- Belts' arrows and power lines are drawn in a few strokes instead of one each, and only the power lines on screen are drawn.
+- Bugs looking for buildings within reach skip empty ground, which mattered at night, when they look furthest.
+
 ## 0.87.3 · 2026-10-29 · More fixes from the review
 ### New
 - Nothing new to play: the last small fixes from the code review.
