@@ -1,8 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-        <ellipse cx="36" cy="40" rx="10" ry="5" fill="#0a1a0c" opacity="0.3" />
-        <rect x="27" y="14" width="10" height="34" rx="3" fill="#8a6234" stroke="#0f1a2e" stroke-width="2.5" />
-        <path d="M30 18 V44" stroke="#b07a3c" stroke-width="1.5" stroke-linecap="round" />
-        <rect x="12" y="10" width="40" height="7" rx="2" fill="#6d4a24" stroke="#0f1a2e" stroke-width="2.5" />
-        <g fill="#d9e6f2" stroke="#0f1a2e" stroke-width="1.8"><circle cx="17" cy="10" r="3.5" /><circle cx="32" cy="10" r="3.5" /><circle cx="47" cy="10" r="3.5" /></g>
-        <circle cx="32" cy="48" r="5" fill="#5a4630" stroke="#0f1a2e" stroke-width="2" />
-      </svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs>
+        <linearGradient id="ppWood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c08a52" /><stop offset="0.55" stop-color="#8a6234" /><stop offset="1" stop-color="#5e3d1d" /></linearGradient>
+        <linearGradient id="ppArm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a87642" /><stop offset="1" stop-color="#5e3d1d" /></linearGradient>
+        <radialGradient id="ppGlass" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#ffffff" /><stop offset="0.45" stop-color="#bfe4ff" /><stop offset="1" stop-color="#3f86c4" /></radialGradient>
+      </defs>
+      <!-- A tall pole: its shadow falls long, down and to the right -->
+      <path d="M33 52 L52 58 L55 55 L37 49 Z" fill="#0a1a0c" opacity="0.28" />
+      <!-- Stones packed round its foot -->
+      <g fill="#8d887e" stroke="#0f1a2e" stroke-width="1.2"><ellipse cx="25" cy="51" rx="4" ry="3" /><ellipse cx="39" cy="51.5" rx="4" ry="3" /></g>
+      <ellipse cx="32" cy="50" rx="9" ry="4.5" fill="#5a4630" stroke="#0f1a2e" stroke-width="2" />
+      <!-- The pole, its grain, an iron step -->
+      <rect x="27.5" y="12" width="9" height="38" rx="3" fill="url(#ppWood)" stroke="#0f1a2e" stroke-width="2.4" />
+      <path d="M30 17 V46" stroke="#e0b07a" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
+      <path d="M33.5 24 q1 4 0 8 M32.5 38 q1 3 0 6" fill="none" stroke="#5e3d1d" stroke-width="0.8" />
+      <path d="M36 36 h4" stroke="#0f1a2e" stroke-width="2.6" stroke-linecap="round" /><path d="M36 36 h4" stroke="#8a96a8" stroke-width="1.2" stroke-linecap="round" />
+      <!-- The cross-arm and its braces -->
+      <path d="M22 19 L30 26 M42 19 L34 26" stroke="#0f1a2e" stroke-width="3.6" stroke-linecap="round" /><path d="M22 19 L30 26 M42 19 L34 26" stroke="#8a6234" stroke-width="1.8" stroke-linecap="round" />
+      <rect x="10" y="12" width="44" height="7" rx="2" fill="url(#ppArm)" stroke="#0f1a2e" stroke-width="2.4" />
+      <path d="M12 13.8 H52" stroke="#d9a86a" stroke-width="1" stroke-linecap="round" opacity="0.8" />
+      <g fill="#3a3f4b"><circle cx="24" cy="15.5" r="1" /><circle cx="40" cy="15.5" r="1" /></g>
+      <!-- Three glass insulators the wires hang from -->
+      <g stroke="#0f1a2e" stroke-width="1.6"><path d="M14 13 h6 v-2 a3 3 0 0 0 -6 0 z" fill="url(#ppGlass)" /><path d="M29 13 h6 v-2 a3 3 0 0 0 -6 0 z" fill="url(#ppGlass)" /><path d="M44 13 h6 v-2 a3 3 0 0 0 -6 0 z" fill="url(#ppGlass)" /></g>
+      <g fill="url(#ppGlass)" stroke="#0f1a2e" stroke-width="1.4"><circle cx="17" cy="7.5" r="2.6" /><circle cx="32" cy="7.5" r="2.6" /><circle cx="47" cy="7.5" r="2.6" /></g>
+      <g fill="#ffffff"><circle cx="16.2" cy="6.7" r="0.8" /><circle cx="31.2" cy="6.7" r="0.8" /><circle cx="46.2" cy="6.7" r="0.8" /></g>
+    </svg>

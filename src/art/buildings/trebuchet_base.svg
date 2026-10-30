@@ -1,11 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs>
         <filter id="tbSh" x="-15%" y="-15%" width="140%" height="140%"><feDropShadow dx="1" dy="2" stdDeviation="1.2" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+        <linearGradient id="tbBeamH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8955a" /><stop offset="1" stop-color="#7a5230" /></linearGradient>
+        <linearGradient id="tbBeamV" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c8955a" /><stop offset="1" stop-color="#7a5230" /></linearGradient>
+        <radialGradient id="tbDisc" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#b9824a" /><stop offset="1" stop-color="#6b4426" /></radialGradient>
+        <radialGradient id="tbStone" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#d8d4ca" /><stop offset="1" stop-color="#7d786e" /></radialGradient>
       </defs><g filter="url(#tbSh)" stroke-linejoin="round">
-        <rect x="4" y="10" width="56" height="44" rx="3" fill="#7a5230" stroke="#0f1a2e" stroke-width="2.4" />
-        <path d="M6 18 H58 M6 46 H58" stroke="#a87642" stroke-width="5" />
-        <path d="M6 18 H58 M6 46 H58" stroke="#0f1a2e" stroke-width="1" opacity="0.5" />
-        <g stroke="#0f1a2e" stroke-width="2"><path d="M14 18 L32 30 L50 18" fill="none" stroke="#c48f52" stroke-width="5" /><path d="M14 46 L32 34 L50 46" fill="none" stroke="#c48f52" stroke-width="5" /></g>
-        <circle cx="32" cy="32" r="5" fill="#3b3a3f" stroke="#0f1a2e" stroke-width="2" />
-        <g fill="#3b3a3f"><circle cx="8" cy="14" r="2.5" /><circle cx="56" cy="14" r="2.5" /><circle cx="8" cy="50" r="2.5" /><circle cx="56" cy="50" r="2.5" /></g>
+        <!-- Diagonal braces from each corner to the turntable -->
+        <g stroke-linecap="round"><path d="M10 10 L22 22 M54 10 L42 22 M54 54 L42 42" stroke="#0f1a2e" stroke-width="5.4" /><path d="M10 10 L22 22 M54 10 L42 22 M54 54 L42 42" stroke="#9a6a3a" stroke-width="3" /></g>
+        <!-- The sill: four squared timbers, end grain at the corners -->
+        <rect x="4" y="5" width="56" height="7" rx="1.5" fill="url(#tbBeamH)" stroke="#0f1a2e" stroke-width="2" />
+        <rect x="4" y="52" width="56" height="7" rx="1.5" fill="url(#tbBeamH)" stroke="#0f1a2e" stroke-width="2" />
+        <rect x="5" y="4" width="7" height="56" rx="1.5" fill="url(#tbBeamV)" stroke="#0f1a2e" stroke-width="2" />
+        <rect x="52" y="4" width="7" height="56" rx="1.5" fill="url(#tbBeamV)" stroke="#0f1a2e" stroke-width="2" />
+        <g fill="#d9aa70" stroke="#0f1a2e" stroke-width="1.4"><rect x="5" y="5" width="7" height="7" rx="1.5" /><rect x="52" y="5" width="7" height="7" rx="1.5" /><rect x="5" y="52" width="7" height="7" rx="1.5" /><rect x="52" y="52" width="7" height="7" rx="1.5" /></g>
+        <g fill="none" stroke="#8a5a30" stroke-width="0.8" opacity="0.9"><circle cx="8.5" cy="8.5" r="1.8" /><circle cx="55.5" cy="8.5" r="1.8" /><circle cx="8.5" cy="55.5" r="1.8" /><circle cx="55.5" cy="55.5" r="1.8" /></g>
+        <path d="M14 6.5 H50 M6.5 14 V50" stroke="#f0c890" stroke-width="1" stroke-linecap="round" opacity="0.8" />
+        <path d="M18 9.5 q5 1 10 0 M36 56 q6 1 10 0 M8.5 22 q1 5 0 10 M55.5 34 q1 5 0 10" fill="none" stroke="#6b4426" stroke-width="0.8" />
+        <!-- Iron brackets on the joints -->
+        <g fill="#3a3f4b" stroke="#0f1a2e" stroke-width="0.8"><path d="M12 4.5 h4 v8 h-4 z M48 4.5 h4 v8 h-4 z M12 51.5 h4 v8 h-4 z M48 51.5 h4 v8 h-4 z" /></g>
+        <!-- The turntable the arm turns on -->
+        <circle cx="32" cy="32" r="16" fill="url(#tbDisc)" stroke="#0f1a2e" stroke-width="2.2" />
+        <path d="M18 27 H46 M17 32 H47 M18 37 H46" stroke="#5a3a1e" stroke-width="0.9" opacity="0.7" />
+        <circle cx="32" cy="32" r="14.2" fill="none" stroke="#3a3f4b" stroke-width="1.8" />
+        <path d="M21 23 A14.2 14.2 0 0 1 32 17.8" fill="none" stroke="#8a96a8" stroke-width="1" stroke-linecap="round" />
+        <g fill="#8a96a8"><circle cx="32" cy="19.5" r="0.9" /><circle cx="44.5" cy="32" r="0.9" /><circle cx="32" cy="44.5" r="0.9" /><circle cx="19.5" cy="32" r="0.9" /><circle cx="40.8" cy="23.2" r="0.9" /><circle cx="40.8" cy="40.8" r="0.9" /><circle cx="23.2" cy="40.8" r="0.9" /><circle cx="23.2" cy="23.2" r="0.9" /></g>
+        <!-- A pile of stone shot in the free corner -->
+        <g stroke="#0f1a2e" stroke-width="1.2" fill="url(#tbStone)"><circle cx="17.5" cy="47.5" r="3.4" /><circle cx="22.5" cy="49" r="3" /><circle cx="18.5" cy="42.5" r="2.8" /></g>
+        <g fill="#ffffff" opacity="0.55"><circle cx="16.5" cy="46.3" r="0.9" /><circle cx="21.6" cy="47.9" r="0.8" /><circle cx="17.7" cy="41.5" r="0.7" /></g>
       </g>
       </svg>

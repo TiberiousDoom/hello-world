@@ -106,7 +106,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Ship scaffolding (D-109): a wooden lattice around the pad, seen from above | 5×5 | The ship's first stage on the map (`buildings/ship_scaffold`); the shipyard and the other ship stages are drawn at 5×5 too (3×3 before D-109) | 1 | P2 | Placeholder |
 | Ship launch pad (D-118): a brick slab with a riveted iron blast plate in the middle, seen from above | 5×5 | The ship's Iron Age stage (`buildings/ship_pad`), drawn under the scaffolding and the ship | 1 | P2 | Placeholder |
 | Spike pit (D-107): a dug pit bristling with sharpened stakes | 1×1 | A charge bar shows its wear | 1 | P2 | Placeholder (`buildings/spike_pit`) |
-| Trebuchet (D-107): a wooden frame, and its throwing arm with a counterweight and sling | 2×2 | Base and arm (`_base`, `_barrel`), the arm turning to aim like a turret's barrel | 1 | P2 | Placeholder (`buildings/trebuchet_base`, `buildings/trebuchet_barrel`) |
+| Trebuchet (D-107): a wooden frame, and its throwing arm with a counterweight and sling | 2×2 | Base and arm (`_base`, `_barrel`), the arm turning to aim like a turret's barrel | 1 | P2 | Upgraded in 0.87.7: an open timber frame on a turntable with stone shot piled in a corner; the arm with uprights, an iron-banded counterweight and a loaded sling (`buildings/trebuchet_base`, `buildings/trebuchet_barrel`) |
 | Belt (straight) | 1×1 | Moving surface; must tile seamlessly end to end | 8 | P1 | Upgraded |
 | Belt (corner) | 1×1 | A quarter turn of the rails and bed, coming in from the west and leaving south. Other turns rotate it, and left turns mirror it. The slats moving round the bend are drawn in code over it | 1 | P3 | Upgraded (`buildings/belt_corner`, `express_belt_corner`) |
 | Belt end cap, start lip, join flange | 1×1, facing east, transparent but for the piece | Drawn over a belt: a hazard bumper on the east edge where a line stops, a rail lip on the west edge where it starts, a metal flange on the east edge where a belt meets a building (turned to that side) | 1 | P3 | Upgraded (`buildings/belt_end`, `belt_start`, `express_belt_start`, `belt_flange`) |
@@ -116,7 +116,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Blacksmith (D-113): a forge of glowing coals, an anvil with an ingot on it, a hammer, a stack of ingots | 2×2 (128×128) | Idle and working, facing east. Working: the hammer swings and strikes, sparks fly, the coals breathe | 1 + 4 | P2 | Placeholder; working strip `blacksmith_working_4f` |
 | Drive shaft (D-115): a steel rod with a coupling, running east–west | 1×1 | Laid in lines; turned to run along them | 1 | P2 | Placeholder (`buildings/shaft`) |
 | Well (D-115): a round stone well with water inside and a crank across it | 2×2 (128×128) | Always working: the crank turns | 1 + 4 | P2 | Placeholder; working strip `well_working_4f` |
-| Water wheel (D-115): a wooden gearbox on land with a shaft out to a paddle wheel at its front, in the water | 3×1 (192×64), facing east | Always working: the wheel turns, spray flies | 1 + 4 | P2 | Placeholder; working strip `water_wheel_working_4f` |
+| Water wheel (D-115): a wooden gearbox on land with a shaft out to a paddle wheel at its front, in the water | 3×1 (192×64), facing east | Always working: the wheel turns, spray flies | 1 + 4 | P2 | Upgraded in 0.87.7: meshing gears in the gearbox, a rimmed wheel with a bolted hub; working strip `water_wheel_working_4f` |
 | Machine Shop (D-113): a lathe and two gears on a steel floor | 2×2 (128×128) | Idle and working, facing east. Working: the lathe's chuck spins, the gears turn, the light blinks | 1 + 4 | P2 | Placeholder; working strip `machine_shop_working_4f` |
 | Assembler | 3×3 (192×192) | Idle and working, facing east. Working: the arm nods and welds, the gear turns, the lights take turns | 1 + 4 | P2 | Upgraded; working strip `assembler_working_4f` |
 | Splitter | 1×2 (64×128), facing east | A box straddling two belt lanes, an arrow on each: two lanes in, two out (#34) | 1 | P2 | Upgraded |
@@ -135,7 +135,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Palisade set | 1×1 each | Chosen from neighbours: east–west runs seen from above as log tops (`palisade`), north–south runs in side view (`palisade_v`), corners `palisade_nw`, `_ne`, `_sw`, `_se`, gate ends `palisade_end_w`, `_end_e` and a lone post `palisade_post` | 1 | P2 | Upgraded |
 | Leaf burst when a tree is cut | 64×64 | 4 | P3 | Upgraded (`effects/leaf_burst_4f`) |
 | Express belt (straight) | 1×1 | Like the belt, with hazard-yellow rails so it reads as faster. Its corner and start lip are sprites with the same rails | 8 | P2 | Upgraded (`buildings/express_belt`) |
-| Ballista base | 1×1 | A wooden platform | 1 | P2 | Upgraded (`buildings/ballista_base`) |
+| Ballista base | 1×1 | A wooden platform | 1 | P2 | Upgraded; redrawn in 0.87.7 as a plank platform with a turntable and spare bolts (`buildings/ballista_base`) |
 | Ballista bow | 1×1 | Separate layer that turns to aim: the bow at the front of the stock, string drawn back, no arrow; centred pivot | 1 | P2 | Upgraded (`buildings/ballista_barrel`) |
 | Tesla base | 1×1 | Static | 1 | P2 | Upgraded (`buildings/tesla_base`) |
 | Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel, no arrow; centred pivot | 1 | P2 | Upgraded (`buildings/tesla_barrel`) |
@@ -145,7 +145,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Steel beam and bearing items (D-120) | 16×16 | An I-beam; a ball bearing | 1 each | P3 | Placeholder (`items/steel_beam`, `items/bearing`) |
 | Boiler (D-121): a brick firebox with a riveted steel drum, a fire behind the grate and a smoke stack | 2×2 | Static, plus a 4-frame working strip (fire flickering, glow, smoke) | 1 + 4 | P2 | Placeholder (`buildings/boiler`, `boiler_working_4f`) |
 | Steam Turbine (D-121): a bladed rotor in a steel casing, with a copper generator coil | 2×2 | Static, plus a 4-frame working strip (rotor turning, spark) | 1 + 4 | P2 | Placeholder (`buildings/steam_turbine`, `steam_turbine_working_4f`) |
-| Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Placeholder (`buildings/power_pole`) |
+| Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Upgraded in 0.87.7: glass insulators, braces, stones at its foot and a long shadow (`buildings/power_pole`) |
 | Storage Silo (D-122): a round steel silo roof inside a square frame, with an output hatch | 2×2 | Static | 1 | P2 | Placeholder (`buildings/storage_silo`) |
 | Mk2 plate (D-122) | — | A gold plate with two chevrons on Mk2 extractors and furnaces, dim without electricity | — | P3 | Code |
 | Sulfur node (D-123) | 1×1 | Yellow crystals in rock, like the other ore nodes | 1 | P2 | Placeholder (`terrain/node_sulfur`, recoloured from copper) |
@@ -191,7 +191,7 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Runner: glossy black, centipede-like, many legs | ~22 px (32×32); in play drawn about 3× as long | 4 walk, 4 attack | P2 | Upgraded (`runner_walk_4f`, `runner_attack_4f`; `runner`, `runner_b`; redrawn after the art review). In play it's drawn in code since #96: a long segmented body that follows its trail and sways; the sprites remain for the menu and fallbacks |
 | Brute: four-legged and centaur-like (no human top): a heavy rear body, a raised front body with two hooked claws; very dark red | ~46 px (64×64) | 4 walk, 4 attack | P2 | Upgraded (`brute_walk_4f`, `brute_attack_4f`; `brute`, `brute_b`; redrawn after the art review) |
 | Wasp (D-135): striped yellow and black, four see-through wings, red eyes | ~28 px (64×64) | 2 wingbeats | P2 | Placeholder (`wasp`, `wasp_b`; drawn above the trees, with a ground shadow) |
-| Beetle (D-135): a domed blue-black shell split down the middle, six legs, glowing eyes | ~40 px (64×64) | 2 walk | P2 | Placeholder (`beetle`, `beetle_b`) |
+| Beetle (D-135): a domed blue-black shell split down the middle, six legs, glowing eyes | ~40 px (64×64) | 2 walk | P2 | Upgraded in 0.87.7: glossy split wing cases, an armoured collar, mandibles, jointed legs (`beetle`, `beetle_b`) |
 | Young crawler, runner and brute (D-065, D-071): smaller, duller versions that grow into the adults | about 60% of the adult | 2 walk each | P2 | Code (the adult sprites drawn smaller, duller and a little darker, D-075) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Upgraded (`effects/death_splat_4f`) |
 
