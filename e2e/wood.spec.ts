@@ -135,7 +135,7 @@ test('wooden defences: a spike pit and a trebuchet go up, and their panels show 
   await calm(page);
   await page.evaluate(() => {
     const w = window.game.world;
-    w.state.inventory = { plank: 999, stake: 999, rope: 999, truss: 99 };
+    w.state.inventory = { plank: 999, stake: 999, rope: 999, truss: 99, stone: 99 };
     w.state.researched.push('forestry', 'rollers', 'workshop', 'carpentry', 'palisades', 'defense2');
   });
   const spot = await page.evaluate(() => {
