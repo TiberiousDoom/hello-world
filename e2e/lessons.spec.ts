@@ -129,7 +129,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     w.state.inventory = { plank: 999, stone: 999, truss: 999 };
     w.state.researched.push('workshop', 'carpentry', 'defense2');
     w.researchNow('industry');
-    w.state.inventory = { stone: 10, iron_ore: 4 };
+    w.state.inventory = { stone: 10, iron_ore: 4, log: 6 }; // the furnace's logs are its first fuel (#180)
   });
   await expect(step).toHaveText(/^Smelting · 2/);
 
@@ -176,8 +176,25 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await buildTile(page, info, ...out);
   await expect(step).toContainText('4 of');
 
-  // Collect its ingots by hand (D-113).
+  // Collect its ingots by hand (D-113). The lesson points at Collect only on the furnace, not on another
+  // building that has one (#176).
   await putDown(page, 'furnace');
+  const spotOnCollect = () =>
+    page.evaluate(() => {
+      const spot = document.querySelector('#tutorial .spot')!.getBoundingClientRect();
+      const btn = document.querySelector('#info [data-action="collect"]')!.getBoundingClientRect();
+      const [x, y] = [spot.left + spot.width / 2, spot.top + spot.height / 2];
+      return x >= btn.left && x <= btn.right && y >= btn.top && y <= btn.bottom;
+    });
+  const extractor = await page.evaluate(() => {
+    const e = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'extractor');
+    e.outputs = ['iron_ore'];
+    return [e.x, e.y] as [number, number];
+  });
+  await tap(page, info, ...(await uncoveredTile(page, ...extractor)));
+  await expect(page.locator('#info [data-action="collect"]')).toBeVisible();
+  await settled(page.locator('#tutorial .spot'));
+  expect(await spotOnCollect()).toBe(false);
   const furnace = await page.evaluate(() => {
     const f = window.game.world.state.buildings.find((b: { type: string }) => b.type === 'furnace');
     f.outputs = ['iron_ingot', 'iron_ingot'];
@@ -185,6 +202,8 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   });
   await tap(page, info, ...(await uncoveredTile(page, ...furnace)));
   await expect(page.locator('#info [data-action="collect"]')).toHaveText(/Collect [2-4]/); // it may finish more ingots meanwhile
+  await settled(page.locator('#tutorial .spot'));
+  await expect.poll(spotOnCollect).toBe(true);
   // Ore lies 20+ tiles out (D-097): skip the engineer's walk there and back, which isn't what this tests.
   await page.evaluate(([x, y]) => Object.assign(window.game.world.state.players[0], { x: x - 0.5, y: y + 0.5, path: [] }), furnace);
   await page.click('#info [data-action="collect"]');
@@ -211,7 +230,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     window.game.world.state.research.paid.blacksmith = { iron_ingot: 999, stone: 999 }; // finish it now
   });
   await expect.poll(() => page.evaluate(() => window.game.world.isUnlocked('blacksmith'))).toBe(true);
-  await page.evaluate(() => Object.assign(window.game.world.state.inventory, { iron_ingot: 20, stone: 20 }));
+  await page.evaluate(() => Object.assign(window.game.world.state.inventory, { iron_ingot: 20, stone: 20, log: 6 }));
 
   // The blacksmith goes right in front of the furnace's arrow.
   await page.click('[data-tool="blacksmith"]');

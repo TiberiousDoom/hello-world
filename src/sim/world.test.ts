@@ -50,6 +50,9 @@ import {
   nestComposition,
   nestKindFor,
   stageSize,
+  startLoad,
+  BUG_SPACING,
+  BuildingType,
 } from './data';
 import { Nest, anyAngry, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, onBugHurt, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, defenceTierCost, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
@@ -57,6 +60,7 @@ import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
 import { blocked, emptySlots, held, heldOf, isDown } from './player';
 import { applyCommand } from './commands';
+import { hypot } from './math';
 
 /** A world with no resources, no bugs, only the hub, everything researched and a big inventory. */
 function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
@@ -88,6 +92,8 @@ function emptyWorld(mode: 'standard' | 'hardcore' = 'standard'): World {
     iron_ingot: 999,
     iron_rod: 999,
     rivet: 999,
+    bullet: 999,
+    shell: 999,
   };
   return w;
 }
@@ -1438,7 +1444,7 @@ describe('Starting from nothing (#38)', () => {
     expect(BUILDINGS.lumber_camp.cost).toEqual({ log: 8 });
     expect(BUILDINGS.sawmill.cost).toEqual({ log: 14 });
     expect(RESEARCH_BY_ID.industry.unlocks.sort()).toEqual(['extractor', 'furnace']);
-    expect(BUILDINGS.furnace.cost).toEqual({ stone: 6 });
+    expect(BUILDINGS.furnace.cost).toEqual({ stone: 6, log: 6 }); // the logs are its first fuel (#180)
     expect(Object.keys(BUILDINGS.extractor.cost).sort()).toEqual(['iron_ore', 'stone']);
   });
 
@@ -1526,9 +1532,10 @@ describe('Starting from nothing (#38)', () => {
     run(w, 8);
     expect(held(w.state.players[0])).toBe(0);
     expect(w.state.inventory).toEqual({ stone: 10, iron_ore: 4 });
+    w.state.inventory.log = 6; // left from the Wood Age: the furnace's first fuel
     placed(w.place('extractor', x, y + 3, 0));
     const fu = placed(w.place('furnace', x + 2, y + 3, 0));
-    expect(w.state.inventory).toEqual({ stone: 0, iron_ore: 0 });
+    expect(w.state.inventory).toEqual({ stone: 0, iron_ore: 0, log: 0 });
     run(w, 12);
     expect(fu.outputs.length).toBeGreaterThan(0);
     expect(w.collect(fu.id)).toBe(0); // out of reach: the character goes to fetch them
@@ -1726,7 +1733,7 @@ describe('The player character (#40)', () => {
     expect(held(p)).toBe(most);
     expect(p.slots.every((s) => s?.n === PLAYER.stack)).toBe(true);
     expect(w.mineByHand(x, y)).toBe('full');
-    w.state.inventory = { stone: 6 };
+    w.state.inventory = { stone: 6, log: 6 };
     const fu = placed(w.place('furnace', x + 3, y + 3, 0));
     expect(w.dropOff(fu.id)).toBe(0); // not in reach yet: walks over, then hands it in
     run(w, 4);
@@ -2245,7 +2252,7 @@ describe('The Iron Age: ingots, the Blacksmith and the Machine Shop (D-113)', ()
   it('plates need the Blacksmith research, paid in ingots and stone; the Machine Shop needs it, and Assembly needs the Machine Shop', () => {
     expect(RESEARCH_BY_ID.blacksmith.requires).toEqual(['industry']);
     expect(Object.keys(RESEARCH_BY_ID.blacksmith.cost).sort()).toEqual(['iron_ingot', 'stone']);
-    expect(Object.keys(BUILDINGS.blacksmith.cost).sort()).toEqual(['iron_ingot', 'stone']);
+    expect(Object.keys(BUILDINGS.blacksmith.cost).sort()).toEqual(['iron_ingot', 'log', 'stone']);
     expect(RESEARCH_BY_ID.machine_shop.requires).toEqual(['blacksmith']);
     expect(RESEARCH_BY_ID.assembly.requires).toEqual(['machine_shop']);
     // Everything that costs plates comes after the Blacksmith.
@@ -3693,8 +3700,8 @@ describe('Better ammo (D-136)', () => {
   it('a turret by the hub takes better ammo from stock first', () => {
     const w = emptyWorld();
     const hub = w.hub!;
-    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9, bullet: 5, ap_bullet: 1 });
-    const t = placed(w.place('turret2', hub.x + HUB_SIZE, hub.y + 2, 0));
+    Object.assign(w.state.inventory, { steel: 99, steel_beam: 99, motor: 9, bullet: 17, ap_bullet: 1 });
+    const t = placed(w.place('turret2', hub.x + HUB_SIZE, hub.y + 2, 0)); // its first 12 bullets paid (#180)
     t.ammo = 0;
     w.tick();
     expect(w.state.inventory.ap_bullet).toBe(0);
@@ -3862,5 +3869,128 @@ describe('Defence tiers (D-142)', () => {
       expect(loaded.maxHp(lw)).toBe(lw.hp);
       expect(loaded.byId.get(furnace.id)!.tier).toBeUndefined();
     }
+  });
+});
+
+describe('What a building arrives holding is paid for (#180)', () => {
+  it("a defence's tier upgrade costs its frame times the tier, without its starting load", () => {
+    expect(defenceTierCost('trebuchet', 2)).toEqual({ plank: 80, rope: 20, truss: 16, chitin: DEFENCE_TIERS.chitin[2] });
+    expect(defenceTierCost('turret', 3).iron_plate).toBe(30);
+  });
+
+  it("every stocked building's cost includes its starting load, and every turret that takes ammo is stocked", () => {
+    for (const type of Object.keys(BUILDINGS) as BuildingType[]) {
+      for (const [item, n] of Object.entries(startLoad(type))) expect(BUILDINGS[type].cost[item as ItemId] ?? 0, `${type} ${item}`).toBeGreaterThanOrEqual(n!);
+      if (TURRETS[type]?.ammoItem) expect(Object.keys(startLoad(type)), type).toEqual([TURRETS[type]!.ammoItem]);
+    }
+    expect(BUILDINGS.trebuchet.cost.stone).toBe(TURRETS.trebuchet!.maxShots);
+  });
+
+  it("a trebuchet's stone comes back only while it's unfired: an empty one rebuilt isn't a free refill", () => {
+    const w = emptyWorld();
+    w.state.inventory.stone = 100;
+    const t = placed(w.place('trebuchet', 40, 40, 0));
+    expect(t.ammo).toBe(TURRETS.trebuchet!.maxShots);
+    expect(w.state.inventory.stone).toBe(100 - 12);
+    t.ammo = 5; // seven stones fired
+    w.demolish(t.id);
+    expect(w.state.inventory.stone).toBe(100 - 12 + 5);
+    expect(w.state.inventory.plank).toBe(999); // the frame comes back as before
+    const again = placed(w.place('trebuchet', 40, 40, 0));
+    again.ammo = 0;
+    w.demolish(again.id);
+    expect(w.state.inventory.stone).toBe(100 - 12 + 5 - 12);
+  });
+
+  it('spike pits, repair stations, furnaces and turrets give back what is left of their load, never more than they came with', () => {
+    const w = emptyWorld();
+    const before = { ...w.state.inventory };
+    const pit = placed(w.place('spike_pit', 40, 40, 0));
+    pit.ammo = SPIKES.perStake * 3 + 1;
+    w.demolish(pit.id);
+    expect(w.state.inventory.stake).toBe(before.stake! - 10 + 3);
+    const repair = placed(w.place('repair', 40, 40, 0));
+    repair.ammo = REPAIR.maxCharge; // topped up with planks: still only its five plates come back
+    w.demolish(repair.id);
+    expect(w.state.inventory.iron_plate).toBe(before.iron_plate!);
+    const fu = placed(w.place('furnace', 40, 40, 0));
+    fu.ammo = FUEL.burns.log! * 2;
+    w.demolish(fu.id);
+    expect(w.state.inventory.log).toBe(before.log! - 6 + 2);
+    const tu = placed(w.place('turret', 40, 40, 0));
+    tu.ammo = 9; // two plates' worth and a bit
+    w.demolish(tu.id);
+    expect(w.state.inventory.iron_plate).toBe(before.iron_plate! - 10 + 2);
+  });
+});
+
+describe('Bugs keep apart (#181)', () => {
+  /** Twenty crawlers dropped on one spot, going for a crate walled in on every side. */
+  const crowd = () => {
+    const w = emptyWorld();
+    const n = addNest(w, 80, 80, 0);
+    n.angryUntil = 1e9;
+    const crate = placed(w.place('crate', 60, 50, 0));
+    crate.hp = 1e9;
+    for (const [x, y] of [
+      [59, 49],
+      [60, 49],
+      [61, 49],
+      [59, 50],
+      [61, 50],
+      [59, 51],
+      [60, 51],
+      [61, 51],
+    ])
+      placed(w.place('wall', x, y, 0)).hp = 1e9;
+    for (let i = 0; i < 20; i++) {
+      const e = w.spawnBug('crawler', n, 1);
+      e.x = 66.5;
+      e.y = 50.5;
+    }
+    run(w, 10);
+    return w;
+  };
+
+  it('a crowd chasing the same way spreads out: their sprites cover no spot more than three deep', () => {
+    const w = crowd();
+    const bugs = w.state.enemies;
+    expect(bugs.length).toBe(20);
+    const r = ENEMIES.crawler.radius;
+    for (const a of bugs) for (const b of bugs) if (a !== b) expect(hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(2 * r * BUG_SPACING * 0.75);
+    const drawn = r * 2.1; // sprites are drawn about 2.1 radii across each way
+    let deepest = 0;
+    for (let y = 46; y < 56; y += 0.05) for (let x = 56; x < 70; x += 0.05) deepest = Math.max(deepest, bugs.filter((e) => (e.x - x) ** 2 + (e.y - y) ** 2 < drawn * drawn).length);
+    expect(deepest).toBeLessThanOrEqual(3);
+    expect(deepest).toBeGreaterThan(1); // they do still overlap a little
+  });
+
+  it('pushing never moves a bug into a wall, and two bugs on exactly the same spot part the same way every time', () => {
+    const w = crowd();
+    for (const e of w.state.enemies) expect(w.buildingAt(Math.floor(e.x), Math.floor(e.y))?.type).not.toBe('wall');
+    expect(JSON.stringify(crowd().state.enemies)).toBe(JSON.stringify(w.state.enemies));
+  });
+
+  it("a crowd isn't pushed through two walls that meet only at a corner", () => {
+    const w = emptyWorld();
+    placed(w.place('wall', 45, 44, 0));
+    placed(w.place('wall', 44, 45, 0));
+    const n = addNest(w, 40, 40, 0); // around the walls: its bugs go for them
+    for (let i = 0; i < 12; i++) {
+      const e = w.spawnBug('crawler', n, 1);
+      [e.x, e.y, e.tx, e.ty, e.wait] = [44.95, 44.95, 44.95, 44.95, 100];
+    }
+    run(w, 1);
+    for (const e of w.state.enemies) expect(Math.floor(e.x) > 44 && Math.floor(e.y) > 44, `${e.x}, ${e.y}`).toBe(false);
+  });
+
+  it('a wasp flies over walking bugs without pushing them', () => {
+    const w = emptyWorld();
+    const n = addNest(w, 80, 80, 0);
+    const a = w.spawnBug('crawler', n, 1);
+    const b = w.spawnBug('wasp', n, 1);
+    for (const e of [a, b]) [e.x, e.y, e.tx, e.ty, e.wait] = [84.5, 84.5, 84.5, 84.5, 100];
+    run(w, 0.5);
+    expect([a.x, a.y, b.x, b.y]).toEqual([84.5, 84.5, 84.5, 84.5]);
   });
 });

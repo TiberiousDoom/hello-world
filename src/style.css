@@ -268,13 +268,34 @@ body.in-menu #toasts {
   padding: 8px 8px calc(8px + var(--safe-bottom));
   display: flex;
   gap: 6px;
-  overflow-x: auto;
   background: linear-gradient(to top, rgba(15, 26, 46, 0.97), rgba(15, 26, 46, 0.75));
   border-top: 1px solid var(--border);
+}
+/* The tools scroll on their own, beside the Inventory button (#177): by finger, wheel or scrollbar (#178). */
+#toolbar .tools {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
   scrollbar-width: none;
 }
-#toolbar::-webkit-scrollbar {
+#toolbar .tools::-webkit-scrollbar {
   display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  #toolbar .tools {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  #toolbar .tools::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+  #toolbar .tools::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
 }
 .tool {
   position: relative;
@@ -396,10 +417,8 @@ body.in-menu #toasts {
   align-items: center;
   font-size: 13px;
 }
-/* Always at the right end of the toolbar, even while it scrolls. */
+/* Always at the right end of the toolbar, outside the tools that scroll. */
 .tool.pack-btn {
-  position: sticky;
-  right: 0;
   margin-left: auto;
 }
 .tool.pack-btn:not(.active) {
