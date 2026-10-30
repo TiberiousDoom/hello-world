@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 64">
+<svg x="0" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+            <linearGradient id="ltWood-f0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d39a5e" /><stop offset="1" stop-color="#8a5a2e" /></linearGradient>
+          </defs>
+          <path d="M46 9 Q56 20 50 32 Q56 44 46 55" fill="none" stroke="#0f1a2e" stroke-width="7" stroke-linecap="round" />
+          <path d="M46 9 Q56 20 50 32 Q56 44 46 55" fill="none" stroke="#9a6532" stroke-width="4" stroke-linecap="round" />
+          <path d="M47 10 Q57 20 52 29" fill="none" stroke="#d9a46a" stroke-width="1.3" stroke-linecap="round" />
+          <path d="M46 9 L50 32 L46 55" fill="none" stroke="#efe4c8" stroke-width="1.3" stroke-linejoin="round" />
+          <rect x="12" y="28.5" width="42" height="7" rx="2" fill="url(#ltWood-f0)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="47" y="25" width="6" height="14" rx="2" fill="#c9b48a" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M48 28 H52 M48 31 H52 M48 34 H52 M48 37 H52" stroke="#8f7a52" stroke-width="1" />
+          <rect x="20" y="29.5" width="5" height="5" rx="1" fill="#3a4656" stroke="#0f1a2e" stroke-width="1.2" />
+          <circle cx="14" cy="32" r="5.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="1.8" />
+          <path d="M14 27.5 V36.5 M9.5 32 H18.5" stroke="#8a96a8" stroke-width="1.4" />
+          <path d="M14 30 H50" stroke="#f1c48f" stroke-width="1" opacity="0.8" />
+        </svg>
+<svg x="64" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+            <linearGradient id="ltWood-f1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d39a5e" /><stop offset="1" stop-color="#8a5a2e" /></linearGradient>
+          </defs>
+          <path d="M45.5 8 Q58 20 51 32 Q58 44 45.5 56" fill="none" stroke="#0f1a2e" stroke-width="7" stroke-linecap="round" />
+          <path d="M45.5 8 Q58 20 51 32 Q58 44 45.5 56" fill="none" stroke="#9a6532" stroke-width="4" stroke-linecap="round" />
+          <path d="M47 10 Q57 20 52 29" fill="none" stroke="#d9a46a" stroke-width="1.3" stroke-linecap="round" />
+          <path d="M45.5 8 L38 32 L45.5 56" fill="none" stroke="#efe4c8" stroke-width="1.3" stroke-linejoin="round" />
+          <rect x="12" y="28.5" width="42" height="7" rx="2" fill="url(#ltWood-f1)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="47" y="25" width="6" height="14" rx="2" fill="#c9b48a" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M48 28 H52 M48 31 H52 M48 34 H52 M48 37 H52" stroke="#8f7a52" stroke-width="1" />
+          <rect x="20" y="29.5" width="5" height="5" rx="1" fill="#3a4656" stroke="#0f1a2e" stroke-width="1.2" />
+          <circle cx="14" cy="32" r="5.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="1.8" />
+          <path d="M14 27.5 V36.5 M9.5 32 H18.5" stroke="#8a96a8" stroke-width="1.4" />
+          <path d="M14 30 H50" stroke="#f1c48f" stroke-width="1" opacity="0.8" />
+        </svg>
+<svg x="128" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+            <linearGradient id="ltWood-f2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d39a5e" /><stop offset="1" stop-color="#8a5a2e" /></linearGradient>
+          </defs>
+          <path d="M45 7 Q60 20 52 32 Q60 44 45 57" fill="none" stroke="#0f1a2e" stroke-width="7" stroke-linecap="round" />
+          <path d="M45 7 Q60 20 52 32 Q60 44 45 57" fill="none" stroke="#9a6532" stroke-width="4" stroke-linecap="round" />
+          <path d="M47 10 Q57 20 52 29" fill="none" stroke="#d9a46a" stroke-width="1.3" stroke-linecap="round" />
+          <path d="M45 7 L22 32 L45 57" fill="none" stroke="#efe4c8" stroke-width="1.3" stroke-linejoin="round" />
+          <rect x="12" y="28.5" width="42" height="7" rx="2" fill="url(#ltWood-f2)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="47" y="25" width="6" height="14" rx="2" fill="#c9b48a" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M48 28 H52 M48 31 H52 M48 34 H52 M48 37 H52" stroke="#8f7a52" stroke-width="1" />
+          <rect x="20" y="29.5" width="5" height="5" rx="1" fill="#3a4656" stroke="#0f1a2e" stroke-width="1.2" />
+          <circle cx="14" cy="32" r="5.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="1.8" />
+          <path d="M14 27.5 V36.5 M9.5 32 H18.5" stroke="#8a96a8" stroke-width="1.4" />
+          <path d="M14 30 H50" stroke="#f1c48f" stroke-width="1" opacity="0.8" />
+        </svg>
+</svg>

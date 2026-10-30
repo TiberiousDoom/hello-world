@@ -181,7 +181,7 @@ interface Layer {
 const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
 
 interface Effect {
-  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite';
+  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob';
   x: number;
   y: number;
   r: number; // for a sprite, its size in tiles
@@ -189,6 +189,9 @@ interface Effect {
   life: number; // ms
   color: string; // for a sprite, its strip's name
   angle?: number;
+  /** A lobbed stone's landing spot. */
+  tx?: number;
+  ty?: number;
 }
 
 /** Whether the tile a belt runs into is one of the hub's corner tiles (#78). */
@@ -203,6 +206,15 @@ function hubCornerAhead(world: World, b: Building): boolean {
 
 /** The night's dark is drawn at this fraction of the screen's resolution (it has no sharp edges). */
 const NIGHT_RES = 0.25;
+/** Firing animations, each strip played once over this many ms per shot: the trebuchet's arm, the ballista's string. */
+const FIRE_MS: Partial<Record<BuildingType, number>> = { trebuchet: 700, ballista: 260 };
+/** How far through its swing the trebuchet lets go of the stone. */
+const TREBUCHET_RELEASE = 0.38;
+/** Guns kick back along the barrel as they fire, and ease forward again (ms, tiles). */
+const RECOIL = { ms: 140, kick: 0.07 };
+const KICKS: BuildingType[] = ['turret', 'turret2', 'cannon', 'mortar', 'artillery', 'railgun'];
+/** How fast the smoke and flames on a damaged building move (ms a frame). */
+const DAMAGE_FRAME_MS = 150;
 let spotCanvas: HTMLCanvasElement | null = null;
 
 /** A light's soft spot, as the night cuts it out: clear in the middle, fading out to its edge. */
@@ -230,6 +242,8 @@ export class Renderer {
   private canopy = newLayer();
   /** Turret aim angles, from their most recent shot. */
   private aims = new Map<number, number>();
+  /** When each turret last fired (ms), for its firing animation or recoil. */
+  private fired = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
   /** Last known enemy positions and headings, to face sprites and place death puffs. */
   private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number; movedAt: number; trail: [number, number][] }>();
@@ -1726,10 +1740,13 @@ export class Renderer {
   }
 
   /** Cracks and smoke over a building's footprint once it's badly hurt (the hub has its own damaged sprite). */
-  private drawDamage(world: World, b: Building, fw: number, fh: number): void {
+  private drawDamage(world: World, b: Building, fw: number, fh: number, now: number): void {
     if (b.type === 'hub' || isBelt(b.type)) return;
     const health = b.hp / world.maxHp(b);
-    const img = health < 0.25 ? sprite('effects/damage_2') : health < 0.5 ? sprite('effects/damage_1') : undefined;
+    const key = health < 0.25 ? 'effects/damage_2' : health < 0.5 ? 'effects/damage_1' : undefined;
+    if (!key) return;
+    // The smoke drifts up and the flames flicker; each building on its own beat.
+    const img = (this.reducedMotion ? undefined : frame(key, now / DAMAGE_FRAME_MS + b.id)) ?? sprite(key);
     if (img) this.ctx.drawImage(img, b.x, b.y, fw, fh);
   }
 
@@ -1818,7 +1835,16 @@ export class Renderer {
     if (turret) {
       const aim = this.aims.get(b.id) ?? -Math.PI / 2;
       const [fw] = world.footprintOf(b); // the trebuchet and artillery are 2×2 (D-107, D-124)
-      if (!this.drawSprite(`buildings/${b.type}_barrel`, b.x, b.y, fw, aim)) {
+      const since = now - (this.fired.get(b.id) ?? -Infinity);
+      const fireMs = FIRE_MS[b.type];
+      let drawn = false;
+      if (fireMs && since < fireMs) {
+        const n = frameCount(`buildings/${b.type}_barrel_fire`);
+        drawn = n > 0 && this.drawFrame(`buildings/${b.type}_barrel_fire`, Math.floor((since / fireMs) * n), b.x, b.y, fw, aim);
+      }
+      const kick = KICKS.includes(b.type) && since < RECOIL.ms ? RECOIL.kick * (1 - since / RECOIL.ms) : 0;
+      if (!drawn) drawn = this.drawSprite(`buildings/${b.type}_barrel`, b.x - Math.cos(aim) * kick, b.y - Math.sin(aim) * kick, fw, aim);
+      if (!drawn) {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);
       }
@@ -1930,7 +1956,7 @@ export class Renderer {
     }
 
     if (b.type === 'shipyard') this.drawShip(world, b, now);
-    this.drawDamage(world, b, fw, fh);
+    this.drawDamage(world, b, fw, fh, now);
     if (shake) ctx.translate(-shake, 0);
     const maxHp = world.maxHp(b);
     if (b.hp < maxHp) bar(ctx, b.x + 0.1, b.y + 0.02, fw - 0.2, b.hp / maxHp, b.hp / maxHp > 0.35 ? '#7bd389' : '#e0445a');
@@ -2200,11 +2226,25 @@ export class Renderer {
       if (sh.jump) continue; // starts at a bug, not a turret
       const b = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
       const aim = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
-      if (b) this.aims.set(b.id, aim);
+      if (b) {
+        this.aims.set(b.id, aim);
+        this.fired.set(b.id, now);
+      }
+      if (b?.type === 'trebuchet') {
+        // The arm swings over and lets go of the stone, which flies in an arc and lands in a burst of dirt
+        // and dust (#174's look): no flash, no explosion.
+        const at = now + (FIRE_MS.trebuchet ?? 0) * TREBUCHET_RELEASE;
+        const life = 300 + 32 * Math.hypot(sh.x2 - sh.x1, sh.y2 - sh.y1);
+        this.effects.push({ kind: 'lob', x: sh.x1, y: sh.y1, tx: sh.x2, ty: sh.y2, r: 0.5, born: at, life, color: '' });
+        if (!this.spriteFx('effects/dust_burst', sh.x2, sh.y2, sh.splash * 2.2, 650, at + life)) {
+          this.effects.push({ kind: 'puff', x: sh.x2, y: sh.y2, r: sh.splash, born: at + life, life: 500, color: '180,154,118' });
+        }
+        continue;
+      }
       if (!sh.arc) {
-        // A flash at the barrel tip, and a spark where the shot lands (D-082).
+        // A flash at the barrel tip (not from a ballista's bow), and a spark where the shot lands (D-082).
         const reach = b?.type === 'hub' ? 0.72 : 0.48;
-        this.spriteFx('effects/muzzle_flash', sh.x1 + Math.cos(aim) * reach, sh.y1 + Math.sin(aim) * reach, b?.type === 'hub' ? 0.8 : 0.6, 160, now, aim);
+        if (b?.type !== 'ballista') this.spriteFx('effects/muzzle_flash', sh.x1 + Math.cos(aim) * reach, sh.y1 + Math.sin(aim) * reach, b?.type === 'hub' ? 0.8 : 0.6, 160, now, aim);
         if (!sh.splash) this.spriteFx('effects/hit_spark', sh.x2, sh.y2, 0.6, 200, now);
       }
       // The explosion goes off as the shell lands.
@@ -2393,6 +2433,8 @@ export class Renderer {
         ctx.lineCap = 'butt';
         continue;
       }
+      // A trebuchet's stone flies as an effect of its own (trackEffects).
+      if (sh.splash && world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1))?.type === 'trebuchet') continue;
       if (sh.splash && sprite('effects/cannon_shell')) {
         // A cannon's shell flies the length of the shot in its moment on screen (D-082).
         const u = Math.min(1, (sh.age + this.alpha * TICK) / 0.1);
@@ -2708,6 +2750,24 @@ export class Renderer {
         const n = frameCount(fx.color);
         const img = frame(fx.color, Math.min(n - 1, Math.floor(t * n)));
         if (img) this.drawCanvas(img, fx.x - fx.r / 2, fx.y - fx.r / 2, fx.r, fx.angle ?? 0);
+      } else if (fx.kind === 'lob') {
+        if (t < 0) continue; // still in the sling
+        // A stone in flight: up and over in an arc, its shadow tracking along the ground below it.
+        const tx = fx.tx ?? fx.x;
+        const ty = fx.ty ?? fx.y;
+        const x = fx.x + (tx - fx.x) * t;
+        const y = fx.y + (ty - fx.y) * t;
+        const top = Math.min(3, 0.6 + 0.18 * Math.hypot(tx - fx.x, ty - fx.y));
+        const h = 4 * t * (1 - t) * top;
+        ctx.fillStyle = `rgba(10,19,34,${0.32 - 0.06 * h})`;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 0.2, 0.13, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const size = fx.r * (1 + 0.3 * h);
+        if (!this.drawSprite('effects/boulder', x - size / 2, y - h - size / 2, size, now / 90)) {
+          ctx.fillStyle = '#a39d91';
+          dot(ctx, x, y - h, size / 2);
+        }
       } else if (fx.kind === 'blast') {
         ctx.fillStyle = `rgba(${fx.color},${0.45 * a})`;
         dot(ctx, fx.x, fx.y, fx.r * (0.5 + 0.5 * t));

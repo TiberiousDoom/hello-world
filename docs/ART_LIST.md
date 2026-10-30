@@ -16,7 +16,8 @@ yet, **Final** = your art is in.
 **Animations (D-082)** are strips: square frames side by side in one image, with the frame count at the end of
 the name (`enemies/crawler_walk_4f.svg` is 4 frames of 64×64 in a 256×64 image). The loader cuts them into
 frames. A PNG strip with the same name replaces an SVG one, like any sprite. The machines' working strips are
-built from their sprites by `node art/working.mjs`; run it again after redrawing a machine.
+built from their sprites by `node art/working.mjs`; run it again after redrawing a machine. The firing and
+damage animations are built the same way by `node art/animate.mjs`.
 
 ![All placeholder art](art-placeholders.png)
 
@@ -205,6 +206,11 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Hit spark, where a turret or ballista shot lands | 32×32 | 3 | P3 | Upgraded (`effects/hit_spark_3f`) |
 | Repair sparkle, on the building being mended | 32×32 | 4 | P3 | Upgraded (`effects/repair_sparkle_4f`) |
 | Building destroyed (debris) | 64×64 | 5 | P3 | Upgraded (`effects/debris_5f`) |
+| Trebuchet throw (D-150): the arm drawn back, upright, whipping the stone out of the sling, flung forward, rebounding, settled | 2×2, facing east | 6 | P2 | Upgraded (`buildings/trebuchet_barrel_fire_6f`, built from the arm by `node art/animate.mjs`) |
+| Ballista loosing a bolt (D-150): the string snapping forward to the bow, quivering, drawn back | 1×1, facing east | 3 | P2 | Upgraded (`buildings/ballista_barrel_fire_3f`, built by `art/animate.mjs`) |
+| Boulder, the trebuchet's stone in flight (D-150) | ~0.5 tile | 1 | P2 | Upgraded (`effects/boulder`) |
+| Dust burst, where a trebuchet's stone lands (D-150): dirt clods thrown out, a ring of dust spreading and settling | 128×128 | 5 | P2 | Upgraded (`effects/dust_burst_5f`) |
+| Damage smoke and fire (D-150): smoke drifting up from a hurt building; flames flickering on a badly hurt one | Building size | 4 each | P2 | Upgraded (`effects/damage_1_4f`, `effects/damage_2_4f`, built from `damage_1` and `damage_2` by `art/animate.mjs`) |
 | Nest burrow and territory outline | 2×2 tiles, drawn 1.7, 2 or 2.3 tiles across by stage (D-132); outline in code | 1 + angry + damaged + destroyed + grown | P2 | Upgraded (`nests/warren`, `hive`, `den` by kind, `nests/hardcore` in Hardcore, overlays `nests/angry`, `nests/damaged`, `nests/grown` (egg clutches and a side burrow at the lower left, drawn turned half round as well for a large nest) and `nests/destroyed`); blight around nests is drawn in code, over every cell a merged nest owns |
 | Queen nest (D-132) | 3×3 tiles, drawn 1.3× a nest's size (merged nests too) | 1 | P2 | Upgraded (`nests/queen`) |
 | Chitin (item, D-065): an olive bug-shell plate | Item size | 1 | P2 | Upgraded (`items/chitin`) |
