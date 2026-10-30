@@ -96,22 +96,22 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 |---|---|---|---|---|
 | Belt | 1×1 | 1 iron plate | 30 | Metal Logistics |
 | Extractor | 2×2 | 4 stone, 4 iron ore | 80 | Industry |
-| Furnace | 2×2 | 6 stone | 120 | Industry |
-| Hydraulic Turret | 1×1, needs power | 10 iron plates, 6 rivets, 2 copper ingots | 150 | Advanced Defense |
-| Ballista | 1×1 | 10 planks, 4 rope | 140 | Basic Defense 2 |
-| Trebuchet | 2×2 | 40 planks, 10 rope, 8 trusses | 220 | Basic Defense 2 |
+| Furnace | 2×2 | 6 stone, 6 logs | 120 | Industry |
+| Hydraulic Turret | 1×1, needs power | 20 iron plates, 6 rivets, 2 copper ingots | 150 | Advanced Defense |
+| Ballista | 1×1 | 10 planks, 4 rope, 20 stakes | 140 | Basic Defense 2 |
+| Trebuchet | 2×2 | 40 planks, 10 rope, 8 trusses, 12 stone | 220 | Basic Defense 2 |
 | Brick Wall | 1×1 | 3 bricks | 400 | Advanced Defense |
 | Reinforced Wall | 1×1 | 4 bricks, 2 iron plates, 4 rivets | 900 | Advanced Defense 2 |
 | Workshop | 2×2 | 10 planks, 6 logs | 120 | Workshops |
-| Blacksmith | 2×2 | 10 stone, 6 iron ingots | 140 | Blacksmith |
+| Blacksmith | 2×2 | 10 stone, 6 iron ingots, 6 logs | 140 | Blacksmith |
 | Machine Shop | 2×2 | 10 iron plates, 10 rivets, 4 bricks | 140 | Machine Shop |
 | Steel Works | 2×2 | 10 steel, 12 bricks, 6 gears | 180 | Steel Works |
 | Powder Mill | 2×2 | 10 steel, 10 bricks, 6 gears | 160 | Heavy Defense |
 | Circuit Works | 2×2, needs electricity | 8 steel beams, 20 wire, 2 motors | 180 | Circuit Works |
-| Turret Mk.2 | 1×1, needs electricity | 12 steel, 4 steel beams, 2 motors | 260 | Heavy Defense |
+| Turret Mk.2 | 1×1, needs electricity | 12 steel, 4 steel beams, 2 motors, 12 bullets | 260 | Heavy Defense |
 | Steel Wall | 1×1 | 4 steel, 2 steel beams | 1600 | Heavy Defense |
-| Mortar | 1×1, needs electricity | 14 steel, 6 steel beams, 4 bearings | 240 | Heavy Defense 2 |
-| Artillery | 2×2, needs electricity | 30 steel, 16 steel beams, 10 bearings, 4 motors | 420 | Heavy Defense 2 |
+| Mortar | 1×1, needs electricity | 14 steel, 6 steel beams, 4 bearings, 12 shells | 240 | Heavy Defense 2 |
+| Artillery | 2×2, needs electricity | 30 steel, 16 steel beams, 10 bearings, 4 motors, 10 shells | 420 | Heavy Defense 2 |
 | Hub Port | 1×1 | 10 iron plates, 5 copper ingots | 120 | Distribution |
 | Splitter | 1×2 | 3 iron plates, 1 copper ingot | 40 | Metal Logistics |
 | Underground Belt | 1×1 | 4 iron plates, 1 brick | 40 | Metal Logistics |
@@ -119,13 +119,19 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Well | 2×2 | 10 bricks, 6 iron plates, 4 iron rods | 150 | Hydraulics |
 | Water Wheel | 3×1, front tile in a pond | 20 planks, 10 iron rods, 20 rivets | 160 | Hydraulics |
 | Assembler | 3×3 | 10 gears, 10 wire | 150 | Assembly |
-| Repair Station | 1×1 | 10 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
-| Hydraulic Cannon | 1×1, needs power | 15 iron plates, 5 gears, 10 rivets | 220 | Advanced Defense 2 |
+| Repair Station | 1×1 | 15 iron plates, 4 gears, 6 wire, 4 planks | 150 | Field Repair |
+| Hydraulic Cannon | 1×1, needs power | 15 iron plates, 13 gears, 10 rivets | 220 | Advanced Defense 2 |
 | Express Belt | 1×1, needs electricity | 1 iron plate, 1 gear | 40 | Express Logistics |
-| Boiler | 2×2, touching a well or water wheel | 10 steel, 20 bricks, 6 iron rods | 200 | Steam Power |
+| Boiler | 2×2, touching a well or water wheel | 10 steel, 20 bricks, 6 iron rods, 6 logs | 200 | Steam Power |
 | Steam Turbine | 2×2, touching a boiler | 20 steel, 10 gears, 20 wire | 180 | Steam Power |
 | Power Pole | 1×1 | 2 iron rods, 2 wire, 1 plank | 40 | Steam Power |
 | Storage Silo | 2×2 | 20 steel, 8 steel beams, 10 rivets | 300 | Express Logistics |
+
+**What a building arrives holding is paid for (#180, D-149).** Turrets, spike pits, repair stations and fuel
+burners arrive stocked, and their costs above include it: a turret's full load of ammo, a spike pit's 10 stakes,
+a repair station's 5 iron plates (half its store) and a burner's 6 logs. Demolishing one gives back the rest of
+its cost (scaled by its health, as for any building) and only the load still inside it, never more than it came
+with, so emptying one and building it again isn't a free refill.
 | Tesla Turret | 1×1, needs electricity | 8 steel, 4 circuit boards, 4 coils | 160 | Electric Defense |
 | Arc Fence | 1×1 wall, needs electricity to shock | 2 steel, 1 coil, 2 wire | 700 | Electric Defense |
 | Floodlight | 1×1, bugs walk past it; needs electricity | 1 circuit board, 4 iron rods, 4 wire | 80 | Electric Defense |
@@ -140,7 +146,7 @@ store, and a flashing mark shows one that has run out. Other machines take no fu
 | Lumber Camp | 2×2 | 8 logs | 100 | Forestry |
 | Sawmill | 2×2 | 14 logs | 100 | Forestry |
 | Palisade | 1×1 | 2 planks | 160 | Basic Defense |
-| Spike Pit | 1×1 | 10 stakes, 2 planks | 60 | Basic Defense |
+| Spike Pit | 1×1 | 20 stakes, 2 planks | 60 | Basic Defense |
 | Wooden Roller | 1×1 | 1 plank, 1 dowel | 20 | Basic Logistics |
 | Storage Crate | 1×1 | 6 planks, 4 pegs | 60 | Basic Logistics |
 | Storage Unit | 1×2 | 12 iron plates, 8 rivets | 160 | Metal Logistics |
@@ -496,6 +502,9 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   while a building or an engineer is within **20 tiles** of it in a straight line (28 at night). With
   nothing that close, it gives up and walks home, and sets off again only if something comes within
   reach. Chasing the engineer, bugs follow them until they get 20 tiles away.
+- **Bugs keep apart (#181, D-149).** Two walking bugs (or two flying ones) closer than 1.8 times their radii
+  added push each other apart, so a crowd bunches up but no spot is covered more than about three bugs deep.
+  A walking bug is never pushed into a wall. Flying bugs pass over walking ones.
 - A nest **calms down** 30 s after the last provocation (biting a building counts as one), and its bugs
   walk home.
 - Territories show a red dashed outline while you're placing a building, and a pulsing one while
@@ -628,7 +637,7 @@ stock first.
 **Defence tiers (D-142).** Every turret, wall, fence, palisade and shield pylon upgrades in place from
 Tier 1 to Tier 4, from its panel. Each tier above 1 adds **25%** of its base health, and for a turret
 **20%** damage and **10%** range (Tier 4: +75% health, +60% damage, +30% range). Reaching a tier costs the
-building's own materials times the tier, plus chitin, from hub stock:
+building's own materials (not its starting load of ammo) times the tier, plus chitin, from hub stock:
 
 | Tier | Needs | Cost |
 |---|---|---|
@@ -850,7 +859,8 @@ one research tree, one supply ship.
 
 - The **top bar** holds only the speed buttons and the menu.
 - The **toolbar** at the bottom lists the unlocked buildings with their costs, plus Undo, Copy, Rotate,
-  Demolish and Inventory.
+  Demolish and Inventory. The tools scroll sideways by finger, mouse wheel or scrollbar (#178); the Inventory
+  button stays at the right end, beside them (#177).
 - The **info panel** opens only for a building that's already placed (select it). Picking a tool from the
   toolbar shows no panel.
 - **Rates (#48):** the info panel shows a building's top rate (items a minute in and out, belt

@@ -57,6 +57,7 @@ import {
   isMachine,
   FUEL,
   burnsFuel,
+  startLoad,
   storageRoom,
   STORES,
   isStore,
@@ -217,10 +218,17 @@ export function defenceTier(b: Building): number {
   return DEFENCE_TIERS.types.includes(b.type) ? (b.tier ?? 1) : 1;
 }
 
-/** What taking a defence up to tier `tier` costs (D-142): its own cost times the tier, plus chitin. */
+/**
+ * What taking a defence up to tier `tier` costs (D-142): its own cost times the tier, plus chitin. Not its
+ * starting load (#180): an upgrade doesn't reload it.
+ */
 export function defenceTierCost(type: BuildingType, tier: number): ItemCounts {
   const cost: ItemCounts = {};
-  for (const [item, n] of Object.entries(BUILDINGS[type].cost)) cost[item as ItemId] = n! * tier;
+  const load = startLoad(type);
+  for (const [item, n] of Object.entries(BUILDINGS[type].cost)) {
+    const frame = n! - (load[item as ItemId] ?? 0);
+    if (frame > 0) cost[item as ItemId] = frame * tier;
+  }
   cost.chitin = (cost.chitin ?? 0) + DEFENCE_TIERS.chitin[tier];
   return cost;
 }
@@ -1991,12 +1999,29 @@ export class World {
     const def = BUILDINGS[b.type];
     const frac = b.hp / this.maxHp(b);
     const cost = sumCounts(def.cost, upgradesCost(b)); // its upgrades come back too (D-122, D-127)
-    for (const [item, n] of Object.entries(cost)) {
-      const inv = this.state.inventory;
-      inv[item as ItemId] = (inv[item as ItemId] ?? 0) + Math.floor(n! * frac);
-    }
+    // What it arrived holding was paid for, and comes back only as far as it's still there (#180).
+    const load = startLoad(b.type);
+    for (const [item, n] of Object.entries(load)) cost[item as ItemId]! -= n!;
+    const inv = this.state.inventory;
+    for (const [item, n] of Object.entries(cost)) inv[item as ItemId] = (inv[item as ItemId] ?? 0) + Math.floor(n! * frac);
+    for (const [item, n] of Object.entries(sumCounts(this.loadLeft(b, load), this.betterLeft(b)))) inv[item as ItemId] = (inv[item as ItemId] ?? 0) + n!;
     this.remove(b);
     return true;
+  }
+
+  /** What is left of a building's starting load, as items, never more than it started with (`startLoad`). */
+  private loadLeft(b: Building, load: ItemCounts): ItemCounts {
+    const t = TURRETS[b.type];
+    const each = t?.ammoItem ? t.shotsPerItem : b.type === 'spike_pit' ? SPIKES.perStake : b.type === 'repair' ? REPAIR.hpPerPlate : FUEL.burns.log!;
+    const out: ItemCounts = {};
+    for (const [item, n] of Object.entries(load)) out[item as ItemId] = Math.min(n!, Math.floor(b.ammo / each));
+    return out;
+  }
+
+  /** A turret's unfired better ammo (D-136), as items. */
+  private betterLeft(b: Building): ItemCounts {
+    const t = TURRETS[b.type];
+    return t?.better && b.better ? { [t.better.item]: Math.floor(b.better / t.shotsPerItem) } : {};
   }
 
   /** Takes a building off the map. `destroyed`: lost to bugs, not taken down by the player. */

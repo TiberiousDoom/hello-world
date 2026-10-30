@@ -186,6 +186,8 @@ export function createDemoWorld(scene = 0): World {
     steel: 9999,
     circuit: 9999,
     coil: 9999,
+    bullet: 9999,
+    shell: 9999,
   };
   const hub = w.hub!;
   const hx = hub.x;

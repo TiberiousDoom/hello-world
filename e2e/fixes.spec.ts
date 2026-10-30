@@ -58,3 +58,39 @@ test('Settings opened from the pause menu goes back to it, however it is closed'
     await expect(page.locator('#menu')).toBeHidden();
   }
 });
+
+test('the toolbar scrolls with the mouse wheel, and the Inventory button sits beside the tools, never over one', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  await page.evaluate(() => {
+    const s = window.game.world.state;
+    for (const id of ['forestry', 'workshop', 'rollers', 'palisades', 'carpentry', 'defense', 'defense2', 'shipyard', 'industry', 'blacksmith', 'hydraulics', 'logistics', 'machine_shop'])
+      if (!s.researched.includes(id)) s.researched.push(id);
+  });
+  const strip = page.locator('#toolbar .tools');
+  await expect.poll(() => strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  const stripBox = (await strip.boundingBox())!;
+  const pack = (await page.locator('#toolbar [data-tool="pack"]').boundingBox())!;
+  expect(pack.x).toBeGreaterThanOrEqual(stripBox.x + stripBox.width);
+  await page.mouse.move(stripBox.x + stripBox.width / 2, stripBox.y + stripBox.height / 2);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  // The last tool can be scrolled fully into view, left of the Inventory button.
+  await page.mouse.wheel(0, 10000);
+  const last = (await page.locator('#toolbar .tools [data-tool="demolish"]').boundingBox())!;
+  expect(last.x + last.width).toBeLessThanOrEqual(pack.x);
+});
+
+test("a trebuchet's panel shows its stone, and doesn't say it fires on electricity", async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  await page.evaluate(() => {
+    const w = window.game.world;
+    w.state.researched.push('workshop', 'rollers', 'palisades', 'carpentry', 'defense', 'defense2');
+    Object.assign(w.state.inventory, { plank: 99, rope: 99, truss: 99, stone: 99 });
+    const t = w.place('trebuchet', w.hub.x - 8, w.hub.y, 0);
+    window.game.ui.selected = t.id;
+  });
+  await expect(page.locator('#info')).toContainText('Ammo 12 / 12');
+  await expect(page.locator('#info')).not.toContainText('electricity');
+});

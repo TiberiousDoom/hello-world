@@ -24,6 +24,7 @@
 
 import {
   ARC_FENCE,
+  BUG_SPACING,
   BUILDINGS,
   CLOCK,
   DX,
@@ -621,6 +622,91 @@ export function tickBugs(w: World, dt: number): void {
     e.x = nx;
     e.y = ny;
   }
+  spaceOut(w);
+}
+
+/** Tiles per side of the buckets `spaceOut` sorts bugs into: wider than the biggest spacing. */
+const SPACE_CELL = 2;
+/** Ways to push apart two bugs on exactly the same spot, picked by their ids (no trig: D-058). */
+const APART: [number, number][] = [
+  [1, 0],
+  [Math.SQRT1_2, Math.SQRT1_2],
+  [0, 1],
+  [-Math.SQRT1_2, Math.SQRT1_2],
+  [-1, 0],
+  [-Math.SQRT1_2, -Math.SQRT1_2],
+  [0, -1],
+  [Math.SQRT1_2, -Math.SQRT1_2],
+];
+
+/**
+ * Bugs keep apart (#181, D-149). Bugs chasing along the path field all head for the same tile centres, and
+ * used to end up exactly on top of each other, looking like one bug. Each pair of walking bugs (or of
+ * flying ones) closer than BUG_SPACING times their radii added is pushed apart, each half the shortfall,
+ * so a crowd still bunches up a little but never stacks. A walking bug is never pushed into a wall.
+ */
+function spaceOut(w: World): void {
+  const s = w.state;
+  const cols = Math.ceil(s.width / SPACE_CELL);
+  const cells = new Map<number, Enemy[]>();
+  const cellOf = (x: number, y: number) => Math.floor(y / SPACE_CELL) * cols + Math.floor(x / SPACE_CELL);
+  for (const e of s.enemies) {
+    if (e.hp <= 0) continue;
+    const k = cellOf(e.x, e.y);
+    const list = cells.get(k);
+    if (list) list.push(e);
+    else cells.set(k, [e]);
+  }
+  for (const e of s.enemies) {
+    if (e.hp <= 0) continue;
+    const def = ENEMIES[e.type];
+    const cx = Math.floor(e.x / SPACE_CELL);
+    const cy = Math.floor(e.y / SPACE_CELL);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (cx + dx < 0 || cx + dx >= cols) continue;
+        const list = cells.get((cy + dy) * cols + cx + dx);
+        if (!list) continue;
+        for (const o of list) {
+          if (o.id <= e.id || o.hp <= 0) continue; // each pair once
+          const odef = ENEMIES[o.type];
+          if (!def.flies !== !odef.flies) continue; // a wasp flies over the crawlers
+          const min = (def.radius + odef.radius) * BUG_SPACING;
+          const ox = o.x - e.x;
+          const oy = o.y - e.y;
+          if (ox * ox + oy * oy >= min * min) continue;
+          const d = hypot(ox, oy);
+          const [ux, uy] = d > 1e-6 ? [ox / d, oy / d] : APART[(e.id + o.id) % APART.length];
+          const push = (min - d) / 2;
+          nudge(w, e, -ux * push, -uy * push);
+          nudge(w, o, ux * push, uy * push);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Moves a bug by (dx, dy), unless that takes it off the map or (walking) into a wall or other blocking
+ * building, or between two that meet at a corner: bugs walk in four directions, so such a wall is shut.
+ */
+function nudge(w: World, e: Enemy, dx: number, dy: number): void {
+  const x = e.x + dx;
+  const y = e.y + dy;
+  if (x < 0 || y < 0 || x >= w.state.width || y >= w.state.height) return;
+  const tx = Math.floor(x);
+  const ty = Math.floor(y);
+  const fx = Math.floor(e.x);
+  const fy = Math.floor(e.y);
+  if (!ENEMIES[e.type].flies && (tx !== fx || ty !== fy)) {
+    const blocks = (bx: number, by: number) => {
+      const b = w.buildingAt(bx, by);
+      return !!b && BUILDINGS[b.type].blocking;
+    };
+    if (blocks(tx, ty) || (tx !== fx && ty !== fy && (blocks(tx, fy) || blocks(fx, ty)))) return;
+  }
+  e.x = x;
+  e.y = y;
 }
 
 /**

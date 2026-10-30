@@ -470,6 +470,17 @@ export class Hud {
       });
     }
 
+    // A mouse wheel scrolls the tools sideways (#178); a sideways wheel or trackpad already does.
+    $('toolbar').addEventListener(
+      'wheel',
+      (e) => {
+        const strip = $('toolbar').querySelector<HTMLElement>('.tools');
+        if (!strip || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        strip.scrollLeft += e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY;
+      },
+      { passive: false },
+    );
     $('toolbar').addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-tool]');
       if (!btn) return;
@@ -797,10 +808,15 @@ export class Hud {
       `<button class="tool util ${this.ui.clipMode ? 'active' : ''}" data-tool="copy" title="Copy an area: drag over buildings, then click to paste (${keyHtml('copy')}; ${keyHtml('paste')} pastes again)"><span class="icon">${ico('copy')}</span><span class="label">${this.ui.clipMode === 'paste' ? 'Pasting' : this.ui.clipMode === 'copy' ? 'Copying' : 'Copy'}</span></button>`,
       `<button class="tool util" data-tool="rotate" title="Rotate (${keyHtml('rotate')})"><span class="icon" style="transform:rotate(${DIR_DEGREES[this.ui.dir]}deg)">${ico('rotate')}</span><span class="label">Rotate ${DIR_ARROWS[this.ui.dir]}</span></button>`,
       `<button class="tool util ${this.ui.tool === 'demolish' ? 'active' : ''}" data-tool="demolish" title="Demolish (${keyHtml('demolish')})"><span class="icon">${ico('demolish')}</span><span class="label">Demolish</span></button>`,
-      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (${keyHtml('inventory')})"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
     );
-    // In place, so a tap isn't lost when a count changes under the finger (#86).
-    setHtml($('toolbar'), buttons.join(''));
+    const pack = [
+      `<button class="tool util pack-btn ${this.packOpen ? 'active' : ''}" data-tool="pack" title="Inventory (${keyHtml('inventory')})"><span class="icon">${ico('collect')}</span><span class="label">Inventory</span><span class="costs">${me ? held(me) : 0}/${PLAYER.slots * PLAYER.stack}</span></button>`,
+    ];
+    // In place, so a tap isn't lost when a count changes under the finger (#86). The tools scroll in a
+    // strip of their own, so the Inventory button never covers one (#177).
+    const scrolled = $('toolbar').querySelector('.tools')?.scrollLeft ?? 0;
+    setHtml($('toolbar'), `<div class="tools">${buttons.join('')}</div>${pack.join('')}`);
+    $('toolbar').querySelector('.tools')!.scrollLeft = scrolled; // a new strip (a tool unlocked) stays where it was
   }
 
   /** This player's engineer. */
@@ -944,7 +960,7 @@ export class Hud {
       if (t?.ammoItem) stats += `<br>Ammo ${b.ammo} / ${t.maxShots} ${swatch(t.ammoItem)}${ITEMS[t.ammoItem].name}`;
       if (t?.better && world.state.researched.includes('better_ammo'))
         stats += `<br>${ITEMS[t.better.item].name} ${b.better ?? 0} shots ${swatch(t.better.item)}fired first: ×${t.better.damage} damage${t.better.piercing ? ', through armour' : `, ×${t.better.splash} blast`}`;
-      else if (t) stats += '<br>No ammunition needed: it fires on electricity';
+      else if (t && !t.ammoItem) stats += '<br>No ammunition needed: it fires on electricity'; // the tesla and railgun (#175)
       if (b.type === 'extractor') {
         const ore = b.recipe as ItemId | null;
         stats += `<br>Mining ${ore ? swatch(ore) + ITEMS[ore].name : 'nothing'}`;

@@ -207,14 +207,14 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   splitter: { name: 'Splitter', short: 'SP', color: '#4a5a78', hp: 40, size: [1, 2], cost: { iron_plate: 3, copper_ingot: 1 }, blocking: false, description: 'Spans two belt lanes. Takes items from behind either lane and sends them out of both in turn.' },
   tunnel: { name: 'Underground Belt', short: '', color: '#2e3442', hp: 40, cost: { iron_plate: 4, brick: 1 }, blocking: false, description: `Place an entrance, then an exit up to ${TUNNEL_RANGE} tiles ahead facing the same way. Items pass underneath.` },
   extractor: { name: 'Extractor', short: 'EX', color: '#6b8f3a', hp: 80, size: [2, 2], cost: { stone: 4, iron_ore: 4 }, blocking: true, description: 'Place over ore. It mines whichever ore covers most of its base.' },
-  furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { stone: 6 }, blocking: true, description: 'Smelts ore into iron and copper ingots, and stone into bricks.' },
+  furnace: { name: 'Furnace', short: 'FU', color: '#b5562f', hp: 120, size: [2, 2], cost: { stone: 6, log: 6 }, blocking: true, description: 'Smelts ore into iron and copper ingots, and stone into bricks.' },
   workshop: { name: 'Workshop', short: 'WS', color: '#8a6d3b', hp: 120, size: [2, 2], cost: { plank: 10, log: 6 }, blocking: true, description: 'Makes pegs and rope, and trusses after Carpentry.' },
   assembler: { name: 'Assembler', short: 'AS', color: '#6a4fb3', hp: 150, size: [3, 3], cost: { gear: 10, wire: 10 }, blocking: true, description: 'Combines parts into motors.' },
-  turret: { name: 'Hydraulic Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 10, rivet: 6, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies, but only with power: run a drive shaft to it. Arrives loaded; refill it with iron plates by belt.' },
-  cannon: { name: 'Hydraulic Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 5, rivet: 10 }, blocking: true, description: 'Splash damage, but only with power: run a drive shaft to it. Arrives loaded; refill it with gears by belt.' },
-  turret2: { name: 'Turret Mk.2', short: 'T2', color: '#3a5a7a', hp: 260, cost: { steel: 12, steel_beam: 4, motor: 2 }, blocking: true, description: 'Fires bullets fast, but only with electricity from a power pole. Arrives loaded; refill it with bullets by belt.' },
-  mortar: { name: 'Mortar', short: 'MO', color: '#4a5a4a', hp: 240, cost: { steel: 14, steel_beam: 6, bearing: 4 }, blocking: true, description: "Lobs shells over walls, hitting every bug where they land, with electricity from a power pole. It can't hit anything right next to it. Refill it with shells." },
-  artillery: { name: 'Artillery', short: 'AR', color: '#3a4a3a', hp: 420, size: [2, 2], cost: { steel: 30, steel_beam: 16, bearing: 10, motor: 4 }, blocking: true, description: "A big gun that fires shells a very long way, with electricity from a power pole, but it can't hit anything close. Refill it with shells." },
+  turret: { name: 'Hydraulic Turret', short: 'TU', color: '#2f8f8f', hp: 150, cost: { iron_plate: 20, rivet: 6, copper_ingot: 2 }, blocking: true, description: 'Shoots enemies, but only with power: run a drive shaft to it. Arrives loaded; refill it with iron plates by belt.' },
+  cannon: { name: 'Hydraulic Cannon', short: 'CA', color: '#1f6f5f', hp: 220, cost: { iron_plate: 15, gear: 13, rivet: 10 }, blocking: true, description: 'Splash damage, but only with power: run a drive shaft to it. Arrives loaded; refill it with gears by belt.' },
+  turret2: { name: 'Turret Mk.2', short: 'T2', color: '#3a5a7a', hp: 260, cost: { steel: 12, steel_beam: 4, motor: 2, bullet: 12 }, blocking: true, description: 'Fires bullets fast, but only with electricity from a power pole. Arrives loaded; refill it with bullets by belt.' },
+  mortar: { name: 'Mortar', short: 'MO', color: '#4a5a4a', hp: 240, cost: { steel: 14, steel_beam: 6, bearing: 4, shell: 12 }, blocking: true, description: "Lobs shells over walls, hitting every bug where they land, with electricity from a power pole. It can't hit anything right next to it. Refill it with shells." },
+  artillery: { name: 'Artillery', short: 'AR', color: '#3a4a3a', hp: 420, size: [2, 2], cost: { steel: 30, steel_beam: 16, bearing: 10, motor: 4, shell: 10 }, blocking: true, description: "A big gun that fires shells a very long way, with electricity from a power pole, but it can't hit anything close. Refill it with shells." },
   tesla: {
     name: 'Tesla Turret',
     short: 'TE',
@@ -229,11 +229,11 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     short: 'BA',
     color: '#8a6234',
     hp: 140,
-    cost: { plank: 10, rope: 4 },
+    cost: { plank: 10, rope: 4, stake: 20 },
     blocking: true,
     description: 'Slow, long-range bolts. Arrives loaded; refill it with stakes (sawn from planks) by belt.',
   },
-  repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 10, gear: 4, wire: 6, plank: 4 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates or planks by belt.' },
+  repair: { name: 'Repair Station', short: '+', color: '#3f8f4f', hp: 150, cost: { iron_plate: 15, gear: 4, wire: 6, plank: 4 }, blocking: true, description: 'Repairs nearby buildings. Fuel it with iron plates or planks by belt.' },
   port: { name: 'Hub Port', short: 'PO', color: '#2d58b0', hp: 120, cost: { iron_plate: 10, copper_ingot: 5 }, blocking: true, description: 'Place next to the hub. Takes the item you choose out of hub stock and puts it on a belt.' },
   wall: { name: 'Brick Wall', short: '', color: '#6d6a66', hp: 400, cost: { brick: 3 }, blocking: true, description: 'Slows enemies down.' },
   reinforced_wall: { name: 'Reinforced Wall', short: '', color: '#5a5f66', hp: 900, cost: { brick: 4, iron_plate: 2, rivet: 4 }, blocking: true, description: 'Brick bound with iron: more than twice as tough as a brick wall.' },
@@ -259,7 +259,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     description: 'Place near trees, or over them: trees under it are cut at once, and their logs pay for it. It cuts the nearest tree into logs; the stump grows back in time.',
   },
   sawmill: { name: 'Sawmill', short: 'SM', color: '#9a6a3a', hp: 100, size: [2, 2], cost: { log: 14 }, blocking: true, description: 'Saws logs into planks.' },
-  blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
+  blacksmith: { name: 'Blacksmith', short: 'BS', color: '#5d6670', hp: 140, size: [2, 2], cost: { stone: 10, iron_ingot: 6, log: 6 }, blocking: true, description: 'Hammers iron ingots into plates and rods, and rods into rivets.' },
   machine_shop: { name: 'Machine Shop', short: 'MS', color: '#4f6a86', hp: 140, size: [2, 2], cost: { iron_plate: 10, rivet: 10, brick: 4 }, blocking: true, description: 'Makes gears from iron plates and wire from copper ingots.' },
   circuit_works: { name: 'Circuit Works', short: 'CW', color: '#2f6a4a', hp: 180, size: [2, 2], cost: { steel_beam: 8, wire: 20, motor: 2 }, blocking: true, description: 'Makes circuit boards from wire and iron plates, and coils from wire and iron rods. Works only with electricity from a power pole.' },
   steel_works: { name: 'Steel Works', short: 'SW', color: '#4b5563', hp: 180, size: [2, 2], cost: { steel: 10, brick: 12, gear: 6 }, blocking: true, description: 'Rolls steel into steel beams, and steel and gears into bearings.' },
@@ -269,7 +269,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   well: { name: 'Well', short: 'WE', color: '#4f7fa8', hp: 150, size: [2, 2], cost: { brick: 10, iron_plate: 6, iron_rod: 4 }, blocking: true, description: 'Draws groundwater anywhere to turn the drive shafts touching it. A little power.' },
   water_wheel: { name: 'Water Wheel', short: 'WW', color: '#3f74b0', hp: 160, size: [3, 1], cost: { plank: 20, iron_rod: 10, rivet: 20 }, blocking: true, description: 'Place with its front tile in a pond and the other two on land. Four times the power of a well.' },
   // Electricity (D-119, D-121): boilers by water feed steam turbines; poles carry the power.
-  boiler: { name: 'Boiler', short: 'BO', color: '#7a5a48', hp: 200, size: [2, 2], cost: { steel: 10, brick: 20, iron_rod: 6 }, blocking: true, description: 'Burns logs or charcoal to make steam for the steam turbines it touches. Needs water: place it touching a well or a water wheel.' },
+  boiler: { name: 'Boiler', short: 'BO', color: '#7a5a48', hp: 200, size: [2, 2], cost: { steel: 10, brick: 20, iron_rod: 6, log: 6 }, blocking: true, description: 'Burns logs or charcoal to make steam for the steam turbines it touches. Needs water: place it touching a well or a water wheel.' },
   steam_turbine: { name: 'Steam Turbine', short: 'ST', color: '#5d6a86', hp: 180, size: [2, 2], cost: { steel: 20, gear: 10, wire: 20 }, blocking: true, description: 'Turns steam from a boiler it touches into electricity, carried by power poles.' },
   power_pole: { name: 'Power Pole', short: '', color: '#8a6a44', hp: 40, cost: { iron_rod: 2, wire: 2, plank: 1 }, blocking: false, description: 'Carries electricity: links to poles nearby, and powers turbines and electric buildings close to it.' },
   palisade: { name: 'Palisade', short: '', color: '#8a6234', hp: 160, cost: { plank: 2 }, blocking: true, description: 'A cheap wooden wall. Weaker than stone.' },
@@ -287,7 +287,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     short: '',
     color: '#6b4423',
     hp: 60,
-    cost: { stake: 10, plank: 2 },
+    cost: { stake: 20, plank: 2 },
     blocking: false,
     description: 'A trap bugs walk over: it hurts and slows them, and wears down as it works. Refill it with stakes.',
   },
@@ -297,7 +297,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     color: '#7a5230',
     hp: 220,
     size: [2, 2],
-    cost: { plank: 40, rope: 10, truss: 8 },
+    cost: { plank: 40, rope: 10, truss: 8, stone: 12 },
     blocking: true,
     description: 'Hurls stone a long way, hitting every bug where it lands, but it can\'t hit anything close. Arrives loaded; refill it with stone.',
   },
@@ -326,6 +326,20 @@ export const FUEL = {
   types: ['furnace', 'blacksmith', 'boiler'] as BuildingType[],
 };
 export const burnsFuel = (t: BuildingType): boolean => FUEL.types.includes(t);
+
+/**
+ * What a building arrives holding, as items (#180): a turret's shots, a spike pit's spikes, a repair
+ * station's stored repairs and a burner's fuel. Its cost includes them, and demolishing it gives back
+ * only what is still inside (`World.demolish`), so emptying one and rebuilding it isn't a free refill.
+ */
+export function startLoad(type: BuildingType): ItemCounts {
+  const t = TURRETS[type];
+  if (t?.ammoItem) return { [t.ammoItem]: t.maxShots / t.shotsPerItem };
+  if (type === 'spike_pit') return { stake: SPIKES.maxCharge / SPIKES.perStake };
+  if (type === 'repair') return { iron_plate: REPAIR.maxCharge / 2 / REPAIR.hpPerPlate };
+  if (burnsFuel(type)) return { log: FUEL.max / FUEL.burns.log! };
+  return {};
+}
 
 export const MACHINE_TYPES: MachineType[] = ['furnace', 'workshop', 'assembler', 'sawmill', 'blacksmith', 'machine_shop', 'steel_works', 'powder_mill', 'circuit_works', 'greenhouse'];
 export const isMachine = (t: BuildingType): t is MachineType => (MACHINE_TYPES as string[]).includes(t);
@@ -599,6 +613,13 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   wasp: { name: 'Wasp', hp: 12, speed: 1.6, dps: 6, radius: 0.24, color: '#e0b030', flies: true },
   beetle: { name: 'Beetle', hp: 70, speed: 0.7, dps: 14, radius: 0.32, color: '#3a5a7a', armour: 6, vengeful: true },
 };
+
+/**
+ * Bugs keep apart (#181, D-149): two walking bugs, or two flying ones, are pushed apart while their centres
+ * are closer than this times their radii added. Sprites are drawn about 2.1 radii across each way, and
+ * centres at least √3 sprite radii apart cover no spot more than three deep.
+ */
+export const BUG_SPACING = 1.8;
 
 /** What a flying bug passes over to reach what's behind (D-135): walls, fences and spike pits. */
 export const FLY_OVER: BuildingType[] = ['wall', 'reinforced_wall', 'steel_wall', 'palisade', 'arc_fence', 'spike_pit'];

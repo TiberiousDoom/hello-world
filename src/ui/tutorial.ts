@@ -230,6 +230,12 @@ function campTarget(w: World): TileTarget | null {
 }
 
 /** On touch screens (with confirming switched on), building shows a blueprint first. */
+/** Points at the Collect button while a building of `type` is selected, and at `then` otherwise (#176). */
+function collectOn(c: StepContext, type: BuildingType, then: Target): Target {
+  const b = c.ui.selected != null ? c.world.byId.get(c.ui.selected) : undefined;
+  return b?.type === type && document.querySelector('#info:not([hidden]) [data-action="collect"]') ? { el: '#info [data-action="collect"]' } : then;
+}
+
 const confirmHint = (c: StepContext) => (c.ui.confirmTouch && touchScreen() ? ' A blueprint appears first: tap ✓ to build it, or tap the same spot again.' : '');
 
 /** Points at a toolbar button until that tool is picked, then at `then`. */
@@ -290,9 +296,7 @@ export const LESSONS: Lesson[] = [
             ? { tiles: campOutput(c.world), shape: 'circle' }
             : (c.world.state.inventory.log ?? 0) >= SAWMILL_LOGS
               ? { el: '[data-tool="sawmill"]' }
-              : document.querySelector('#info:not([hidden]) [data-action="collect"]')
-                ? { el: '#info [data-action="collect"]' }
-                : { tiles: campTarget(c.world), shape: 'circle' },
+              : collectOn(c, 'lumber_camp', { tiles: campTarget(c.world), shape: 'circle' }),
         done: (c) => built(c, 'sawmill'),
         text: (c) =>
           c.ui.tool === 'sawmill'
@@ -303,7 +307,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         // Once the sawmill is selected, point at its Collect button.
-        target: (c) => (document.querySelector('#info:not([hidden]) [data-action="collect"]') ? { el: '#info [data-action="collect"]' } : { tiles: sawmillTarget(c.world), shape: 'circle' }),
+        target: (c) => collectOn(c, 'sawmill', { tiles: sawmillTarget(c.world), shape: 'circle' }),
         done: (c) => (c.world.delivered.plank ?? 0) > (c.start.delivered.plank ?? 0),
         text: () => `Planks pile up in the sawmill. Select it and ${byDevice('tap', 'click')} Collect: your engineer fetches them. Then walk them back to the hub.`,
       },
@@ -399,11 +403,11 @@ export const LESSONS: Lesson[] = [
         text: (c) =>
           c.ui.tool === 'furnace'
             ? "Place the furnace touching the extractor's arrow, so the ore goes straight in. A building's output passes straight into a building in front of it." + confirmHint(c)
-            : 'Ore needs smelting into ingots. Pick the Furnace.',
+            : `Ore needs smelting into ingots. Pick the Furnace: it costs ${BUILDINGS.furnace.cost.log ?? 0} logs as well, its first fuel.`,
       },
       {
         // Once the furnace is selected, point at its Collect button.
-        target: (c) => (document.querySelector('#info:not([hidden]) [data-action="collect"]') ? { el: '#info [data-action="collect"]' } : { tiles: furnaceTarget(c.world), shape: 'circle' }),
+        target: (c) => collectOn(c, 'furnace', { tiles: furnaceTarget(c.world), shape: 'circle' }),
         done: (c) => (c.world.delivered.iron_ingot ?? 0) > (c.start.delivered.iron_ingot ?? 0),
         text: () =>
           `Iron ingots pile up in the furnace. Select it and ${byDevice('tap', 'click')} Collect: your engineer fetches them. Then walk them back to the hub. ` +

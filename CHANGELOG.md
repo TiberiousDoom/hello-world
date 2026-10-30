@@ -3,6 +3,18 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.6 · 2026-10-30 · Bugs that keep apart
+### New
+- **Bugs keep apart:** a crowd of bugs bunches up but no longer stacks into what looks like one bug. They overlap a little, never more than about three deep, and are never pushed into a wall.
+- **Buildings that arrive stocked pay for it:** a trebuchet costs 12 stone, a ballista 20 stakes, a turret its first plates, a spike pit 10 more stakes, a repair station 5 more iron plates, and furnaces, blacksmiths and boilers 6 logs for their first fuel. Demolishing one gives back only what is still inside it.
+
+### Fixed
+- Demolishing an empty trebuchet (or any turret) and building it again no longer refills it for free.
+- The trebuchet's panel, and those of other turrets that take ammo, no longer say it needs no ammunition and fires on electricity.
+- The Smelting lesson points at Collect only on the furnace, not on any building with a Collect button. The sawmill and lumber camp steps do the same.
+- On desktop, the mouse wheel scrolls the toolbar sideways, and it shows a thin scrollbar, so every building can be reached.
+- The Inventory button no longer covers a building in the toolbar: it sits beside the tools instead of over them.
+
 ## 0.87.5 · 2026-10-30 · Behind the scenes
 ### New
 - Nothing in the game: a written checklist for making and releasing changes, and one command that runs every check before a release.
