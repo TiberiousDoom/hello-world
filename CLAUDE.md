@@ -34,7 +34,9 @@ Locally, Playwright reuses a server already listening on :4173 (`reuseExistingSe
 leftover `vite preview` serves a stale build. Stop it before running e2e after code changes.
 
 Before every push, run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` and `npm run test:e2e`
-(`npm run format` fixes what Prettier complains about).
+(`npm run format` fixes what Prettier complains about). `scripts/check.sh` runs them all in order, stopping a
+stale preview first (`--twice` runs the browser tests twice, `--fast` skips them). The release loop, from a fresh
+branch to a merged PR, is the `ship` skill (`.claude/skills/ship/`); looking after an open PR is `steward`.
 CI (`.github/workflows/deploy.yml`) runs all of them on every PR, inside Playwright's container image; when
 upgrading `@playwright/test`, change the image tag to the same version (a CI step checks). Browser tests can be flaky under
 load, so run the full suite twice after touching input, the HUD or the tutorial.
@@ -112,8 +114,9 @@ Write docs in plain, short sentences. The owner prefers not to see the word "hon
 ## Gotchas
 
 - Never `pkill -f "vite preview"` (or similar `-f` patterns) from a shell: it can match and kill the
-  shell itself. Find the PID and kill that: via `/proc` on Linux, or on Windows with
-  `netstat -ano | findstr :4173` then `taskkill /PID <pid> /F`.
+  shell itself. Find the PID and kill that: `lsof -ti tcp:4173`, or via `/proc` on Linux (its `cmdline`
+  files separate arguments with NUL bytes, so `tr '\0' ' '` before matching), or on Windows with
+  `netstat -ano | findstr :4173` then `taskkill /PID <pid> /F`. `scripts/check.sh` does this for you.
 - Pathfinding costs use `Float64Array` on purpose; 32-bit storage caused a heap blow-up (see the
   comment on `World.flow`).
 - Browsers only allow audio after a click or key press; `Music` and `Sfx` wait for it.
