@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs>
+        <radialGradient id="boStone" cx="36%" cy="30%" r="78%"><stop offset="0" stop-color="#e6e2d8" /><stop offset="0.55" stop-color="#a39d91" /><stop offset="1" stop-color="#5f5a51" /></radialGradient>
+      </defs>
+      <!-- A rough stone ball, as a trebuchet throws it -->
+      <path d="M32 8 L45 11 L55 21 L57 35 L50 49 L36 56 L22 53 L11 43 L8 29 L15 15 Z" fill="url(#boStone)" stroke="#0f1a2e" stroke-width="4" stroke-linejoin="round" />
+      <path d="M22 22 L30 26 L28 36 M40 30 L47 38 M33 44 L38 47" fill="none" stroke="#6b665c" stroke-width="2.4" stroke-linecap="round" />
+      <path d="M17 22 Q22 14 31 13" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.7" />
+    </svg>

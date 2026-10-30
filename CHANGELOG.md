@@ -3,6 +3,18 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.7 · 2026-10-30 · Sharper wood and steel
+### New
+- **The trebuchet throws:** its arm swings over and whips a stone out of the sling. The stone flies in an arc, its shadow below it, and lands in a burst of dirt and dust instead of an explosion.
+- **The ballista's string snaps** forward as it looses a bolt, with no gunpowder flash.
+- **Guns kick back** a little as they fire.
+- **Damaged buildings smoke and burn:** smoke drifts up from a hurt building, and flames flicker on a badly hurt one.
+- **The trebuchet looks like a trebuchet:** an open timber frame on a turntable with stone shot piled in a corner, and a throwing arm with an iron-banded counterweight and a loaded sling.
+- **Redrawn:** the ballista's platform (now with a turntable), the power pole (glass insulators and braces), the water wheel's gearbox (meshing gears) and wheel, and the beetle (glossy wing cases, mandibles and jointed legs).
+
+### Fixed
+- Nothing.
+
 ## 0.87.6 · 2026-10-30 · Bugs that keep apart
 ### New
 - **Bugs keep apart:** a crowd of bugs bunches up but no longer stacks into what looks like one bug. They overlap a little, never more than about three deep, and are never pushed into a wall.

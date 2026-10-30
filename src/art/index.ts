@@ -52,6 +52,7 @@ const TILES: Record<string, [number, number]> = {
   'buildings/sawmill': [2, 2],
   'buildings/trebuchet_base': [2, 2],
   'buildings/trebuchet_barrel': [2, 2],
+  'buildings/trebuchet_barrel_fire': [2, 2],
   'buildings/artillery_base': [2, 2],
   'buildings/artillery_barrel': [2, 2],
   'buildings/railgun_base': [2, 2],
@@ -76,6 +77,7 @@ const TILES: Record<string, [number, number]> = {
   'terrain/tree_pine_winter': [2, 2],
   'terrain/tree_pine_winter_snow': [2, 2],
   'effects/explosion': [2, 2],
+  'effects/dust_burst': [2, 2],
 };
 
 /** A strip's frame count from its name ('…_4f'), or 0 for a single sprite. */

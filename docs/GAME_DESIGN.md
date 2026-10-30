@@ -898,6 +898,10 @@ one research tree, one supply ship.
   sees stars where it was knocked out. Shots flash at the barrel and spark where they land, a cannon's
   shell flies and explodes, bugs splat, buildings lost to bugs break into debris, mended buildings
   sparkle and cut trees burst into leaves.
+- **Firing and damage (D-150):** a trebuchet's arm swings over and whips its stone out of the sling; the
+  stone flies in an arc with its shadow below and lands in a burst of dirt and dust (the hit itself lands
+  at once). A ballista's string snaps forward, with no flash. Guns kick back as they fire. Smoke drifts up
+  from a building below half health, and flames flicker on one below a quarter.
 
 ## Controls
 
