@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.5 · 2026-10-30 · Behind the scenes
+### New
+- Nothing in the game: a written checklist for making and releasing changes, and one command that runs every check before a release.
+
+### Fixed
+- Nothing.
+
 ## 0.87.4 · 2026-10-29 · A faster big base
 ### New
 - A performance test: a big base of over 1,000 buildings under attack by 200 bugs at night must tick and draw within a budget, so slowdowns are caught before they ship.
