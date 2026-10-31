@@ -20,7 +20,7 @@
     "CurrentBugs.dc.html": {
       "h": 1540,
       "page": "current",
-      "title": "Current · Bugs and nests",
+      "title": "Current \u00b7 Bugs and nests",
       "w": 1440,
       "x": 0,
       "y": 3280
@@ -28,7 +28,7 @@
     "CurrentDefense.dc.html": {
       "h": 2760,
       "page": "current",
-      "title": "Current · Defenses and walls",
+      "title": "Current \u00b7 Defenses and walls",
       "w": 1440,
       "x": 1520,
       "y": 0
@@ -36,7 +36,7 @@
     "CurrentEffectsUI.dc.html": {
       "h": 1720,
       "page": "current",
-      "title": "Current · Effects and UI icons",
+      "title": "Current \u00b7 Effects and UI icons",
       "w": 1440,
       "x": 0,
       "y": 6160
@@ -44,7 +44,7 @@
     "CurrentFactory.dc.html": {
       "h": 2040,
       "page": "current",
-      "title": "Current · Factory, power and logistics",
+      "title": "Current \u00b7 Factory, power and logistics",
       "w": 1440,
       "x": 0,
       "y": 0
@@ -52,7 +52,7 @@
     "CurrentItems.dc.html": {
       "h": 1100,
       "page": "current",
-      "title": "Current · Items",
+      "title": "Current \u00b7 Items",
       "w": 1440,
       "x": 0,
       "y": 4940
@@ -60,7 +60,7 @@
     "CurrentShip.dc.html": {
       "h": 1000,
       "page": "current",
-      "title": "Current · Shipyard and ship",
+      "title": "Current \u00b7 Shipyard and ship",
       "w": 1440,
       "x": 0,
       "y": 2160
@@ -68,7 +68,7 @@
     "CurrentTerrain.dc.html": {
       "h": 1740,
       "page": "current",
-      "title": "Current · Terrain, seasons and engineer",
+      "title": "Current \u00b7 Terrain, seasons and engineer",
       "w": 1440,
       "x": 1520,
       "y": 5360
@@ -76,7 +76,7 @@
     "CurrentWorking.dc.html": {
       "h": 2360,
       "page": "current",
-      "title": "Current · Working and firing animations",
+      "title": "Current \u00b7 Working and firing animations",
       "w": 1440,
       "x": 1520,
       "y": 2880
@@ -234,6 +234,30 @@
       "h": 3600,
       "title": "Ore veins (proposed)",
       "page": "ore"
+    },
+    "IdeasGaps.dc.html": {
+      "h": 3240,
+      "page": "ideas",
+      "title": "Ideas \u00b7 Filling the gaps",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "IdeasBuildings.dc.html": {
+      "h": 3700,
+      "page": "ideas",
+      "title": "Ideas \u00b7 Buildings that show what they do",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "IdeasExtras.dc.html": {
+      "h": 3290,
+      "page": "ideas",
+      "title": "Ideas \u00b7 Code, icons, Hardcore, small touches",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
     }
   },
   "createdOnFiles": {
@@ -249,7 +273,7 @@
       "kind": "title1",
       "maxW": 2960,
       "page": "current",
-      "text": "Current art · 0.87.8, every sprite in src/art",
+      "text": "Current art \u00b7 0.87.8, every sprite in src/art",
       "w": 240,
       "x": 0,
       "y": -300
@@ -257,7 +281,7 @@
     "guide": {
       "fill": "blue",
       "size": 40,
-      "text": "Board guide · Foundry Front art upgrade\n\nThis page is the art upgrade as it was drawn (0.40.0, D-075). Its sprites went into the game's src/art, and many have changed or been added since (the Wood Age, power, the ship, more defenses).\nThe Current art page shows every sprite as the game draws it now (0.87.8), straight from src/art.\n\nDirection: Art direction · In-game scene\nBuildings: Factory buildings · More buildings · Shipyard and ship · Defenses · Palisade and wall runs\nEnemies: Bugs · Nests · Movement animations\nItems and terrain: Items and ore nodes · More items and terrain · Terrain and engineer · Seasons\nUI: UI icons and menus\nEffects and polish: Effects and missing pieces · Moving parts · Night lighting and damage · Readability upgrades",
+      "text": "Board guide \u00b7 Foundry Front art upgrade\n\nThis page is the art upgrade as it was drawn (0.40.0, D-075). Its sprites went into the game's src/art, and many have changed or been added since (the Wood Age, power, the ship, more defenses).\nThe Current art page shows every sprite as the game draws it now (0.87.8), straight from src/art.\n\nDirection: Art direction \u00b7 In-game scene\nBuildings: Factory buildings \u00b7 More buildings \u00b7 Shipyard and ship \u00b7 Defenses \u00b7 Palisade and wall runs\nEnemies: Bugs \u00b7 Nests \u00b7 Movement animations\nItems and terrain: Items and ore nodes \u00b7 More items and terrain \u00b7 Terrain and engineer \u00b7 Seasons\nUI: UI icons and menus\nEffects and polish: Effects and missing pieces \u00b7 Moving parts \u00b7 Night lighting and damage \u00b7 Readability upgrades",
       "w": 1440,
       "x": 0,
       "y": -1105
@@ -266,7 +290,7 @@
       "kind": "title1",
       "maxW": 1440,
       "page": "ship",
-      "text": "Ship and shipyard · in the game from 0.87.8",
+      "text": "Ship and shipyard \u00b7 in the game from 0.87.8",
       "w": 240,
       "x": 0,
       "y": -300
@@ -274,7 +298,7 @@
     "trees-title": {
       "x": 0,
       "y": -300,
-      "text": "Trees through the seasons · proposed art",
+      "text": "Trees through the seasons \u00b7 proposed art",
       "kind": "title1",
       "maxW": 1440,
       "page": "trees"
@@ -282,7 +306,7 @@
     "ore-title": {
       "x": 0,
       "y": -300,
-      "text": "Ore patches · proposed art",
+      "text": "Ore patches \u00b7 proposed art",
       "kind": "title1",
       "maxW": 1600,
       "page": "ore"
@@ -290,7 +314,7 @@
     "nests-title": {
       "x": 0,
       "y": -300,
-      "text": "Nests growing and merging · proposed art",
+      "text": "Nests growing and merging \u00b7 proposed art",
       "kind": "title1",
       "maxW": 2240,
       "page": "nests"
@@ -327,7 +351,10 @@
     "ShipSideView.dc.html",
     "FinOptions.dc.html",
     "BareTrees.dc.html",
-    "OreVeins.dc.html"
+    "OreVeins.dc.html",
+    "IdeasGaps.dc.html",
+    "IdeasBuildings.dc.html",
+    "IdeasExtras.dc.html"
   ],
   "pages": [
     {
@@ -353,6 +380,10 @@
     {
       "id": "nests",
       "name": "Nests"
+    },
+    {
+      "id": "ideas",
+      "name": "Ideas"
     }
   ],
   "title": "Foundry Front Art Upgrade"
