@@ -25,6 +25,7 @@ import {
   PLAYER,
   HUB_SIZE,
   NESTS,
+  QUEENS,
   footprint,
   SHIP,
   HUB_WEAPON,
@@ -48,7 +49,7 @@ import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/
 import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn } from '../sim/clock';
-import { Nest, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
+import { Nest, bugDef, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
 import { BeltLook, beltLook } from './belts';
@@ -62,6 +63,13 @@ const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+/** Tiles across that a nest's art is drawn (D-152): the same for every stage, so the art itself grows. */
+const NEST_BOX = 4;
+const NEST_QUEEN_BOX = 4.6;
+/** Hardcore nests (D-133): the same art, darker and redder. */
+const HARDCORE_NEST_FILTER = 'brightness(72%) sepia(35%) hue-rotate(-30deg) saturate(170%)';
+/** Tiles across a nest's art is drawn: a fixed box by kind (D-152), bigger merged (D-132); a destroyed one's crater 2. */
+const nestArtSize = (n: Nest): number => (n.destroyed ? 2 : (n.queen ? NEST_QUEEN_BOX : NEST_BOX) * (n.cells ? 1.3 : 1));
 /** The shipyard and its ship are drawn 3 tiles square. */
 const SHIP_SIZE = 5; // the shipyard's footprint (3 before D-109)
 
@@ -246,7 +254,7 @@ export class Renderer {
   private fired = new Map<number, number>();
   private seenShots = new WeakSet<Shot>();
   /** Last known enemy positions and headings, to face sprites and place death puffs. */
-  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; walked: number; movedAt: number; trail: [number, number][] }>();
+  private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; queen?: boolean; walked: number; movedAt: number; trail: [number, number][] }>();
   private effects: Effect[] = [];
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
@@ -390,13 +398,14 @@ export class Renderer {
       const exit = world.byId.get(b.link);
       if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
     }
-    // Bug territories: a mound in each, and its outline while placing or while it's angry.
-    // (A cleared territory taken over by a newer nest is drawn as that nest.) In Hardcore, buildings go
-    // over mounds (D-133), so they're drawn first; otherwise over the buildings around them.
+    // Bug territories: a mound in each, under the buildings: a grown nest's art spreads past the tiles it
+    // blocks, and what's built over a destroyed one, or round a Hardcore one (D-133), goes on top (#189).
+    // Its outline, while placing or while it's angry, and its health go over the buildings.
+    // (A cleared territory taken over by a newer nest is drawn as that nest.)
     const placing = !!ui?.tool && ui.tool !== 'demolish';
     const nests = s.nests.filter((n) => territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n));
     const hardcore = s.mode === 'hardcore';
-    if (hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
+    for (const n of nests) this.drawNest(world, n, z);
 
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
     const looks = belts.map((b) => beltLook(world, b));
@@ -409,15 +418,15 @@ export class Renderer {
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
     this.drawWires(poles, z, [x0, y0, x1, y1]);
 
-    if (!hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
-    else for (const n of nests) this.drawCover(world, n, z, placing);
+    for (const n of nests) this.drawNestMarks(world, n, now, z, placing);
+    if (hardcore) for (const n of nests) this.drawCover(world, n, z, placing);
 
     if (ui) this.drawPlayers(world, now, z);
 
     // Bugs, walking ones under the trees; flying ones (D-135) after the canopy, over everything.
     const drawBug = (e: Enemy) => {
       if (!visible(e.x - 1, e.y - 1, 2)) return;
-      const def = ENEMIES[e.type];
+      const def = bugDef(e);
       const track = this.enemies.get(e.id);
       const angle = track?.angle ?? 0;
       const [ex, ey] = this.smooth(e, e.x, e.y);
@@ -432,12 +441,14 @@ export class Renderer {
       // Young bugs (D-065) are smaller, duller and a little darker until they grow up (D-075: pale ones vanished
       // on the light grass); their health bar is out of what they can have now.
       const grown = strength(world, e);
-      const size = Math.min(ENEMY_SPRITE_MAX, def.radius * ENEMY_SPRITE_SCALE) * bob * (0.4 + 0.6 * grown);
+      const size = Math.min(ENEMY_SPRITE_MAX * (e.queen ? QUEENS.bug.size : 1), def.radius * ENEMY_SPRITE_SCALE) * bob * (0.4 + 0.6 * grown);
       if (grown < 1) ctx.filter = `saturate(${Math.round(55 + 45 * grown)}%) brightness(${Math.round(80 + 20 * grown)}%)`;
       const x = ex - size / 2;
       const y = ey - size / 2;
-      const drawn =
-        e.type === 'runner' && track
+      // A queen (D-152) has one drawing of her own: she waddles rather than scuttles.
+      const drawn = e.queen
+        ? this.drawSprite(`enemies/${e.type}_queen`, x, y, size, angle + 0.06 * Math.sin((track?.walked ?? 0) * 3))
+        : e.type === 'runner' && track
           ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
           : biting
             ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
@@ -675,12 +686,42 @@ export class Renderer {
     return true;
   }
 
+  /** A merged nest's tunnels (D-132, D-152): a raised ridge of soil from its mound to each other cell it owns, ending in a burrow. */
+  private drawTunnels(n: Nest, cx: number, cy: number): void {
+    const ctx = this.ctx;
+    ctx.lineCap = 'round';
+    for (const [x, y] of n.cells ?? []) {
+      const [tx, ty] = [x + NESTS.cell / 2, y + NESTS.cell / 2];
+      for (const [color, width, off] of [
+        ['#24180e', 0.62, 0],
+        ['#5e4630', 0.46, 0],
+        ['#a8865c', 0.14, -0.05],
+      ] as const) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(cx + off, cy + off);
+        ctx.lineTo(tx + off, ty + off);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#5e4630';
+      dot(ctx, tx, ty, 0.42);
+      ctx.fillStyle = '#0a0604';
+      dot(ctx, tx, ty, 0.24);
+    }
+    ctx.lineCap = 'butt';
+  }
+
   /** A nest's mound, and its territory's outline while placing or while it's angry. */
-  private drawNest(world: World, n: Nest, now: number, z: number, placing: boolean): void {
+  private drawNestMarks(world: World, n: Nest, now: number, z: number, placing: boolean): void {
     const ctx = this.ctx;
     const c = NESTS.cell;
     const alive = world.state.enemies.some((e) => e.nest === n.id);
     const angry = alive && isAngry(world, n);
+    if (!n.destroyed && n.hp < n.maxHp) {
+      const [cx, cy] = nestCentre(n);
+      bar(ctx, cx - 0.7, cy - nestArtSize(n) * 0.42 - 0.25, 1.4, n.hp / n.maxHp, '#e0445a');
+    }
     if (alive && (placing || angry)) {
       const m = NESTS.nearMargin;
       // Each cell of the territory: a merged nest owns several (D-132).
@@ -694,21 +735,32 @@ export class Renderer {
         ctx.setLineDash([]);
       }
     }
-    // The mound: a burrow entrance by kind (D-065), with eyes when angry and a collapsing rim when badly hurt.
+  }
+
+  /**
+   * A nest's mound (D-152): its kind's own drawing for its stage, or its queen nest, the art growing inside a
+   * fixed box (bigger for a merged nest, D-132). Eyes over the main burrow when angry, and a collapsing rim
+   * when badly hurt. Its outline and health are drawn over the buildings (drawNestMarks).
+   */
+  private drawNest(world: World, n: Nest, z: number): void {
+    const ctx = this.ctx;
+    const angry = isAngry(world, n) && world.state.enemies.some((e) => e.nest === n.id);
     const standing = !n.destroyed;
     const [cx, cy] = nestCentre(n);
-    const key = !standing ? 'nests/destroyed' : world.state.mode === 'hardcore' && n.kind !== 'queen' ? 'nests/hardcore' : `nests/${n.kind}`;
-    // Bigger with each stage, and bigger still for a queen or a merged nest (D-132).
-    const size = standing ? moundSize(n) : 2;
-    const [sx, sy] = [cx - size / 2, cy - size / 2];
-    if (this.drawSprite(key, sx, sy, size)) {
+    if (standing && n.cells) this.drawTunnels(n, cx, cy);
+    const key = !standing ? 'nests/destroyed' : `nests/${n.kind}_${n.queen ? 'queen' : Math.min(n.stage, 3)}`;
+    const size = nestArtSize(n);
+    // Hardcore nests (D-133) are darker and redder.
+    const hard = standing && world.state.mode === 'hardcore';
+    if (hard) ctx.filter = HARDCORE_NEST_FILTER;
+    const drawn = this.drawSprite(key, cx - size / 2, cy - size / 2, size);
+    if (hard) ctx.filter = 'none';
+    if (drawn) {
       if (!standing) return;
-      // Grown nests show egg clutches and side burrows; a large one on both sides.
-      if (n.stage >= 2) this.drawSprite('nests/grown', sx, sy, size);
-      if (n.stage >= 3) this.drawSprite('nests/grown', sx, sy, size, Math.PI);
-      if (angry) this.drawSprite('nests/angry', sx, sy, size);
-      if (n.hp < n.maxHp / 2) this.drawSprite('nests/damaged', sx, sy, size);
-      if (n.hp < n.maxHp) bar(ctx, cx - 0.7, sy - 0.25, 1.4, n.hp / n.maxHp, '#e0445a');
+      const burrow = moundSize(n);
+      const [sx, sy] = [cx - burrow / 2, cy - burrow / 2];
+      if (angry) this.drawSprite('nests/angry', sx, sy, burrow);
+      if (n.hp < n.maxHp / 2) this.drawSprite('nests/damaged', sx, sy, burrow);
       return;
     }
     // Drawn in code when the sprites are missing.
@@ -732,20 +784,17 @@ export class Renderer {
       [0.05, -0.45, 0.12],
     ])
       dot(ctx, cx + dx, cy + dy, r);
-    if (n.hp < n.maxHp) {
-      if (n.hp < n.maxHp / 2) {
-        ctx.strokeStyle = '#1e140c';
-        ctx.lineWidth = 2 / z;
-        ctx.beginPath();
-        ctx.moveTo(cx - 0.9, cy + 0.1);
-        ctx.lineTo(cx - 0.5, cy + 0.35);
-        ctx.lineTo(cx - 0.1, cy + 0.15);
-        ctx.moveTo(cx + 0.6, cy - 0.5);
-        ctx.lineTo(cx + 0.8, cy - 0.1);
-        ctx.lineTo(cx + 1.1, cy);
-        ctx.stroke();
-      }
-      bar(ctx, cx - 0.7, cy - 1.25, 1.4, n.hp / n.maxHp, '#e0445a');
+    if (n.hp < n.maxHp / 2) {
+      ctx.strokeStyle = '#1e140c';
+      ctx.lineWidth = 2 / z;
+      ctx.beginPath();
+      ctx.moveTo(cx - 0.9, cy + 0.1);
+      ctx.lineTo(cx - 0.5, cy + 0.35);
+      ctx.lineTo(cx - 0.1, cy + 0.15);
+      ctx.moveTo(cx + 0.6, cy - 0.5);
+      ctx.lineTo(cx + 0.8, cy - 0.1);
+      ctx.lineTo(cx + 1.1, cy);
+      ctx.stroke();
     }
   }
 
@@ -2295,7 +2344,7 @@ export class Renderer {
         }
         walked += Math.hypot(dx, dy);
       }
-      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, walked, movedAt, trail });
+      this.enemies.set(e.id, { x: e.x, y: e.y, angle, type: e.type, queen: e.queen, walked, movedAt, trail });
     }
     // Trees cut by a Lumber Camp: a burst of leaves.
     for (const f of world.felled) {
@@ -2330,8 +2379,9 @@ export class Renderer {
     for (const [id, e] of this.enemies) {
       if (alive.has(id)) continue;
       this.enemies.delete(id);
-      if (!breached && !this.spriteFx('effects/death_splat', e.x, e.y, ENEMIES[e.type].radius * 4.5, 500, now, e.angle)) {
-        this.effects.push({ kind: 'puff', x: e.x, y: e.y, r: ENEMIES[e.type].radius * 2.2, born: now, life: 400, color: '224,68,90' });
+      const radius = (e.queen ? QUEENS.bug.size : 1) * ENEMIES[e.type].radius;
+      if (!breached && !this.spriteFx('effects/death_splat', e.x, e.y, radius * 4.5, 500, now, e.angle)) {
+        this.effects.push({ kind: 'puff', x: e.x, y: e.y, r: radius * 2.2, born: now, life: 400, color: '224,68,90' });
       }
     }
     if (breached) {

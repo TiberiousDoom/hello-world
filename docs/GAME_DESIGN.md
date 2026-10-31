@@ -526,8 +526,8 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - **Threat (D-065, D-072).** A threat level starts at 0 and rises by 1 every **18 minutes** of play, up
   to 10. A message says when it rises, and the clock in the top bar shows it (⚠). At each level:
   - bugs bred or spread from then on get **+15% health** (bugs already out there don't change),
-  - a bred crawler has an **8% chance** (up to 50%) to hatch as a runner instead, or, in a den or a
-    queen's nest, as a runner or a brute; the nest's size stays the same,
+  - a bred crawler has an **8% chance** (up to 50%) to hatch as its nest's own bug instead (a warren's as a
+    runner, D-152); the nest's size stays the same,
   - territories spread **8% sooner** (down to half the usual 4 minutes).
 - **Night raids (D-065, D-073).** At nightfall, from the **second night** on, a raid comes with a
   **50% chance** (+10% per threat level; **every night in Hardcore**). One calm nest within **40 tiles**
@@ -543,32 +543,41 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   destroyed, or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
   with any of your buildings in them, stay clear, so building on cleared land holds it. A new
   territory starts with **half** the bugs a nest that far out would have, and is of the same kind as the
-  nest it came from (a queen's spreads as whatever kind lives that far out). A message says when it
-  happens.
-- **Kinds (D-132).** Nests come in kinds by distance from the hub: **crawler warrens** within 60 tiles,
-  **runner hives** from 60 tiles, **brute dens** from 100 tiles. Within 12 tiles of each line the two kinds
-  mix. Each kind is mostly its own bug, and further out is bigger and tougher (*d* is the distance from the
-  hub in tiles):
+  nest it came from. It's never a queen nest. A message says when it happens.
+- **Kinds (D-132, D-152).** There's a kind of nest for each bug, by distance from the hub: **crawler
+  warrens** within 60 tiles, **runner runnels** from 60 tiles, **wasp hives** from 80, **brute dens** from
+  100 and **beetle barrows** from 120. Within 12 tiles of each line the two kinds mix. Each kind is mostly
+  its own bug, with some crawlers, and further out is bigger and tougher (*d* is the distance from the hub
+  in tiles):
 
-  | Kind | Crawlers | Runners | Brutes | Wasps (D-135) | Beetles (D-135) |
+  | Kind | Crawlers | Runners | Wasps | Brutes | Beetles |
   |---|---|---|---|---|---|
   | Warren | 3, plus 1 per 45 tiles of *d* | none | none | none | none |
-  | Hive | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none | none within 80 tiles; then 1, plus 1 per 50 tiles beyond 80 | none |
-  | Den | 2, plus 1 per 60 tiles of *d* | none | 1, plus 1 per 50 tiles beyond 100 | none | none within 120 tiles; then 1, plus 1 per 60 tiles beyond 120 |
-  | Queen | 3, plus 1 per 45 tiles of *d* | 2, plus 1 per 60 tiles of *d* | 2, plus 1 per 80 tiles of *d* | 1, plus 1 per 100 tiles of *d* | 1, plus 1 per 100 tiles of *d* |
+  | Runnel | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none | none | none |
+  | Hive | 1, plus 1 per 120 tiles of *d* | 1 | 2, plus 1 per 50 tiles beyond 80 | none | none |
+  | Den | 2, plus 1 per 60 tiles of *d* | none | none | 1, plus 1 per 50 tiles beyond 100 | none |
+  | Barrow | 2, plus 1 per 60 tiles of *d* | none | none | none | 2, plus 1 per 60 tiles beyond 120 |
 
-  Bug HP is +1% per 1.5 tiles of *d* (double at 150 tiles), for every kind.
-- **Queens (D-132).** A new map has **1 to 3 queen nests**, in cells within 20 tiles of the map edge. A
-  queen's mound has **3×** the health, it breeds **twice as fast**, and it drops **3×** the chitin. Its
-  burrow is drawn bigger.
+  Bug HP is +1% per 1.5 tiles of *d* (double at 150 tiles), for every kind. Each kind looks its own: soft
+  soil and shed husks for a warren, long straight trenches for a runnel, paper comb for a hive, boulders and
+  bones for a den, rolled earth balls and shed wing cases for a barrow.
+- **Queens (D-132, D-152).** A new map has **1 to 3 queen nests**, in cells within 20 tiles of the map
+  edge. A queen nest is of the kind that lives that far out, with **1.5×** the bugs. Its mound has **3×**
+  the health, it breeds **twice as fast**, and it drops **3×** the chitin. It's drawn wider, with a glowing
+  chamber in the middle. Queen nests don't merge.
+  - **The queen** lives in the chamber. When the mound falls she comes out, angry and homeless like the
+    nest's other bugs: her nest's bug, swollen with eggs, with **6×** its health, **2×** its bite, **0.6×**
+    its speed, and drawn 1.6× as big. Killing her drops **2×** the chitin a nest that far out drops.
 - **Growing (D-132).** A calm nest moves up a stage after **3 days** of calm (27 minutes), from small to
   medium to large. Each stage holds more: a medium nest has 1.5× the brood and mound health of a small one,
-  a large one 2×. It then breeds up to its bigger brood. Angry nests don't grow. The burrow is drawn bigger
-  at each stage, with egg clutches from medium. Destroying a grown nest drops more chitin (1.5× or 2×).
+  a large one 2×. It then breeds up to its bigger brood. Angry nests don't grow. Each stage has its own
+  drawing (D-152): one burrow in a low mound when small; a wider mound with a side burrow joined by a
+  tunnel, and eggs, when medium; a dig site with five burrows, tunnels leaving the mound, spoil and scrap
+  from your factory when large. Destroying a grown nest drops more chitin (1.5× or 2×).
   New maps start every nest part way through its first stage, so they don't all grow at once.
-- **Merging (D-132).** Every **10 minutes**, two calm nests of the same kind (not queens), both medium or
+- **Merging (D-132).** Every **10 minutes**, two calm nests of the same kind (not queen nests), both medium or
   large, whose territories touch, may merge into one nest. The one with the bigger brood takes the
-  other's cells, bugs, brood and mound health; its burrow is drawn bigger. A merged nest owns up to
+  other's cells, bugs, brood and mound health; its mound is drawn bigger, with a tunnel to each other cell. A merged nest owns up to
   4 cells, and its bugs stroll over all of them. Building in any of its cells provokes it. Destroying it
   drops chitin for every cell it owns. A message says when nests merge.
 - **Hardcore nests (D-133).** In Hardcore, the threat level starts at **2**, and nests breed, spread and
@@ -576,7 +585,8 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   kills its bugs. To destroy it, **build over the mound and the ring of tiles around it** (16 tiles; walls
   and belts count, and pond tiles count as covered). Building there provokes the nest as usual, and a nest
   that's partly built over breeds **twice as fast again**. While you hold a tool, or once you've started,
-  the tiles still to cover are marked, with a bar for how much is done. Destroying it drops chitin as usual.
+  the tiles still to cover are marked, with a bar for how much is done. Destroying it drops chitin as usual,
+  and a queen nest's queen comes out. Hardcore nests are drawn darker and redder.
 
 | Bug | HP | Speed (tiles/s) | Damage to buildings |
 |---|---|---|---|
@@ -1033,7 +1043,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v43**). v43 (D-142) turns defences plated with Chitin Plating into Tier 3
+- Save files are versioned (currently **v44**). v44 (D-152) makes a queen nest a queen nest of the kind
+  that lives that far out, keeping its bugs. v43 (D-142) turns defences plated with Chitin Plating into Tier 3
   defences, which have the same health. v42 (D-138) gives older games Normal difficulty. v41 (D-135) adds wasps and
   beetles to nests' broods. v40 (D-132) gives nests their kinds and stages. v39 (D-130) makes the engine, life support and navigation Electric Age
   stages: a ship past the engine gets Ship Systems, and one building one of them gets back what it had brought in.

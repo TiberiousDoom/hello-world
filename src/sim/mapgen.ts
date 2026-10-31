@@ -174,7 +174,7 @@ export function generateNests(w: World, hubCx: number, hubCy: number): Nest[] {
   const count = QUEENS.count[0] + Math.floor(w.random() * (QUEENS.count[1] - QUEENS.count[0] + 1));
   for (let k = 0; k < count && edge.length; k++) {
     const [n] = edge.splice(Math.floor(w.random() * edge.length), 1);
-    nests[n.id] = { ...newNest(n.id, n.x, n.y, hypot(n.x + c / 2 - hubCx, n.y + c / 2 - hubCy), 1, 'queen'), age: n.age };
+    nests[n.id] = { ...newNest(n.id, n.x, n.y, hypot(n.x + c / 2 - hubCx, n.y + c / 2 - hubCy), 1, n.kind, true), age: n.age };
   }
   // Some nests lie deep in forest (D-134): trees over most of the open ground of their cell. Every mound
   // and the ring around it stay clear of trees.
