@@ -99,6 +99,36 @@ const countdown = [0, 1, 2, 3, 4].map((n) => {
 // ===== Bugs =====
 const wasp = read('enemies/wasp'), beetle = read('enemies/beetle'), brute = read('enemies/brute');
 const waspDeath = four.map((i) => make('0 0 64 64', `<ellipse cx="${32 + i * 2}" cy="${36 + i * 2}" rx="${10 - i}" ry="${5 - i * 0.5}" fill="#000" opacity="${0.15 + i * 0.1}" />` + centred(wasp, 1 - i * 0.18, i * 2, i * 1.5, i * 110, `opacity="${f1(1 - i * 0.12)}"`)));
+const LEGS = 'M22 17 L19 11 L13 7 M32 16 L33 9 L30 4 M41 22 L46 16 L51 12 M22 47 L19 53 L13 57 M32 48 L33 55 L30 60 M41 42 L46 48 L51 52';
+const legHips = [[22, 17, 19, 11, 13, 7], [32, 16, 33, 9, 30, 4], [41, 22, 46, 16, 51, 12], [22, 47, 19, 53, 13, 57], [32, 48, 33, 55, 30, 60], [41, 42, 46, 48, 51, 52]];
+const curl = (k) => legHips.map(([hx, hy, kx, ky, fx, fy]) => {
+  // Each leg folds in toward the body: the knee pulls in and the foot tucks back under.
+  const mid = 32;
+  const kx2 = hx + (kx - hx) * (1 - 0.35 * k), ky2 = hy + (ky - hy) * (1 - 0.45 * k);
+  const fx2 = kx2 + (fx - kx) * (1 - 0.6 * k) + (hx > 30 ? -3 : 3) * k, fy2 = ky2 + (fy - ky) * (1 - 0.7 * k) + (mid - ky2) * 0.35 * k;
+  return `M${hx} ${hy} L${f1(kx2)} ${f1(ky2)} L${f1(fx2)} ${f1(fy2)}`;
+}).join(' ');
+const UPPER = '<path d="M9 32 Q9 15 26 14.5 Q38 14.5 41 22 L41 32 Z"';
+const LOWER = '<path d="M9 32 Q9 49 26 49.5 Q38 49.5 41 42 L41 32 Z"';
+const beetleDeath = [
+  [0.15, 0, 1, '#ffffff', 1.5],
+  [0.55, 8, 0.8, '#7ad0ff', 0],
+  [0.85, 15, 0.55, '#1a2a3a', 0],
+  [1, 18, 0.35, '#1a2a3a', 0],
+].map(([legs, open, light, eye, jerk], i) => {
+  let s2 = beetle.split(LEGS).join(curl(legs));
+  // The wing cases part at the back, hinged at the collar, showing the dark body beneath.
+  s2 = s2.replace(UPPER, `<ellipse cx="27" cy="32" rx="15" ry="11" fill="#141c2a" /><path d="M16 32 H38 M20 27 Q28 25 36 27 M20 37 Q28 39 36 37" stroke="#2a3446" stroke-width="1.4" fill="none" /><path transform="rotate(${-open} 41 30)" d="M9 32 Q9 15 26 14.5 Q38 14.5 41 22 L41 32 Z"`).replace(UPPER.replace('<path', '<path'), '');
+  s2 = s2.replace(LOWER, `<path transform="rotate(${open} 41 34)" d="M9 32 Q9 49 26 49.5 Q38 49.5 41 42 L41 32 Z"`);
+  // The highlights and spots ride on the upper and lower cases.
+  s2 = s2.replace('<path d="M14 23 Q20 16.5 32 17"', `<path transform="rotate(${-open} 41 30)" d="M14 23 Q20 16.5 32 17"`).replace('<path d="M14 37 Q18 44 26 45.5"', `<path transform="rotate(${open} 41 34)" d="M14 37 Q18 44 26 45.5"`).replace('<circle cx="21" cy="21" r="1.4" fill="#ffffff" opacity="0.8" />', open ? '' : '<circle cx="21" cy="21" r="1.4" fill="#ffffff" opacity="0.8" />');
+  s2 = s2.replace('<path d="M8.5 32 H41" stroke="#0f1a2e" stroke-width="1.8" />', `<path d="M10 32 Q24 ${32 - open * 0.3} 41 32 Q24 ${32 + open * 0.3} 10 32 Z" fill="#141c2a" stroke="#0f1a2e" stroke-width="1.8" />`);
+  s2 = s2.replace('<g fill="#7ad0ff" stroke="#0f1a2e" stroke-width="0.6">', `<g fill="${eye}" stroke="#0f1a2e" stroke-width="0.6">`).replace('<g fill="#ffffff"><circle cx="53" cy="28.5"', `<g fill="#ffffff" opacity="${i < 2 ? 1 : 0}"><circle cx="53" cy="28.5"`);
+  // A dull, dusty husk at the end; a jolt on the first frame.
+  const dim = `<filter id="bd" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="${f1(light)}" /><feComponentTransfer><feFuncR type="linear" slope="${f1(0.55 + light * 0.45)}" /><feFuncG type="linear" slope="${f1(0.55 + light * 0.45)}" /><feFuncB type="linear" slope="${f1(0.55 + light * 0.45)}" /></feComponentTransfer></filter>`;
+  const dust = i === 3 ? [[14, 20], [10, 44], [30, 54], [46, 12]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5" fill="#b9ad98" opacity="0.5" />`).join('') : '';
+  return make('0 0 64 64', `<defs>${dim}</defs><g filter="url(#bd)" transform="translate(${jerk} 0)">${inner(s2)}</g>${dust}`);
+});
 const bruteDeath = four.map((i) => make('0 0 64 64', (i >= 2 ? `<ellipse cx="32" cy="34" rx="${18 + i * 3}" ry="${10 + i * 2}" fill="#4a0e0e" opacity="0.5" />` : '') + `<g transform="translate(32 32) scale(${[1, 1.06, 1.12, 1.15][i]} ${[1, 0.8, 0.6, 0.5][i]}) translate(-32 -32)" filter="${i >= 1 ? 'url(#dk)' : ''}">${inner(brute)}</g><defs><filter id="dk"><feColorMatrix type="matrix" values="${[1, 0.8, 0.6, 0.5][i]} 0 0 0 0  0 ${[1, 0.8, 0.6, 0.5][i]} 0 0 0  0 0 ${[1, 0.8, 0.6, 0.5][i]} 0 0  0 0 0 1 0" /></filter></defs>`));
 const tracks = (key, ink, op) => {
   let s = tiles(256, 128, key);
@@ -164,12 +194,17 @@ const flower = [0, 0.4, 0.8, 1].map((o) => {
   return make('0 0 32 32', `<circle cx="16" cy="16" r="15" fill="${GRASS}" />` + s + `<circle cx="16" cy="16" r="${f1(2 + o * 1.4)}" fill="#ffd36b" stroke="${INK}" stroke-width="0.8" />`);
 });
 const splash = four.map((i) => {
-  const w = read('buildings/water_wheel');
-  const V = Number(box(w).split(' ')[2]);
+  // The game's own turning strip, one frame of it, with spray flung off the rim as the paddles come round.
+  const strip = read('buildings/water_wheel_working_4f');
   const r = rng(61 + i);
-  let s = '';
-  for (let k = 0; k < 10; k++) s += `<circle cx="${f1(V * (0.3 + r() * 0.4))}" cy="${f1(V * (0.82 + r() * 0.14))}" r="${f1(V * (0.01 + r() * 0.015))}" fill="#e8f8ff" opacity="${f1(0.6 + r() * 0.4)}" />`;
-  return over(w, s + `<ellipse cx="${V / 2}" cy="${f1(V * 0.9)}" rx="${f1(V * (0.12 + i * 0.03))}" ry="${f1(V * 0.03)}" fill="none" stroke="#e8f8ff" stroke-width="${V / 90}" opacity="${f1(0.8 - i * 0.18)}" />`);
+  let spray = '';
+  for (let k = 0; k < 9; k++) {
+    const a = ((k / 9) * 0.9 + i * 0.22) * Math.PI + Math.PI * 0.3; // the lower and right side of the wheel
+    const d = 30 + r() * 7;
+    spray += `<circle cx="${f1(160 + d * Math.cos(a))}" cy="${f1(32 + d * Math.sin(a))}" r="${f1(1.2 + r() * 1.4)}" fill="#e8f8ff" stroke="#3a7aa8" stroke-width="0.5" opacity="${f1(0.7 + r() * 0.3)}" />`;
+  }
+  const foam = `<ellipse cx="160" cy="32" rx="${31 + i}" ry="${31 + i}" fill="none" stroke="#e8f8ff" stroke-width="1.6" stroke-dasharray="${3 + i} 5" stroke-dashoffset="${i * 4}" opacity="0.7" />`;
+  return make('0 0 192 64', `<svg width="192" height="64" viewBox="${i * 192} 0 192 64">${inner(strip)}</svg>${foam}${spray}`);
 });
 const bucket = four.map((i) => {
   const w = read('buildings/well');
@@ -250,14 +285,14 @@ board('IdeasFifth.dc.html', {
     idea('Turrets aiming and running low', 'Brackets close on the bug a turret aims at and turn red when it\'s locked on. A turret short of ammo blinks red round its ammo box.', [['Lock-on · 4 frames', frames(lockOn, 92)], ['Played', play(lockOn, 6, B)], ['Low ammo · 2 frames', frames(lowAmmo, 92)], ['Played', play(lowAmmo, 2, B)]], 'effects/lock_on_4f, low_ammo'),
     idea('A raid is coming', 'A red glow pulses along the edge of the map the raid comes from, and a siren light turns on the hub.', [['4 frames', frames(raid, 180)], ['Played', play(raid, 5, 330)]], 'drawn in code; effects/siren_4f'),
     idea('Ship milestones', 'Fireworks and confetti over the ship when a stage is finished. Before launch, four lamps round the pad light one by one, then all turn green.', [[['Stage done · 4 frames', frames(fireworks, 104)], ['Played', play(fireworks, 6, 160)]], [['Countdown · 5 frames', frames(countdown, 104)], ['Played', play([...countdown, countdown[4]], 1.5, 160)]]], 'effects/fireworks_4f, ship_countdown_5f'),
-    idea('Deaths by kind', 'Bugs all share one splat now. A wasp spirals down to its shadow; a brute crumples and darkens into a stain.', [['Wasp', frames(waspDeath, 80)], ['Played', play([...waspDeath, waspDeath[3]], 6, 110)], ['Brute', frames(bruteDeath, 80)], ['Played', play([...bruteDeath, bruteDeath[3]], 5, 110)]], 'enemies/wasp_death_4f, brute_death_4f'),
+    idea('Deaths by kind', 'Bugs all share one splat now. A wasp spirals down to its shadow. A beetle flinches, curls its legs in under it, and its wing cases part as it dulls to a dusty husk. A brute crumples and darkens into a stain.', [['Wasp', frames(waspDeath, 80)], ['Played', play([...waspDeath, waspDeath[3]], 6, 110)], ['Beetle', frames(beetleDeath, 80)], ['Played', play([...beetleDeath, beetleDeath[3], beetleDeath[3]], 5, 110)], ['Brute', frames(bruteDeath, 80)], ['Played', play([...bruteDeath, bruteDeath[3]], 5, 110)]], 'enemies/wasp_death_4f, beetle_death_4f, brute_death_4f'),
     idea('Tracks', 'Bugs leave footprints in the snow that fade behind them.', [['In snow', still(tracks('terrain/ground_winter', '#5a6a7a', 0.85), 330)]], 'drawn in code'),
     idea('Eyes in the forest', 'At night, pairs of eyes watch from the forest edge, blinking now and then.', [['4 frames', frames(eyes, 200)], ['Played', play(eyes, 3, 360)]], 'effects/eyes_4f'),
     idea('Chitin to pick up', 'A dropped piece of chitin bounces, settles and glints until it\'s picked up.', [['4 frames', frames(chitinDrop, 84)], ['Played', play(chitinDrop, 6, 110)]], 'effects/drop_4f'),
     idea('Cloud shadows', 'Soft shadows of clouds drift slowly over the whole map, buildings and all.', [['4 frames', frames(clouds, 180)], ['Played', play(clouds, 2, 330)]], 'drawn in code (a tiling overlay)'),
     idea('Birds and animals', 'Birds that take off when bugs come near, a rabbit hopping at the forest edge, and a deer grazing there.', [['Bird · 4 frames', frames(bird, 56, GRASS)], ['Birds scatter', play(flock, 5, 230)], ['Rabbit', frames(rabbit, 72)], ['Played', play(rabbit, 6, 100)], ['Deer grazing', frames(deer, 80)], ['Played', play(deer, 2, 110)]], 'units/bird_4f, rabbit_4f, deer_4f'),
     idea('Seasons', 'Pink blossom on the broadleaf trees in spring, butterflies in summer, and flowers that open in the morning and close at dusk.', [['Spring tree now', still(read('terrain/tree_round_spring'), 110)], ['In blossom', still(blossom, 110)], ['Butterfly · 4 frames', frames(butterfly, 56)], ['Played', play(butterfly, 10, 90)], ['Flower opening', frames(flower, 56)]], 'terrain/tree_round_blossom, effects/butterfly_4f, flower_open_4f'),
-    idea('Water', 'Splashes where the water wheel dips into the stream, and the well\'s bucket coming up full and going back down.', [['Water wheel', frames(splash, 92)], ['Played', play(splash, 8, B)], ['Well', frames(bucket, 92)], ['Played', play(bucket, 3, B)]], 'over the working strips'),
+    idea('Water', 'Splashes where the water wheel dips into the stream, and the well\'s bucket coming up full and going back down.', [['Water wheel', frames(splash, 150)], ['Played', play(splash, 8, 220)], ['Well', frames(bucket, 92)], ['Played', play(bucket, 3, B)]], 'over the working strips'),
     idea('Co-op players', 'Each player\'s engineer in their own overalls: orange, blue, green and purple.', [['4 players', frames(players, 96)]], 'units/engineer tinted per player'),
     idea('Help up', 'When an engineer is knocked out, another walks up, offers a hand and pulls them to their feet, and the stars clear.', [['4 frames', frames(revive, 170)], ['Played', play([...revive, revive[3]], 2, 260)]], 'units/engineer_revive_4f'),
     idea('Research icons', 'A badge for every research topic, from its first unlock (or what it costs), coloured by its age: wood, iron, then steel and electricity.', [['Every topic', researchIcons]], 'ui/research/<id>'),
