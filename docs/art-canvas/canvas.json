@@ -258,6 +258,14 @@
       "w": 1440,
       "x": 3040,
       "y": 0
+    },
+    "IdeasMore.dc.html": {
+      "h": 5750,
+      "page": "ideas",
+      "title": "Ideas \u00b7 More: launch, people, queens, power, night, weather",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
     }
   },
   "createdOnFiles": {
@@ -354,7 +362,8 @@
     "OreVeins.dc.html",
     "IdeasGaps.dc.html",
     "IdeasBuildings.dc.html",
-    "IdeasExtras.dc.html"
+    "IdeasExtras.dc.html",
+    "IdeasMore.dc.html"
   ],
   "pages": [
     {
