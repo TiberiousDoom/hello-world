@@ -142,14 +142,23 @@ const hardBugs = ['crawler', 'brute', 'beetle', 'wasp'].map((b) => [read(`enemie
 const nest = read('nests/warren_3');
 const nb = box(nest).split(' ').map(Number);
 const hardNestNow = make(box(nest), `<defs><filter id="hn"><feColorMatrix type="matrix" values="0.72 0 0 0 0  0 0.72 0 0 0  0 0 0.72 0 0  0 0 0 1 0" /><feColorMatrix type="sepia" values="0.35" /><feColorMatrix type="hueRotate" values="-30" /><feColorMatrix type="saturate" values="1.7" /></filter></defs><g filter="url(#hn)">${inner(nest)}</g>`);
+// The burrows glow from within: each hole lit red-orange from deep inside, the mound itself as the Hardcore filter
+// draws it now, with no haze or veins outside.
+const holes = [...nest.matchAll(/<ellipse cx="([\d.]+)" cy="([\d.]+)" rx="([\d.]+)" ry="([\d.]+)" fill="#040302"\/>/g)].map((m) => m.slice(1).map(Number)).filter(([, , rx]) => rx >= 3);
 const hardNest = (glow) =>
   over(
-    hard(nest, `hn${glow}`, 0.05),
-    `<defs><radialGradient id="mw${glow}"><stop offset="0" stop-color="#ff5a2a" stop-opacity="${glow}" /><stop offset="1" stop-color="#ff2a1a" stop-opacity="0" /></radialGradient></defs><circle cx="${nb[2] / 2}" cy="${nb[3] / 2}" r="${nb[2] / 7}" fill="url(#mw${glow})" />` +
-      // Bones and chitin scattered round the mound
-      [[0.3, 0.7, 20], [0.68, 0.32, -30], [0.72, 0.7, 60], [0.28, 0.34, 10]].map(([x, y, a]) => `<g transform="translate(${f1(x * nb[2])} ${f1(y * nb[3])}) rotate(${a}) scale(${nb[2] / 256})"><path d="M-10 0 H10" stroke="${INK}" stroke-width="5" stroke-linecap="round" /><path d="M-10 0 H10" stroke="#e8dcc4" stroke-width="3" stroke-linecap="round" /><circle cx="-11" cy="-2" r="2.6" fill="#e8dcc4" stroke="${INK}" stroke-width="1" /><circle cx="-11" cy="2" r="2.6" fill="#e8dcc4" stroke="${INK}" stroke-width="1" /><circle cx="11" cy="-2" r="2.6" fill="#e8dcc4" stroke="${INK}" stroke-width="1" /><circle cx="11" cy="2" r="2.6" fill="#e8dcc4" stroke="${INK}" stroke-width="1" /></g>`).join(''),
+    hardNestNow,
+    `<defs><radialGradient id="hg" cx="50%" cy="58%" r="55%"><stop offset="0" stop-color="#fff0a0" /><stop offset="0.3" stop-color="#ff8a2a" /><stop offset="0.7" stop-color="#c81e10" /><stop offset="1" stop-color="#2a0604" /></radialGradient>
+    <filter id="hgb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" /></filter></defs>` +
+      holes
+        .map(([cx, cy, rx, ry]) => {
+          const k = 0.45 + 0.4 * glow; // how far the light reaches up the burrow's walls
+          return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#2a0604" />` +
+            `<ellipse cx="${cx}" cy="${f1(cy + ry * 0.12)}" rx="${f1(rx * k)}" ry="${f1(ry * k)}" fill="url(#hg)" opacity="${f1(0.55 + 0.45 * glow)}" filter="url(#hgb)" />`;
+        })
+        .join(''),
   );
-const nestPulse = [0.5, 0.75, 0.95, 0.7].map(hardNest);
+const nestPulse = [0.35, 0.7, 1, 0.6].map(hardNest);
 
 // --- An idle belt: a leaf drifts down and settles on it (in fall), and the slats sit still.
 const belt = read('buildings/belt');
@@ -220,7 +229,7 @@ board('IdeasExtras.dc.html', {
     idea('Mk2 and Mk3 plates', 'Drawn in code now as a flat plate in the corner. As sprites: a bevelled, riveted plate with raised chevrons and a soft glow while the machine has electricity, and dull without. Shown on the furnace: Mk2 on and off, Mk3 on and off.', [['Now (drawn in code)', frames(plates.now, 110)], ['Proposed', frames(plates.new, 110)]], 'ui/plate_mk2, plate_mk3 (+ _off)'),
     idea('App icon and favicon', 'The app icon is still needed for the stores (1024 × 1024, no transparency). This one sets the logo\'s factory and shield in the clearing at dusk, with pines behind and the hazard stripe along the bottom. The favicon keeps only the shield and its cannon, so it still reads at 16 pixels.', [['Now · logo', still(logo, 160, '#24303f')], ['App icon', still(appIcon, 220, '#24303f')], ['Favicon at 64, 32 and 16', `<div style="display: flex; gap: 14px; align-items: flex-end; background: #24303f; border-radius: 10px; padding: 14px"><img src="${uri(favicon)}" width="64" height="64"><img src="${uri(favicon)}" width="32" height="32"><img src="${uri(favicon)}" width="16" height="16"></div>`]], 'public icons: icon-1024, icon-512, icon-192, favicon'),
     idea('Hardcore bugs', 'From the first art review: more horrifying bugs for Hardcore. The same sprites, darker, with glowing red veins under the shell and a red haze about them. Done as a filter like this, it would cover every bug and its walk and attack strips without redrawing them.', hardBugs.map(([a, h]) => ['Now · Hardcore', frames([a, h], 96)]), 'a filter, or _hard variants'),
-    idea('Hardcore nests', 'Hardcore nests are drawn darker and redder in code now. They could also glow red from the burrow and be ringed with bones and chitin. The glow pulses slowly.', [['Now (Hardcore filter)', still(hardNestNow, 170)], ['Proposed · 4 frames', frames(nestPulse, 120)], ['Played', play(nestPulse, 3, 200)]], 'a filter plus an overlay, nests/hard_glow_4f'),
+    idea('Hardcore nests', 'Hardcore nests are drawn darker and redder in code now. The burrows could also glow from within: each hole lit red-orange from deep inside, pulsing slowly, with nothing drawn outside the mound.', [['Now (Hardcore filter)', still(hardNestNow, 170)], ['Proposed · 4 frames', frames(nestPulse, 120)], ['Played', play(nestPulse, 3, 200)]], 'the Hardcore filter plus the lit holes, drawn by art/nests.mjs'),
     idea('An idle belt in fall', 'Belts and rollers that carry nothing show nothing. In fall a leaf could drift down and settle on an idle belt, and an idle line slowly gathers a few (blown off again once it runs).', [['4 frames', frames(beltLeaf, 96)], ['Played', play(beltLeaf, 4, 120)], ['A line left idle', still(beltLine, 330)]], 'effects/leaf_settle_4f'),
     idea('Worn terraces', 'Where an extractor has worked a terrace, the shelf could show it: a scarred pit with tool marks, the ore band chipped, gravel spilled down the cliff, and boot prints in the dust.', [['Now', still(terrace(false), 260)], ['Worked', still(terrace(true), 260)]], 'drawn in code with the terraces'),
     idea('Snowfall', 'Leaves already fall at the end of fall; flakes could drift down in winter. A tiling overlay: big flakes fall faster and sway a little.', [['4 frames', frames(snow, 150)], ['Played', play(snow, 5, 300)]], 'effects/snowfall_4f'),
