@@ -1,4 +1,4 @@
-// Draws the bare broadleaf trees and the leaf-covered ground for the end of fall and winter (D-152): the
+// Draws the bare broadleaf trees and the leaf-covered ground for the end of fall and winter (D-154): the
 // tree at the end of fall with its last few leaves, the same tree in winter with snow along its limbs, and
 // the ground under a fall of leaves. Run `node art/trees.mjs` to rebuild them; a seeded random number
 // generator lays out the branches and leaves, so the result is the same every time.

@@ -119,6 +119,7 @@ mkdirSync(BACKUP_DIR, { recursive: true });
 const room = loadRoom();
 let world = loadWorld();
 const coop = new Coop(RELAY, VERSION);
+coop.headless = true; // the server plays no engineer of its own (#184)
 let lastBackupHour = '';
 /** The world's game time when it was last saved: a paused world isn't written again and again. */
 let savedTime = world.state.time;

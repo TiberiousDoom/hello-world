@@ -362,6 +362,10 @@ body.in-menu #toasts {
   bottom: calc(112px + var(--safe-bottom));
   width: 300px;
   max-width: calc(100% - 16px);
+  /* Never taller than the room between the top bar and the toolbar (#191): a long panel scrolls. */
+  max-height: calc((100dvh - 112px - 76px - var(--safe-bottom) - var(--safe-top)) / var(--ui, 1));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;

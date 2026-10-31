@@ -16,8 +16,9 @@
 // nest near your buildings sends a raiding party. Bugs notice the engineer:
 // walking close to calm bugs provokes them, and angry ones close by go for it.
 //
-// Nests come in kinds by distance (D-132): crawler warrens, runner hives, brute dens, and rare queens near
-// the map edge. A calm nest grows through three stages, and two grown nests of a kind whose territories
+// Nests come in kinds by distance (D-132, D-152), one for each bug: crawler warrens, runner runnels, wasp
+// hives, brute dens and beetle barrows. A few near the map edge are queen nests, of any kind: their queen
+// comes out to fight when the mound falls. A calm nest grows through three stages, and two grown nests of a kind whose territories
 // touch may merge into one bigger nest, owning both cells.
 //
 // In Hardcore (D-133) a mound can't be shot down: covering it and a ring around it with buildings destroys it.
@@ -27,9 +28,11 @@ import {
   BUG_SPACING,
   BUILDINGS,
   CLOCK,
+  DIFFICULTY,
   DX,
   DY,
   ENEMIES,
+  EnemyDef,
   EnemyType,
   FLOODLIGHT,
   FLY_OVER,
@@ -38,7 +41,9 @@ import {
   HARDCORE_NESTS,
   HUB_SIZE,
   NESTS,
+  NEST_BUG,
   NestKind,
+  nestKindFor,
   PLAYER,
   QUEENS,
   RAIDS,
@@ -46,7 +51,6 @@ import {
   chitinFor,
   moundHp,
   nestComposition,
-  nestKindFor,
   stageSize,
 } from './data';
 import { clockAt } from './clock';
@@ -66,6 +70,7 @@ export interface Nest {
   brood: Brood; // the bugs it started with, which it breeds back up to while calm
   nextBreed: number; // game time its next bug hatches; 0 while it isn't breeding
   kind: NestKind; // D-132
+  queen?: boolean; // a queen nest (D-152): she comes out when the mound falls
   stage: number; // 1 to NESTS.stageMax: it grows while calm (D-132)
   age: number; // seconds of calm towards its next stage
   cells?: [number, number][]; // the top-left of each other cell it owns, after merging (D-132)
@@ -76,9 +81,10 @@ export interface Nest {
 export type Brood = Record<EnemyType, number>;
 
 /** A new nest whose cell has its top-left at (x, y), `distance` tiles from the hub; `share` of the usual bugs. */
-export function newNest(id: number, x: number, y: number, distance: number, share = 1, kind = nestKindFor(distance, 0.5)): Nest {
-  const hp = Math.round(moundHp(distance) * (kind === 'queen' ? QUEENS.mound : 1));
-  return { id, x, y, angryUntil: 0, hp, maxHp: hp, brood: broodFor(distance, share, kind), nextBreed: 0, kind, stage: 1, age: 0 };
+export function newNest(id: number, x: number, y: number, distance: number, share = 1, kind = nestKindFor(distance, 0.5), queen = false): Nest {
+  const hp = Math.round(moundHp(distance) * (queen ? QUEENS.mound : 1));
+  const brood = broodFor(distance, share * (queen ? QUEENS.brood : 1), kind);
+  return { id, x, y, angryUntil: 0, hp, maxHp: hp, brood, nextBreed: 0, kind, ...(queen ? { queen } : {}), stage: 1, age: 0 };
 }
 
 /**
@@ -123,7 +129,7 @@ export function spotIn(w: World, n: Nest): [number, number] {
 
 /** How big a nest's mound looks, in tiles across: by stage, and bigger for a queen or a merged nest (D-132). */
 export function moundSize(n: Nest): number {
-  return 2 * (0.7 + 0.15 * n.stage) * (n.kind === 'queen' || n.cells ? 1.3 : 1);
+  return 2 * (0.7 + 0.15 * n.stage) * (n.queen || n.cells ? 1.3 : 1);
 }
 
 /** Provoked, or homeless: a destroyed nest's survivors never calm down. */
@@ -229,11 +235,48 @@ function destroyNest(w: World, n: Nest): void {
   n.hp = 0;
   n.destroyed = true;
   // More from a queen, a grown nest and a merged one (D-132).
-  const more = (n.kind === 'queen' ? QUEENS.chitin : 1) * stageSize(n.stage) * territory(n).length;
+  const more = (n.queen ? QUEENS.chitin : 1) * stageSize(n.stage) * territory(n).length;
   const chitin = Math.round(chitinFor(hubDistance(w, n)) * more);
   w.state.inventory.chitin = (w.state.inventory.chitin ?? 0) + chitin;
   w.markFlowDirty();
   w.events.push(`Nest destroyed: its territory is clear. +${chitin} chitin`);
+  if (n.queen) releaseQueen(w, n);
+}
+
+/**
+ * A queen nest's mound fell (D-152): its queen comes out of the chamber, angry and homeless like the nest's
+ * other survivors, as a slow, tough version of the nest's bug.
+ */
+function releaseQueen(w: World, n: Nest): void {
+  const [x, y] = nestCentre(n);
+  const hp = Math.round(ENEMIES[NEST_BUG[n.kind]].hp * QUEENS.bug.hp * nestComposition(hubDistance(w, n)).hpMult * threatToughness(w) * DIFFICULTY[w.state.difficulty].toughness);
+  w.state.enemies.push({ id: w.state.nextId++, type: NEST_BUG[n.kind], queen: true, x, y, hp, maxHp: hp, nest: n.id, tx: x, ty: y, wait: 0 });
+  w.events.push(`The ${ENEMIES[NEST_BUG[n.kind]].name.toLowerCase()} queen has come out of the nest!`);
+}
+
+/** Killed queens (D-152) drop chitin into stock: QUEENS.bugChitin times what their nest dropped before growing. Called before the dead are cleared. */
+export function buryQueens(w: World): void {
+  for (const e of w.state.enemies) {
+    if (!e.queen || e.hp > 0) continue;
+    const chitin = Math.round(chitinFor(hubDistance(w, w.state.nests[e.nest])) * QUEENS.bugChitin);
+    w.state.inventory.chitin = (w.state.inventory.chitin ?? 0) + chitin;
+    w.events.push(`The ${ENEMIES[e.type].name.toLowerCase()} queen is dead. +${chitin} chitin`);
+  }
+}
+
+const queenDefs = new Map<EnemyType, EnemyDef>();
+
+/** A bug's numbers: its kind's, and for a queen (D-152) bigger, tougher-biting and slower. */
+export function bugDef(e: Enemy): EnemyDef {
+  const def = ENEMIES[e.type];
+  if (!e.queen) return def;
+  let q = queenDefs.get(e.type);
+  if (!q) {
+    const b = QUEENS.bug;
+    q = { ...def, name: `${def.name} queen`, hp: def.hp * b.hp, dps: def.dps * b.dps, speed: def.speed * b.speed, radius: def.radius * b.size };
+    queenDefs.set(e.type, q);
+  }
+  return q;
 }
 
 /** Whether a nest still owns its cell (a cleared one may have been taken over by a newer nest). */
@@ -307,10 +350,11 @@ export function tickBreeding(w: World, dt: number): void {
       const distance = hubDistance(w, n);
       const short = BUG_TYPES.filter((t) => got[t] < n.brood[t]);
       let type = short.length ? short[Math.floor(w.random() * short.length)] : 'crawler';
-      // With threat, crawlers more often hatch as something worse (D-065). The nest's size stays the same.
+      // With threat, crawlers more often hatch as something worse (D-065): the nest's own bug (D-152), or in a
+      // warren a runner. The nest's size stays the same.
       const threat = threatAt(s.time, s.mode);
       if (type === 'crawler' && w.random() < Math.min(NESTS.threatSwapMax, NESTS.threatSwap * threat)) {
-        type = (n.kind === 'den' || n.kind === 'queen') && w.random() < 0.5 ? 'brute' : 'runner';
+        type = n.kind === 'warren' ? 'runner' : NEST_BUG[n.kind];
       }
       w.spawnBug(type, n, nestComposition(distance).hpMult * threatToughness(w), true);
       n.nextBreed = 0;
@@ -335,7 +379,7 @@ function growNest(w: World, n: Nest): void {
 }
 
 /**
- * Merging (D-132). Every NESTS.mergeEvery seconds, two calm nests of the same kind (not queens), both grown
+ * Merging (D-132). Every NESTS.mergeEvery seconds, two calm nests of the same kind (not queen nests), both grown
  * to NESTS.mergeStage or more, whose territories touch, may become one: the one with the bigger brood takes
  * the other's cells, bugs, brood and mound health. Up to NESTS.mergeCells cells of territory.
  */
@@ -343,7 +387,7 @@ export function tickMerge(w: World): void {
   const s = w.state;
   if (s.time < s.nextMerge) return;
   s.nextMerge = s.time + NESTS.mergeEvery;
-  const ready = (n: Nest) => !n.destroyed && n.kind !== 'queen' && n.stage >= NESTS.mergeStage && ownsCell(w, n) && !isAngry(w, n);
+  const ready = (n: Nest) => !n.destroyed && !n.queen && n.stage >= NESTS.mergeStage && ownsCell(w, n) && !isAngry(w, n);
   const pairs: [Nest, Nest][] = [];
   for (const a of s.nests) {
     if (!ready(a)) continue;
@@ -375,7 +419,7 @@ export function tickMerge(w: World): void {
 
 /** How many times as fast as usual a nest breeds: a queen's twice (D-132); in Hardcore faster, and faster again while being built over (D-133). */
 function breedRate(w: World, n: Nest): number {
-  let rate = n.kind === 'queen' ? QUEENS.breed : 1;
+  let rate = n.queen ? QUEENS.breed : 1;
   if (w.state.mode === 'hardcore') rate *= HARDCORE_NESTS.faster * (coveredTiles(w, n) > 0 ? HARDCORE_NESTS.builtOver : 1);
   return rate;
 }
@@ -426,8 +470,8 @@ export function tickSpread(w: World): void {
   if (!options.length) return;
   const [x, y, from] = options[Math.floor(w.random() * options.length)];
   const distance = hypot(x + C / 2 - hubCx, y + C / 2 - hubCy);
-  // A new territory is of its parent's kind; a queen's brood settles as whatever lives that far out (D-132).
-  const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare, from.kind === 'queen' ? nestKindFor(distance, w.random()) : from.kind);
+  // A new territory is of its parent's kind, and never a queen nest (D-132, D-152).
+  const nest = newNest(s.nests.length, x, y, distance, NESTS.spreadShare, from.kind);
   s.nests.push(nest);
   w.nestCells.set(cellKey(x / C, y / C), nest);
   // Its mound and the ring around it are cleared of trees, as for a nest on a new map: in Hardcore the
@@ -560,7 +604,7 @@ export function tickBugs(w: World, dt: number): void {
     grow(w, e, dt);
     const n = s.nests[e.nest];
     const [hx, hy] = nestCentre(n);
-    const def = ENEMIES[e.type];
+    const def = bugDef(e);
     if (e.raid) {
       // A raid (the nest stays calm) lasts the night, and after it until nothing is left in reach.
       if (night || targetNear(w, e, reach)) {
@@ -659,7 +703,7 @@ function spaceOut(w: World): void {
   }
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
-    const def = ENEMIES[e.type];
+    const def = bugDef(e);
     const cx = Math.floor(e.x / SPACE_CELL);
     const cy = Math.floor(e.y / SPACE_CELL);
     for (let dy = -1; dy <= 1; dy++) {
@@ -669,7 +713,7 @@ function spaceOut(w: World): void {
         if (!list) continue;
         for (const o of list) {
           if (o.id <= e.id || o.hp <= 0) continue; // each pair once
-          const odef = ENEMIES[o.type];
+          const odef = bugDef(o);
           if (!def.flies !== !odef.flies) continue; // a wasp flies over the crawlers
           const min = (def.radius + odef.radius) * BUG_SPACING;
           const ox = o.x - e.x;
@@ -724,16 +768,16 @@ function targetNear(w: World, e: Enemy, reach: number): boolean {
 
 /** How fast a bug moves now: slower on a working spike pit (D-107), in a floodlight's light at night (D-126) and among trees (D-134). */
 function speedOf(w: World, e: Enemy): number {
-  if (ENEMIES[e.type].flies) return ENEMIES[e.type].speed * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1); // above spikes and trees (D-135)
+  if (ENEMIES[e.type].flies) return bugDef(e).speed * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1); // above spikes and trees (D-135)
   const b = w.buildingAt(Math.floor(e.x), Math.floor(e.y));
   const spikes = b?.type === 'spike_pit' && b.ammo > 0 ? SPIKES.slow : 1;
   const trees = w.treeAt(Math.floor(e.x), Math.floor(e.y)) === TREE ? FOREST.bugSlow : 1;
-  return ENEMIES[e.type].speed * spikes * trees * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1);
+  return bugDef(e).speed * spikes * trees * (w.inFloodlight(e.x, e.y) ? FLOODLIGHT.slow : 1);
 }
 
 /** Follow a flow field (to the nearest building, or to the shipyard), and chew on whatever is reached. */
 function chase(w: World, e: Enemy, n: Nest, dt: number, flow: Float64Array, angers = true): void {
-  const def = ENEMIES[e.type];
+  const def = bugDef(e);
   if (def.flies) return fly(w, e, n, dt, flow === w.shipFlow, angers);
   const p = playerNear(w, e.x, e.y, PLAYER.notice);
   if (p && hunt(w, e, n, p, dt, angers)) return;
@@ -791,7 +835,7 @@ function avenge(w: World, e: Enemy, n: Nest, dps: number, dt: number, angers: bo
   const x = Math.max(foe.x, Math.min(e.x, foe.x + bw));
   const y = Math.max(foe.y, Math.min(e.y, foe.y + bh));
   const dist = hypot(x - e.x, y - e.y);
-  const def = ENEMIES[e.type];
+  const def = bugDef(e);
   if (dist <= def.radius + 0.1) {
     bite(w, foe, n, dps * dt, angers, e, dt);
     return true;
@@ -812,7 +856,7 @@ function avenge(w: World, e: Enemy, n: Nest, dps: number, dt: number, angers: bo
  * landing. An engineer close by comes first, as for any bug.
  */
 function fly(w: World, e: Enemy, n: Nest, dt: number, ship: boolean, angers: boolean): void {
-  const def = ENEMIES[e.type];
+  const def = bugDef(e);
   const wanted = (b: Building) => (ship ? b.type === 'shipyard' : !FLY_OVER.includes(b.type));
   const p = playerNear(w, e.x, e.y, PLAYER.notice);
   if (p && hunt(w, e, n, p, dt, angers)) return;
@@ -847,7 +891,7 @@ function fly(w: World, e: Enemy, n: Nest, dt: number, ship: boolean, angers: boo
  * blocked by a building, so the bug follows its path field instead. A flying bug is never blocked.
  */
 function hunt(w: World, e: Enemy, n: Nest, p: Player, dt: number, angers: boolean): boolean {
-  const def = ENEMIES[e.type];
+  const def = bugDef(e);
   const dist = hypot(p.x - e.x, p.y - e.y);
   if (dist <= def.radius + 0.4) {
     hurtPlayer(w, p, def.dps * strength(w, e) * dt);

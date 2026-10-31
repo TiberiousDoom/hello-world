@@ -22,11 +22,10 @@ const PX_PER_TILE = 128;
 const TILES: Record<string, [number, number]> = {
   'buildings/hub': [8, 8],
   'buildings/hub_damaged': [8, 8],
-  'nests/warren': [2, 2],
-  'nests/hive': [2, 2],
-  'nests/den': [2, 2],
-  'nests/queen': [3, 3],
-  'nests/hardcore': [2, 2],
+  // Each nest kind's stages and queen nest (D-152), drawn in a 4-tile box: the art grows inside it.
+  ...Object.fromEntries(['warren', 'runnel', 'hive', 'den', 'barrow'].flatMap((k) => ['1', '2', '3', 'queen'].map((s) => [`nests/${k}_${s}`, [4, 4] as [number, number]]))),
+  // Queens (D-152) are drawn about one and a half tiles across.
+  ...Object.fromEntries(['crawler', 'runner', 'brute', 'wasp', 'beetle'].map((b) => [`enemies/${b}_queen`, [2, 2] as [number, number]])),
   'nests/angry': [2, 2],
   'nests/damaged': [2, 2],
   'nests/destroyed': [2, 2],

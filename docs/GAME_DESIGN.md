@@ -22,7 +22,7 @@ How the game works on `master` today. Balance numbers live in
   a real walk.
 - **Ore runs out (D-096):** each ore tile holds **1,200 ore**; mining by hand and extractors both take
   from it, and once it's used up the tile is bare ground. Touching tiles of one ore are drawn as one
-  patch, rising from the ground as a terrace (D-153): the whole patch is a low shelf of rock, and where it's
+  patch, rising from the ground as a terrace (D-155): the whole patch is a low shelf of rock, and where it's
   at least three tiles across a second, higher shelf sits on it. Each shelf has rounded edges and a cliff on
   its near side with a band of ore along it. A tile of ore on its own is a small pile of rocks.
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
@@ -243,6 +243,8 @@ with, so emptying one and building it again isn't a free refill.
   belt, and send them out of the front of both in turn, skipping a blocked one. Items keep their lane.
 - **Splitter filter (#62):** select a splitter, pick an item and **← Left** or **Right →**. That item
   goes out of that side only, and everything else out of the other. With **Off**, the sides take turns.
+  The list (here, and on hub ports and drone pads) holds only what you can have so far: raw resources,
+  what's in stock, and what researched recipes take in and make (#191). A long panel scrolls.
 - **Two kinds stay apart (#92, D-104):** with no filter, when both belts into a splitter carry an item
   (each within the last 5 s) and the two are different, each item goes straight out of its own side.
   When one belt stops, or both carry the same item, the sides take turns again.
@@ -397,7 +399,7 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare broadleaf trees with snow on their limbs, and snowy pines; grass and flowers are under the snow |
 
   A stump's regrowth time is set by the season it's cut in.
-- **Seasons fade in (D-111, D-152):** over the last day of each season the land turns to the next one's look.
+- **Seasons fade in (D-111, D-154):** over the last day of each season the land turns to the next one's look.
   Trees change one by one, each at its own moment; the ground and the light cross-fade. Fall and winter
   are different: over the last day of fall the leaves fall (the broadleaf trees go bare, one by one, and
   fallen leaves gather on the ground), and winter starts bare; then over the first half of winter's first
@@ -436,7 +438,8 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 - **Dropping off:** walking up to the **hub** empties the inventory into it, unless "Drop off at the hub
   when I walk up to it" is switched off in the Inventory window (each player has their own switch).
   **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands that building
-  whatever it takes of what's held, slot by slot.
+  whatever it takes of what's held, slot by slot. Its number is how many that building will take now (a
+  machine holds up to 3 batches of each input), not everything held (#170).
 - **Bugs notice the engineer (D-074).** The engineer has **100 health**. Walking within 3 tiles of a
   calm bug (5 at night) provokes its nest, as a building would. An angry bug (or a raider) within
   **4 tiles** of the engineer goes straight for them, and bites as hard as it bites
@@ -531,8 +534,8 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
 - **Threat (D-065, D-072).** A threat level starts at 0 and rises by 1 every **18 minutes** of play, up
   to 10. A message says when it rises, and the clock in the top bar shows it (⚠). At each level:
   - bugs bred or spread from then on get **+15% health** (bugs already out there don't change),
-  - a bred crawler has an **8% chance** (up to 50%) to hatch as a runner instead, or, in a den or a
-    queen's nest, as a runner or a brute; the nest's size stays the same,
+  - a bred crawler has an **8% chance** (up to 50%) to hatch as its nest's own bug instead (a warren's as a
+    runner, D-152); the nest's size stays the same,
   - territories spread **8% sooner** (down to half the usual 4 minutes).
 - **Night raids (D-065, D-073).** At nightfall, from the **second night** on, a raid comes with a
   **50% chance** (+10% per threat level; **every night in Hardcore**). One calm nest within **40 tiles**
@@ -548,32 +551,41 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   destroyed, or open land. A live territory's cell is never taken. Cells within 30 tiles of the hub, and cells
   with any of your buildings in them, stay clear, so building on cleared land holds it. A new
   territory starts with **half** the bugs a nest that far out would have, and is of the same kind as the
-  nest it came from (a queen's spreads as whatever kind lives that far out). A message says when it
-  happens.
-- **Kinds (D-132).** Nests come in kinds by distance from the hub: **crawler warrens** within 60 tiles,
-  **runner hives** from 60 tiles, **brute dens** from 100 tiles. Within 12 tiles of each line the two kinds
-  mix. Each kind is mostly its own bug, and further out is bigger and tougher (*d* is the distance from the
-  hub in tiles):
+  nest it came from. It's never a queen nest. A message says when it happens.
+- **Kinds (D-132, D-152).** There's a kind of nest for each bug, by distance from the hub: **crawler
+  warrens** within 60 tiles, **runner runnels** from 60 tiles, **wasp hives** from 80, **brute dens** from
+  100 and **beetle barrows** from 120. Within 12 tiles of each line the two kinds mix. Each kind is mostly
+  its own bug, with some crawlers, and further out is bigger and tougher (*d* is the distance from the hub
+  in tiles):
 
-  | Kind | Crawlers | Runners | Brutes | Wasps (D-135) | Beetles (D-135) |
+  | Kind | Crawlers | Runners | Wasps | Brutes | Beetles |
   |---|---|---|---|---|---|
   | Warren | 3, plus 1 per 45 tiles of *d* | none | none | none | none |
-  | Hive | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none | none within 80 tiles; then 1, plus 1 per 50 tiles beyond 80 | none |
-  | Den | 2, plus 1 per 60 tiles of *d* | none | 1, plus 1 per 50 tiles beyond 100 | none | none within 120 tiles; then 1, plus 1 per 60 tiles beyond 120 |
-  | Queen | 3, plus 1 per 45 tiles of *d* | 2, plus 1 per 60 tiles of *d* | 2, plus 1 per 80 tiles of *d* | 1, plus 1 per 100 tiles of *d* | 1, plus 1 per 100 tiles of *d* |
+  | Runnel | 1, plus 1 per 120 tiles of *d* | 2, plus 1 per 40 tiles beyond 60 | none | none | none |
+  | Hive | 1, plus 1 per 120 tiles of *d* | 1 | 2, plus 1 per 50 tiles beyond 80 | none | none |
+  | Den | 2, plus 1 per 60 tiles of *d* | none | none | 1, plus 1 per 50 tiles beyond 100 | none |
+  | Barrow | 2, plus 1 per 60 tiles of *d* | none | none | none | 2, plus 1 per 60 tiles beyond 120 |
 
-  Bug HP is +1% per 1.5 tiles of *d* (double at 150 tiles), for every kind.
-- **Queens (D-132).** A new map has **1 to 3 queen nests**, in cells within 20 tiles of the map edge. A
-  queen's mound has **3×** the health, it breeds **twice as fast**, and it drops **3×** the chitin. Its
-  burrow is drawn bigger.
+  Bug HP is +1% per 1.5 tiles of *d* (double at 150 tiles), for every kind. Each kind looks its own: soft
+  soil and shed husks for a warren, long straight trenches for a runnel, paper comb for a hive, boulders and
+  bones for a den, rolled earth balls and shed wing cases for a barrow.
+- **Queens (D-132, D-152).** A new map has **1 to 3 queen nests**, in cells within 20 tiles of the map
+  edge. A queen nest is of the kind that lives that far out, with **1.5×** the bugs. Its mound has **3×**
+  the health, it breeds **twice as fast**, and it drops **3×** the chitin. It's drawn wider, with a glowing
+  chamber in the middle. Queen nests don't merge.
+  - **The queen** lives in the chamber. When the mound falls she comes out, angry and homeless like the
+    nest's other bugs: her nest's bug, swollen with eggs, with **6×** its health, **2×** its bite, **0.6×**
+    its speed, and drawn 1.6× as big. Killing her drops **2×** the chitin a nest that far out drops.
 - **Growing (D-132).** A calm nest moves up a stage after **3 days** of calm (27 minutes), from small to
   medium to large. Each stage holds more: a medium nest has 1.5× the brood and mound health of a small one,
-  a large one 2×. It then breeds up to its bigger brood. Angry nests don't grow. The burrow is drawn bigger
-  at each stage, with egg clutches from medium. Destroying a grown nest drops more chitin (1.5× or 2×).
+  a large one 2×. It then breeds up to its bigger brood. Angry nests don't grow. Each stage has its own
+  drawing (D-152): one burrow in a low mound when small; a wider mound with a side burrow joined by a
+  tunnel, and eggs, when medium; a dig site with five burrows, tunnels leaving the mound, spoil and scrap
+  from your factory when large. Destroying a grown nest drops more chitin (1.5× or 2×).
   New maps start every nest part way through its first stage, so they don't all grow at once.
-- **Merging (D-132).** Every **10 minutes**, two calm nests of the same kind (not queens), both medium or
+- **Merging (D-132).** Every **10 minutes**, two calm nests of the same kind (not queen nests), both medium or
   large, whose territories touch, may merge into one nest. The one with the bigger brood takes the
-  other's cells, bugs, brood and mound health; its burrow is drawn bigger. A merged nest owns up to
+  other's cells, bugs, brood and mound health; its mound is drawn bigger, with a tunnel to each other cell. A merged nest owns up to
   4 cells, and its bugs stroll over all of them. Building in any of its cells provokes it. Destroying it
   drops chitin for every cell it owns. A message says when nests merge.
 - **Hardcore nests (D-133).** In Hardcore, the threat level starts at **2**, and nests breed, spread and
@@ -581,7 +593,8 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   kills its bugs. To destroy it, **build over the mound and the ring of tiles around it** (16 tiles; walls
   and belts count, and pond tiles count as covered). Building there provokes the nest as usual, and a nest
   that's partly built over breeds **twice as fast again**. While you hold a tool, or once you've started,
-  the tiles still to cover are marked, with a bar for how much is done. Destroying it drops chitin as usual.
+  the tiles still to cover are marked, with a bar for how much is done. Destroying it drops chitin as usual,
+  and a queen nest's queen comes out. Hardcore nests are drawn darker and redder.
 
 | Bug | HP | Speed (tiles/s) | Damage to buildings |
 |---|---|---|---|
@@ -787,8 +800,9 @@ one research tree, one supply ship.
   the hub's stock. Someone joining later in that slot takes it over.
 - **Dedicated server (D-084):** the game can also be hosted by a server instead of a player
   ([server/README.md](../server/README.md)). Its room is always open with the same code, and the game
-  starts at once, so everyone joins it under way. It is paused while nobody is in. The server is player 1;
-  its engineer stays at the hub. If the server restarts, players see "The host is back" and carry on.
+  starts at once, so everyone joins it under way. It is paused while nobody is in. The server takes slot 1
+  but isn't a player: it has no engineer in the game (#184), so the first to join is player 2. If the server
+  restarts, players see "The host is back" and carry on.
 - **A host's dead connection (D-085):** a host whose connection dies without closing (a router restarting)
   notices within about 20 seconds, reconnects and takes its room back; players see "The host is back".
 - **A player back in their own slot (D-092, #100):** each player joins with a random key of their own. A
@@ -1038,7 +1052,8 @@ strings and light percussion, with a roomy reverb.
 ## Saves
 
 - Autosaved to the browser's local storage every 20 s and when the page is hidden.
-- Save files are versioned (currently **v43**). v43 (D-142) turns defences plated with Chitin Plating into Tier 3
+- Save files are versioned (currently **v44**). v44 (D-152) makes a queen nest a queen nest of the kind
+  that lives that far out, keeping its bugs. v43 (D-142) turns defences plated with Chitin Plating into Tier 3
   defences, which have the same health. v42 (D-138) gives older games Normal difficulty. v41 (D-135) adds wasps and
   beetles to nests' broods. v40 (D-132) gives nests their kinds and stages. v39 (D-130) makes the engine, life support and navigation Electric Age
   stages: a ship past the engine gets Ship Systems, and one building one of them gets back what it had brought in.

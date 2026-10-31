@@ -89,16 +89,21 @@ export function stageNeeds(w: World): string | null {
   return r && !w.state.researched.includes(r) ? r : null;
 }
 
+/** How many more of `item` the shipyard takes now: what its stage, or the cargo, still needs (#170). */
+export function shipRoom(w: World, item: ItemId): number {
+  const stage = currentStage(w);
+  if (!stage && (shipAway(w) || launching(w))) return 0;
+  if (stageNeeds(w)) return 0;
+  const need = (stage ? stage.items : currentCargo(w))[item] ?? 0;
+  return Math.max(0, need - (w.state.ship.delivered[item] ?? 0));
+}
+
 /** Takes an item into the shipyard if the current stage, or the cargo, still needs it. */
 export function insertShip(w: World, item: ItemId): boolean {
+  if (shipRoom(w, item) <= 0) return false;
   const ship = w.state.ship;
   const stage = currentStage(w);
-  if (!stage && (shipAway(w) || launching(w))) return false;
-  if (stageNeeds(w)) return false;
-  const need = (stage ? stage.items : currentCargo(w))[item] ?? 0;
-  const have = ship.delivered[item] ?? 0;
-  if (have >= need) return false;
-  ship.delivered[item] = have + 1;
+  ship.delivered[item] = (ship.delivered[item] ?? 0) + 1;
   if (stage && filled(stage.items, ship.delivered)) completeStage(w, stage);
   else if (!stage && cargoLoaded(w)) w.events.push('The cargo is loaded. Select the shipyard and press Launch when your defences are ready.');
   return true;

@@ -94,7 +94,7 @@ describe('Day, night and seasons (#42)', () => {
     expect(seasonTurn(11.75 * DAY).shift).toBeCloseTo(0.5);
   });
 
-  it('drops the leaves over the last day of fall, and brings the snow in over half a day and melts it over half a day (D-152)', () => {
+  it('drops the leaves over the last day of fall, and brings the snow in over half a day and melts it over half a day (D-154)', () => {
     expect(seasonTurn(8.5 * DAY)).toEqual({ look: 'fall', next: 'late', shift: 0 });
     expect(seasonTurn(9.5 * DAY)).toMatchObject({ look: 'fall', next: 'late' });
     expect(seasonTurn(9.5 * DAY).shift).toBeCloseTo(0.5);

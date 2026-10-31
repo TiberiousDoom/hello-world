@@ -3,7 +3,7 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
-## 0.87.9 · 2026-10-31 · Falling leaves, ore terraces and bolted fins
+## 0.88.2 · 2026-10-31 · Falling leaves, ore terraces and bolted fins
 ### New
 - **Ore patches rise from the ground as terraces:** where ore tiles touch, the patch is one shelf of rock with rounded edges, a higher shelf on top where it's wide enough, and a band of ore showing along each cliff. A single tile of ore is still a small pile of rocks.
 - **The leaves fall at the end of fall:** over fall's last day the broadleaf trees drop their leaves one by one, down to a few last ones clinging to bare branches, and fallen leaves cover the ground.
@@ -12,6 +12,26 @@ what's **New** and what's **Fixed**.
 
 ### Fixed
 - The front fins in the Side view were short and didn't look attached to the ship.
+
+## 0.88.1 · 2026-10-31 · Fixes from playtesting
+### Fixed
+- **The splitter's menu fits on screen.** It, hub ports and drone pads list only the items you can have so far, not every item in the game, and a long building panel scrolls (#191).
+- **Drop off counts what the building takes:** a furnace holding iron ore shows how many more it has room for, not everything you carry (#170).
+- **Tapping a resource always reaches it:** the engineer no longer stops just out of reach with further taps doing nothing (#169).
+- **The dedicated server isn't a player any more.** It had an engineer standing at the hub, which bugs went for; now the first to join is player 2 (#184).
+
+## 0.88.0 · 2026-10-31 · A nest for every bug
+### New
+- **Nests grow in what you see, not just in size.** A young nest is one burrow in a low mound. A medium one has a side burrow joined by a tunnel, and eggs. A large one is a dig site: five burrows, tunnels running off the mound, heaps of spoil and scraps stolen from your factory.
+- **A nest for every bug.** Crawler warrens near the hub, then **runnels** for runners (long straight trenches) from 60 tiles, **hives** for wasps (paper comb) from 80, dens for brutes (boulders and bones) from 100, and **barrows** for beetles (rolled balls of earth) from 120.
+- **Queen nests come in every kind.** Each is wider, with a glowing chamber in the middle, and holds half again as many bugs, all of its own kind.
+- **Queens.** When a queen nest's mound falls, its queen comes out to fight: her nest's bug, swollen with eggs, slow but six times as tough and biting twice as hard. Killing her drops a heap of chitin.
+- Merged nests show tunnels to each other cell they own. Hardcore nests look darker and redder.
+- As the threat level rises, a nest's crawlers hatch more often as its own bug (a warren's as runners).
+
+### Fixed
+- Older saves load: a queen nest becomes a queen nest of the kind that lives that far out, and keeps its bugs.
+- A destroyed nest no longer covers rollers, belts and buildings built over it. Nests are drawn under what you build; their outline and health bar stay on top (#189).
 
 ## 0.87.8 · 2026-10-31 · The ship, from above and from the side
 ### New

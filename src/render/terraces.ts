@@ -1,4 +1,4 @@
-// Ore patches drawn as terraces (D-153): where tiles of one ore touch, the patch rises from the ground in
+// Ore patches drawn as terraces (D-155): where tiles of one ore touch, the patch rises from the ground in
 // steps. Every tile of the patch is the first step, and a tile whose whole 3×3 block is the same ore is the
 // second, so a big field is a wide shelf on a base. Each step is drawn as one shape: the tiles' outlines are
 // inset where the step ends, outside corners are rounded off and inside corners filled with a curve, so a

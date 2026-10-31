@@ -31,3 +31,13 @@ describe('Animation strips', () => {
     for (const what of ['walk', 'work', 'idle', 'ko']) expect(names).toContain(`units/engineer_${what}_4f`);
   });
 });
+
+describe('Nests and queens (D-152)', () => {
+  const art = Object.keys(import.meta.glob('./**/*.svg')).map((p) => p.replace(/^\.\//, '').replace(/\.svg$/, ''));
+
+  it('have a drawing for every kind at every stage, a queen nest of every kind and a queen of every bug', () => {
+    for (const kind of ['warren', 'runnel', 'hive', 'den', 'barrow']) for (const stage of ['1', '2', '3', 'queen']) expect(art).toContain(`nests/${kind}_${stage}`);
+    for (const bug of ['crawler', 'runner', 'brute', 'wasp', 'beetle']) expect(art).toContain(`enemies/${bug}_queen`);
+    for (const key of ['nests/angry', 'nests/damaged', 'nests/destroyed']) expect(art).toContain(key);
+  });
+});

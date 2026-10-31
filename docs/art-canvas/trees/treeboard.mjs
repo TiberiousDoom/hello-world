@@ -6,7 +6,7 @@ import { bareTree } from './baretree.mjs';
 
 const [repo, root] = process.argv.slice(2);
 const SEED = 11;
-// The trees as they were before 0.87.9 (the board's "Now" column), from git, since the release replaced them.
+// The trees as they were before 0.88.2 (the board's "Now" column), from git, since the release replaced them.
 const BEFORE = 'f09df4d';
 const art = (name) => (/^tree_round_winter/.test(name) ? execSync(`git -C ${repo} show ${BEFORE}:src/art/terrain/${name}.svg`).toString() : fs.readFileSync(path.join(repo, 'src/art/terrain', `${name}.svg`), 'utf8'));
 const uri = (svg) => `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;

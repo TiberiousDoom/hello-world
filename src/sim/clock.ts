@@ -49,13 +49,13 @@ export function darkness(time: number): number {
 }
 
 /**
- * How the land looks (D-111, D-152): the four seasons, plus the end of fall, when the broadleaf trees are
+ * How the land looks (D-111, D-154): the four seasons, plus the end of fall, when the broadleaf trees are
  * down to their last leaves and leaves cover the ground.
  */
 export type Look = Season['id'] | 'late';
 
 /**
- * How far the land has turned from one look to the next (D-111, D-152). Over the last CLOCK.turn days of
+ * How far the land has turned from one look to the next (D-111, D-154). Over the last CLOCK.turn days of
  * a season it turns to the next season's look, except that fall turns to `late` (the leaves fall), and
  * winter's snow settles over its first CLOCK.snow days and melts over its last CLOCK.snow days, so it lies
  * full for a while in between. Otherwise `shift` is 0.
