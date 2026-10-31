@@ -14,6 +14,7 @@ what's **New** and what's **Fixed**.
 
 ### Fixed
 - Older saves load: a queen nest becomes a queen nest of the kind that lives that far out, and keeps its bugs.
+- A destroyed nest no longer covers rollers, belts and buildings built over it. Nests are drawn under what you build; their outline and health bar stay on top (#189).
 
 ## 0.87.8 · 2026-10-31 · The ship, from above and from the side
 ### New

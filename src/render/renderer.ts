@@ -68,6 +68,8 @@ const NEST_BOX = 4;
 const NEST_QUEEN_BOX = 4.6;
 /** Hardcore nests (D-133): the same art, darker and redder. */
 const HARDCORE_NEST_FILTER = 'brightness(72%) sepia(35%) hue-rotate(-30deg) saturate(170%)';
+/** Tiles across a nest's art is drawn: a fixed box by kind (D-152), bigger merged (D-132); a destroyed one's crater 2. */
+const nestArtSize = (n: Nest): number => (n.destroyed ? 2 : (n.queen ? NEST_QUEEN_BOX : NEST_BOX) * (n.cells ? 1.3 : 1));
 /** The shipyard and its ship are drawn 3 tiles square. */
 const SHIP_SIZE = 5; // the shipyard's footprint (3 before D-109)
 
@@ -396,13 +398,14 @@ export class Renderer {
       const exit = world.byId.get(b.link);
       if (exit && (visible(b.x, b.y) || visible(exit.x, exit.y))) this.drawTunnelTrace(b, exit, z);
     }
-    // Bug territories: a mound in each, and its outline while placing or while it's angry.
-    // (A cleared territory taken over by a newer nest is drawn as that nest.) In Hardcore, buildings go
-    // over mounds (D-133), so they're drawn first; otherwise over the buildings around them.
+    // Bug territories: a mound in each, under the buildings: a grown nest's art spreads past the tiles it
+    // blocks, and what's built over a destroyed one, or round a Hardcore one (D-133), goes on top (#189).
+    // Its outline, while placing or while it's angry, and its health go over the buildings.
+    // (A cleared territory taken over by a newer nest is drawn as that nest.)
     const placing = !!ui?.tool && ui.tool !== 'demolish';
     const nests = s.nests.filter((n) => territory(n).some(([x, y]) => visible(x, y, NESTS.cell)) && ownsCell(world, n));
     const hardcore = s.mode === 'hardcore';
-    if (hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
+    for (const n of nests) this.drawNest(world, n, z);
 
     // Belts first so everything else sits on top, then the flanges where belts meet buildings.
     const looks = belts.map((b) => beltLook(world, b));
@@ -415,8 +418,8 @@ export class Renderer {
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
     this.drawWires(poles, z, [x0, y0, x1, y1]);
 
-    if (!hardcore) for (const n of nests) this.drawNest(world, n, now, z, placing);
-    else for (const n of nests) this.drawCover(world, n, z, placing);
+    for (const n of nests) this.drawNestMarks(world, n, now, z, placing);
+    if (hardcore) for (const n of nests) this.drawCover(world, n, z, placing);
 
     if (ui) this.drawPlayers(world, now, z);
 
@@ -710,11 +713,15 @@ export class Renderer {
   }
 
   /** A nest's mound, and its territory's outline while placing or while it's angry. */
-  private drawNest(world: World, n: Nest, now: number, z: number, placing: boolean): void {
+  private drawNestMarks(world: World, n: Nest, now: number, z: number, placing: boolean): void {
     const ctx = this.ctx;
     const c = NESTS.cell;
     const alive = world.state.enemies.some((e) => e.nest === n.id);
     const angry = alive && isAngry(world, n);
+    if (!n.destroyed && n.hp < n.maxHp) {
+      const [cx, cy] = nestCentre(n);
+      bar(ctx, cx - 0.7, cy - nestArtSize(n) * 0.42 - 0.25, 1.4, n.hp / n.maxHp, '#e0445a');
+    }
     if (alive && (placing || angry)) {
       const m = NESTS.nearMargin;
       // Each cell of the territory: a merged nest owns several (D-132).
@@ -728,14 +735,21 @@ export class Renderer {
         ctx.setLineDash([]);
       }
     }
-    // The mound (D-152): its kind's own drawing for its stage, or its queen nest, the art growing inside a
-    // fixed box (bigger for a merged nest, D-132). Eyes over the main burrow when angry, and a collapsing rim
-    // when badly hurt.
+  }
+
+  /**
+   * A nest's mound (D-152): its kind's own drawing for its stage, or its queen nest, the art growing inside a
+   * fixed box (bigger for a merged nest, D-132). Eyes over the main burrow when angry, and a collapsing rim
+   * when badly hurt. Its outline and health are drawn over the buildings (drawNestMarks).
+   */
+  private drawNest(world: World, n: Nest, z: number): void {
+    const ctx = this.ctx;
+    const angry = isAngry(world, n) && world.state.enemies.some((e) => e.nest === n.id);
     const standing = !n.destroyed;
     const [cx, cy] = nestCentre(n);
     if (standing && n.cells) this.drawTunnels(n, cx, cy);
     const key = !standing ? 'nests/destroyed' : `nests/${n.kind}_${n.queen ? 'queen' : Math.min(n.stage, 3)}`;
-    const size = standing ? (n.queen ? NEST_QUEEN_BOX : NEST_BOX) * (n.cells ? 1.3 : 1) : 2;
+    const size = nestArtSize(n);
     // Hardcore nests (D-133) are darker and redder.
     const hard = standing && world.state.mode === 'hardcore';
     if (hard) ctx.filter = HARDCORE_NEST_FILTER;
@@ -747,7 +761,6 @@ export class Renderer {
       const [sx, sy] = [cx - burrow / 2, cy - burrow / 2];
       if (angry) this.drawSprite('nests/angry', sx, sy, burrow);
       if (n.hp < n.maxHp / 2) this.drawSprite('nests/damaged', sx, sy, burrow);
-      if (n.hp < n.maxHp) bar(ctx, cx - 0.7, cy - size * 0.42 - 0.25, 1.4, n.hp / n.maxHp, '#e0445a');
       return;
     }
     // Drawn in code when the sprites are missing.
@@ -771,20 +784,17 @@ export class Renderer {
       [0.05, -0.45, 0.12],
     ])
       dot(ctx, cx + dx, cy + dy, r);
-    if (n.hp < n.maxHp) {
-      if (n.hp < n.maxHp / 2) {
-        ctx.strokeStyle = '#1e140c';
-        ctx.lineWidth = 2 / z;
-        ctx.beginPath();
-        ctx.moveTo(cx - 0.9, cy + 0.1);
-        ctx.lineTo(cx - 0.5, cy + 0.35);
-        ctx.lineTo(cx - 0.1, cy + 0.15);
-        ctx.moveTo(cx + 0.6, cy - 0.5);
-        ctx.lineTo(cx + 0.8, cy - 0.1);
-        ctx.lineTo(cx + 1.1, cy);
-        ctx.stroke();
-      }
-      bar(ctx, cx - 0.7, cy - 1.25, 1.4, n.hp / n.maxHp, '#e0445a');
+    if (n.hp < n.maxHp / 2) {
+      ctx.strokeStyle = '#1e140c';
+      ctx.lineWidth = 2 / z;
+      ctx.beginPath();
+      ctx.moveTo(cx - 0.9, cy + 0.1);
+      ctx.lineTo(cx - 0.5, cy + 0.35);
+      ctx.lineTo(cx - 0.1, cy + 0.15);
+      ctx.moveTo(cx + 0.6, cy - 0.5);
+      ctx.lineTo(cx + 0.8, cy - 0.1);
+      ctx.lineTo(cx + 1.1, cy);
+      ctx.stroke();
     }
   }
 
