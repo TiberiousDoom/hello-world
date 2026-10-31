@@ -4,7 +4,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { REPO, read, over, make, inner, box, uri, rng, idea, still, play, frames, board, INK, GRASS } from './lib.mjs';
-import { sideView } from '../ship/shipside.mjs';
 
 const TAU = Math.PI * 2;
 const f1 = (n) => n.toFixed(1);
@@ -100,16 +99,9 @@ const countdown = [0, 1, 2, 3, 4].map((n) => {
 // ===== Bugs =====
 const wasp = read('enemies/wasp'), beetle = read('enemies/beetle'), brute = read('enemies/brute');
 const waspDeath = four.map((i) => make('0 0 64 64', `<ellipse cx="${32 + i * 2}" cy="${36 + i * 2}" rx="${10 - i}" ry="${5 - i * 0.5}" fill="#000" opacity="${0.15 + i * 0.1}" />` + centred(wasp, 1 - i * 0.18, i * 2, i * 1.5, i * 110, `opacity="${f1(1 - i * 0.12)}"`)));
-const beetleDeath = four.map((i) => {
-  const sy = [1, 0.4, -0.5, -1][i];
-  const legsKick = i >= 2 ? `<g stroke="#2c4462" stroke-width="3" stroke-linecap="round">${[22, 32, 42].map((x, k) => `<path d="M${x} 32 l${(k - 1) * 2} ${i === 2 ? -10 : -8 + k} M${x} 32 l${(1 - k) * 2} ${i === 2 ? 10 : 8 - k}" />`).join('')}</g>` : '';
-  // On its back: the belly side, paler, with legs kicking in the air.
-  const belly = sy < 0 ? `<ellipse cx="28" cy="32" rx="17" ry="${f1(14 * -sy)}" fill="#3a3f4c" stroke="${INK}" stroke-width="2" /><path d="M16 32 H40 M20 26 Q28 24 36 26 M20 38 Q28 40 36 38" stroke="#5a6070" stroke-width="1.4" fill="none" />` : '';
-  return make('0 0 64 64', sy > 0 ? `<g transform="translate(0 32) scale(1 ${sy}) translate(0 -32)">${inner(beetle)}</g>` : legsKick + belly);
-});
 const bruteDeath = four.map((i) => make('0 0 64 64', (i >= 2 ? `<ellipse cx="32" cy="34" rx="${18 + i * 3}" ry="${10 + i * 2}" fill="#4a0e0e" opacity="0.5" />` : '') + `<g transform="translate(32 32) scale(${[1, 1.06, 1.12, 1.15][i]} ${[1, 0.8, 0.6, 0.5][i]}) translate(-32 -32)" filter="${i >= 1 ? 'url(#dk)' : ''}">${inner(brute)}</g><defs><filter id="dk"><feColorMatrix type="matrix" values="${[1, 0.8, 0.6, 0.5][i]} 0 0 0 0  0 ${[1, 0.8, 0.6, 0.5][i]} 0 0 0  0 0 ${[1, 0.8, 0.6, 0.5][i]} 0 0  0 0 0 1 0" /></filter></defs>`));
 const tracks = (key, ink, op) => {
-  let s = key === 'mud' ? tiles(256, 128) + `<path d="M-10 40 Q60 20 130 34 Q220 44 270 30 V100 Q200 116 130 104 Q60 92 -10 108 Z" fill="#5a4026" /><path d="M-10 46 Q60 28 130 40 Q220 50 270 38" stroke="#7a5a36" stroke-width="3" fill="none" opacity="0.6" />` : tiles(256, 128, key);
+  let s = tiles(256, 128, key);
   for (let k = 0; k < 14; k++) {
     const x = 10 + k * 18, y = 64 + Math.sin(k * 0.6) * 22;
     const fade = op * (0.25 + (k / 14) * 0.75);
@@ -203,50 +195,8 @@ const revive = four.map((i) => {
     (i >= 1 ? `<circle cx="${helperX + 18}" cy="${[0, 34, 32, 30][i]}" r="4" fill="#ffffff" opacity="0.5" />` : '') +
     (i === 3 ? `<path d="M48 8 l2 -5 M54 10 l4 -3 M42 10 l-3 -4" stroke="#6ee07a" stroke-width="1.8" stroke-linecap="round" />` : ''));
 });
-// A tutorial portrait: the engineer face on, in the hard hat, with a blink and a talking mouth.
-const portrait = [['open', 'smile'], ['open', 'talk'], ['shut', 'smile'], ['open', 'talk2']].map(([eye, mouth]) =>
-  make('0 0 128 128',
-    `<defs><radialGradient id="pbg" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#3a64a8" /><stop offset="1" stop-color="#16305a" /></radialGradient><radialGradient id="phat" cx="40%" cy="30%"><stop offset="0" stop-color="#fff2a8" /><stop offset="0.5" stop-color="#ffcc33" /><stop offset="1" stop-color="#d99a0c" /></radialGradient><linearGradient id="psuit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffa24a" /><stop offset="1" stop-color="#c8600e" /></linearGradient></defs>
-    <rect width="128" height="128" rx="20" fill="url(#pbg)" />
-    <path d="M18 128 Q20 96 64 92 Q108 96 110 128 Z" fill="url(#psuit)" stroke="${INK}" stroke-width="3" /><path d="M48 96 V128 M80 96 V128" stroke="#eef3f9" stroke-width="3" opacity="0.8" />
-    <ellipse cx="64" cy="66" rx="27" ry="30" fill="#e9c39b" stroke="${INK}" stroke-width="3" />
-    <ellipse cx="38" cy="68" rx="5" ry="7" fill="#d9a77e" stroke="${INK}" stroke-width="2.4" /><ellipse cx="90" cy="68" rx="5" ry="7" fill="#d9a77e" stroke="${INK}" stroke-width="2.4" />
-    <path d="M30 50 Q30 20 64 18 Q98 20 98 50 Z" fill="url(#phat)" stroke="${INK}" stroke-width="3" /><rect x="24" y="46" width="80" height="9" rx="4.5" fill="#e0a818" stroke="${INK}" stroke-width="3" /><path d="M64 20 V46" stroke="#d99a0c" stroke-width="5" /><ellipse cx="50" cy="28" rx="8" ry="3.4" fill="#ffffff" opacity="0.6" />
-    ${eye === 'open' ? `<ellipse cx="53" cy="68" rx="4" ry="5" fill="${INK}" /><ellipse cx="75" cy="68" rx="4" ry="5" fill="${INK}" /><circle cx="54.4" cy="66.4" r="1.4" fill="#ffffff" /><circle cx="76.4" cy="66.4" r="1.4" fill="#ffffff" />` : `<path d="M49 69 Q53 72 57 69 M71 69 Q75 72 79 69" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round" />`}
-    <path d="M47 59 Q53 56 58 59 M70 59 Q75 56 81 59" stroke="#8a5a32" stroke-width="2.6" fill="none" stroke-linecap="round" />
-    <circle cx="46" cy="80" r="4" fill="#ff9a8a" opacity="0.35" /><circle cx="82" cy="80" r="4" fill="#ff9a8a" opacity="0.35" />
-    ${mouth === 'smile' ? `<path d="M55 84 Q64 91 73 84" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round" />` : mouth === 'talk' ? `<ellipse cx="64" cy="86" rx="7" ry="5" fill="#7a2a22" stroke="${INK}" stroke-width="2.2" /><path d="M59 84 H69" stroke="#ffffff" stroke-width="1.6" />` : `<ellipse cx="64" cy="86" rx="5" ry="3" fill="#7a2a22" stroke="${INK}" stroke-width="2.2" />`}
-    <path d="M60 76 Q64 79 68 76" stroke="#b07a52" stroke-width="2" fill="none" stroke-linecap="round" />
-    <path d="M44 96 Q64 104 84 96" stroke="${INK}" stroke-width="2" fill="none" opacity="0.5" />`));
 
 // ===== Screens and UI =====
-const menu = (() => {
-  let s = tiles(480, 270);
-  for (let x = -30; x < 500; x += 56) s += place(read('terrain/tree_pine'), x, -44, 96) + place(read('terrain/tree_round'), x + 26, 216, 96);
-  s += place(read('buildings/hub'), 190, 70, 110) + place(shipStack, 350, 80, 100) + place(read('buildings/furnace'), 80, 90, 64) + place(read('buildings/sawmill'), 80, 160, 64);
-  for (let x = 144; x < 190; x += 22) s += place(read('buildings/belt'), x, 112, 22);
-  for (let x = 300; x < 350; x += 22) s += place(read('buildings/belt'), x, 124, 22);
-  s += place(read('buildings/turret_base'), 300, 190, 30) + place(read('buildings/turret_barrel'), 300, 190, 30) + place(read('buildings/palisade'), 270, 220, 28) + place(read('buildings/palisade'), 298, 220, 28) + place(read('buildings/palisade'), 326, 220, 28);
-  s += `<rect width="480" height="270" fill="url(#dusk)" />`;
-  return make('0 0 480 270', `<defs><linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a4a" stop-opacity="0.18" /><stop offset="1" stop-color="#16305a" stop-opacity="0.35" /></linearGradient></defs>` + s);
-})();
-const title = four.map((i) => {
-  const x = -60 + i * 110;
-  return make('0 0 480 120', `<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe48a" /><stop offset="1" stop-color="#e0a818" /></linearGradient><linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff" stop-opacity="0" /><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.85" /><stop offset="1" stop-color="#ffffff" stop-opacity="0" /></linearGradient><clipPath id="tc"><text x="240" y="78" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="46">FOUNDRY FRONT</text></clipPath></defs>` +
-    `<text x="240" y="82" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="46" fill="${INK}">FOUNDRY FRONT</text><text x="240" y="78" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="46" fill="url(#tg)" stroke="${INK}" stroke-width="2">FOUNDRY FRONT</text>` +
-    `<g clip-path="url(#tc)"><rect x="${x}" y="0" width="70" height="120" fill="url(#sh)" transform="skewX(-20)" /></g>` +
-    `<g fill="#f2c14e">${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<rect x="${60 + k * 46}" y="96" width="30" height="7" transform="skewX(-35)" opacity="${k % 2 ? 1 : 0.35}" />`).join('')}</g>`);
-});
-const all = { scaffold: 1, pad: 1, hull: 1, engine: 1, life: 1, nav: 1 };
-const victory = make('0 0 320 260', `<defs><linearGradient id="vsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e1a3a" /><stop offset="0.6" stop-color="#4a3a6a" /><stop offset="1" stop-color="#ff9a4a" /></linearGradient></defs><rect width="320" height="260" fill="url(#vsky)" />` +
-  `<g fill="#ffffff">${Array.from({ length: 30 }, (_, k) => `<circle cx="${(k * 97) % 320}" cy="${(k * 53) % 140}" r="${0.6 + (k % 3) * 0.4}" opacity="0.8" />`).join('')}</g>` +
-  [[-10, 250, 1.3], [30, 252, 1], [270, 250, 1.2], [310, 252, 1.1]].map(([x, y, s]) => `<path d="M${x} ${y - 70 * s} L${x + 22 * s} ${y} H${x - 22 * s} Z" fill="#0e1f16" />`).join('') +
-  `<rect y="240" width="320" height="20" fill="#0e1f16" />` +
-  `<svg x="60" y="-36" width="200" height="300" viewBox="0 -50 200 310">${sideView('vic', all, { liftoff: true })}</svg>` +
-  `<text x="160" y="34" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="24" fill="#ffe48a" stroke="${INK}" stroke-width="1">ESCAPED!</text>`);
-const gameOver = make('0 0 320 260', `<defs><radialGradient id="gr" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#3a0a0a" stop-opacity="0" /><stop offset="1" stop-color="#3a0a0a" stop-opacity="0.75" /></radialGradient></defs>` + tiles(320, 260) + place(read('buildings/hub_damaged'), 90, 60, 140) +
-  (() => { const r = rng(71); let s = ''; for (let k = 0; k < 16; k++) { const a = r() * TAU, d = 80 + r() * 50; s += place(read(`enemies/${['crawler', 'runner', 'brute', 'beetle'][k % 4]}`), 160 + d * Math.cos(a) - 14, 130 + d * Math.sin(a) - 14, 28, 28, `transform="rotate(${f1((a * 180) / Math.PI + 180)} ${f1(160 + d * Math.cos(a))} ${f1(130 + d * Math.sin(a))})"`); } return s; })() +
-  `<rect width="320" height="260" fill="url(#gr)" /><text x="160" y="36" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="24" fill="#ff7a6a" stroke="${INK}" stroke-width="1">OVERRUN</text>`);
 // Research icons: each topic's first unlock (or its main cost) on a badge coloured by its age.
 const data = fs.readFileSync(path.join(REPO, 'src/sim/data.ts'), 'utf8');
 const topics = [...data.matchAll(/\{ id: '([a-z0-9_]+)', name: '([^']+)', cost: \{ ([a-z_]+)[^}]*\}[^\n]*?unlocks: \[([^\]]*)\]/g)].map((m) => ({ id: m[1], name: m[2], cost: m[3], unlocks: [...m[4].matchAll(/'([a-z0-9_]+)'/g)].map((u) => u[1]) }));
@@ -292,16 +242,16 @@ const B = 130;
 board('IdeasFifth.dc.html', {
   title: 'Ideas · Fifth',
   kicker: 'Ideas · proposed, not in the game',
-  heading: 'Feedback, bugs, life, people, screens and wear',
-  intro: 'The third list: feedback when things happen, bug deaths and tracks, life in the clearing, co-op players and the tutorial, the menu and end screens with their icons, and wear that builds up over time.',
+  heading: 'Feedback, bugs, life, people, icons and wear',
+  intro: 'The third list: feedback when things happen, bug deaths and tracks, life in the clearing, co-op players, research icons, medals and the toolbar, and wear that builds up over time.',
   ideas: [
     idea('Building and demolishing', 'A new building rises inside a timber frame, filling in from the bottom, and its bolts flash when it\'s done. Demolished, it sinks and crumbles into dust and broken bits.', [['Build · 5 frames', frames(build, 92)], ['Played', play([...build, build[4], build[4]], 6, B)], ['Demolish · 4 frames', frames(demolish, 92)], ['Played', play([...demolish, demolish[3]], 6, B)]], 'effects/build_5f (sized to the building), demolish_4f'),
     idea('Deliveries and research', 'An item arcs into the hub and pops with a count. When research finishes, rings of blue light pulse out from the hub.', [['Delivery · 4 frames', frames(delivery, 120)], ['Played', play(delivery, 5, 170)], ['Research done · 4 frames', frames(research, 100)], ['Played', play(research, 6, B)]], 'effects/deliver_4f, research_pulse_4f'),
     idea('Turrets aiming and running low', 'Brackets close on the bug a turret aims at and turn red when it\'s locked on. A turret short of ammo blinks red round its ammo box.', [['Lock-on · 4 frames', frames(lockOn, 92)], ['Played', play(lockOn, 6, B)], ['Low ammo · 2 frames', frames(lowAmmo, 92)], ['Played', play(lowAmmo, 2, B)]], 'effects/lock_on_4f, low_ammo'),
     idea('A raid is coming', 'A red glow pulses along the edge of the map the raid comes from, and a siren light turns on the hub.', [['4 frames', frames(raid, 180)], ['Played', play(raid, 5, 330)]], 'drawn in code; effects/siren_4f'),
     idea('Ship milestones', 'Fireworks and confetti over the ship when a stage is finished. Before launch, four lamps round the pad light one by one, then all turn green.', [[['Stage done · 4 frames', frames(fireworks, 104)], ['Played', play(fireworks, 6, 160)]], [['Countdown · 5 frames', frames(countdown, 104)], ['Played', play([...countdown, countdown[4]], 1.5, 160)]]], 'effects/fireworks_4f, ship_countdown_5f'),
-    idea('Deaths by kind', 'Bugs all share one splat now. A wasp spirals down to its shadow; a beetle flips onto its back, legs kicking; a brute crumples and darkens into a stain.', [['Wasp', frames(waspDeath, 80)], ['Played', play([...waspDeath, waspDeath[3]], 6, 110)], ['Beetle', frames(beetleDeath, 80)], ['Played', play([...beetleDeath, beetleDeath[3]], 5, 110)], ['Brute', frames(bruteDeath, 80)], ['Played', play([...bruteDeath, bruteDeath[3]], 5, 110)]], 'enemies/wasp_death_4f, beetle_death_4f, brute_death_4f'),
-    idea('Tracks', 'Bugs leave footprints in snow and mud that fade behind them.', [['In snow', still(tracks('terrain/ground_winter', '#5a6a7a', 0.85), 330)], ['In mud', still(tracks('mud', '#1a0e04', 0.8), 330)]], 'drawn in code'),
+    idea('Deaths by kind', 'Bugs all share one splat now. A wasp spirals down to its shadow; a brute crumples and darkens into a stain.', [['Wasp', frames(waspDeath, 80)], ['Played', play([...waspDeath, waspDeath[3]], 6, 110)], ['Brute', frames(bruteDeath, 80)], ['Played', play([...bruteDeath, bruteDeath[3]], 5, 110)]], 'enemies/wasp_death_4f, brute_death_4f'),
+    idea('Tracks', 'Bugs leave footprints in the snow that fade behind them.', [['In snow', still(tracks('terrain/ground_winter', '#5a6a7a', 0.85), 330)]], 'drawn in code'),
     idea('Eyes in the forest', 'At night, pairs of eyes watch from the forest edge, blinking now and then.', [['4 frames', frames(eyes, 200)], ['Played', play(eyes, 3, 360)]], 'effects/eyes_4f'),
     idea('Chitin to pick up', 'A dropped piece of chitin bounces, settles and glints until it\'s picked up.', [['4 frames', frames(chitinDrop, 84)], ['Played', play(chitinDrop, 6, 110)]], 'effects/drop_4f'),
     idea('Cloud shadows', 'Soft shadows of clouds drift slowly over the whole map, buildings and all.', [['4 frames', frames(clouds, 180)], ['Played', play(clouds, 2, 330)]], 'drawn in code (a tiling overlay)'),
@@ -310,9 +260,6 @@ board('IdeasFifth.dc.html', {
     idea('Water', 'Splashes where the water wheel dips into the stream, and the well\'s bucket coming up full and going back down.', [['Water wheel', frames(splash, 92)], ['Played', play(splash, 8, B)], ['Well', frames(bucket, 92)], ['Played', play(bucket, 3, B)]], 'over the working strips'),
     idea('Co-op players', 'Each player\'s engineer in their own overalls: orange, blue, green and purple.', [['4 players', frames(players, 96)]], 'units/engineer tinted per player'),
     idea('Help up', 'When an engineer is knocked out, another walks up, offers a hand and pulls them to their feet, and the stars clear.', [['4 frames', frames(revive, 170)], ['Played', play([...revive, revive[3]], 2, 260)]], 'units/engineer_revive_4f'),
-    idea('Tutorial portrait', 'The engineer face on, for the tutorial\'s messages: smiling, talking, blinking.', [['4 frames', frames(portrait, 120)], ['Played', play(portrait, 3, 170)]], 'ui/portrait_4f'),
-    idea('Main menu', 'A backdrop of the clearing at dusk: the hub, a furnace and sawmill with their belts, the ship on its pad, a turret and palisade, and trees all round. The title shines as a light sweeps across it.', [[['Backdrop', still(menu, 560)], ['Title played', play(title, 4, 560, '#121a28')]], [['Title · 4 frames', frames(title, 270, '#121a28')]]], 'ui/menu_backdrop, title_4f'),
-    idea('Victory and game over', 'For the end screens: the ship lifting off into the dusk on its flames, and the hub overrun, ringed by bugs.', [['Victory', still(victory, 320, '#121a28')], ['Game over', still(gameOver, 320, '#121a28')]], 'ui/victory, ui/game_over'),
     idea('Research icons', 'A badge for every research topic, from its first unlock (or what it costs), coloured by its age: wood, iron, then steel and electricity.', [['Every topic', researchIcons]], 'ui/research/<id>'),
     idea('Achievements and the toolbar', 'Medals for achievements in bronze, silver and gold. Toolbar buttons that lift and tilt a little when the pointer is over them.', [['Medals', `<div style="display: flex; gap: 14px; background: #24303f; border-radius: 10px; padding: 12px">${medals.map((m) => `<div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><img src="${uri(m.svg)}" width="80" height="100"><div style="font-size: 11px; color: #a9b6c9">${m.l}</div></div>`).join('')}</div>`], ['Toolbar hover · 4 frames', frames(hover, 72, '#121a28')], ['Played', play(hover, 8, 100, '#121a28')]], 'ui/medal_*, toolbar hover'),
     idea('Walls that crack', 'Cracks spread across a wall as it\'s damaged, until chips fall off.', [['Whole to badly damaged', frames([0, 1, 2, 3].map(crack), 92)]], 'buildings/wall_crack_1 to _3 (and the other wall sets)'),
