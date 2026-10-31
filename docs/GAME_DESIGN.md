@@ -710,9 +710,11 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
 
 - A message pops up as each stage is finished and when the cargo is loaded. Selecting the shipyard
   shows the stages, the runs delivered, and what the stage or the cargo still needs. On the map the ship
-  is drawn top-down, appearing stage by stage. **Side view** (on the selected shipyard) opens a window
+  is drawn from straight above, appearing stage by stage: the round hull, then its fins and boosters,
+  its tanks, and the nose cone capping it (D-151). **Side view** (on the selected shipyard) opens a window
   with the ship drawn from the side: built stages solid, the current one filling in as its parts
-  arrive, and the rest as dashed outlines, with each stage's progress listed below.
+  arrive, and the rest as dashed outlines, with each stage's progress listed below. During the launch
+  countdown the engines glow round the ship's foot and smoke rolls out over the pad.
 - **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**.
   The engines wake **every nest within 48 tiles** of the shipyard on the first run, **8 tiles further for
   each run delivered** (up to 96), because a loaded ship is heavier and needs more thrust (D-049). They
