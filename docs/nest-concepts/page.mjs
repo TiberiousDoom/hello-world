@@ -170,10 +170,10 @@ code { font: .88em var(--mono); background: var(--chip); padding: 1px 5px; borde
 <main class="wrap">
   <section class="hero">
     <div class="hero-text">
-      <span class="eyebrow">Foundry Front · nest art · round 2 · Earthworks</span>
+      <span class="eyebrow">Foundry Front · nest art · round 3 · Earthworks</span>
       <h1>A nest for every bug, and a queen for each</h1>
       <p>You picked <b>Earthworks</b>: the nest digs outward as it grows. Each stage is its own drawing: <b>one burrow</b> at stage 1, a <b>side burrow joined by a tunnel</b> at stage 2, a <b>dig site</b> with five burrows and tunnels leaving the mound at stage 3.</p>
-      <p>This round adds <b>runnels</b> for runners and <b>barrows</b> for beetles, so each of the five bugs has its own nest. Each kind has a <b>queen nest</b>, and each bug has a <b>queen</b>.</p>
+      <p>This round adds <b>runnels</b> for runners and <b>barrows</b> for beetles, so each of the five bugs has its own nest. Each kind has a <b>queen nest</b>, and each bug has a <b>queen</b>, now drawn from scratch.</p>
       <p>Try the preview: it shows one nest at game scale with its blight. The dashed square marks the 2×2 tiles it blocks.</p>
     </div>
     <div class="field-card">
@@ -206,7 +206,7 @@ code { font: .88em var(--mono); background: var(--chip); padding: 1px 5px; borde
 
   <section class="section" aria-labelledby="queens-h">
     <h2 id="queens-h">The queens</h2>
-    <p>Each queen is her bug with a swollen abdomen trailing behind, eggs showing through the skin, and a gold crest at the back of the head. Wasp queens keep the stripes and sting; beetle queens’ wing cases have split over the abdomen. They’re drawn in a box half again as big as a worker’s.</p>
+    <p>Drawn from scratch, with no crowns. What marks a queen is her body: like real termite, oil-beetle and wasp queens, she is swollen with eggs, her armour plates spread apart over a pale, stretched abdomen with eggs showing through it. The crawler queen is a termite queen; the runner queen a centipede swollen through the middle; the wasp queen rests with her wings folded flat over a heavy striped abdomen; the brute queen has a spined shoulder plate and great toothed jaws; the beetle queen’s short wing cases part over her abdomen, like an oil beetle’s. They’re drawn in a box half again as big as a worker’s.</p>
     <div class="strip" style="grid-template-columns: repeat(5, minmax(96px, 1fr))">
       ${KINDS.map((k) => `<figure class="royal">${img(concept(`queen_${k.bug}`), `${k.bugName} queen`, 96)}<figcaption>${k.bugName}</figcaption></figure>`).join('')}
     </div>

@@ -3,13 +3,13 @@
 // and a queen of each bug. Each stage is its own drawing, not a scaled copy.
 // Run `node docs/nest-concepts/generate.mjs`; it writes the SVGs into docs/nest-concepts/svg/.
 // Concepts only: the game doesn't load these.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { QUEEN_BUGS, queenBug } from './queens.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, 'svg');
-const ENEMIES = join(HERE, '..', '..', 'src', 'art', 'enemies');
 const INK = '#24180e';
 
 /** A small seeded RNG, so the concepts redraw the same each run. */
@@ -350,98 +350,6 @@ function nest(k, stage, seed, queen = false) {
   return svg(p, k, s);
 }
 
-// ---------------------------------------------------------------------------------------------------
-// Queen bugs: each bug as it is, on top of a swollen egg-laden abdomen trailing behind it, with a gold
-// crown at its head. Drawn facing right like the bugs (viewBox 96, so a queen reads about 1.5× a bug).
-// ---------------------------------------------------------------------------------------------------
-const QUEENS = {
-  // Where each bug's head is in its 64-unit sprite, and how its queen's abdomen looks.
-  crawler: { head: 56, tail: 9, sac: 'segmented', colors: ['#f0b47a', '#c8682c', '#5a2c10'] },
-  runner: { head: 54, tail: 12, sac: 'long', colors: ['#7a8298', '#3b4152', '#141824'] },
-  brute: { head: 47, tail: 6, sac: 'armoured', colors: ['#c0343c', '#7a1820', '#2a0608'] },
-  wasp: { head: 50, tail: 5, sac: 'striped', colors: ['#ffd860', '#c88a10', '#1a1408'] },
-  beetle: { head: 54, tail: 9, sac: 'shell', colors: ['#9cc6ea', '#4a74a0', '#121e32'] },
-};
-
-function queenBug(bug) {
-  const q = QUEENS[bug];
-  const p = `q${bug.slice(0, 2)}`;
-  const [c0, c1, c2] = q.colors;
-  const src = readFileSync(join(ENEMIES, `${bug}.svg`)).toString('base64');
-  const ox = 28,
-    oy = 16; // where the bug's own 64-unit sprite sits
-  const tailX = ox + q.tail + 4,
-    hx = ox + q.head,
-    hy = 48;
-  let s = `<defs>
-<radialGradient id="${p}sac" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#fff2d8"/><stop offset="0.35" stop-color="${c0}"/><stop offset="0.8" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient>
-<radialGradient id="${p}gold" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff0a0"/><stop offset="0.5" stop-color="#e8b030"/><stop offset="1" stop-color="#8a5a10"/></radialGradient>
-<filter id="${p}soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
-</defs>`;
-  // The abdomen, behind the bug: centre and size by kind.
-  const long = q.sac === 'long';
-  const rx = long ? 26 : 22,
-    ry = long ? 10 : q.sac === 'shell' ? 19 : 16;
-  const sx = tailX - rx + 6,
-    sy = hy;
-  s += `<ellipse cx="${sx + 2}" cy="${sy + 3}" rx="${rx}" ry="${ry}" fill="#000" opacity="0.35" filter="url(#${p}soft)"/>`;
-  s += `<ellipse cx="${sx}" cy="${sy}" rx="${rx}" ry="${ry}" fill="url(#${p}sac)" stroke="#0f1a2e" stroke-width="2"/>`;
-  if (q.sac === 'striped') {
-    for (const t of [-0.55, -0.15, 0.25]) {
-      const x = sx + rx * t;
-      const h = ry * Math.sqrt(1 - t * t) * 0.96;
-      s += `<path d="M${f(x)} ${f(sy - h)} Q${f(x - 3)} ${sy} ${f(x)} ${f(sy + h)} L${f(x + 6)} ${f(sy + h * 0.95)} Q${f(x + 3)} ${sy} ${f(x + 6)} ${f(sy - h * 0.95)} Z" fill="${c2}"/>`;
-    }
-    s += `<path d="M${sx - rx + 1} ${sy} L${sx - rx - 7} ${sy}" stroke="#0f1a2e" stroke-width="2.6" stroke-linecap="round"/>`; // stinger
-  } else {
-    // Segment rings across the abdomen.
-    const n = long ? 7 : 4;
-    for (let i = 1; i <= n; i++) {
-      const t = -1 + (2 * i) / (n + 1);
-      const x = sx + rx * t,
-        h = ry * Math.sqrt(1 - t * t);
-      s += `<path d="M${f(x + 2)} ${f(sy - h)} Q${f(x - 3)} ${sy} ${f(x + 2)} ${f(sy + h)}" fill="none" stroke="${c2}" stroke-width="${q.sac === 'armoured' ? 2 : 1.2}" stroke-opacity="0.75"/>`;
-    }
-  }
-  // Eggs showing through the skin, and a gleam.
-  const r = rng(bug.length * 7);
-  for (let i = 0; i < 7; i++) {
-    const x = sx + (r() - 0.5) * rx * 1.2,
-      y = sy + (r() - 0.3) * ry * 0.9;
-    s += `<ellipse cx="${f(x)}" cy="${f(y)}" rx="2.4" ry="1.7" fill="#fff6e0" opacity="0.45"/>`;
-  }
-  s += `<path d="M${f(sx - rx * 0.7)} ${f(sy - ry * 0.45)} Q${f(sx - rx * 0.2)} ${f(sy - ry * 0.95)} ${f(sx + rx * 0.4)} ${f(sy - ry * 0.75)}" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="2.2" stroke-linecap="round"/>`;
-  if (q.sac === 'shell') {
-    // The beetle queen's wing cases have split over her abdomen.
-    s += `<path d="M${tailX + 4} ${sy - 18} Q${sx - 4} ${sy - 30} ${sx - 12} ${sy - 16} Q${sx} ${sy - 14} ${tailX + 4} ${sy - 10} Z" fill="url(#${p}sac)" stroke="#0f1a2e" stroke-width="1.4"/>`;
-    s += `<path d="M${tailX + 4} ${sy + 18} Q${sx - 4} ${sy + 30} ${sx - 12} ${sy + 16} Q${sx} ${sy + 14} ${tailX + 4} ${sy + 10} Z" fill="url(#${p}sac)" stroke="#0f1a2e" stroke-width="1.4"/>`;
-  }
-  // The bug itself, a little larger than a worker, then the crown at its head.
-  s += `<image href="data:image/svg+xml;base64,${src}" x="${ox - 2}" y="${oy - 2}" width="68" height="68"/>`;
-  const cr = bug === 'brute' ? 8 : bug === 'beetle' ? 7 : 6;
-  const crown = [];
-  for (let i = 0; i < 5; i++) {
-    const a = Math.PI + (i - 2) * 0.5; // fanned out over the back of the head
-    const bx = hx - 2 + Math.cos(a) * cr,
-      by = hy + Math.sin(a) * cr;
-    const tx = hx - 2 + Math.cos(a) * (cr + 7.5),
-      ty = hy + Math.sin(a) * (cr + 7.5);
-    const px = Math.cos(a + Math.PI / 2) * 2,
-      py = Math.sin(a + Math.PI / 2) * 2;
-    crown.push(`<path d="M${f(bx + px)} ${f(by + py)} L${f(tx)} ${f(ty)} L${f(bx - px)} ${f(by - py)} Z" fill="url(#${p}gold)" stroke="#3a2408" stroke-width="0.9" stroke-linejoin="round"/>`);
-    crown.push(`<circle cx="${f(tx)}" cy="${f(ty)}" r="1.1" fill="#fff6c0" stroke="#3a2408" stroke-width="0.5"/>`);
-  }
-  s += crown.join('');
-  s += `<path d="M${f(hx - 2 - cr * 0.6)} ${f(hy - cr * 0.8)} A${cr} ${cr} 0 0 0 ${f(hx - 2 - cr * 0.6)} ${f(hy + cr * 0.8)}" fill="none" stroke="#3a2408" stroke-width="3.4" stroke-linecap="round"/>`;
-  s += `<path d="M${f(hx - 2 - cr * 0.6)} ${f(hy - cr * 0.8)} A${cr} ${cr} 0 0 0 ${f(hx - 2 - cr * 0.6)} ${f(hy + cr * 0.8)}" fill="none" stroke="url(#${p}gold)" stroke-width="2" stroke-linecap="round"/>`;
-  // Fit the whole queen, abdomen to jaws, inside the 96-unit box.
-  const left = sx - rx - (q.sac === 'striped' ? 9 : 2),
-    right = ox + 66;
-  const k = Math.min(1, 92 / (right - left));
-  const dx = (96 - (right - left) * k) / 2 - left * k;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">${s.replace('</defs>', `</defs><g transform="translate(${f(dx)} ${f(48 - 48 * k)}) scale(${f(k * 100) / 100})">`)}</g></svg>`;
-}
-
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 let seed = 11;
@@ -449,5 +357,5 @@ for (const k of Object.keys(KINDS)) {
   for (const st of [1, 2, 3]) writeFileSync(join(OUT, `nest_${k}_${st}.svg`), nest(k, st, seed++));
   writeFileSync(join(OUT, `nest_${k}_queen.svg`), nest(k, 3, seed++, true));
 }
-for (const bug of Object.keys(QUEENS)) writeFileSync(join(OUT, `queen_${bug}.svg`), queenBug(bug));
+for (const bug of QUEEN_BUGS) writeFileSync(join(OUT, `queen_${bug}.svg`), queenBug(bug));
 console.log(`Wrote concepts to ${OUT}`);
