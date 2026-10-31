@@ -3,6 +3,15 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.8 · 2026-10-31 · The ship, from above and from the side
+### New
+- **The ship on the map is seen from above,** like the shipyard under it: a round hull, then its fins and booster pods, its oxygen tanks, and the navy nose cone with its cockpit glass and beacon.
+- **The Side view window draws the ship properly:** the brick launch pad, the timber scaffolding with its crane, the engine with its boosters and four fins, the white hull with its navy bands, the lit portholes and hatch, and the nose cone. Stages still to build show as dashed outlines.
+- **Launching,** the engines glow round the foot of the ship and smoke rolls out over the pad.
+
+### Fixed
+- The ship no longer stands side-on on a pad seen from above.
+
 ## 0.87.7 · 2026-10-30 · Sharper wood and steel
 ### New
 - **The trebuchet throws:** its arm swings over and whips a stone out of the sling. The stone flies in an arc, its shadow below it, and lands in a burst of dirt and dust instead of an explosion.

@@ -2059,6 +2059,7 @@ export class Renderer {
     const ctx = this.ctx;
     const ship = world.state.ship;
     if (ship.returnAt != null) return; // away at the colony: an empty pad
+    const firing = launching(world);
     // The launch pad lies under everything, the scaffolding included (D-118).
     const order = SHIP.stages.map((st, i) => [st, i] as const).sort(([a], [b]) => Number(b.id === 'pad') - Number(a.id === 'pad'));
     order.forEach(([st, i]) => {
@@ -2070,25 +2071,41 @@ export class Renderer {
         const have = Object.entries(st.items).reduce((a, [k, n]) => a + Math.min(n!, ship.delivered[k as ItemId] ?? 0), 0);
         alpha = 0.15 + 0.45 * (have / need);
       }
+      // Launching, the engines' glow lies on the pad and scaffolding, under the ship itself.
+      if (firing && st.id === 'hull') this.drawLaunchGlow(b, now);
       ctx.globalAlpha = alpha;
       this.drawSprite(`buildings/ship_${st.id}`, b.x, b.y, SHIP_SIZE);
       ctx.globalAlpha = 1;
     });
-    if (!launching(world)) return;
-    // Engine flames under the stern, flickering.
+    if (firing) this.drawLaunchSmoke(b, now);
+  }
+
+  /** The engines firing for launch, seen from above (D-151): a glow round the foot of the ship, flickering. */
+  private drawLaunchGlow(b: Building, now: number): void {
+    const ctx = this.ctx;
     const cx = b.x + SHIP_SIZE / 2;
-    const base = b.y + SHIP_SIZE * 0.89;
-    for (const dx of [-0.28, 0.28]) {
-      const len = 0.35 + 0.15 * Math.sin(now / 37 + dx * 10) + 0.08 * Math.random();
-      const g = ctx.createLinearGradient(0, base, 0, base + len);
-      g.addColorStop(0, 'rgba(255,240,180,0.95)');
-      g.addColorStop(0.5, 'rgba(255,150,60,0.8)');
-      g.addColorStop(1, 'rgba(255,80,40,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(cx + dx - 0.12, base);
-      ctx.quadraticCurveTo(cx + dx, base + len * 1.4, cx + dx + 0.12, base);
-      ctx.fill();
+    const cy = b.y + SHIP_SIZE / 2;
+    const flicker = 0.88 + 0.08 * Math.sin(now / 37) + 0.04 * Math.sin(now / 13);
+    const r = 2 * flicker;
+    const g = ctx.createRadialGradient(cx, cy, 0.8, cx, cy, r);
+    g.addColorStop(0, 'rgba(255,244,190,0.95)');
+    g.addColorStop(0.45, 'rgba(255,160,70,0.7)');
+    g.addColorStop(1, 'rgba(255,80,40,0)');
+    ctx.fillStyle = g;
+    dot(ctx, cx, cy, r);
+  }
+
+  /** Smoke rolling out from under the ship as it launches: puffs drifting outwards, fading as they go. */
+  private drawLaunchSmoke(b: Building, now: number): void {
+    const ctx = this.ctx;
+    const cx = b.x + SHIP_SIZE / 2;
+    const cy = b.y + SHIP_SIZE / 2;
+    for (let i = 0; i < 8; i++) {
+      const t = (now / 2400 + i / 8) % 1;
+      const a = i * 0.785 + 0.4;
+      const d = 1.5 + 1.1 * t;
+      ctx.fillStyle = `rgba(200,195,186,${(0.55 * (1 - t)).toFixed(3)})`;
+      dot(ctx, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.35 + 0.35 * t);
     }
   }
 

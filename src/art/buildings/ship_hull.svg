@@ -1,22 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs><pattern id="sHaz" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#f2c14e" /><rect width="5" height="10" fill="#1b2230" /></pattern>
-
-      <linearGradient id="sHull" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c3ccd8" /><stop offset="0.3" stop-color="#f2f5f9" /><stop offset="0.7" stop-color="#9aa6b6" /><stop offset="1" stop-color="#5f6b7c" /></linearGradient>
-      <linearGradient id="sFin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3566b3" /><stop offset="1" stop-color="#16305a" /></linearGradient>
-      <linearGradient id="sGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bfe4ff" /><stop offset="0.5" stop-color="#3fa9f5" /><stop offset="1" stop-color="#16305a" /></linearGradient>
-      </defs><g>
-        <ellipse cx="96" cy="170" rx="58" ry="12" fill="#000000" opacity="0.35" />
-        <path d="M68 122 L40 164 L44 172 L74 160 Z" fill="url(#sFin)" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round" />
-        <path d="M124 122 L152 164 L148 172 L118 160 Z" fill="url(#sFin)" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round" />
-        <path d="M44 162 L70 150" stroke="#7cb0ff" stroke-width="1.6" stroke-linecap="round" />
-        <path d="M70 64 Q72 30 96 10 Q120 30 122 64 L122 158 A26 8 0 0 1 70 158 Z" fill="url(#sHull)" stroke="#0f1a2e" stroke-width="3" stroke-linejoin="round" />
-        <path d="M77 38 Q84 22 96 10 Q108 22 115 38 A19 5 0 0 1 77 38 Z" fill="#f6f8fb" stroke="#0f1a2e" stroke-width="1.5" />
-        <path d="M71 70 A25 6 0 0 0 121 70 L121.5 80 A25.5 6 0 0 1 70.5 80 Z" fill="#1d3b6e" />
-        <path d="M70.5 146 A25.5 6 0 0 0 121.5 146 L121.8 152 A25.8 6 0 0 1 70.2 152 Z" fill="url(#sHaz)" />
-        <g fill="none" stroke="#5f6b7c" stroke-width="1.4" opacity="0.8"><path d="M70.5 92 A25.5 6 0 0 0 121.5 92" /><path d="M70.5 126 A25.5 6 0 0 0 121.5 126" /></g>
-        <path d="M80 58 Q82 32 89 18" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.6" />
-        <path d="M79 84 V150" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.4" />
-        <path d="M96 126 L91 168 L101 168 Z" fill="url(#sFin)" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
-        <g fill="#5a6478"><circle cx="76" cy="100" r="1.5" /><circle cx="116" cy="100" r="1.5" /><circle cx="76" cy="134" r="1.5" /><circle cx="116" cy="134" r="1.5" /><circle cx="96" cy="88" r="1.5" /></g>
-        <circle cx="96" cy="54" r="5.5" fill="url(#sGlass)" stroke="#0f1a2e" stroke-width="2" /><circle cx="94.3" cy="52.3" r="1.5" fill="#ffffff" />
-      </g>
-      </svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><defs>
+    <radialGradient id="shBody" cx="38%" cy="34%" r="70%"><stop offset="0" stop-color="#ffffff" /><stop offset="0.55" stop-color="#dfe7f1" /><stop offset="1" stop-color="#93a3b8" /></radialGradient>
+    <radialGradient id="shInside" cx="60%" cy="62%" r="70%"><stop offset="0" stop-color="#3a4252" /><stop offset="1" stop-color="#151a24" /></radialGradient>
+    <radialGradient id="shShadow"><stop offset="0.5" stop-color="#0a1322" stop-opacity="0.5" /><stop offset="1" stop-color="#0a1322" stop-opacity="0" /></radialGradient>
+  </defs><g transform="translate(96 96) scale(1.15) translate(-96 -96)">
+  <!-- The ship seen from straight above (D-109): its hull is a round steel fuselage. Standing tall, it
+       throws a long shadow down and to the right. -->
+  <ellipse cx="128" cy="140" rx="54" ry="40" transform="rotate(35 128 140)" fill="url(#shShadow)" />
+  <circle cx="96" cy="96" r="35" fill="url(#shBody)" stroke="#0f1a2e" stroke-width="3" />
+  <circle cx="96" cy="96" r="29" fill="none" stroke="#1d3b6e" stroke-width="5" />
+  <circle cx="96" cy="96" r="29" fill="none" stroke="#3a64a8" stroke-width="1.2" stroke-dasharray="30 152" stroke-dashoffset="-120" />
+  <!-- Open at the top until the nose goes on: ribs and a ring frame inside. -->
+  <circle cx="96" cy="96" r="24" fill="url(#shInside)" stroke="#0f1a2e" stroke-width="2" />
+  <g stroke="#7d8a9c" stroke-width="2.2" stroke-linecap="round"><path d="M96 74 V118 M74 96 H118 M80.5 80.5 L111.5 111.5 M111.5 80.5 L80.5 111.5" /></g>
+  <circle cx="96" cy="96" r="12" fill="none" stroke="#8a96a8" stroke-width="2" />
+  <circle cx="96" cy="96" r="4" fill="#5a6478" stroke="#0f1a2e" stroke-width="1.4" />
+  <g fill="#7d8ca0"><circle cx="96" cy="63.5" r="1.1" /><circle cx="119" cy="73" r="1.1" /><circle cx="128.5" cy="96" r="1.1" /><circle cx="119" cy="119" r="1.1" /><circle cx="96" cy="128.5" r="1.1" /><circle cx="73" cy="119" r="1.1" /><circle cx="63.5" cy="96" r="1.1" /><circle cx="73" cy="73" r="1.1" /></g>
+  <path d="M68 82 A30 30 0 0 1 84 66" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+</g>
+</svg>
