@@ -49,21 +49,30 @@ export function darkness(time: number): number {
 }
 
 /**
- * How far the land has turned towards the next season (D-111): 0 for most of a season, rising to 1 over
- * its last CLOCK.turn days. Only the look follows it; the rules change on the day the season does.
+ * How the land looks (D-111, D-152): the four seasons, plus the end of fall, when the broadleaf trees are
+ * down to their last leaves and leaves cover the ground.
  */
-export function seasonTurn(time: number): { season: Season['id']; next: Season['id']; shift: number } {
+export type Look = Season['id'] | 'late';
+
+/**
+ * How far the land has turned from one look to the next (D-111, D-152). Over the last CLOCK.turn days of
+ * a season it turns to the next season's look, except that fall turns to `late` (the leaves fall), and
+ * winter's look settles in over winter's first CLOCK.turn days (the snow comes). Otherwise `shift` is 0.
+ * Only the look follows it; the rules change on the day the season does.
+ */
+export function seasonTurn(time: number): { look: Look; next: Look; shift: number } {
   const t = Math.max(0, time) % YEAR;
+  const span = CLOCK.turn * DAY;
   let start = 0;
   for (let i = 0; i < CLOCK.seasons.length; i++) {
     const s = CLOCK.seasons[i];
     const end = start + s.days * DAY;
     if (t < end) {
-      const next = CLOCK.seasons[(i + 1) % CLOCK.seasons.length].id;
-      const span = CLOCK.turn * DAY;
-      return { season: s.id, next, shift: Math.min(1, Math.max(0, (t - (end - span)) / span)) };
+      if (s.id === 'winter' && t < start + span) return { look: 'late', next: 'winter', shift: (t - start) / span };
+      const next = s.id === 'fall' ? 'late' : CLOCK.seasons[(i + 1) % CLOCK.seasons.length].id;
+      return { look: s.id, next, shift: Math.min(1, Math.max(0, (t - (end - span)) / span)) };
     }
     start = end;
   }
-  return { season: CLOCK.seasons[0].id, next: CLOCK.seasons[1].id, shift: 0 };
+  return { look: CLOCK.seasons[0].id, next: CLOCK.seasons[1].id, shift: 0 };
 }

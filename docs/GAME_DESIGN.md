@@ -391,14 +391,17 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   |---|---|---|---|
   | Spring | 4 (36 min) | 1.5× faster | Fresh green grass and trees |
   | Summer | 2 (18 min) | 2× faster | A warm light; a few broadleaf trees already turning |
-  | Fall | 4 (36 min) | 0.75× (slower) | Leaf litter on the ground, orange trees and bronze pines |
-  | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare frosted trees and snowy pines; grass and flowers are under the snow |
+  | Fall | 4 (36 min) | 0.75× (slower) | Leaf litter on the ground, orange trees and bronze pines; by its end the broadleaf trees are bare but for a few last leaves, and fallen leaves cover the ground |
+  | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare broadleaf trees with snow on their limbs, and snowy pines; grass and flowers are under the snow |
 
   A stump's regrowth time is set by the season it's cut in.
-- **Seasons fade in (D-111):** over the last day of each season the land turns to the next one's look.
-  Trees change one by one, each at its own moment; the ground and the light cross-fade; snow covers the
-  grass and flowers bit by bit. Coming out of winter, flowers come back in the first half of that day and
-  leaves in the second. Only the look changes: the rules (tree regrowth) change on the day the season does.
+- **Seasons fade in (D-111, D-152):** over the last day of each season the land turns to the next one's look.
+  Trees change one by one, each at its own moment; the ground and the light cross-fade. Fall and winter
+  are different: over the last day of fall the leaves fall (the broadleaf trees go bare, one by one, and
+  fallen leaves gather on the ground), and winter starts bare; then over winter's first day the snow
+  comes, settling on the ground, the trees and the pines and covering the grass and flowers bit by bit.
+  Pines keep their needles all year. Coming out of winter, flowers come back in the first half of that day
+  and leaves in the second. Only the look changes: the rules (tree regrowth) change on the day the season does.
 - **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
   right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
   and short at midday, and right in the evening, growing long towards dusk. At night the moon casts

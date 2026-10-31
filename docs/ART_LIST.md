@@ -52,7 +52,7 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 | Asset | Size | Frames | Priority | Status |
 |---|---|---|---|---|
 | Ground tile: grass, seamless, with a faint tile edge (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Upgraded (`terrain/ground`, summer) |
-| Seasonal ground (D-082): spring grass, fall leaf litter, winter snow | 64×64 | 1 each | P2 | Upgraded (`terrain/ground_spring`, `ground_fall`, `ground_winter`) |
+| Seasonal ground (D-082, D-152): spring grass, fall leaf litter, fallen leaves at the end of fall, winter snow | 64×64 | 1 each | P2 | Upgraded (`terrain/ground_spring`, `ground_fall`, `ground_leaves`, `ground_winter`; `ground_leaves` drawn by `art/trees.mjs`) |
 | Map edge: soft shadow where the clearing meets the forest | — | 1 | P3 | Code |
 | Iron ore node (2–3 variants), on a dirt patch with a transparent background | 64×64 | 1 | P1 | Upgraded |
 | Copper ore node (2–3 variants) | 64×64 | 1 | P1 | Upgraded |
@@ -60,7 +60,7 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 | Decorations, transparent: grass tuft, flowers (2 colourways), mushrooms, pebbles. Scattered on empty tiles | 64×64 | 1 | P2 | Upgraded (`terrain/tuft`, `flowers`, `flowers_blue`, `mushrooms`, `pebbles`) |
 | Trees, top-down canopies with a soft shadow: round, autumn, pine, berry bush. They fill a band around the map | 128×128 (2 tiles) | 1 | P2 | Upgraded (`terrain/tree_round`, `tree_autumn`, `tree_pine`, `bush`) |
 | Map trees (D-044): the same canopies, drawn about 1.4 tiles across on every forest tile. Zoomed far out, a plain canopy colour | — | — | P2 | Uses the tree sprites |
-| Seasonal trees (D-082): round and pine canopies for spring, fall and winter, with snow (pines) and frost (round trees) drawn over them in winter | 128×128 (2 tiles) | 1 each | P2 | Upgraded (`terrain/tree_round_spring`, `_fall`, `_winter`, `_winter_frost`; `tree_pine_spring`, `_fall`, `_winter`, `_winter_snow`) |
+| Seasonal trees (D-082, D-152): round and pine canopies for spring and fall; the round (broadleaf) tree bare from above at the end of fall, with a few last leaves (`_late`), and in winter with snow along its limbs (`_winter`); pines with snow drawn over them in winter | 128×128 (2 tiles) | 1 each | P2 | Upgraded (`terrain/tree_round_spring`, `_fall`, `_late`, `_winter`; `tree_pine_spring`, `_fall`, `_winter`, `_winter_snow`). The bare trees are drawn by `art/trees.mjs` (0.87.9) |
 | Tree stump, with a sprouting twig, on a transparent background | 64×64 | 1 | P2 | Upgraded (`terrain/stump`) |
 | Fireflies and drifting leaves | — | — | P3 | Code |
 

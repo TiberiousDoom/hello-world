@@ -41,13 +41,12 @@ import {
   isMachine,
   FUEL,
   burnsFuel,
-  type Season,
 } from '../sim/data';
 import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, defenceTier, outOfFuel } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
-import { clockAt, darkness, seasonTurn } from '../sim/clock';
+import { clockAt, darkness, seasonTurn, type Look } from '../sim/clock';
 import { Nest, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
@@ -76,22 +75,29 @@ const STILL_BELTS_BELOW = 20;
  * A wash over the ground for each season (#42). The seasons have their own ground and trees (D-082),
  * so this only warms summer and settles the grass tufts and flowers into fall leaves and snow.
  */
-const SEASON_TINT: Record<Season['id'], string | null> = {
+const SEASON_TINT: Record<Look, string | null> = {
   spring: null,
   summer: 'rgba(255,214,110,0.07)',
   fall: 'rgba(214,120,40,0.07)',
+  late: 'rgba(200,110,40,0.08)',
   winter: 'rgba(228,238,255,0.12)',
 };
-/** Each season's sprites for the ground and the two kinds of tree (summer is the art as first drawn). */
-const SEASON_ART: Record<Season['id'], { ground: string; round: string; pine: string; over?: [string, string] }> = {
+/**
+ * Each look's sprites for the ground and the two kinds of tree (summer is the art as first drawn). At the end
+ * of fall the broadleaf trees are down to their last leaves on fallen leaves, and in winter they're bare
+ * with snow on their limbs (D-152); pines keep their needles, with snow laid over them in winter.
+ */
+const SEASON_ART: Record<Look, { ground: string; round: string; pine: string; bare?: boolean; snow?: string }> = {
   spring: { ground: 'terrain/ground_spring', round: 'terrain/tree_round_spring', pine: 'terrain/tree_pine_spring' },
   summer: { ground: 'terrain/ground', round: 'terrain/tree_round', pine: 'terrain/tree_pine' },
   fall: { ground: 'terrain/ground_fall', round: 'terrain/tree_round_fall', pine: 'terrain/tree_pine_fall' },
+  late: { ground: 'terrain/ground_leaves', round: 'terrain/tree_round_late', pine: 'terrain/tree_pine_fall', bare: true },
   winter: {
     ground: 'terrain/ground_winter',
     round: 'terrain/tree_round_winter',
     pine: 'terrain/tree_pine_winter',
-    over: ['terrain/tree_round_winter_frost', 'terrain/tree_pine_winter_snow'],
+    bare: true,
+    snow: 'terrain/tree_pine_winter_snow',
   },
 };
 /**
@@ -251,10 +257,10 @@ export class Renderer {
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
-  /** The season being drawn (#42), and the night overlay's canvas. */
-  private season: Season['id'] = 'spring';
-  /** The season coming next, and how far the land has turned towards it (D-111). */
-  private next: Season['id'] = 'summer';
+  /** The look being drawn (#42, D-152), and the night overlay's canvas. */
+  private season: Look = 'spring';
+  /** The look coming next, and how far the land has turned towards it (D-111). */
+  private next: Look = 'summer';
   private shift = 0;
   /** Where shadows fall this frame: the offset per tile of height, and how dark they are (D-101). */
   private sun = { dx: 0, dy: 0, alpha: 0 };
@@ -356,7 +362,7 @@ export class Renderer {
 
     // Ground, decorations and resources (cached). Beyond the map's edge is forest.
     const turn = seasonTurn(world.state.time);
-    this.season = turn.season;
+    this.season = turn.look;
     this.next = turn.next;
     // The cached layers are repainted in 16 steps while one season gives way to the next.
     this.shift = Math.floor(turn.shift * 16) / 16;
@@ -882,7 +888,7 @@ export class Renderer {
    * Which season's look one tree or plant shows while the land turns (D-111): each changes at its own
    * moment, from `h` in [0, 1). Coming out of winter, flowers return in the first half and leaves in the second.
    */
-  private lookOf(h: number, leaves: boolean): Season['id'] {
+  private lookOf(h: number, leaves: boolean): Look {
     const at = this.season === 'winter' ? (leaves ? 0.5 + h / 2 : h / 2) : h;
     return this.shift > at ? this.next : this.season;
   }
@@ -1085,7 +1091,7 @@ export class Renderer {
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
         const at: [number, number, number, number] = [x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4];
         if (this.drawSprite(key, ...at) || this.drawSprite(pine ? 'terrain/tree_pine' : 'terrain/tree_round', ...at)) {
-          if (art.over) this.drawSprite(art.over[pine ? 1 : 0], ...at); // snow and frost settle on top
+          if (pine && art.snow) this.drawSprite(art.snow, ...at); // snow settles on top
         } else {
           ctx.fillStyle = FOREST_CANOPY;
           dot(ctx, x + 0.5, y + 0.5, 0.55);
@@ -1140,21 +1146,28 @@ export class Renderer {
     const ctx = this.ctx;
     const len = Math.hypot(dx, dy) * SHADOW.tree;
     const angle = Math.atan2(dy, dx);
-    ctx.beginPath();
+    // Bare trees (D-152) let most of the light through: their shadow is a faint one, in a path of its own.
+    const leafy = new Path2D();
+    const bare = new Path2D();
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         if (trees[world.idx(x, y)] !== TREE) continue;
         const hv = hash(x + 5000, y + 5000);
+        const kind = hv % 10;
+        const pine = kind >= 5 && kind < 9;
+        const path = !pine && SEASON_ART[this.lookOf((hash(x + 9000, y) % 1000) / 1000, true)].bare ? bare : leafy;
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const r = size * 0.36;
         const cx = x + 0.5 + dx * SHADOW.tree * 0.6;
         const cy = y + 0.5 + dy * SHADOW.tree * 0.6;
-        ctx.moveTo(cx + Math.cos(angle) * (r + len / 2), cy + Math.sin(angle) * (r + len / 2));
-        ctx.ellipse(cx, cy, r + len / 2, r, angle, 0, Math.PI * 2);
+        path.moveTo(cx + Math.cos(angle) * (r + len / 2), cy + Math.sin(angle) * (r + len / 2));
+        path.ellipse(cx, cy, r + len / 2, r, angle, 0, Math.PI * 2);
       }
     }
     ctx.fillStyle = `rgba(10,16,30,${alpha})`;
-    ctx.fill('nonzero');
+    ctx.fill(leafy, 'nonzero');
+    ctx.fillStyle = `rgba(10,16,30,${alpha * 0.3})`;
+    ctx.fill(bare, 'nonzero');
   }
 
   /** Winter frost on the trees drawn into a cached canopy (only where trees were painted), until their winter art loads. */

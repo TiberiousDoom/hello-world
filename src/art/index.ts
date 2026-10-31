@@ -71,7 +71,7 @@ const TILES: Record<string, [number, number]> = {
   'terrain/tree_round_spring': [2, 2],
   'terrain/tree_round_fall': [2, 2],
   'terrain/tree_round_winter': [2, 2],
-  'terrain/tree_round_winter_frost': [2, 2],
+  'terrain/tree_round_late': [2, 2],
   'terrain/tree_pine_spring': [2, 2],
   'terrain/tree_pine_fall': [2, 2],
   'terrain/tree_pine_winter': [2, 2],
