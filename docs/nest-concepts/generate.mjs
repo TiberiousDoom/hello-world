@@ -1,12 +1,15 @@
 /* global console */
-// Nest concept art: three directions in which a nest's art changes as it grows, not only its size.
-// Run `node docs/nest-concepts/generate.mjs`; it writes one SVG per direction, kind and stage into
-// docs/nest-concepts/svg/. Concepts only: the game doesn't load these.
-import { mkdirSync, writeFileSync } from 'node:fs';
+// Nest concept art, direction A (Earthworks), round 2: a nest kind for every bug, a queen nest of each kind,
+// and a queen of each bug. Each stage is its own drawing, not a scaled copy.
+// Run `node docs/nest-concepts/generate.mjs`; it writes the SVGs into docs/nest-concepts/svg/.
+// Concepts only: the game doesn't load these.
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), 'svg');
+const HERE = dirname(fileURLToPath(import.meta.url));
+const OUT = join(HERE, 'svg');
+const ENEMIES = join(HERE, '..', '..', 'src', 'art', 'enemies');
 const INK = '#24180e';
 
 /** A small seeded RNG, so the concepts redraw the same each run. */
@@ -43,51 +46,38 @@ function blob(cx, cy, rx, ry, jit, n, r, rot = 0) {
   return d + ' Z';
 }
 
-/** A wandering open line from (x,y) heading at angle a, for veins, tunnels and cracks. */
-function wander(x, y, a, len, steps, wob, r) {
-  let d = `M${f(x)} ${f(y)}`;
-  const seg = len / steps;
-  for (let i = 0; i < steps; i++) {
-    a += (r() * 2 - 1) * wob;
-    const nx = x + Math.cos(a) * seg,
-      ny = y + Math.sin(a) * seg;
-    d += ` Q${f(x + Math.cos(a) * seg * 0.5 + (r() - 0.5) * 3)} ${f(y + Math.sin(a) * seg * 0.5 + (r() - 0.5) * 3)} ${f(nx)} ${f(ny)}`;
-    x = nx;
-    y = ny;
-  }
-  return { d, end: [x, y] };
-}
-
-// Each kind's colours, from its bugs' sprites: crawler orange, runner/wasp navy and yellow, brute/beetle crimson and blue.
-const KINDS = {
-  warren: { soil: ['#8a6a44', '#5e4630', '#3e2c1c'], accent: '#c8682c', accent2: '#e08a3c', dark: '#5a2c10' },
-  hive: { soil: ['#7a6c5a', '#4e4436', '#2e281f'], accent: '#f2c14e', accent2: '#ffe08a', dark: '#1c2236' },
-  den: { soil: ['#7c6450', '#55402e', '#33241a'], accent: '#8a1c24', accent2: '#c0343c', dark: '#3a0c10' },
-  queen: { soil: ['#8a6a44', '#5a3e2a', '#36231a'], accent: '#e0a030', accent2: '#ffd36a', dark: '#4a1a40' },
+/**
+ * The five nest kinds, one per bug, with the bug's colours. `from` is the proposed distance from the hub
+ * where the kind starts (warrens near the hub; the others follow today's hive, wasp, den and beetle lines).
+ */
+export const KINDS = {
+  warren: { bug: 'crawler', from: 0, soil: ['#8a6a44', '#5e4630', '#3e2c1c'], accent: '#c8682c', glow: ['#ffd36a', '#e0a030'] },
+  runnel: { bug: 'runner', from: 60, soil: ['#6e6658', '#47413a', '#2a2622'], accent: '#3b4152', glow: ['#d8e8ff', '#6a8ac0'] },
+  hive: { bug: 'wasp', from: 80, soil: ['#8a7c62', '#5a4e3a', '#342c20'], accent: '#f2c14e', glow: ['#fff0a0', '#f2c14e'] },
+  den: { bug: 'brute', from: 100, soil: ['#7c6450', '#55402e', '#33241a'], accent: '#8a1c24', glow: ['#ff9a80', '#c0343c'] },
+  barrow: { bug: 'beetle', from: 120, soil: ['#9a7458', '#6a4a36', '#3e2a1e'], accent: '#4a74a0', glow: ['#bfe6ff', '#4a90c8'] },
 };
 
-/** Gradients and filters every concept shares; ids carry a prefix so many SVGs can sit inline on one page. */
+/** Gradients and filters every drawing shares; ids carry a prefix so many SVGs can sit inline on one page. */
 function defs(p, k) {
   const [s0, s1, s2] = KINDS[k].soil;
-  const { accent, accent2, dark } = KINDS[k];
+  const [g0, g1] = KINDS[k].glow;
   return `<defs>
 <filter id="${p}blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.5"/></filter>
 <filter id="${p}soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.2"/></filter>
 <radialGradient id="${p}mound" cx="36%" cy="32%" r="70%"><stop offset="0" stop-color="${s0}"/><stop offset="0.55" stop-color="${s1}"/><stop offset="1" stop-color="${s2}"/></radialGradient>
 <radialGradient id="${p}pit" cx="44%" cy="44%" r="58%"><stop offset="0" stop-color="#040302"/><stop offset="0.45" stop-color="#120c07"/><stop offset="0.8" stop-color="#33251a"/><stop offset="1" stop-color="#4e3a26"/></radialGradient>
-<radialGradient id="${p}glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="${accent2}" stop-opacity="0.9"/><stop offset="0.5" stop-color="${accent}" stop-opacity="0.45"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
-<radialGradient id="${p}pod" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="${accent2}"/><stop offset="0.5" stop-color="${accent}"/><stop offset="1" stop-color="${dark}"/></radialGradient>
-<radialGradient id="${p}shell" cx="36%" cy="30%" r="72%"><stop offset="0" stop-color="${k === 'hive' ? '#4a4e66' : k === 'den' ? '#b03a40' : k === 'queen' ? '#8a4a7a' : '#d07a3a'}"/><stop offset="0.55" stop-color="${k === 'hive' ? '#252a3c' : k === 'den' ? '#6a1820' : k === 'queen' ? '#4a1a40' : '#8a4418'}"/><stop offset="1" stop-color="${k === 'hive' ? '#10121c' : k === 'den' ? '#2a080c' : k === 'queen' ? '#1e0a1a' : '#3a1a08'}"/></radialGradient>
+<radialGradient id="${p}glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="${g0}" stop-opacity="0.95"/><stop offset="0.45" stop-color="${g1}" stop-opacity="0.5"/><stop offset="1" stop-color="${g1}" stop-opacity="0"/></radialGradient>
 <radialGradient id="${p}egg" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff6e0"/><stop offset="0.6" stop-color="#e8d2a8"/><stop offset="1" stop-color="#b09670"/></radialGradient>
-<linearGradient id="${p}cone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${s0}"/><stop offset="0.45" stop-color="${s1}"/><stop offset="1" stop-color="${s2}"/></linearGradient>
-<linearGradient id="${p}paper" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c8c0b0"/><stop offset="0.45" stop-color="#948a7a"/><stop offset="1" stop-color="#5a5248"/></linearGradient>
+<radialGradient id="${p}ball" cx="34%" cy="30%" r="70%"><stop offset="0" stop-color="#b08a64"/><stop offset="0.6" stop-color="#6e4e34"/><stop offset="1" stop-color="#3a2618"/></radialGradient>
+<radialGradient id="${p}shell" cx="36%" cy="26%" r="80%"><stop offset="0" stop-color="#9cc6ea"/><stop offset="0.35" stop-color="#4a74a0"/><stop offset="0.75" stop-color="#22385a"/><stop offset="1" stop-color="#121e32"/></radialGradient>
 <linearGradient id="${p}stone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8a49a"/><stop offset="0.5" stop-color="#76726a"/><stop offset="1" stop-color="#46423c"/></linearGradient>
 </defs>`;
 }
 
 const svg = (p, k, body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">${defs(p, k)}${body}</svg>`;
 
-/** A burrow entrance: a raised rim, a dark pit and a lit lip, like today's nests. */
+/** A burrow entrance: a raised rim, a dark pit and a lit lip. */
 function hole(p, cx, cy, r, rr, rim = true) {
   let s = '';
   if (rim) {
@@ -114,7 +104,7 @@ function eggs(p, cx, cy, n, size, r) {
 }
 
 /** Spoil: loose clods of dug-out soil. */
-function clods(p, cx, cy, spread, n, r, color = '#6a5034') {
+function clods(cx, cy, spread, n, r, color = '#6a5034') {
   let s = '';
   for (let i = 0; i < n; i++) {
     const a = r() * Math.PI * 2,
@@ -126,16 +116,34 @@ function clods(p, cx, cy, spread, n, r, color = '#6a5034') {
   return s;
 }
 
-/** A raised tunnel ridge between two points: a soil bulge with a lit crest. */
-function ridge(p, x1, y1, x2, y2, w, r) {
-  const mx = (x1 + x2) / 2 + (r() - 0.5) * 14,
-    my = (y1 + y2) / 2 + (r() - 0.5) * 14;
+/** A raised tunnel ridge between two points: a soil bulge with a lit crest. `bend` 0 makes it straight. */
+function ridge(p, x1, y1, x2, y2, w, r, bend = 14) {
+  const mx = (x1 + x2) / 2 + (r() - 0.5) * bend,
+    my = (y1 + y2) / 2 + (r() - 0.5) * bend;
   const d = `M${f(x1)} ${f(y1)} Q${f(mx)} ${f(my)} ${f(x2)} ${f(y2)}`;
   return (
     `<path d="${d}" fill="none" stroke="#000" stroke-opacity="0.3" stroke-width="${w + 3}" stroke-linecap="round" transform="translate(1.5 2)" filter="url(#${p}soft)"/>` +
     `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w + 2.4}" stroke-linecap="round"/>` +
-    `<path d="${d}" fill="none" stroke="#5e4630" stroke-width="${w}" stroke-linecap="round"/>` +
-    `<path d="${d}" fill="none" stroke="#9a7a52" stroke-width="${w * 0.35}" stroke-linecap="round" transform="translate(-0.8 -1)" opacity="0.8"/>`
+    `<path d="${d}" fill="none" stroke="url(#${p}mound)" stroke-width="${w}" stroke-linecap="round"/>` +
+    `<path d="${d}" fill="none" stroke="#a8865c" stroke-width="${w * 0.35}" stroke-linecap="round" transform="translate(-0.8 -1)" opacity="0.7"/>`
+  );
+}
+
+/** A sunken trench (runnels): soil banks thrown up either side of a dark groove, tapering to its far end. */
+function trench(p, x1, y1, x2, y2, w) {
+  const d = `M${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)}`;
+  const nx = -(y2 - y1),
+    ny = x2 - x1,
+    l = Math.hypot(nx, ny);
+  const ox = (nx / l) * w * 0.8,
+    oy = (ny / l) * w * 0.8;
+  const groove = `M${f(x1 + ox)} ${f(y1 + oy)} L${f(x2 + ox * 0.3)} ${f(y2 + oy * 0.3)} L${f(x2 - ox * 0.3)} ${f(y2 - oy * 0.3)} L${f(x1 - ox)} ${f(y1 - oy)} Z`;
+  return (
+    `<path d="${d}" fill="none" stroke="#000" stroke-opacity="0.3" stroke-width="${w * 2.2}" stroke-linecap="round" transform="translate(1 1.5)" filter="url(#${p}soft)"/>` +
+    `<path d="${d}" fill="none" stroke="${INK}" stroke-opacity="0.6" stroke-width="${w * 2.2 + 1.4}" stroke-linecap="round"/>` +
+    `<path d="${d}" fill="none" stroke="#5a5248" stroke-width="${w * 2.2}" stroke-linecap="round"/>` +
+    `<path d="${groove}" fill="#120e0a" stroke="${INK}" stroke-width="0.8"/>` +
+    `<path d="M${f(x1 - ox)} ${f(y1 - oy)} L${f(x2 - ox * 0.3)} ${f(y2 - oy * 0.3)}" stroke="#b8a888" stroke-width="1" stroke-linecap="round" opacity="0.6"/>`
   );
 }
 
@@ -148,17 +156,17 @@ function scrap(cx, cy, spread, n, r) {
       d = spread * (0.7 + r() * 0.3);
     const x = cx + Math.cos(a) * d,
       y = cy + Math.sin(a) * d;
-    s += `<path d="M${f(x)} ${f(y)} l${f(4 + r() * 2)} ${f(-1 - r() * 2)} l${f(1 + r())} ${f(3 + r())} l${f(-5)} ${f(1.5)} z" fill="${cols[i % 3]}" stroke="#0f1a2e" stroke-width="0.8" stroke-linejoin="round"/>`;
+    s += `<path d="M${f(x)} ${f(y)} l${f(4 + r() * 2)} ${f(-1 - r() * 2)} l${f(1 + r())} ${f(3 + r())} l-5 1.5 z" fill="${cols[i % 3]}" stroke="#0f1a2e" stroke-width="0.8" stroke-linejoin="round"/>`;
   }
   return s;
 }
 
-/** Paper comb collar: a ring of grey hexagon cells round a hole (wasp hives). */
-function comb(p, cx, cy, r, rings, rr) {
+/** Paper comb collar: a ring of grey hexagon cells round a hole, some with yellow grubs (hives). */
+function comb(cx, cy, r, rings, rr) {
   let s = '';
   const h = 4.2;
-  for (let q = -rings * 2; q <= rings * 2; q++)
-    for (let w = -rings * 2; w <= rings * 2; w++) {
+  for (let q = -rings * 3; q <= rings * 3; q++)
+    for (let w = -rings * 3; w <= rings * 3; w++) {
       const x = cx + h * 1.5 * q,
         y = cy + h * Math.sqrt(3) * (w + q / 2);
       const d = Math.hypot(x - cx, y - cy);
@@ -166,13 +174,13 @@ function comb(p, cx, cy, r, rings, rr) {
       let pts = '';
       for (let i = 0; i < 6; i++) pts += `${f(x + Math.cos((i * Math.PI) / 3) * h * 0.92)},${f(y + Math.sin((i * Math.PI) / 3) * h * 0.92)} `;
       const lit = x - cx + (y - cy) < 0;
-      s += `<polygon points="${pts}" fill="${lit ? '#a89e8c' : '#6e665a'}" stroke="#3a342c" stroke-width="0.7"/>`;
-      if (rr() < 0.35) s += `<circle cx="${f(x)}" cy="${f(y)}" r="1.6" fill="#f2c14e" opacity="0.85"/>`;
+      s += `<polygon points="${pts}" fill="${lit ? '#c4b898' : '#857a64'}" stroke="#3a342c" stroke-width="0.7"/>`;
+      if (rr() < 0.35) s += `<circle cx="${f(x)}" cy="${f(y)}" r="1.6" fill="#f2c14e" stroke="#3a2c08" stroke-width="0.4"/>`;
     }
   return s;
 }
 
-/** A boulder (brute dens). */
+/** A boulder (dens). */
 function boulder(p, cx, cy, r, rr) {
   return (
     `<path d="${blob(cx + 1.5, cy + 2, r, r * 0.85, 0.18, 6, rr)}" fill="#000" opacity="0.35" filter="url(#${p}soft)"/>` +
@@ -180,6 +188,36 @@ function boulder(p, cx, cy, r, rr) {
     `<path d="M${f(cx - r * 0.6)} ${f(cy - r * 0.1)} Q${f(cx - r * 0.4)} ${f(cy - r * 0.6)} ${f(cx + r * 0.1)} ${f(cy - r * 0.62)}" fill="none" stroke="#d4d0c4" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>`
   );
 }
+
+/** A rolled ball of packed earth, with a groove where it was rolled (barrows). */
+function ball(p, cx, cy, r) {
+  return (
+    `<ellipse cx="${f(cx + 1.5)}" cy="${f(cy + 2)}" rx="${f(r)}" ry="${f(r * 0.92)}" fill="#000" opacity="0.4" filter="url(#${p}soft)"/>` +
+    `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}" fill="url(#${p}ball)" stroke="${INK}" stroke-width="1.2"/>` +
+    `<path d="M${f(cx - r * 0.8)} ${f(cy + r * 0.2)} Q${f(cx)} ${f(cy + r * 0.6)} ${f(cx + r * 0.8)} ${f(cy + r * 0.1)}" fill="none" stroke="${INK}" stroke-opacity="0.4" stroke-width="0.9"/>` +
+    `<ellipse cx="${f(cx - r * 0.35)}" cy="${f(cy - r * 0.4)}" rx="${f(r * 0.3)}" ry="${f(r * 0.18)}" fill="#e8d0a8" opacity="0.5"/>`
+  );
+}
+
+/** Half of a shed beetle wing case: a blue shell shard (barrows). */
+function shard(p, cx, cy, a, len) {
+  return `<path d="M0 0 Q${f(len * 0.5)} ${f(-len * 0.55)} ${f(len)} 0 Q${f(len * 0.5)} ${f(-len * 0.12)} 0 0 Z" transform="translate(${f(cx)} ${f(cy)}) rotate(${f(a)})" fill="url(#${p}shell)" stroke="#0f1a2e" stroke-width="0.9"/>`;
+}
+
+/** A shed runner segment row: small navy plates in a line (runnels). */
+function segments(cx, cy, a, n) {
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    const x = cx + Math.cos(a) * i * 4.2,
+      y = cy + Math.sin(a) * i * 4.2;
+    s += `<rect x="${f(x - 2)}" y="${f(y - 2.6)}" width="4" height="5.2" rx="1.6" transform="rotate(${f((a * 180) / Math.PI)} ${f(x)} ${f(y)})" fill="#3b4152" stroke="#0f1a2e" stroke-width="0.8"/>`;
+  }
+  return s;
+}
+
+/** A shed crawler husk: an orange curl (warrens). */
+const husk = (x, y) =>
+  `<path d="M${f(x)} ${f(y)} q4 -3 8 0" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/><path d="M${f(x)} ${f(y)} q4 -3 8 0" fill="none" stroke="#c8682c" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="2.2 1"/>`;
 
 /** Three parallel claw gouges. */
 function claws(cx, cy, a, len) {
@@ -192,7 +230,7 @@ function claws(cx, cy, a, len) {
   return s;
 }
 
-/** A bone, for dens and queens. */
+/** A bone (dens). */
 function bone(cx, cy, a, len) {
   const dx = (Math.cos(a) * len) / 2,
     dy = (Math.sin(a) * len) / 2;
@@ -203,8 +241,8 @@ function bone(cx, cy, a, len) {
   );
 }
 
-/** Pale chitin spikes round a point (queens, dens). */
-function spikes(cx, cy, r, n, len, rot, col = '#e8dcc0') {
+/** Chitin spikes round a point. */
+function spikes(cx, cy, r, n, len, rot, col) {
   let s = '';
   for (let i = 0; i < n; i++) {
     const a = rot + (i / n) * Math.PI * 2;
@@ -220,250 +258,196 @@ function spikes(cx, cy, r, n, len, rot, col = '#e8dcc0') {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Direction A: Earthworks. The nest digs outward: one hole becomes a mound with side burrows, then a
-// sprawling dig site with tunnel ridges heading off the mound, spoil heaps and stolen scrap.
+// The nest: one hole in a low mound at stage 1, a wider mound with a side burrow at stage 2, a dig site
+// with five burrows and tunnels leaving the mound at stage 3. Each kind dresses it its own way.
+// A queen nest is stage 3 again, wider, with a glowing royal chamber in place of the main burrow.
 // ---------------------------------------------------------------------------------------------------
-function earthworks(k, stage, seed) {
-  const p = `a${k[0]}${stage}`;
+function nest(k, stage, seed, queen = false) {
+  const p = `${k.slice(0, 2)}${stage}${queen ? 'q' : ''}`;
   const r = rng(seed);
   const C = 64;
-  const R = [0, 26, 40, 54][stage];
+  const R = queen ? 55 : [0, 26, 40, 54][stage];
   let s = '';
-  // Ground stain and the mound.
-  s += `<path d="${blob(C + 2, C + 3, R * 1.18, R * 1.1, 0.12, 9, r)}" fill="#3a2c1e" opacity="0.55" filter="url(#${p}blur)"/>`;
-  // Tunnels leaving the mound (under it): stage 3 only.
-  const holes = [[C - 2, C - 2, [0, 10, 13, 15][stage]]];
+  s += `<path d="${blob(C + 2, C + 3, R * 1.16, R * 1.08, 0.12, 9, r)}" fill="#3a2c1e" opacity="0.55" filter="url(#${p}blur)"/>`;
+
+  const holes = [[C - 2, C - 2, queen ? 16 : [0, 10, 13, 15][stage]]];
   if (stage >= 2) holes.push([C + 25, C - 16, 7]);
   if (stage >= 3) holes.push([C - 30, C + 22, 7.5], [C + 22, C + 30, 6], [C - 26, C - 30, 5.5]);
-  if (stage >= 3)
-    for (const a of [0.4, 2.6, 4.3]) {
+  if (queen) holes.push([C + 36, C + 4, 5], [C - 40, C - 4, 5]);
+
+  // Tunnels leaving the mound, under it (stage 3). Runnels dig long straight trenches instead, from stage 2.
+  if (k === 'runnel') {
+    const n = [0, 2, 4, 6][stage] + (queen ? 2 : 0);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + 0.35;
+      s += trench(p, C + Math.cos(a) * R * 0.7, C + Math.sin(a) * R * 0.7, C + Math.cos(a) * Math.min(60, R + 14 + stage * 2), C + Math.sin(a) * Math.min(60, R + 14 + stage * 2), 3.2);
+    }
+  } else if (stage >= 3) {
+    for (const a of queen ? [0.4, 1.5, 2.6, 3.6, 4.3, 5.4] : [0.4, 2.6, 4.3]) {
       const x0 = C + Math.cos(a) * R * 0.8,
         y0 = C + Math.sin(a) * R * 0.8;
-      const ex = C + Math.cos(a) * 58,
-        ey = C + Math.sin(a) * 58;
+      const ex = C + Math.cos(a) * 59,
+        ey = C + Math.sin(a) * 59;
       s += ridge(p, x0, y0, ex, ey, 5, r) + hole(p, ex, ey, 3.2, r);
     }
+  }
+
+  // The mound.
   s += `<path d="${blob(C + 2, C + 3, R, R * 0.94, 0.1, 10, r)}" fill="#000" opacity="0.4" filter="url(#${p}blur)"/>`;
   s += `<path d="${blob(C, C, R, R * 0.94, stage === 1 ? 0.08 : 0.13, 10, r)}" fill="url(#${p}mound)" stroke="${INK}" stroke-width="2"/>`;
-  s += `<path d="M${f(C - R * 0.85)} ${f(C - R * 0.15)} C${f(C - R * 0.8)} ${f(C - R * 0.6)} ${f(C - R * 0.4)} ${f(C - R * 0.85)} ${f(C + R * 0.05)} ${f(C - R * 0.88)}" fill="none" stroke="#b09068" stroke-width="2.4" stroke-linecap="round" opacity="0.5"/>`;
-  // Tunnel ridges on the mound, joining the holes.
-  for (let i = 1; i < holes.length; i++) s += ridge(p, holes[0][0], holes[0][1], holes[i][0], holes[i][1], 4, r);
-  // Kind dressing under the holes.
-  if (k === 'hive') for (const [x, y, hr] of holes) s += comb(p, x, y, hr * 1.25, stage >= 3 && hr > 10 ? 2 : 1, r);
+  s += `<path d="M${f(C - R * 0.85)} ${f(C - R * 0.15)} C${f(C - R * 0.8)} ${f(C - R * 0.6)} ${f(C - R * 0.4)} ${f(C - R * 0.85)} ${f(C + R * 0.05)} ${f(C - R * 0.88)}" fill="none" stroke="#c8a87c" stroke-width="2.4" stroke-linecap="round" opacity="0.45"/>`;
+
+  // Tunnel ridges on the mound join the burrows: straight for runnels, winding for the rest.
+  for (let i = 1; i < holes.length; i++) s += ridge(p, holes[0][0], holes[0][1], holes[i][0], holes[i][1], 4, r, k === 'runnel' ? 0 : 14);
+
+  // What each kind puts round its burrows, before the burrows themselves.
+  if (k === 'hive') for (const [x, y, hr] of holes) s += comb(x, y, hr * 1.25, hr > 10 ? (queen ? 3 : stage >= 3 ? 2 : 1) : 1, r);
   if (k === 'den' && stage >= 2)
-    for (let i = 0; i < stage + 1; i++) {
+    for (let i = 0; i < stage + 1 + (queen ? 2 : 0); i++) {
       const a = 0.5 + i * 1.7;
       s += boulder(p, C + Math.cos(a) * R * 0.78, C + Math.sin(a) * R * 0.78, 6 + stage * 1.5, r);
     }
+  if (k === 'barrow') for (const [x, y, hr] of holes.slice(1)) s += ball(p, x + hr * 0.9, y - hr * 0.7, hr * 0.75); // each side burrow plugged half shut with a ball
+
   for (const [x, y, hr] of holes) s += hole(p, x, y, hr, r, k !== 'hive');
-  // Spoil, eggs, scrap, kind details.
-  s += clods(p, C, C, R + 4, 3 + stage * 4, r);
+
+  // Spoil, eggs and scrap; more of everything as it grows.
+  s += clods(C, C, R + 4, 3 + stage * 4, r, k === 'runnel' ? '#4e4840' : '#6a5034');
   if (stage >= 2) s += eggs(p, C + 10, C + 18, 3 + stage * 2, 4.2, r);
   if (stage >= 3) s += eggs(p, C - 16, C - 14, 4, 3.6, r) + scrap(C, C, R + 6, 5, r);
-  if (k === 'warren') {
-    // Shed crawler husks: orange segments by the holes.
+
+  // Each kind's own signs, growing with the stage.
+  if (k === 'warren')
     for (let i = 0; i < stage * 2; i++) {
       const a = r() * Math.PI * 2,
         d = R * (0.55 + r() * 0.3);
-      const x = C + Math.cos(a) * d,
-        y = C + Math.sin(a) * d;
-      s += `<path d="M${f(x)} ${f(y)} q4 -3 8 0" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/><path d="M${f(x)} ${f(y)} q4 -3 8 0" fill="none" stroke="#c8682c" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="2.2 1"/>`;
+      s += husk(C + Math.cos(a) * d, C + Math.sin(a) * d);
     }
-  }
+  if (k === 'runnel') for (let i = 0; i < stage; i++) s += segments(C - 24 + i * 22, C + 20 - i * 14, -0.4 + i * 0.9, 4 + stage);
   if (k === 'den') {
     for (let i = 0; i < stage; i++) s += claws(C - 20 + i * 18, C + 26 - i * 30, -0.6 + i, 9);
     if (stage >= 3) s += bone(C + 30, C + 8, 0.7, 12) + bone(C - 8, C + 40, -0.3, 10);
   }
+  if (k === 'hive' && stage >= 3) s += `<path d="M${C + 34} ${C + 38} q6 -2 10 2" stroke="${INK}" stroke-width="1" fill="none"/>`;
+  if (k === 'barrow') {
+    for (let i = 0; i < stage; i++) s += shard(p, C - 30 + i * 26, C + 32 - i * 8, -20 + i * 50, 9);
+    s += ball(p, C + [0, 18, 30, 30][stage], C + [0, 14, 22, 22][stage], 4 + stage * 1.5);
+    if (stage >= 3) s += ball(p, C - 36, C - 6, 8) + ball(p, C - 28, C - 14, 5.5);
+  }
+
+  // The queen's chamber: a glow from the main burrow, a royal egg, a crown of spikes in the kind's colour.
+  if (queen) {
+    const [x, y] = holes[0];
+    const spike = { warren: '#e0a030', runnel: '#c8d4e8', hive: '#f2c14e', den: '#e8dcc0', barrow: '#9cc6ea' }[k];
+    s += spikes(x, y, 21, 12, 7, 0.2, spike);
+    s += `<circle cx="${x}" cy="${y}" r="22" fill="url(#${p}glow)"/>`;
+    s += `<ellipse cx="${x}" cy="${y + 2}" rx="7" ry="5" fill="url(#${p}egg)" stroke="${INK}" stroke-width="1"/>`;
+    if (k === 'den') s += bone(C + 40, C - 22, 1.2, 12) + bone(C - 36, C + 38, 0.3, 11);
+    if (k === 'warren') for (let i = 0; i < 6; i++) s += husk(x + Math.cos(i * 1.05) * 30 - 4, y + Math.sin(i * 1.05) * 28);
+    if (k === 'barrow') s += ball(p, x + 26, y + 20, 11) + ball(p, x - 24, y + 26, 8);
+    if (k === 'runnel') for (let i = 0; i < 3; i++) s += segments(x - 30 + i * 6, y + 30 - i * 2, -0.2, 6);
+  }
   return svg(p, k, s);
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Direction B: Brood. The nest is alive: a single glossy pod, then a cluster of pods with veins
-// creeping out, then a ribbed chitin dome with a maw, ringed by egg sacs, its roots reaching the edge.
+// Queen bugs: each bug as it is, on top of a swollen egg-laden abdomen trailing behind it, with a gold
+// crown at its head. Drawn facing right like the bugs (viewBox 96, so a queen reads about 1.5× a bug).
 // ---------------------------------------------------------------------------------------------------
-function pod(p, cx, cy, rx, ry, rot, r, open) {
-  let s = `<ellipse cx="${f(cx + 1.5)}" cy="${f(cy + 2)}" rx="${f(rx)}" ry="${f(ry)}" transform="rotate(${f(rot)} ${f(cx + 1.5)} ${f(cy + 2)})" fill="#000" opacity="0.4" filter="url(#${p}soft)"/>`;
-  s += `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" transform="rotate(${f(rot)} ${f(cx)} ${f(cy)})" fill="url(#${p}pod)" stroke="${INK}" stroke-width="1.4"/>`;
-  // Membrane lines along its length.
-  s += `<path d="M${f(cx - rx * 0.6)} ${f(cy)} Q${f(cx)} ${f(cy - ry * 0.5)} ${f(cx + rx * 0.6)} ${f(cy)}" transform="rotate(${f(rot)} ${f(cx)} ${f(cy)})" fill="none" stroke="${INK}" stroke-opacity="0.35" stroke-width="0.9"/>`;
-  s += `<ellipse cx="${f(cx - rx * 0.35)}" cy="${f(cy - ry * 0.4)}" rx="${f(rx * 0.3)}" ry="${f(ry * 0.18)}" transform="rotate(${f(rot - 20)} ${f(cx)} ${f(cy)})" fill="#fff" opacity="0.55"/>`;
-  if (open)
-    s += `<path d="M${f(cx - rx * 0.4)} ${f(cy + ry * 0.1)} Q${f(cx)} ${f(cy + ry * 0.45)} ${f(cx + rx * 0.4)} ${f(cy + ry * 0.1)} Q${f(cx)} ${f(cy - ry * 0.05)} ${f(cx - rx * 0.4)} ${f(cy + ry * 0.1)} Z" transform="rotate(${f(rot)} ${f(cx)} ${f(cy)})" fill="#120808" stroke="${INK}" stroke-width="0.8"/>`;
-  return s;
-}
+const QUEENS = {
+  // Where each bug's head is in its 64-unit sprite, and how its queen's abdomen looks.
+  crawler: { head: 56, tail: 9, sac: 'segmented', colors: ['#f0b47a', '#c8682c', '#5a2c10'] },
+  runner: { head: 54, tail: 12, sac: 'long', colors: ['#7a8298', '#3b4152', '#141824'] },
+  brute: { head: 47, tail: 6, sac: 'armoured', colors: ['#c0343c', '#7a1820', '#2a0608'] },
+  wasp: { head: 50, tail: 5, sac: 'striped', colors: ['#ffd860', '#c88a10', '#1a1408'] },
+  beetle: { head: 54, tail: 9, sac: 'shell', colors: ['#9cc6ea', '#4a74a0', '#121e32'] },
+};
 
-function veins(p, k, cx, cy, n, len, w, r) {
-  let s = '';
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + r() * 0.6;
-    const v = wander(cx, cy, a, len * (0.7 + r() * 0.3), 5, 0.45, r);
-    s += `<path d="${v.d}" fill="none" stroke="${INK}" stroke-width="${w + 1.6}" stroke-linecap="round" opacity="0.8"/>`;
-    s += `<path d="${v.d}" fill="none" stroke="${KINDS[k].dark}" stroke-width="${w}" stroke-linecap="round"/>`;
-    s += `<path d="${v.d}" fill="none" stroke="${KINDS[k].accent}" stroke-width="${w * 0.35}" stroke-linecap="round" opacity="0.7"/>`;
-    if (w > 2.5 && r() < 0.7) {
-      const b = wander(v.end[0], v.end[1], a + (r() - 0.5) * 1.6, len * 0.3, 3, 0.5, r);
-      s += `<path d="${b.d}" fill="none" stroke="${KINDS[k].dark}" stroke-width="${w * 0.5}" stroke-linecap="round"/>`;
+function queenBug(bug) {
+  const q = QUEENS[bug];
+  const p = `q${bug.slice(0, 2)}`;
+  const [c0, c1, c2] = q.colors;
+  const src = readFileSync(join(ENEMIES, `${bug}.svg`)).toString('base64');
+  const ox = 28,
+    oy = 16; // where the bug's own 64-unit sprite sits
+  const tailX = ox + q.tail + 4,
+    hx = ox + q.head,
+    hy = 48;
+  let s = `<defs>
+<radialGradient id="${p}sac" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#fff2d8"/><stop offset="0.35" stop-color="${c0}"/><stop offset="0.8" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient>
+<radialGradient id="${p}gold" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff0a0"/><stop offset="0.5" stop-color="#e8b030"/><stop offset="1" stop-color="#8a5a10"/></radialGradient>
+<filter id="${p}soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+</defs>`;
+  // The abdomen, behind the bug: centre and size by kind.
+  const long = q.sac === 'long';
+  const rx = long ? 26 : 22,
+    ry = long ? 10 : q.sac === 'shell' ? 19 : 16;
+  const sx = tailX - rx + 6,
+    sy = hy;
+  s += `<ellipse cx="${sx + 2}" cy="${sy + 3}" rx="${rx}" ry="${ry}" fill="#000" opacity="0.35" filter="url(#${p}soft)"/>`;
+  s += `<ellipse cx="${sx}" cy="${sy}" rx="${rx}" ry="${ry}" fill="url(#${p}sac)" stroke="#0f1a2e" stroke-width="2"/>`;
+  if (q.sac === 'striped') {
+    for (const t of [-0.55, -0.15, 0.25]) {
+      const x = sx + rx * t;
+      const h = ry * Math.sqrt(1 - t * t) * 0.96;
+      s += `<path d="M${f(x)} ${f(sy - h)} Q${f(x - 3)} ${sy} ${f(x)} ${f(sy + h)} L${f(x + 6)} ${f(sy + h * 0.95)} Q${f(x + 3)} ${sy} ${f(x + 6)} ${f(sy - h * 0.95)} Z" fill="${c2}"/>`;
     }
-  }
-  return s;
-}
-
-function brood(k, stage, seed) {
-  const p = `b${k[0]}${stage}`;
-  const r = rng(seed);
-  const C = 64;
-  let s = `<path d="${blob(C + 2, C + 3, [0, 30, 44, 58][stage], [0, 28, 40, 54][stage], 0.15, 9, r)}" fill="#2e2418" opacity="0.5" filter="url(#${p}blur)"/>`;
-  s += veins(p, k, C, C, 3 + stage * 2, [0, 26, 44, 62][stage], [0, 1.8, 2.6, 3.4][stage], r);
-  if (stage === 1) {
-    // A single pod, half sunk in turned soil.
-    s += `<path d="${blob(C, C + 4, 20, 14, 0.12, 8, r)}" fill="url(#${p}mound)" stroke="${INK}" stroke-width="1.4"/>`;
-    s += pod(p, C, C, 15, 11, -20, r, true);
-    s += clods(p, C, C + 2, 22, 5, r);
-    return svg(p, k, s);
-  }
-  if (stage === 2) {
-    s += `<path d="${blob(C, C + 3, 32, 26, 0.15, 9, r)}" fill="url(#${p}mound)" stroke="${INK}" stroke-width="1.6"/>`;
-    for (const [dx, dy, rx, ry, rot] of [
-      [-16, -10, 11, 8, 30],
-      [18, -8, 10, 7, -40],
-      [12, 18, 9, 7, 70],
-    ])
-      s += pod(p, C + dx, C + dy, rx, ry, rot, r, false);
-    s += pod(p, C - 2, C + 2, 18, 14, -15, r, true);
-    s += eggs(p, C - 18, C + 16, 5, 3.8, r) + clods(p, C, C, 34, 7, r);
-    return svg(p, k, s);
-  }
-  // Stage 3: a ribbed dome with a maw, ringed by egg sacs.
-  s += `<path d="${blob(C, C + 3, 46, 40, 0.12, 11, r)}" fill="url(#${p}mound)" stroke="${INK}" stroke-width="1.8"/>`;
-  for (let i = 0; i < 7; i++) {
-    const a = (i / 7) * Math.PI * 2 + 0.3;
-    s += pod(p, C + Math.cos(a) * 36, C + Math.sin(a) * 31, 10, 7.5, (a * 180) / Math.PI + 90, r, false);
-  }
-  s += `<ellipse cx="${C + 2}" cy="${C + 4}" rx="30" ry="27" fill="#000" opacity="0.45" filter="url(#${p}blur)"/>`;
-  s += `<ellipse cx="${C}" cy="${C}" rx="29" ry="26" fill="url(#${p}shell)" stroke="${INK}" stroke-width="2"/>`;
-  // Overlapping chitin plates, like a bug's back.
-  for (const t of [0.78, 0.56, 0.34])
-    s += `<ellipse cx="${f(C - 2 * (1 - t))}" cy="${f(C - 3 * (1 - t))}" rx="${f(29 * t)}" ry="${f(26 * t)}" fill="none" stroke="${INK}" stroke-opacity="0.55" stroke-width="1.3"/>`;
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    s += `<path d="M${f(C + Math.cos(a) * 9)} ${f(C + Math.sin(a) * 8)} L${f(C + Math.cos(a) * 28)} ${f(C + Math.sin(a) * 25)}" stroke="${INK}" stroke-opacity="0.4" stroke-width="1"/>`;
-  }
-  s += `<path d="M${C - 22} ${C - 12} Q${C - 14} ${C - 24} ${C} ${C - 24}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="2.4" stroke-linecap="round"/>`;
-  if (k === 'hive') s += comb(p, C, C, 9, 1, r);
-  s += `<circle cx="${C}" cy="${C}" r="13" fill="url(#${p}glow)"/>`;
-  s += `<ellipse cx="${C}" cy="${C}" rx="8" ry="7" fill="#0a0404" stroke="${INK}" stroke-width="1.2"/>`;
-  s += spikes(C, C, 8, 6, 4, 0.2, k === 'hive' ? '#f2c14e' : '#e8dcc0');
-  if (k === 'den') s += spikes(C, C, 27, 9, 7, 0.1);
-  s += eggs(p, C + 30, C + 30, 6, 4, r) + eggs(p, C - 34, C - 26, 4, 3.6, r);
-  return svg(p, k, s);
-}
-
-// ---------------------------------------------------------------------------------------------------
-// Direction C: Spires. The bugs build upward, seen from above with a 3/4 lean and long shadows: a lump,
-// then a chimney with a younger one beside it, then a cluster of towers round the tallest.
-// ---------------------------------------------------------------------------------------------------
-function spire(p, k, bx, by, w, h) {
-  // Base ellipse at (bx,by), apex h above; shaded from the left, shadow cast down-right.
-  let s = `<path d="M${f(bx - w)} ${f(by)} L${f(bx + h * 0.55 + w * 0.2)} ${f(by + h * 0.45)} L${f(bx + w)} ${f(by)} Z" fill="#000" opacity="0.3" filter="url(#${p}soft)"/>`;
-  s += `<ellipse cx="${f(bx + 1)}" cy="${f(by + 1.5)}" rx="${f(w * 1.05)}" ry="${f(w * 0.5)}" fill="#000" opacity="0.4" filter="url(#${p}soft)"/>`;
-  const ax = bx - w * 0.06,
-    ay = by - h;
-  const tw = w * (k === 'den' ? 0.5 : 0.32);
-  const body = `M${f(bx - w)} ${f(by)} C${f(bx - w * 0.9)} ${f(by - h * 0.5)} ${f(ax - tw * 1.4)} ${f(ay + h * 0.25)} ${f(ax - tw)} ${f(ay)} L${f(ax + tw)} ${f(ay)} C${f(ax + tw * 1.4)} ${f(ay + h * 0.25)} ${f(bx + w * 0.9)} ${f(by - h * 0.5)} ${f(bx + w)} ${f(by)} A${f(w)} ${f(w * 0.45)} 0 0 1 ${f(bx - w)} ${f(by)} Z`;
-  const fill = k === 'hive' ? `url(#${p}paper)` : k === 'den' ? `url(#${p}stone)` : `url(#${p}cone)`;
-  s += `<path d="${body}" fill="${fill}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
-  if (k === 'hive') {
-    // Paper bands, wrapped round the tower.
-    for (let i = 1; i < 6; i++) {
-      const t = i / 6,
-        y = by - h * t,
-        hw = w * (1 - t) + tw * t;
-      s += `<path d="M${f(bx - hw)} ${f(y)} Q${f(bx)} ${f(y + hw * 0.4)} ${f(bx + hw)} ${f(y)}" fill="none" stroke="#3a342c" stroke-width="0.9" opacity="0.7"/>`;
-    }
-  } else if (k === 'den') {
-    // Stacked stones: lines across, and a red crust.
-    for (let i = 1; i < 4; i++) {
-      const t = i / 4,
-        y = by - h * t,
-        hw = w * (1 - t) + tw * t;
-      s += `<path d="M${f(bx - hw)} ${f(y)} Q${f(bx)} ${f(y + hw * 0.35)} ${f(bx + hw)} ${f(y)}" fill="none" stroke="#1e1a16" stroke-width="1.2"/>`;
-      s += `<path d="M${f(bx - hw * 0.2)} ${f(y + 1)} l0 ${f(h / 4 - 2)}" stroke="#1e1a16" stroke-width="1"/>`;
-    }
-    s += `<path d="M${f(bx + w * 0.3)} ${f(by - h * 0.1)} q${f(w * 0.3)} ${f(-h * 0.3)} ${f(w * 0.05)} ${f(-h * 0.55)}" fill="none" stroke="#8a1c24" stroke-width="2.4" stroke-linecap="round" opacity="0.8"/>`;
+    s += `<path d="M${sx - rx + 1} ${sy} L${sx - rx - 7} ${sy}" stroke="#0f1a2e" stroke-width="2.6" stroke-linecap="round"/>`; // stinger
   } else {
-    // Mud ribs running up.
-    for (const t of [-0.55, -0.15, 0.3, 0.65])
-      s += `<path d="M${f(bx + w * t)} ${f(by + 1)} Q${f(bx + w * t * 0.7)} ${f(by - h * 0.5)} ${f(ax + tw * t)} ${f(ay + 2)}" fill="none" stroke="${INK}" stroke-opacity="0.45" stroke-width="1"/>`;
+    // Segment rings across the abdomen.
+    const n = long ? 7 : 4;
+    for (let i = 1; i <= n; i++) {
+      const t = -1 + (2 * i) / (n + 1);
+      const x = sx + rx * t,
+        h = ry * Math.sqrt(1 - t * t);
+      s += `<path d="M${f(x + 2)} ${f(sy - h)} Q${f(x - 3)} ${sy} ${f(x + 2)} ${f(sy + h)}" fill="none" stroke="${c2}" stroke-width="${q.sac === 'armoured' ? 2 : 1.2}" stroke-opacity="0.75"/>`;
+    }
   }
-  // Lit edge and the opening on top.
-  s += `<path d="M${f(bx - w * 0.8)} ${f(by - 2)} C${f(bx - w * 0.75)} ${f(by - h * 0.45)} ${f(ax - tw * 1.2)} ${f(ay + h * 0.25)} ${f(ax - tw * 0.8)} ${f(ay + 2)}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.8" stroke-linecap="round"/>`;
-  s += `<ellipse cx="${f(ax)}" cy="${f(ay)}" rx="${f(tw)}" ry="${f(tw * 0.55)}" fill="url(#${p}pit)" stroke="${INK}" stroke-width="1.1"/>`;
-  // Side vents.
-  if (h > 22) s += `<ellipse cx="${f(bx + w * 0.2)}" cy="${f(by - h * 0.35)}" rx="${f(w * 0.16)}" ry="${f(w * 0.12)}" fill="#0a0604" stroke="${INK}" stroke-width="0.8"/>`;
-  if (h > 34) s += `<ellipse cx="${f(bx - w * 0.3)}" cy="${f(by - h * 0.55)}" rx="${f(w * 0.12)}" ry="${f(w * 0.09)}" fill="#0a0604" stroke="${INK}" stroke-width="0.8"/>`;
-  return s;
+  // Eggs showing through the skin, and a gleam.
+  const r = rng(bug.length * 7);
+  for (let i = 0; i < 7; i++) {
+    const x = sx + (r() - 0.5) * rx * 1.2,
+      y = sy + (r() - 0.3) * ry * 0.9;
+    s += `<ellipse cx="${f(x)}" cy="${f(y)}" rx="2.4" ry="1.7" fill="#fff6e0" opacity="0.45"/>`;
+  }
+  s += `<path d="M${f(sx - rx * 0.7)} ${f(sy - ry * 0.45)} Q${f(sx - rx * 0.2)} ${f(sy - ry * 0.95)} ${f(sx + rx * 0.4)} ${f(sy - ry * 0.75)}" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="2.2" stroke-linecap="round"/>`;
+  if (q.sac === 'shell') {
+    // The beetle queen's wing cases have split over her abdomen.
+    s += `<path d="M${tailX + 4} ${sy - 18} Q${sx - 4} ${sy - 30} ${sx - 12} ${sy - 16} Q${sx} ${sy - 14} ${tailX + 4} ${sy - 10} Z" fill="url(#${p}sac)" stroke="#0f1a2e" stroke-width="1.4"/>`;
+    s += `<path d="M${tailX + 4} ${sy + 18} Q${sx - 4} ${sy + 30} ${sx - 12} ${sy + 16} Q${sx} ${sy + 14} ${tailX + 4} ${sy + 10} Z" fill="url(#${p}sac)" stroke="#0f1a2e" stroke-width="1.4"/>`;
+  }
+  // The bug itself, a little larger than a worker, then the crown at its head.
+  s += `<image href="data:image/svg+xml;base64,${src}" x="${ox - 2}" y="${oy - 2}" width="68" height="68"/>`;
+  const cr = bug === 'brute' ? 8 : bug === 'beetle' ? 7 : 6;
+  const crown = [];
+  for (let i = 0; i < 5; i++) {
+    const a = Math.PI + (i - 2) * 0.5; // fanned out over the back of the head
+    const bx = hx - 2 + Math.cos(a) * cr,
+      by = hy + Math.sin(a) * cr;
+    const tx = hx - 2 + Math.cos(a) * (cr + 7.5),
+      ty = hy + Math.sin(a) * (cr + 7.5);
+    const px = Math.cos(a + Math.PI / 2) * 2,
+      py = Math.sin(a + Math.PI / 2) * 2;
+    crown.push(`<path d="M${f(bx + px)} ${f(by + py)} L${f(tx)} ${f(ty)} L${f(bx - px)} ${f(by - py)} Z" fill="url(#${p}gold)" stroke="#3a2408" stroke-width="0.9" stroke-linejoin="round"/>`);
+    crown.push(`<circle cx="${f(tx)}" cy="${f(ty)}" r="1.1" fill="#fff6c0" stroke="#3a2408" stroke-width="0.5"/>`);
+  }
+  s += crown.join('');
+  s += `<path d="M${f(hx - 2 - cr * 0.6)} ${f(hy - cr * 0.8)} A${cr} ${cr} 0 0 0 ${f(hx - 2 - cr * 0.6)} ${f(hy + cr * 0.8)}" fill="none" stroke="#3a2408" stroke-width="3.4" stroke-linecap="round"/>`;
+  s += `<path d="M${f(hx - 2 - cr * 0.6)} ${f(hy - cr * 0.8)} A${cr} ${cr} 0 0 0 ${f(hx - 2 - cr * 0.6)} ${f(hy + cr * 0.8)}" fill="none" stroke="url(#${p}gold)" stroke-width="2" stroke-linecap="round"/>`;
+  // Fit the whole queen, abdomen to jaws, inside the 96-unit box.
+  const left = sx - rx - (q.sac === 'striped' ? 9 : 2),
+    right = ox + 66;
+  const k = Math.min(1, 92 / (right - left));
+  const dx = (96 - (right - left) * k) / 2 - left * k;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">${s.replace('</defs>', `</defs><g transform="translate(${f(dx)} ${f(48 - 48 * k)}) scale(${f(k * 100) / 100})">`)}</g></svg>`;
 }
 
-function spires(k, stage, seed) {
-  const p = `c${k[0]}${stage}`;
-  const r = rng(seed);
-  const C = 64;
-  const R = [0, 26, 40, 54][stage];
-  let s = `<path d="${blob(C + 3, C + 6, R * 1.1, R * 0.95, 0.12, 9, r)}" fill="#3a2c1e" opacity="0.55" filter="url(#${p}blur)"/>`;
-  s += `<path d="${blob(C, C + 8, R * 0.9, R * 0.7, 0.12, 9, r)}" fill="url(#${p}mound)" stroke="${INK}" stroke-width="1.6"/>`;
-  // Towers, back to front so nearer ones overlap.
-  const towers = {
-    1: [[C, C + 14, 15, 18]],
-    2: [
-      [C + 14, C + 4, 9, 22],
-      [C - 4, C + 20, 16, 40],
-    ],
-    3: [
-      [C - 22, C - 2, 9, 26],
-      [C + 18, C - 6, 11, 34],
-      [C - 2, C + 18, 18, 60],
-      [C + 28, C + 24, 8, 20],
-      [C - 28, C + 28, 7, 16],
-    ],
-  }[stage];
-  s += clods(p, C, C + 10, R * 0.85, 3 + stage * 3, r);
-  for (const [x, y, w, h] of [...towers].sort((a, b) => a[1] - b[1])) s += spire(p, k, x, y, w, h);
-  if (stage >= 2) s += eggs(p, C + 26, C + 34, 2 + stage * 2, 3.8, r);
-  if (stage >= 3) s += scrap(C, C + 8, R, 4, r);
-  if (k === 'hive' && stage >= 2) s += comb(p, C - 24, C + 32, 4, 1, r);
-  if (k === 'den' && stage >= 3) s += bone(C + 36, C + 4, 0.5, 11);
-  return svg(p, k, s);
-}
-
-// Queens: the stage 3 drawing of each direction with a royal chamber added.
-function queen(dir, seed) {
-  const r = rng(seed);
-  const C = 64;
-  if (dir === 'earthworks') {
-    let s = earthworks('queen', 3, seed).replace(/<\/svg>$/, '');
-    s += `<circle cx="${C - 2}" cy="${C - 2}" r="22" fill="url(#aq3glow)"/>`;
-    s += `<ellipse cx="${C - 2}" cy="${C}" rx="7" ry="5" fill="url(#aq3egg)" stroke="${INK}" stroke-width="1"/>`;
-    s += spikes(C - 2, C - 2, 19, 10, 7, 0.2) + bone(C + 38, C - 2, 1.2, 12);
-    return s + '</svg>';
-  }
-  if (dir === 'brood') {
-    let s = brood('queen', 3, seed).replace(/<\/svg>$/, '');
-    s += spikes(C, C, 27, 12, 9, 0.1, '#ffd36a');
-    s += `<ellipse cx="${C}" cy="${C + 1}" rx="5" ry="3.6" fill="url(#bq3egg)" stroke="${INK}" stroke-width="0.8"/>`;
-    return s + '</svg>';
-  }
-  let s = spires('queen', 3, seed).replace(/<\/svg>$/, '');
-  s += `<circle cx="${C - 3}" cy="${C - 42}" r="16" fill="url(#cq3glow)"/>`;
-  s += eggs('cq3', C - 30, C + 36, 5, 4, r) + eggs('cq3', C + 32, C - 18, 4, 3.6, r);
-  r();
-  return s + '</svg>';
-}
-
+rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
-const DIRS = { earthworks, brood, spires };
 let seed = 11;
-for (const [dir, draw] of Object.entries(DIRS)) {
-  for (const k of ['warren', 'hive', 'den']) for (const st of [1, 2, 3]) writeFileSync(join(OUT, `${dir}_${k}_${st}.svg`), draw(k, st, seed++));
-  writeFileSync(join(OUT, `${dir}_queen.svg`), queen(dir, seed++));
+for (const k of Object.keys(KINDS)) {
+  for (const st of [1, 2, 3]) writeFileSync(join(OUT, `nest_${k}_${st}.svg`), nest(k, st, seed++));
+  writeFileSync(join(OUT, `nest_${k}_queen.svg`), nest(k, 3, seed++, true));
 }
+for (const bug of Object.keys(QUEENS)) writeFileSync(join(OUT, `queen_${bug}.svg`), queenBug(bug));
 console.log(`Wrote concepts to ${OUT}`);
