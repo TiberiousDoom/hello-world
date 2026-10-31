@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.87.9 · 2026-10-31 · Fins bolted on
+### New
+- **The ship's front fins in the Side view** are clipped deltas, bolted to the sides of the hull with steel fairings and swept out in front of the boosters, down to the pad.
+
+### Fixed
+- The front fins in the Side view were short and didn't look attached to the ship.
+
 ## 0.87.8 · 2026-10-31 · The ship, from above and from the side
 ### New
 - **The ship on the map is seen from above,** like the shipyard under it: a round hull, then its fins and booster pods, its oxygen tanks, and the navy nose cone with its cockpit glass and beacon.
