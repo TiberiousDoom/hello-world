@@ -22,7 +22,9 @@ How the game works on `master` today. Balance numbers live in
   a real walk.
 - **Ore runs out (D-096):** each ore tile holds **1,200 ore**; mining by hand and extractors both take
   from it, and once it's used up the tile is bare ground. Touching tiles of one ore are drawn as one
-  patch, on a shared bed of earth.
+  patch, rising from the ground as a terrace (D-153): the whole patch is a low shelf of rock, and where it's
+  at least three tiles across a second, higher shelf sits on it. Each shelf has rounded edges and a cliff on
+  its near side with a band of ore along it. A tile of ore on its own is a small pile of rocks.
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).

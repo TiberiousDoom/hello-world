@@ -70,6 +70,8 @@ const TERRACE_COLORS = [
 ];
 /** The ink outline, as on the sprites. */
 const INK = '#0f1a2e';
+/** How far a terrace step's inside corners curve, in tiles (D-153). */
+const TERRACE_FILLET = 0.32;
 /** How tall each terrace's cliff stands, in tiles (D-153). */
 const TERRACE_CLIFF = 0.2;
 /** The bed of earth under an ore patch (D-096), darker than the grass. */
@@ -1337,8 +1339,8 @@ export class Renderer {
           ctx.globalAlpha = 0.6;
           ctx.strokeStyle = level === 1 ? c.light : '#ffffff';
           ctx.beginPath();
-          ctx.moveTo(p.x0 + (p.round[0] ? 0.16 : 0.05), p.y0 + 0.05 - lift);
-          ctx.lineTo(p.x1 - (p.round[1] ? 0.16 : 0), p.y0 + 0.05 - lift);
+          ctx.moveTo(p.x0 + (p.round[0] ? p.radius : 0), p.y0 + 0.05 - lift);
+          ctx.lineTo(p.x1 - (p.round[1] ? p.radius : 0), p.y0 + 0.05 - lift);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
@@ -1362,25 +1364,72 @@ export class Renderer {
     }
   }
 
-  /** One piece of a terrace step, as a subpath (all wound the same way, so the pieces fill as one). */
+  /**
+   * One piece of a terrace step, as a subpath (all wound the same way, so the pieces fill as one). Outside
+   * corners curve by the piece's radius; inside corners are cut back with a curve the size of the inset, so
+   * the step's edge turns smoothly instead of leaving a notch.
+   */
   private terracePath(p: TerracePiece, dx: number, dy: number): void {
     const ctx = this.ctx;
-    const r = 0.16;
+    const r = p.radius;
+    const m = p.inset;
     const [tl, tr, br, bl] = p.round;
+    const [ntl, ntr, nbr, nbl] = p.notch;
     const x0 = p.x0 + dx;
     const x1 = p.x1 + dx;
     const y0 = p.y0 + dy;
     const y1 = p.y1 + dy;
-    ctx.moveTo(x0 + (tl ? r : 0), y0);
-    ctx.lineTo(x1 - (tr ? r : 0), y0);
-    if (tr) ctx.quadraticCurveTo(x1, y0, x1, y0 + r);
-    ctx.lineTo(x1, y1 - (br ? r : 0));
-    if (br) ctx.quadraticCurveTo(x1, y1, x1 - r, y1);
-    ctx.lineTo(x0 + (bl ? r : 0), y1);
-    if (bl) ctx.quadraticCurveTo(x0, y1, x0, y1 - r);
-    ctx.lineTo(x0, y0 + (tl ? r : 0));
-    if (tl) ctx.quadraticCurveTo(x0, y0, x0 + r, y0);
+    ctx.moveTo(x0 + (tl ? r : ntl ? m : 0), y0);
+    if (tr) {
+      ctx.lineTo(x1 - r, y0);
+      ctx.quadraticCurveTo(x1, y0, x1, y0 + r);
+    } else if (ntr) {
+      ctx.lineTo(x1 - m, y0);
+      ctx.lineTo(x1 - m, y0 + m);
+      ctx.lineTo(x1, y0 + m);
+    } else ctx.lineTo(x1, y0);
+    if (br) {
+      ctx.lineTo(x1, y1 - r);
+      ctx.quadraticCurveTo(x1, y1, x1 - r, y1);
+    } else if (nbr) {
+      ctx.lineTo(x1, y1 - m);
+      ctx.lineTo(x1 - m, y1 - m);
+      ctx.lineTo(x1 - m, y1);
+    } else ctx.lineTo(x1, y1);
+    if (bl) {
+      ctx.lineTo(x0 + r, y1);
+      ctx.quadraticCurveTo(x0, y1, x0, y1 - r);
+    } else if (nbl) {
+      ctx.lineTo(x0 + m, y1);
+      ctx.lineTo(x0 + m, y1 - m);
+      ctx.lineTo(x0, y1 - m);
+    } else ctx.lineTo(x0, y1);
+    if (tl) {
+      ctx.lineTo(x0, y0 + r);
+      ctx.quadraticCurveTo(x0, y0, x0 + r, y0);
+    } else if (ntl) {
+      ctx.lineTo(x0, y0 + m);
+      ctx.lineTo(x0 + m, y0 + m);
+      ctx.lineTo(x0 + m, y0);
+    } else ctx.lineTo(x0, y0);
     ctx.closePath();
+    // Each inside corner gets a curved fillet out into the open ground beside it, so the step's edge sweeps
+    // round the corner. (sx, sy) points from the corner into that open ground.
+    const fillet = (cx: number, cy: number, sx: number, sy: number) => {
+      const f = TERRACE_FILLET;
+      // Wound the same way as the piece (clockwise on screen), whichever corner it is.
+      const a: [number, number] = [cx, cy + sy * f];
+      const b: [number, number] = [cx + sx * f, cy];
+      const [p0, p1] = sx * sy < 0 ? [a, b] : [b, a];
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(...p0);
+      ctx.quadraticCurveTo(cx, cy, ...p1);
+      ctx.closePath();
+    };
+    if (ntr) fillet(x1 - m, y0 + m, 1, -1);
+    if (nbr) fillet(x1 - m, y1 - m, 1, 1);
+    if (nbl) fillet(x0 + m, y1 - m, -1, 1);
+    if (ntl) fillet(x0 + m, y0 + m, -1, -1);
   }
 
   private drawNode(kind: number, x: number, y: number): void {

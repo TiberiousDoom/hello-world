@@ -94,7 +94,7 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 Ponds (D-115) are drawn in code: a muddy shore, water, deeper water away from the edge, and glints close up.
 
-Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tiles read as one patch (D-096).
+Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only for a tile of ore on its own. Touching tiles of one ore are drawn in code as terraces (D-153, `src/render/terraces.ts`): a shelf of rock for the patch and a higher one where it's three tiles across, rounded outside corners and curved inside ones, each with a cliff showing a band of ore. Their colours per ore are `TERRACE_COLORS` in the renderer.
 
 ## Buildings
 
