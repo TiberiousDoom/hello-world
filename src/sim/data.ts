@@ -415,6 +415,7 @@ export const CLOCK = {
   ] as Season[],
   nightGiveUp: 28, // at night an angry bug gives up only with nothing this close (NESTS.giveUp by day)
   turn: 1, // days over which one season's look gives way to the next, at the end of the season (D-111)
+  snow: 0.5, // days the snow takes to settle at winter's start, and to melt at its end (D-152)
   nightCloseRadius: 5, // a building this close to a calm bug provokes its nest at night (NESTS.closeRadius by day)
 };
 

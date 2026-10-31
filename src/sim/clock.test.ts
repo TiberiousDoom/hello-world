@@ -90,16 +90,19 @@ describe('Day, night and seasons (#42)', () => {
     expect(seasonTurn(4 * DAY - 1).shift).toBeGreaterThan(0.99);
     expect(seasonTurn(4 * DAY)).toEqual({ look: 'summer', next: 'fall', shift: 0 });
     // Winter turns back into spring at the year's end.
-    expect(seasonTurn(11.5 * DAY)).toMatchObject({ look: 'winter', next: 'spring' });
+    expect(seasonTurn(11.75 * DAY)).toMatchObject({ look: 'winter', next: 'spring' });
+    expect(seasonTurn(11.75 * DAY).shift).toBeCloseTo(0.5);
   });
 
-  it('drops the leaves over the last day of fall and brings the snow over the first day of winter (D-152)', () => {
+  it('drops the leaves over the last day of fall, and brings the snow in over half a day and melts it over half a day (D-152)', () => {
     expect(seasonTurn(8.5 * DAY)).toEqual({ look: 'fall', next: 'late', shift: 0 });
     expect(seasonTurn(9.5 * DAY)).toMatchObject({ look: 'fall', next: 'late' });
     expect(seasonTurn(9.5 * DAY).shift).toBeCloseTo(0.5);
-    // Winter begins bare under the leaves, and the snow comes over its first day.
+    // Winter begins bare under the leaves, and the snow comes over the first half of its first day.
     expect(seasonTurn(10 * DAY)).toEqual({ look: 'late', next: 'winter', shift: 0 });
-    expect(seasonTurn(10.25 * DAY).shift).toBeCloseTo(0.25);
-    expect(seasonTurn(11 * DAY)).toEqual({ look: 'winter', next: 'spring', shift: 0 });
+    expect(seasonTurn(10.25 * DAY).shift).toBeCloseTo(0.5);
+    // Then it lies full until the last half of winter's last day, when it melts.
+    expect(seasonTurn(10.5 * DAY)).toEqual({ look: 'winter', next: 'spring', shift: 0 });
+    expect(seasonTurn(11.4 * DAY).shift).toBe(0);
   });
 });

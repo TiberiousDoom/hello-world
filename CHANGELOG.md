@@ -6,7 +6,7 @@ what's **New** and what's **Fixed**.
 ## 0.87.9 · 2026-10-31 · Falling leaves and bolted fins
 ### New
 - **The leaves fall at the end of fall:** over fall's last day the broadleaf trees drop their leaves one by one, down to a few last ones clinging to bare branches, and fallen leaves cover the ground.
-- **The snow comes in over winter's first day,** settling bit by bit on the ground, the bare trees and the pines. In winter the broadleaf trees stand bare, with snow along their limbs. Pines keep their needles all year.
+- **The snow comes in over the first half of winter's first day,** settling bit by bit on the ground, the bare trees and the pines, and lies for a full day before melting over winter's last half day. In winter the broadleaf trees stand bare, with snow along their limbs. Pines keep their needles all year.
 - **The ship's front fins in the Side view** are clipped deltas, bolted to the sides of the hull with steel fairings and swept out in front of the boosters, down to the pad.
 
 ### Fixed
