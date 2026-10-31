@@ -47,6 +47,7 @@ import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/
 import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn, type Look } from '../sim/clock';
+import { TERRACE_TOP, joinedOre, terraceLevel, terracePiece, type TerracePiece } from './terraces';
 import { Nest, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
@@ -56,6 +57,21 @@ import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone', 'terrain/node_sulfur'];
 const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64', '#6e6224'];
+/**
+ * Ore patches as terraces (D-153), by resource: the rock of each step's top, its lit edge, the cliff's rock,
+ * and the band of ore along the cliff with its highlight.
+ */
+const TERRACE_COLORS = [
+  null,
+  { rock: '#6e5a4c', light: '#97806d', cliff: '#4f4036', ore: '#a0553a', oreLight: '#d9906a' },
+  { rock: '#4f4a46', light: '#7c756e', cliff: '#36322f', ore: '#3fbfa0', oreLight: '#b6fae6' },
+  { rock: '#a8a296', light: '#dad4c9', cliff: '#6f6a62', ore: '#d6d0c4', oreLight: '#f4f0e8' },
+  { rock: '#4f4a46', light: '#7c756e', cliff: '#36322f', ore: '#e8d23a', oreLight: '#fff7b0' },
+];
+/** The ink outline, as on the sprites. */
+const INK = '#0f1a2e';
+/** How tall each terrace's cliff stands, in tiles (D-153). */
+const TERRACE_CLIFF = 0.2;
 /** The bed of earth under an ore patch (D-096), darker than the grass. */
 const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,76,70,0.75)', 'rgba(96,86,34,0.75)'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
@@ -861,12 +877,15 @@ export class Renderer {
         if (r) this.drawPatch(world, r, x, y);
       }
     }
+    // Touching ore tiles rise as terraces (D-153); a tile on its own keeps its rocks (drawNode below).
+    this.drawTerraces(world, x0, y0, x1, y1, decorate);
     for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
       for (let x = Math.max(0, x0); x < Math.min(s.width, x1); x++) {
         const i = world.idx(x, y);
         const r = s.resources[i];
-        if (r) this.drawNode(r, x, y);
-        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
+        if (r) {
+          if (!joinedOre(this.oreAt(world), x, y)) this.drawNode(r, x, y);
+        } else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
         else if (decorate && !world.tiles[i] && !s.trees[i] && !world.isWater(x, y)) this.drawDecoration(x, y);
       }
     }
@@ -1244,6 +1263,124 @@ export class Renderer {
     ctx.fillStyle = PATCH_COLORS[kind];
     roundRect(ctx, x + l, y + t, 1 - l - r, 1 - t - b, Math.min(l, r, t, b) ? 0.25 : 0.12);
     ctx.fill();
+  }
+
+  /** The ore on a tile, 0 for none or off the map. */
+  private oreAt(world: World): (x: number, y: number) => number {
+    return (x, y) => (world.inBounds(x, y) ? world.state.resources[world.idx(x, y)] : 0);
+  }
+
+  /**
+   * Ore patches as terraces (D-153): each step is drawn as one shape, every piece outlined and then every
+   * piece filled, so only the step's own edge keeps its ink. Below the top of each step its cliff shows on
+   * the near side: a band of ore over darker rock.
+   */
+  private drawTerraces(world: World, x0: number, y0: number, x1: number, y1: number, detail: boolean): void {
+    const ctx = this.ctx;
+    const kindAt = this.oreAt(world);
+    const s = world.state;
+    // A row more above, for the cliffs that hang down into the area painted.
+    const ya = Math.max(0, y0 - 1);
+    const yb = Math.min(s.height, y1 + 1);
+    const xa = Math.max(0, x0);
+    const xb = Math.min(s.width, x1);
+    const line = 1 / 16;
+    for (let level = 1; level <= TERRACE_TOP; level++) {
+      const pieces: [TerracePiece, number, number, number][] = [];
+      for (let y = ya; y < yb; y++)
+        for (let x = xa; x < xb; x++) {
+          const k = kindAt(x, y);
+          if (!k || !joinedOre(kindAt, x, y)) continue;
+          const p = terracePiece(kindAt, x, y, k, level);
+          if (p) pieces.push([p, k, x, y]);
+        }
+      if (!pieces.length) break;
+      const lift = (level - 1) * TERRACE_CLIFF;
+      const shape = (dx: number, dy: number, kind = 0) => {
+        ctx.beginPath();
+        for (const [p, k] of pieces) if (!kind || k === kind) this.terracePath(p, dx, dy - lift);
+      };
+      // The shadow, then the cliff (outlined as one, then filled), its band of ore, then the step's top.
+      shape(0.05, TERRACE_CLIFF + 0.06);
+      ctx.fillStyle = 'rgba(10,19,34,0.3)';
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = line;
+      ctx.lineJoin = 'round';
+      shape(0, TERRACE_CLIFF);
+      ctx.stroke();
+      for (let k = 1; k < TERRACE_COLORS.length; k++) {
+        const c = TERRACE_COLORS[k]!;
+        if (!pieces.some((p) => p[1] === k)) continue;
+        shape(0, TERRACE_CLIFF, k);
+        ctx.fillStyle = c.cliff;
+        ctx.fill();
+        shape(0, TERRACE_CLIFF * 0.5, k);
+        ctx.fillStyle = c.ore;
+        ctx.fill();
+      }
+      shape(0, 0);
+      ctx.stroke();
+      for (let k = 1; k < TERRACE_COLORS.length; k++) {
+        if (!pieces.some((p) => p[1] === k)) continue;
+        shape(0, 0, k);
+        ctx.fillStyle = level === 1 ? TERRACE_COLORS[k]!.rock : TERRACE_COLORS[k]!.light;
+        ctx.fill();
+      }
+      if (!detail) continue;
+      // The lit edge where a step ends on its north side, and a glint of ore here and there on top.
+      ctx.lineWidth = 1 / 32;
+      ctx.lineCap = 'round';
+      for (const [p, k, x, y] of pieces) {
+        const c = TERRACE_COLORS[k]!;
+        if (p.openNorth) {
+          ctx.globalAlpha = 0.6;
+          ctx.strokeStyle = level === 1 ? c.light : '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(p.x0 + (p.round[0] ? 0.16 : 0.05), p.y0 + 0.05 - lift);
+          ctx.lineTo(p.x1 - (p.round[1] ? 0.16 : 0), p.y0 + 0.05 - lift);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        const h = hash(x + 150 * level, y);
+        if (h % 3 || terraceLevel(kindAt, x, y, k) !== level) continue;
+        const gx = x + 0.35 + ((h >>> 4) % 30) / 100;
+        const gy = y + 0.4 + ((h >>> 9) % 30) / 100 - lift;
+        ctx.fillStyle = c.oreLight;
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1 / 80;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy);
+        ctx.lineTo(gx + 0.05, gy - 0.05);
+        ctx.lineTo(gx + 0.1, gy);
+        ctx.lineTo(gx + 0.05, gy + 0.03);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.lineWidth = 1 / 32;
+      }
+    }
+  }
+
+  /** One piece of a terrace step, as a subpath (all wound the same way, so the pieces fill as one). */
+  private terracePath(p: TerracePiece, dx: number, dy: number): void {
+    const ctx = this.ctx;
+    const r = 0.16;
+    const [tl, tr, br, bl] = p.round;
+    const x0 = p.x0 + dx;
+    const x1 = p.x1 + dx;
+    const y0 = p.y0 + dy;
+    const y1 = p.y1 + dy;
+    ctx.moveTo(x0 + (tl ? r : 0), y0);
+    ctx.lineTo(x1 - (tr ? r : 0), y0);
+    if (tr) ctx.quadraticCurveTo(x1, y0, x1, y0 + r);
+    ctx.lineTo(x1, y1 - (br ? r : 0));
+    if (br) ctx.quadraticCurveTo(x1, y1, x1 - r, y1);
+    ctx.lineTo(x0 + (bl ? r : 0), y1);
+    if (bl) ctx.quadraticCurveTo(x0, y1, x0, y1 - r);
+    ctx.lineTo(x0, y0 + (tl ? r : 0));
+    if (tl) ctx.quadraticCurveTo(x0, y0, x0 + r, y0);
+    ctx.closePath();
   }
 
   private drawNode(kind: number, x: number, y: number): void {
