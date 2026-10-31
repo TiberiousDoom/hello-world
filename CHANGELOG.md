@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.1 · 2026-10-31 · Fixes from playtesting
+### Fixed
+- **The splitter's menu fits on screen.** It, hub ports and drone pads list only the items you can have so far, not every item in the game, and a long building panel scrolls (#191).
+- **Drop off counts what the building takes:** a furnace holding iron ore shows how many more it has room for, not everything you carry (#170).
+- **Tapping a resource always reaches it:** the engineer no longer stops just out of reach with further taps doing nothing (#169).
+- **The dedicated server isn't a player any more.** It had an engineer standing at the hub, which bugs went for; now the first to join is player 2 (#184).
+
 ## 0.88.0 · 2026-10-31 · A nest for every bug
 ### New
 - **Nests grow in what you see, not just in size.** A young nest is one burrow in a low mound. A medium one has a side burrow joined by a tunnel, and eggs. A large one is a dig site: five burrows, tunnels running off the mound, heaps of spoil and scraps stolen from your factory.

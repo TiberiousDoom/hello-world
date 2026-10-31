@@ -13,7 +13,7 @@ Nobody has to host.
 - `room.json` holds the room's key: whoever has it can take the room. The server keeps it readable by its own user only.
 - Run only one copy per room. A second copy with the same `room.json` takes the room, and the first
   then stays out and says so in its log.
-- Rooms hold up to 10 players. The server's engineer (player 1) stays at the hub.
+- Rooms hold up to 10 players. The server takes slot 1 but has no engineer in the game (#184): players are 2 and up.
 
 ## Try it on your own computer
 

@@ -24,6 +24,8 @@ import {
   ItemCounts,
   ItemId,
   RECIPE_BY_ID,
+  RECIPES,
+  RESOURCE_ITEMS,
   REPAIR,
   SPIKES,
   RESEARCH,
@@ -312,6 +314,24 @@ function shipStats(world: World): string {
     html += `<br>Loaded and ready. Launching wakes ${n} bug nest${n === 1 ? '' : 's'} (every one within ${wakeRadius(world)} tiles, and at least the ${SHIP.minWake} nearest). Their bugs come for the shipyard, and it must hold for ${SHIP.launchTime} seconds.`;
   }
   return html;
+}
+
+/**
+ * The items a splitter, port or drone pad can be set to (#191): what you can have so far, so the list fits on
+ * screen. Raw resources, what's in stock, and what researched recipes take in and make; and `current`, the
+ * item it's set to now, whatever it is.
+ */
+export function pickableItems(world: World, current?: ItemId | null): ItemId[] {
+  const s = world.state;
+  const known = new Set<ItemId>(['log', ...RESOURCE_ITEMS.filter((i): i is ItemId => i != null)]);
+  for (const i of ITEM_IDS) if ((s.inventory[i] ?? 0) > 0) known.add(i);
+  for (const r of RECIPES) {
+    if (!world.isUnlocked(r.machine) || (r.requires && !s.researched.includes(r.requires))) continue;
+    known.add(r.output);
+    for (const i of Object.keys(r.inputs) as ItemId[]) known.add(i);
+  }
+  if (current) known.add(current);
+  return ITEM_IDS.filter((i) => known.has(i));
 }
 
 function swatch(item: ItemId): string {
@@ -879,23 +899,26 @@ export class Hud {
           const side = b!.side ?? 'left';
           actions += `<p class="small muted">Sort one item to a side; everything else goes out of the other.</p><div class="row seg-row">${(['left', 'right'] as const)
             .map((s) => `<button data-action="side" data-side="${s}" class="${side === s ? 'active' : ''}">${s === 'left' ? '← Left' : 'Right →'}</button>`)
-            .join('')}</div><div class="recipes">${ITEM_IDS.map(
-            (i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
-          ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
+            .join('')}</div><div class="recipes">${pickableItems(world, b!.filter)
+            .map((i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`)
+            .join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         if (b!.type === 'strike_beacon' && b!.ammo >= STRIKE.charge) {
           actions += `<div class="row"><button data-action="strike" class="primary">🎯 Call a strike</button></div>`;
         }
         if (b!.type === 'drone_pad' || b!.type === 'teleporter') {
           // Send, or receive one item (D-128, D-131).
-          actions += `<p class="small muted">Send what belts bring it, or pick an item for drones to bring here.</p><div class="recipes"><button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Send</button>${ITEM_IDS.map(
-            (i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="Receive ${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
-          ).join('')}</div>`;
+          actions += `<p class="small muted">Send what belts bring it, or pick an item for drones to bring here.</p><div class="recipes"><button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Send</button>${pickableItems(
+            world,
+            b!.filter,
+          )
+            .map((i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="Receive ${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`)
+            .join('')}</div>`;
         }
         if (b!.type === 'port') {
-          actions += `<div class="recipes">${ITEM_IDS.map(
-            (i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`,
-          ).join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
+          actions += `<div class="recipes">${pickableItems(world, b!.filter)
+            .map((i) => `<button data-action="filter" data-item="${i}" class="${b!.filter === i ? 'active' : ''}" title="${ITEMS[i].name}">${swatch(i)}${esc(ITEMS[i].name)}</button>`)
+            .join('')}<button data-action="filter" data-item="" class="${b!.filter ? '' : 'active'}">Off</button></div>`;
         }
         // Before belts, finished items are carried to the hub by hand (#38).
         // Your character fetches what it has made, or hands it what you carry (#38, #40).
@@ -988,10 +1011,10 @@ export class Hud {
         }
       }
       if (b.outputs.length) stats += `<br>Output buffer ${b.outputs.map(swatch).join('')}`;
-      const me = world.state.players.find((p) => p.id === this.ui.player);
-      const carried = me ? held(me) : 0;
       const drop = panel.querySelector<HTMLButtonElement>('[data-action="drop"]');
       if (drop) {
+        // What this building takes of what the engineer carries, not all of it (#170).
+        const carried = world.dropCount(b.id, this.ui.player);
         drop.disabled = !carried;
         const label = carried ? `Drop off ${carried}` : 'Drop off';
         const span = drop.querySelector('.drop-label')!;

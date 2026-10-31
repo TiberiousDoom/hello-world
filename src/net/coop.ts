@@ -52,6 +52,16 @@ export function refusalText(reason: RefuseReason, hostVersion: string | undefine
   }
 }
 
+/**
+ * Gives every player in the room an engineer as the game starts. A headless host (the dedicated server,
+ * #184) is nobody: it gets none, and loses the one a new or saved game gave it, so guests don't see an
+ * idle engineer at the hub that bugs go for and that lights and uncovers the map.
+ */
+export function seatPlayers(world: World, slots: number[], headless: boolean): void {
+  if (headless) world.state.players = world.state.players.filter((p) => p.id !== 0);
+  for (const slot of slots) if (!(headless && slot === 0)) applyCommand(world, { kind: 'add-player', id: slot });
+}
+
 export class Coop {
   phase: CoopPhase = 'idle';
   role: Role | null = null;
@@ -86,6 +96,8 @@ export class Coop {
   refused: RefuseReason | null = null;
   /** The room's code was chosen, not drawn (the dedicated server): a taken code isn't swapped for another. */
   private fixed = false;
+  /** A host that nobody plays on (the dedicated server, #184): it has no engineer in the game. */
+  headless = false;
   /** When a guest last heard from its host, and the check that notices a silent connection. */
   private heardAt = 0;
   /** The host's connection dropped and the room waits for it: silence is expected meanwhile. */
@@ -146,7 +158,7 @@ export class Coop {
     this.phase = 'starting';
     this.onChange();
     const starters = [...this.players];
-    for (const slot of starters) applyCommand(world, { kind: 'add-player', id: slot });
+    seatPlayers(world, starters, this.headless);
     const session = new Session(world, 0);
     const packed = await pack(session.start);
     if (this.phase !== 'starting') return; // left while packing

@@ -313,7 +313,10 @@ function findPath(w: World, p: Player, goal: (x: number, y: number) => boolean, 
   const sy = Math.floor(p.y);
   if (!w.inBounds(sx, sy)) return null;
   const start = sy * W + sx;
-  if (goal(sx, sy)) return [];
+  // Already on a tile that will do: step to its middle, which is what counts as in reach. Standing off
+  // it, an engineer could be out of reach, and every tap would plan this same empty walk (#169). (A tile
+  // something was built on can't be walked to: look for another.)
+  if (goal(sx, sy) && !blocked(w, sx, sy)) return [start];
   const from = new Map<number, number>([[start, -1]]);
   const queue = [start];
   let best = start;

@@ -1746,6 +1746,41 @@ describe('The player character (#40)', () => {
     expect(w.state.inventory.iron_ore).toBe(left);
   });
 
+  it('standing off the middle of a tile in reach of an ore, but not quite in reach itself, steps closer and mines it (#169)', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    const [x, y] = [w.hub!.x - 12, w.hub!.y];
+    ore(w, x, y, 1, 1);
+    // Two tiles to the right: that tile's middle is in reach of the ore, the far edge of it isn't.
+    stand(w, x + 2, y);
+    p.x = x + 2.95;
+    expect(w.mineByHand(x, y)).toBe('far');
+    run(w, 1);
+    for (let i = 0; i < HAND_MINING.taps; i++) expect(w.mineByHand(x, y)).not.toBe('far');
+    expect(held(p)).toBe(1);
+  });
+
+  it("counts what a building would take of what's carried, changing nothing: Drop off's number (#170)", () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    w.state.inventory = { stone: 6, log: 6 };
+    const fu = placed(w.place('furnace', w.hub!.x - 6, w.hub!.y + 2, 0));
+    p.slots = p.slots.map(() => null);
+    p.slots[0] = { item: 'iron_ore', n: 10 };
+    p.slots[1] = { item: 'iron_ore', n: 10 };
+    p.slots[2] = { item: 'circuit', n: 4 }; // a furnace has no use for it
+    const before = JSON.stringify(w.state);
+    const n = w.dropCount(fu.id);
+    expect(n).toBeGreaterThan(0);
+    expect(n).toBeLessThan(24); // only what the recipe has room for: not all 24
+    expect(JSON.stringify(w.state)).toBe(before); // nothing changed
+    // Handing it over in reach puts in exactly that many.
+    [p.x, p.y] = [fu.x - 0.5, fu.y + 0.5];
+    expect(w.dropOff(fu.id)).toBe(n);
+    expect(w.dropCount(fu.id)).toBe(0);
+    expect(w.dropCount(w.hub!.id)).toBe(held(p)); // the hub takes everything
+  });
+
   it('stacks each item up to a slot of 10, and Collect leaves what does not fit (#87)', () => {
     const w = emptyWorld();
     const p = w.state.players[0];
