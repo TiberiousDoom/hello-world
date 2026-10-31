@@ -241,6 +241,8 @@ with, so emptying one and building it again isn't a free refill.
   belt, and send them out of the front of both in turn, skipping a blocked one. Items keep their lane.
 - **Splitter filter (#62):** select a splitter, pick an item and **← Left** or **Right →**. That item
   goes out of that side only, and everything else out of the other. With **Off**, the sides take turns.
+  The list (here, and on hub ports and drone pads) holds only what you can have so far: raw resources,
+  what's in stock, and what researched recipes take in and make (#191). A long panel scrolls.
 - **Two kinds stay apart (#92, D-104):** with no filter, when both belts into a splitter carry an item
   (each within the last 5 s) and the two are different, each item goes straight out of its own side.
   When one belt stops, or both carry the same item, the sides take turns again.
@@ -431,7 +433,8 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 - **Dropping off:** walking up to the **hub** empties the inventory into it, unless "Drop off at the hub
   when I walk up to it" is switched off in the Inventory window (each player has their own switch).
   **Drop off** (on a selected machine, turret, repair station, shipyard or the hub) hands that building
-  whatever it takes of what's held, slot by slot.
+  whatever it takes of what's held, slot by slot. Its number is how many that building will take now (a
+  machine holds up to 3 batches of each input), not everything held (#170).
 - **Bugs notice the engineer (D-074).** The engineer has **100 health**. Walking within 3 tiles of a
   calm bug (5 at night) provokes its nest, as a building would. An angry bug (or a raider) within
   **4 tiles** of the engineer goes straight for them, and bites as hard as it bites
@@ -792,8 +795,9 @@ one research tree, one supply ship.
   the hub's stock. Someone joining later in that slot takes it over.
 - **Dedicated server (D-084):** the game can also be hosted by a server instead of a player
   ([server/README.md](../server/README.md)). Its room is always open with the same code, and the game
-  starts at once, so everyone joins it under way. It is paused while nobody is in. The server is player 1;
-  its engineer stays at the hub. If the server restarts, players see "The host is back" and carry on.
+  starts at once, so everyone joins it under way. It is paused while nobody is in. The server takes slot 1
+  but isn't a player: it has no engineer in the game (#184), so the first to join is player 2. If the server
+  restarts, players see "The host is back" and carry on.
 - **A host's dead connection (D-085):** a host whose connection dies without closing (a router restarting)
   notices within about 20 seconds, reconnects and takes its room back; players see "The host is back".
 - **A player back in their own slot (D-092, #100):** each player joins with a random key of their own. A

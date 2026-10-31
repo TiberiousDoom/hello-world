@@ -105,8 +105,8 @@ import {
   tickMerge,
   tickSpread,
 } from './nests';
-import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, heldOf, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, take, tickPlayers, walk } from './player';
-import { ShipState, createShipState, insertShip, onShipyardRemoved, shipyard, tickShip } from './ship';
+import { Player, PlayerAction, emptySlots, give, goAndDo, handOver, held, heldOf, isDown, moveTo, newPlayer, playerOf, reaches, inReach, roomFor, sendHome, take, tickPlayers, walk } from './player';
+import { ShipState, createShipState, insertShip, onShipyardRemoved, shipRoom, shipyard, tickShip } from './ship';
 
 export { createResearchState };
 export type { Player };
@@ -2350,6 +2350,35 @@ export class World {
     if (!p) return false;
     p.autoDrop = on;
     return true;
+  }
+
+  /**
+   * How many of what a player carries a building would take now (#170): the number on Drop off. It hands
+   * them over to a copy of the building, so it changes nothing. The hub takes everything; the shipyard what
+   * its stage or cargo still needs.
+   */
+  dropCount(id: number, player = 0): number {
+    const b = this.byId.get(id);
+    const p = playerOf(this, player);
+    if (!b || !p) return 0;
+    if (b.type === 'hub') return held(p);
+    if (b.type === 'shipyard') {
+      const room = new Map<ItemId, number>();
+      let n = 0;
+      for (const s of p.slots) {
+        if (!s) continue;
+        const left = room.get(s.item) ?? shipRoom(this, s.item);
+        const k = Math.min(left, s.n);
+        room.set(s.item, left - k);
+        n += k;
+      }
+      return n;
+    }
+    const copy = structuredClone(b);
+    const [fx, fy] = [Math.floor(p.x), Math.floor(p.y)];
+    let n = 0;
+    for (const s of p.slots) if (s) for (let i = 0; i < s.n && this.insert(copy, s.item, fx, fy); i++) n++;
+    return n;
   }
 
   /**
