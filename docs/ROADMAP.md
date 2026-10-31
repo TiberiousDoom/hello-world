@@ -139,6 +139,7 @@ In this order:
 - ✅ **Phase 4, themed kinds and queens** (0.74.0, D-132): crawler warrens, runner hives and brute dens by distance, mixing where zones meet; 1 to 3 queen nests near the map edge; nests growing through three stages while calm, and grown neighbours of a kind merging into one bigger nest (D-100)
 - ✅ **Phase 5, Hardcore nests** (0.75.0, D-133): threat starting at 2, faster breeding, spreading and growing, mounds destroyed only by building over them and a ring, faster breeding while being built over; the Hardcore burrow art (since 0.40.0)
 - ✅ **Night raids** (0.38.0, D-073): from the second night, some nights a nest near your buildings sends a small party with no leash until morning; every night in Hardcore
+- ✅ **Phase 6, a nest for every bug** (0.88.0, D-152): runner runnels and beetle barrows join warrens, hives (now wasp nests) and dens; any kind can be a queen nest, and its queen comes out to fight when the mound falls; each nest stage has its own drawing (the Earthworks look), and each bug has a queen
 - ✅ **A looser leash** (0.46.1, D-091): no fixed leash; an angry bug chases while a building or an engineer is within 20 tiles of it (28 at night), and gives up and walks home when nothing is. Raiders finish their fight at morning
 
 ### Next (M4)

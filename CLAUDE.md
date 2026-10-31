@@ -26,6 +26,7 @@ npx playwright test e2e/lessons.spec.ts        # one browser suite
 npx playwright test --project=desktop          # one project (desktop, phone; firefox and webkit run only the determinism test)
 node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
 node art/working.mjs                           # rebuild the machines' working animations from their sprites
+node art/nests.mjs                             # redraw the nests (every kind and stage), queen nests and queens
 cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)
 npm run server                                 # the dedicated server (build:server bundles it into dist-server/); see server/README.md
 ```
@@ -47,7 +48,7 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   front end. Deterministic: fixed tick (`TICK` = 1/20 s) and a seeded RNG (`w.random()`); don't use
   `Math.random()` in the rules (only `World.create` uses it, to pick a seed when none is given).
   - `data.ts` holds all balance numbers and content. It is the source of truth; docs follow it.
-  - `world.ts` (simulation), `mapgen.ts` (256×256 map, ore noise, nests), `nests.ts` (bug territories), `player.ts` (the engineer: walking, carrying), `clock.ts` (day, night, seasons),
+  - `world.ts` (simulation), `mapgen.ts` (256×256 map, ore noise, nests), `nests.ts` (bug territories, nest kinds, queens), `player.ts` (the engineer: walking, carrying), `clock.ts` (day, night, seasons),
     `ship.ts` (escape ship), `research.ts`, `demo.ts` (the main-menu factory).
   - `commands.ts` and `session.ts`: every change a player makes is a `Command`, applied through the game's
     `Session` (its world, clock and command log). This is what co-op sends between games (D-056, D-058).

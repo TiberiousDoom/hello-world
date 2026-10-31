@@ -3,6 +3,18 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.0 · 2026-10-31 · A nest for every bug
+### New
+- **Nests grow in what you see, not just in size.** A young nest is one burrow in a low mound. A medium one has a side burrow joined by a tunnel, and eggs. A large one is a dig site: five burrows, tunnels running off the mound, heaps of spoil and scraps stolen from your factory.
+- **A nest for every bug.** Crawler warrens near the hub, then **runnels** for runners (long straight trenches) from 60 tiles, **hives** for wasps (paper comb) from 80, dens for brutes (boulders and bones) from 100, and **barrows** for beetles (rolled balls of earth) from 120.
+- **Queen nests come in every kind.** Each is wider, with a glowing chamber in the middle, and holds half again as many bugs, all of its own kind.
+- **Queens.** When a queen nest's mound falls, its queen comes out to fight: her nest's bug, swollen with eggs, slow but six times as tough and biting twice as hard. Killing her drops a heap of chitin.
+- Merged nests show tunnels to each other cell they own. Hardcore nests look darker and redder.
+- As the threat level rises, a nest's crawlers hatch more often as its own bug (a warren's as runners).
+
+### Fixed
+- Older saves load: a queen nest becomes a queen nest of the kind that lives that far out, and keeps its bugs.
+
 ## 0.87.8 · 2026-10-31 · The ship, from above and from the side
 ### New
 - **The ship on the map is seen from above,** like the shipyard under it: a round hull, then its fins and booster pods, its oxygen tanks, and the navy nose cone with its cockpit glass and beacon.

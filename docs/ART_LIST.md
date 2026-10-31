@@ -212,8 +212,9 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Boulder, the trebuchet's stone in flight (D-150) | ~0.5 tile | 1 | P2 | Upgraded (`effects/boulder`) |
 | Dust burst, where a trebuchet's stone lands (D-150): dirt clods thrown out, a ring of dust spreading and settling | 128×128 | 5 | P2 | Upgraded (`effects/dust_burst_5f`) |
 | Damage smoke and fire (D-150): smoke drifting up from a hurt building; flames flickering on a badly hurt one | Building size | 4 each | P2 | Upgraded (`effects/damage_1_4f`, `effects/damage_2_4f`, built from `damage_1` and `damage_2` by `art/animate.mjs`) |
-| Nest burrow and territory outline | 2×2 tiles, drawn 1.7, 2 or 2.3 tiles across by stage (D-132); outline in code | 1 + angry + damaged + destroyed + grown | P2 | Upgraded (`nests/warren`, `hive`, `den` by kind, `nests/hardcore` in Hardcore, overlays `nests/angry`, `nests/damaged`, `nests/grown` (egg clutches and a side burrow at the lower left, drawn turned half round as well for a large nest) and `nests/destroyed`); blight around nests is drawn in code, over every cell a merged nest owns |
-| Queen nest (D-132) | 3×3 tiles, drawn 1.3× a nest's size (merged nests too) | 1 | P2 | Upgraded (`nests/queen`) |
+| Nests by kind and stage (D-152) | Drawn in a 4-tile box at every stage, so the art grows inside it (the mound blocks 2×2 tiles); merged nests 1.3× with tunnels in code; outline in code | 5 kinds × 3 stages + angry + damaged + destroyed | P2 | Done, drawn by `art/nests.mjs` (the Earthworks look): `nests/warren_1` to `nests/barrow_3`. Hardcore draws them darker and redder in code. Overlays `nests/angry`, `nests/damaged`, `nests/destroyed` as before; blight is drawn in code |
+| Queen nests (D-152) | 4-tile box, drawn 4.6 tiles across | 1 per kind | P2 | Done, by `art/nests.mjs`: `nests/warren_queen` to `nests/barrow_queen` |
+| Queens (D-152) | 2-tile box, drawn 1.6× the bug | 1 per bug | P2 | Done, by `art/queens.mjs`: `enemies/crawler_queen` to `enemies/beetle_queen`. No walking strips yet: they waddle |
 | Chitin (item, D-065): an olive bug-shell plate | Item size | 1 | P2 | Upgraded (`items/chitin`) |
 | Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
 

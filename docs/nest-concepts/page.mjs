@@ -1,15 +1,23 @@
-/* global console */
+/* global console, Buffer */
 // Builds docs/nest-concepts/concepts.html: the Earthworks nests for every kind and stage, queen nests and
 // queen bugs, with today's nests to compare. Run after generate.mjs. Sprites are embedded as data: URIs so
 // their gradient ids can't collide.
+import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const uri = (path) => `data:image/svg+xml;base64,${readFileSync(path).toString('base64')}`;
-const concept = (name) => uri(join(HERE, 'svg', `${name}.svg`));
-const current = (name) => uri(join(HERE, '..', '..', 'src', 'art', 'nests', `${name}.svg`));
+// The game's sprites, drawn by art/nests.mjs: concept names to their files.
+const concept = (name) => {
+  const [what, a, b] = name.split('_');
+  const path = what === 'queen' ? ['enemies', `${a}_queen`] : ['nests', `${a}_${b}`];
+  return uri(join(HERE, '..', '..', 'src', 'art', path[0], `${path[1]}.svg`));
+};
+// Today's nests, as they were before D-152 replaced them.
+const BEFORE = 'f09df4d';
+const current = (name) => `data:image/svg+xml;base64,${Buffer.from(execSync(`git show ${BEFORE}:src/art/nests/${name}.svg`)).toString('base64')}`;
 const bugArt = (name) => uri(join(HERE, '..', '..', 'src', 'art', 'enemies', `${name}.svg`));
 
 const KINDS = [

@@ -1,4 +1,4 @@
-// Queen bugs, drawn from scratch (round 3). Each faces right like the workers, in a 96-unit box, lit from
+// Queen bugs (D-152), drawn from scratch. Each faces right like the workers, in a 96-unit box, lit from
 // the top left with one ink outline. What makes a queen is the body, not a crown: like real termite,
 // oil-beetle and wasp queens, she is swollen with eggs. Her armour plates have spread apart over a pale,
 // stretched abdomen, with eggs showing through it.

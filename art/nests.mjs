@@ -1,15 +1,16 @@
 /* global console */
-// Nest concept art, direction A (Earthworks), round 2: a nest kind for every bug, a queen nest of each kind,
-// and a queen of each bug. Each stage is its own drawing, not a scaled copy.
-// Run `node docs/nest-concepts/generate.mjs`; it writes the SVGs into docs/nest-concepts/svg/.
-// Concepts only: the game doesn't load these.
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+// Draws the nests (D-152, the Earthworks look): a kind for every bug, each stage its own drawing rather than
+// a scaled copy, and a queen nest of each kind; and with queens.mjs, a queen of each bug. Run
+// `node art/nests.mjs` after changing them; it writes src/art/nests/<kind>_<stage>.svg,
+// src/art/nests/<kind>_queen.svg and src/art/enemies/<bug>_queen.svg.
+import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { QUEEN_BUGS, queenBug } from './queens.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, 'svg');
+const NESTS = join(HERE, '..', 'src', 'art', 'nests');
+const ENEMIES = join(HERE, '..', 'src', 'art', 'enemies');
 const INK = '#24180e';
 
 /** A small seeded RNG, so the concepts redraw the same each run. */
@@ -350,12 +351,10 @@ function nest(k, stage, seed, queen = false) {
   return svg(p, k, s);
 }
 
-rmSync(OUT, { recursive: true, force: true });
-mkdirSync(OUT, { recursive: true });
 let seed = 11;
 for (const k of Object.keys(KINDS)) {
-  for (const st of [1, 2, 3]) writeFileSync(join(OUT, `nest_${k}_${st}.svg`), nest(k, st, seed++));
-  writeFileSync(join(OUT, `nest_${k}_queen.svg`), nest(k, 3, seed++, true));
+  for (const st of [1, 2, 3]) writeFileSync(join(NESTS, `${k}_${st}.svg`), nest(k, st, seed++));
+  writeFileSync(join(NESTS, `${k}_queen.svg`), nest(k, 3, seed++, true));
 }
-for (const bug of QUEEN_BUGS) writeFileSync(join(OUT, `queen_${bug}.svg`), queenBug(bug));
-console.log(`Wrote concepts to ${OUT}`);
+for (const bug of QUEEN_BUGS) writeFileSync(join(ENEMIES, `${bug}_queen.svg`), queenBug(bug));
+console.log('Wrote the nests and queens into src/art/');

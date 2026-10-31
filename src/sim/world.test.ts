@@ -54,7 +54,7 @@ import {
   BUG_SPACING,
   BuildingType,
 } from './data';
-import { Nest, anyAngry, broodSize, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, onBugHurt, territory, threatAt } from './nests';
+import { Nest, anyAngry, broodSize, bugDef, cellKey, coverTiles, damageMound, hubDistance, isAngry, moundTile, nestAt, nestCentre, newNest, onBugHurt, territory, threatAt } from './nests';
 import { Building, LEFT, NO_TREE, OldSaveError, RIGHT, defenceTierCost, electricUse, outOfFuel, SAVE_VERSION, SPLITTER_SORT_WINDOW, STUMP, TICK, TREE, World } from './world';
 import { CLOCK, RAIDS } from './data';
 import { DEMO_SCENES, createDemoWorld, sustainDemo } from './demo';
@@ -3258,58 +3258,115 @@ describe("The colony's special buildings (D-131)", () => {
 
 describe('Nest kinds, growth and merging (D-132)', () => {
   /** A calm nest of `kind` at stage `stage`, with its brood all hatched. */
-  const nestOf = (w: World, x: number, y: number, kind: Nest['kind'], stage = 1): Nest => {
-    const n = newNest(w.state.nests.length, x, y, 80, 1, kind);
+  const nestOf = (w: World, x: number, y: number, kind: Nest['kind'], stage = 1, queen = false): Nest => {
+    const n = newNest(w.state.nests.length, x, y, 80, 1, kind, queen);
     n.stage = stage;
     w.state.nests.push(n);
     w.nestCells.set(cellKey(x / NESTS.cell, y / NESTS.cell), n);
-    for (const t of ['crawler', 'runner', 'brute'] as const) for (let i = 0; i < n.brood[t]; i++) w.spawnBug(t, n, 1);
+    for (const t of ['crawler', 'runner', 'brute', 'wasp', 'beetle'] as const) for (let i = 0; i < n.brood[t]; i++) w.spawnBug(t, n, 1);
     return n;
   };
 
-  it.each([42, 1, 7])('a new map has warrens near the hub, hives further out, dens furthest and 1 to 3 queens near the edge, seed %i', (seed) => {
+  it.each([42, 1, 7])('a new map has a kind of nest for each bug, by distance, and 1 to 3 queen nests near the edge, seed %i', (seed) => {
     const w = World.create(seed);
     const s = w.state;
-    const queens = s.nests.filter((n) => n.kind === 'queen');
+    const queens = s.nests.filter((n) => n.queen);
     expect(queens.length).toBeGreaterThanOrEqual(QUEENS.count[0]);
     expect(queens.length).toBeLessThanOrEqual(QUEENS.count[1]);
     for (const q of queens) expect(Math.min(q.x, q.y, s.width - q.x - NESTS.cell, s.height - q.y - NESTS.cell)).toBeLessThan(QUEENS.edge);
     for (const n of s.nests) {
       const d = hubDistance(w, n);
-      if (n.kind === 'queen') continue;
-      if (d < NESTS.hiveFrom - NESTS.kindBlend) expect(n.kind).toBe('warren');
-      if (d > NESTS.denFrom + NESTS.kindBlend) expect(n.kind).toBe('den');
+      if (d < NESTS.runnelFrom - NESTS.kindBlend) expect(n.kind).toBe('warren');
+      if (d > NESTS.barrowFrom + NESTS.kindBlend) expect(n.kind).toBe('barrow');
       // Each kind is mostly its own bug.
-      if (n.kind === 'warren') expect(n.brood.runner + n.brood.brute).toBe(0);
-      if (n.kind === 'hive') expect(n.brood.runner).toBeGreaterThan(n.brood.crawler);
+      if (n.kind === 'warren') expect(n.brood.runner + n.brood.brute + n.brood.wasp + n.brood.beetle).toBe(0);
+      if (n.kind === 'runnel') expect(n.brood.runner).toBeGreaterThan(n.brood.crawler);
+      if (n.kind === 'hive') expect(n.brood.wasp).toBeGreaterThan(n.brood.runner);
       if (n.kind === 'den') expect(n.brood.brute).toBeGreaterThan(0);
+      if (n.kind === 'barrow') expect(n.brood.beetle).toBeGreaterThan(0);
       expect(n.stage).toBe(1);
       expect(n.age).toBeLessThan(NESTS.stageEvery);
     }
-    expect(s.nests.some((n) => n.kind === 'hive')).toBe(true);
+    expect(new Set(s.nests.map((n) => n.kind)).size).toBeGreaterThanOrEqual(4);
     // Every nest's bugs are there, all of its brood.
     for (const n of s.nests) expect(s.enemies.filter((e) => e.nest === n.id).length).toBe(broodSize(n.brood));
   });
 
   it('kinds mix where zones meet', () => {
+    expect(nestKindFor(NESTS.runnelFrom, 0.25)).toBe('runnel');
+    expect(nestKindFor(NESTS.runnelFrom, 0.75)).toBe('warren');
     expect(nestKindFor(NESTS.hiveFrom, 0.25)).toBe('hive');
-    expect(nestKindFor(NESTS.hiveFrom, 0.75)).toBe('warren');
+    expect(nestKindFor(NESTS.hiveFrom, 0.75)).toBe('runnel');
     expect(nestKindFor(NESTS.denFrom, 0.25)).toBe('den');
     expect(nestKindFor(NESTS.denFrom, 0.75)).toBe('hive');
-    expect(nestKindFor(NESTS.hiveFrom - NESTS.kindBlend - 1, 0)).toBe('warren');
+    expect(nestKindFor(NESTS.barrowFrom, 0.25)).toBe('barrow');
+    expect(nestKindFor(NESTS.barrowFrom, 0.75)).toBe('den');
+    expect(nestKindFor(NESTS.runnelFrom - NESTS.kindBlend - 1, 0)).toBe('warren');
+    expect(nestKindFor(NESTS.barrowFrom + NESTS.kindBlend + 1, 0.99)).toBe('barrow');
   });
 
-  it('a queen has a tougher mound, breeds twice as fast and drops three times the chitin', () => {
+  it('a queen nest has a tougher mound and a bigger brood, breeds twice as fast and drops three times the chitin', () => {
     const w = emptyWorld();
-    const q = nestOf(w, 50, 50, 'queen');
+    const q = nestOf(w, 50, 50, 'den', 1, true);
     const plain = nestOf(w, 80, 80, 'den');
     expect(q.maxHp).toBe(plain.maxHp * QUEENS.mound);
+    expect(q.brood.crawler).toBe(Math.round(plain.brood.crawler * QUEENS.brood));
     w.state.enemies = w.state.enemies.filter((e) => e.nest !== q.id || e.type !== 'crawler'); // short of crawlers
     run(w, 1.05);
     expect(q.nextBreed - w.state.time).toBeLessThanOrEqual(NESTS.breedEvery[1] / QUEENS.breed);
     w.state.inventory.chitin = 0;
     damageMound(w, q, q.hp);
     expect(w.state.inventory.chitin).toBe(Math.round(Math.min(10, 3 + Math.floor(hubDistance(w, q) / 25)) * QUEENS.chitin));
+  });
+
+  it('when a queen nest falls its queen comes out: a slow, tough, hard-biting version of its bug, dropping chitin when killed', () => {
+    const w = emptyWorld();
+    const q = nestOf(w, 50, 50, 'barrow', 1, true);
+    expect(w.state.enemies.some((e) => e.queen)).toBe(false); // she stays in the chamber while the mound stands
+    damageMound(w, q, q.hp);
+    const queen = w.state.enemies.find((e) => e.queen)!;
+    expect(queen.type).toBe('beetle');
+    expect(queen.nest).toBe(q.id);
+    const [cx, cy] = nestCentre(q);
+    expect([queen.x, queen.y]).toEqual([cx, cy]);
+    expect(queen.maxHp).toBeGreaterThanOrEqual(ENEMIES.beetle.hp * QUEENS.bug.hp);
+    const def = bugDef(queen);
+    expect(def.dps).toBe(ENEMIES.beetle.dps * QUEENS.bug.dps);
+    expect(def.speed).toBe(ENEMIES.beetle.speed * QUEENS.bug.speed);
+    expect(def.radius).toBe(ENEMIES.beetle.radius * QUEENS.bug.size);
+    expect(bugDef(w.state.enemies.find((e) => !e.queen)!)).toBe(ENEMIES[w.state.enemies.find((e) => !e.queen)!.type]);
+    // An ordinary nest has no queen.
+    const plain = nestOf(w, 80, 80, 'barrow');
+    damageMound(w, plain, plain.hp);
+    expect(w.state.enemies.filter((e) => e.queen)).toHaveLength(1);
+    w.state.inventory.chitin = 0;
+    queen.hp = 0;
+    w.tick();
+    expect(w.state.enemies.includes(queen)).toBe(false);
+    expect(w.state.inventory.chitin).toBe(Math.min(10, 3 + Math.floor(hubDistance(w, q) / 25)) * QUEENS.bugChitin);
+  });
+
+  it("a crawler bred under threat hatches as its nest's own bug, and a warren's as a runner", () => {
+    for (const [kind, bug] of [
+      ['warren', 'runner'],
+      ['runnel', 'runner'],
+      ['hive', 'wasp'],
+      ['den', 'brute'],
+      ['barrow', 'beetle'],
+    ] as const) {
+      const w = emptyWorld();
+      w.state.time = NESTS.threatEvery * NESTS.threatMax; // the most swaps
+      const n = nestOf(w, 50, 50, kind);
+      w.state.enemies = [];
+      n.brood = { crawler: 40, runner: 0, brute: 0, wasp: 0, beetle: 0 };
+      for (let i = 0; i < 40; i++) {
+        n.nextBreed = 1; // due now
+        run(w, 1);
+      }
+      const types = new Set(w.state.enemies.filter((e) => e.nest === n.id).map((e) => e.type)); // not a spread nest's
+      expect(types.has(bug)).toBe(true);
+      expect([...types].every((t) => t === 'crawler' || t === bug)).toBe(true);
+    }
   });
 
   it('a calm nest grows a stage after 3 days of calm: a bigger brood and mound; not while angry, and only to stage 3', () => {
@@ -3606,15 +3663,34 @@ describe('Wasps and beetles (D-135)', () => {
     }
   });
 
-  it('far hives hold wasps and far dens beetles; queens some of each', () => {
-    expect(nestComposition(NESTS.waspsFrom - 1, 'hive').wasps).toBe(0);
-    expect(nestComposition(NESTS.waspsFrom + 1, 'hive').wasps).toBe(1);
-    expect(nestComposition(200, 'warren').wasps + nestComposition(200, 'warren').beetles).toBe(0);
-    expect(nestComposition(NESTS.beetlesFrom + 1, 'den').beetles).toBe(1);
-    expect(nestComposition(200, 'den').wasps).toBe(0);
-    const q = nestComposition(120, 'queen');
-    expect(q.wasps).toBeGreaterThan(0);
-    expect(q.beetles).toBeGreaterThan(0);
+  it('each kind of nest is mostly its own bug, with some crawlers (D-152)', () => {
+    const at = (kind: Parameters<typeof nestComposition>[1], d: number) => nestComposition(d, kind);
+    expect(at('warren', 50)).toMatchObject({ runners: 0, brutes: 0, wasps: 0, beetles: 0 });
+    expect(at('runnel', 70).runners).toBeGreaterThan(at('runnel', 70).crawlers);
+    expect(at('runnel', 70)).toMatchObject({ brutes: 0, wasps: 0, beetles: 0 });
+    expect(at('hive', 90).wasps).toBeGreaterThan(at('hive', 90).runners);
+    expect(at('hive', 90)).toMatchObject({ brutes: 0, beetles: 0 });
+    expect(at('den', 110).brutes).toBeGreaterThan(0);
+    expect(at('den', 200)).toMatchObject({ runners: 0, wasps: 0, beetles: 0 });
+    expect(at('barrow', 130).beetles).toBe(2);
+    expect(at('barrow', 200)).toMatchObject({ runners: 0, brutes: 0, wasps: 0 });
+  });
+
+  it('v43 saves: a queen nest becomes a queen nest of the kind that lives that far out, keeping its bugs', () => {
+    const w = emptyWorld();
+    const old = JSON.parse(w.toJSON());
+    old.version = 43;
+    const far = newNest(0, 0, 0, 170, 1, 'den');
+    const near = newNest(1, 120, 120, 30, 1, 'warren');
+    old.nests = [{ ...far, kind: 'queen', brood: { crawler: 4, runner: 3, brute: 2, wasp: 1, beetle: 1 } }, near];
+    const loaded = World.fromJSON(JSON.stringify(old));
+    const [q, n] = loaded.state.nests;
+    expect(q.queen).toBe(true);
+    expect(q.kind).toBe(nestKindFor(hubDistance(loaded, q), 0.5));
+    expect(q.brood).toEqual({ crawler: 4, runner: 3, brute: 2, wasp: 1, beetle: 1 });
+    expect(n.queen).toBeUndefined();
+    expect(n.kind).toBe('warren');
+    expect(loaded.state.version).toBe(SAVE_VERSION);
   });
 
   it('v40 saves: nests get no wasps or beetles of their own', () => {

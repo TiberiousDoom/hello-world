@@ -32,6 +32,7 @@ import {
   ROLLER,
   MAP_SIZE,
   NESTS,
+  nestKindFor,
   ORE,
   OUTPUT_BUFFER,
   PORT_PERIOD,
@@ -86,6 +87,7 @@ import {
   announceThreat,
   anyAngry,
   broodFor,
+  buryQueens,
   checkBuiltOver,
   startRaids,
   damageMound,
@@ -139,7 +141,7 @@ export type { ResearchState };
  * v38 (D-128) adds drones in flight.
  * v39 (D-130): the engines, life support and navigation are Electric Age stages, after Ship Systems.
  */
-export const SAVE_VERSION = 43;
+export const SAVE_VERSION = 44;
 export const TICK = 1 / 20;
 /** The side of a block of tiles in `World.blocks`. */
 export const BLOCK = 8;
@@ -271,6 +273,7 @@ export interface Enemy {
   raid?: boolean; // out on a night raid (D-065), until morning and nothing is left in reach
   home?: boolean; // gave up the chase with nothing in reach (D-091): heading back into its territory
   foe?: { id: number; x: number; y: number }; // the turret that shot a vengeful bug (D-137), by id and corner tile
+  queen?: boolean; // a queen (D-152), out of her fallen nest: bigger, tougher, slower (bugDef)
 }
 
 export interface GameState {
@@ -588,6 +591,7 @@ export class World {
       if (state.researched.includes('plating')) for (const b of state.buildings) if (DEFENCE_TIERS.types.includes(b.type)) b.tier = Math.max(b.tier ?? 1, 3);
       state.version = 43;
     }
+    if (state.version === 43) World.migrateV43(state);
     if (state.version !== SAVE_VERSION) throw new OldSaveError(`Save version ${state.version} is from an older kind of map`);
     const world = new World(state);
     if (before < 30) world.addPonds(); // once the building index exists, to keep ponds off buildings
@@ -642,6 +646,22 @@ export class World {
       ship.delivered = {};
     }
     state.version = 36;
+  }
+
+  /**
+   * v43 to v44 (D-152): a kind of nest for each bug, and queen nests of any kind. A queen nest becomes a queen
+   * nest of the kind that lives that far out, keeping the bugs it has. Other nests keep their kind and bugs,
+   * so a hive holds runners until it breeds new ones.
+   */
+  private static migrateV43(state: GameState): void {
+    const hub = state.buildings.find((b) => b.id === state.hubId);
+    const [hx, hy] = hub ? [hub.x + Math.floor(HUB_SIZE / 2), hub.y + Math.floor(HUB_SIZE / 2)] : [state.width / 2, state.height / 2];
+    for (const n of state.nests) {
+      if ((n.kind as string) !== 'queen') continue; // 'queen' was a kind of its own before v44
+      n.kind = nestKindFor(hypot(n.x + NESTS.cell / 2 - hx, n.y + NESTS.cell / 2 - hy), 0.5);
+      n.queen = true;
+    }
+    state.version = 44;
   }
 
   /**
@@ -2532,6 +2552,7 @@ export class World {
     this.announceClock(s.time - dt, s.time);
     announceThreat(this, s.time - dt, s.time);
     startRaids(this, s.time - dt, s.time);
+    buryQueens(this);
     s.enemies = s.enemies.filter((e) => e.hp > 0);
 
     for (const b of [...s.buildings]) {

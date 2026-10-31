@@ -817,16 +817,17 @@ export const NESTS = {
   threatEvery: 1080, // seconds of play between threat levels (D-065: every 15–20 minutes)
   threatMax: 10,
   threatHp: 0.15, // bugs bred or spread from now on get this much more health per threat level
-  threatSwap: 0.08, // chance per level that a bred crawler hatches as a runner (or, far out, a brute), up to threatSwapMax
+  threatSwap: 0.08, // chance per level that a bred crawler hatches as its nest's own bug (a warren's as a runner), up to threatSwapMax
   threatSwapMax: 0.5,
   threatSpread: 0.08, // territories spread this much sooner per level, down to threatSpreadMin of the usual time
   threatSpreadMin: 0.5,
-  // Themed kinds (D-132): warrens near the hub, hives from hiveFrom tiles out, dens from denFrom, mixing
+  // A kind of nest for each bug (D-132, D-152): crawler warrens near the hub, runner runnels from runnelFrom
+  // tiles out, wasp hives from hiveFrom, brute dens from denFrom and beetle barrows from barrowFrom, mixing
   // within kindBlend tiles either side of each line.
-  hiveFrom: 60,
+  runnelFrom: 60,
+  hiveFrom: 80,
   denFrom: 100,
-  waspsFrom: 80, // hives this far out hold wasps too (D-135)
-  beetlesFrom: 120, // and dens beetles
+  barrowFrom: 120,
   kindBlend: 12,
   // Growing (D-132): a calm nest moves up a stage after this many seconds of calm (3 days), up to stageMax.
   // Each stage brings a bigger brood and a tougher mound: stage s holds (s + 1) / 2 of stage 1.
@@ -851,23 +852,36 @@ export const HARDCORE_NESTS = {
   builtOver: 2, // a partly covered nest breeds this many times as fast again
 };
 
-/** Queen nests (D-132): rare, near the map edge, with a big brood, a tougher mound and lots of chitin. */
+/**
+ * Queen nests (D-132, D-152): rare, near the map edge, any kind, with a bigger brood, a tougher mound and lots
+ * of chitin. A queen lives in the chamber; when the mound falls she comes out and fights (`bug`).
+ */
 export const QUEENS = {
   edge: 20, // only cells with a tile this close to the map edge
   count: [1, 3] as [number, number], // queens on a new map
   mound: 3, // times a nest's mound health
   chitin: 3, // times a nest's chitin
   breed: 2, // breeds this many times as fast
+  brood: 1.5, // times the bugs a nest of its kind holds
+  // The queen herself, against a grown bug of her kind: health, bite, speed and size, and the chitin she drops
+  // (times what a nest that far out drops).
+  bug: { hp: 6, dps: 2, speed: 0.6, size: 1.6 },
+  bugChitin: 2,
 };
 
-/** What kind of nest it is (D-132): crawler warrens, runner hives, brute dens and rare queens. */
-export type NestKind = 'warren' | 'hive' | 'den' | 'queen';
+/** What kind of nest it is (D-132, D-152): one for each bug. Any kind can be a queen nest. */
+export type NestKind = 'warren' | 'runnel' | 'hive' | 'den' | 'barrow';
+
+/** The bug each kind of nest is for (D-152). */
+export const NEST_BUG: Record<NestKind, EnemyType> = { warren: 'crawler', runnel: 'runner', hive: 'wasp', den: 'brute', barrow: 'beetle' };
 
 /** A nest's kind `distance` tiles from the hub: `roll` (0–1) picks one where two zones meet. */
 export function nestKindFor(distance: number, roll: number): NestKind {
   const past = (at: number) => Math.min(1, Math.max(0, (distance - at + NESTS.kindBlend) / (2 * NESTS.kindBlend)));
+  if (roll < past(NESTS.barrowFrom)) return 'barrow';
   if (roll < past(NESTS.denFrom)) return 'den';
   if (roll < past(NESTS.hiveFrom)) return 'hive';
+  if (roll < past(NESTS.runnelFrom)) return 'runnel';
   return 'warren';
 }
 
@@ -912,18 +926,18 @@ export const DEFENCE_TIERS = {
 
 /**
  * What lives in a nest `distance` tiles from the hub: further out is more dangerous. Each kind is mostly its
- * own bug (D-132); with no kind, the mix nests had before kinds (for migrating old saves).
+ * own bug, with some crawlers (D-132, D-152); with no kind, the mix nests had before kinds (for old saves).
  */
 export function nestComposition(distance: number, kind?: NestKind): { crawlers: number; runners: number; brutes: number; wasps: number; beetles: number; hpMult: number } {
   const f = Math.floor;
   const hpMult = 1 + distance / 150;
-  // Wasps join hives far out, and beetles dens (D-135).
-  const wasps = distance > NESTS.waspsFrom ? 1 + f((distance - NESTS.waspsFrom) / 50) : 0;
-  const beetles = distance > NESTS.beetlesFrom ? 1 + f((distance - NESTS.beetlesFrom) / 60) : 0;
-  if (kind === 'warren') return { crawlers: 3 + f(distance / 45), runners: 0, brutes: 0, wasps: 0, beetles: 0, hpMult };
-  if (kind === 'hive') return { crawlers: 1 + f(distance / 120), runners: 2 + f(Math.max(0, distance - NESTS.hiveFrom) / 40), brutes: 0, wasps, beetles: 0, hpMult };
-  if (kind === 'den') return { crawlers: 2 + f(distance / 60), runners: 0, brutes: 1 + f(Math.max(0, distance - NESTS.denFrom) / 50), wasps: 0, beetles, hpMult };
-  if (kind === 'queen') return { crawlers: 3 + f(distance / 45), runners: 2 + f(distance / 60), brutes: 2 + f(distance / 80), wasps: 1 + f(distance / 100), beetles: 1 + f(distance / 100), hpMult };
+  const past = (at: number) => Math.max(0, distance - at);
+  const none = { crawlers: 0, runners: 0, brutes: 0, wasps: 0, beetles: 0, hpMult };
+  if (kind === 'warren') return { ...none, crawlers: 3 + f(distance / 45) };
+  if (kind === 'runnel') return { ...none, crawlers: 1 + f(distance / 120), runners: 2 + f(past(NESTS.runnelFrom) / 40) };
+  if (kind === 'hive') return { ...none, crawlers: 1 + f(distance / 120), runners: 1, wasps: 2 + f(past(NESTS.hiveFrom) / 50) };
+  if (kind === 'den') return { ...none, crawlers: 2 + f(distance / 60), brutes: 1 + f(past(NESTS.denFrom) / 50) };
+  if (kind === 'barrow') return { ...none, crawlers: 2 + f(distance / 60), beetles: 2 + f(past(NESTS.barrowFrom) / 60) };
   return {
     crawlers: 3 + Math.floor(distance / 45),
     runners: distance > 60 ? 1 + Math.floor((distance - 60) / 40) : 0,
