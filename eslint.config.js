@@ -4,7 +4,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'dist-single/', 'dist-server/', 'relay/', 'node_modules/', 'playwright-report/', 'test-results/', 'audio/', 'art/', 'pwa/'] },
+  { ignores: ['dist/', 'dist-single/', 'dist-server/', 'relay/', 'node_modules/', 'playwright-report/', 'test-results/', 'audio/', 'art/', 'docs/art-canvas/', 'pwa/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

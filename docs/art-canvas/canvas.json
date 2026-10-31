@@ -1,0 +1,359 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Animations.dc.html": {
+      "h": 1260,
+      "is_interactive": true,
+      "title": "Movement animations",
+      "w": 1440,
+      "x": 0,
+      "y": 4720
+    },
+    "Bugs.dc.html": {
+      "h": 820,
+      "title": "Bugs",
+      "w": 1440,
+      "x": 1520,
+      "y": 1360
+    },
+    "CurrentBugs.dc.html": {
+      "h": 1540,
+      "page": "current",
+      "title": "Current · Bugs and nests",
+      "w": 1440,
+      "x": 0,
+      "y": 3280
+    },
+    "CurrentDefense.dc.html": {
+      "h": 2760,
+      "page": "current",
+      "title": "Current · Defenses and walls",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "CurrentEffectsUI.dc.html": {
+      "h": 1720,
+      "page": "current",
+      "title": "Current · Effects and UI icons",
+      "w": 1440,
+      "x": 0,
+      "y": 6160
+    },
+    "CurrentFactory.dc.html": {
+      "h": 2040,
+      "page": "current",
+      "title": "Current · Factory, power and logistics",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "CurrentItems.dc.html": {
+      "h": 1100,
+      "page": "current",
+      "title": "Current · Items",
+      "w": 1440,
+      "x": 0,
+      "y": 4940
+    },
+    "CurrentShip.dc.html": {
+      "h": 1000,
+      "page": "current",
+      "title": "Current · Shipyard and ship",
+      "w": 1440,
+      "x": 0,
+      "y": 2160
+    },
+    "CurrentTerrain.dc.html": {
+      "h": 1740,
+      "page": "current",
+      "title": "Current · Terrain, seasons and engineer",
+      "w": 1440,
+      "x": 1520,
+      "y": 5360
+    },
+    "CurrentWorking.dc.html": {
+      "h": 2360,
+      "page": "current",
+      "title": "Current · Working and firing animations",
+      "w": 1440,
+      "x": 1520,
+      "y": 2880
+    },
+    "Defense.dc.html": {
+      "h": 980,
+      "title": "Defenses",
+      "w": 1440,
+      "x": 0,
+      "y": 1360
+    },
+    "Effects.dc.html": {
+      "h": 1340,
+      "is_interactive": true,
+      "title": "Effects and missing pieces",
+      "w": 1440,
+      "x": 0,
+      "y": 6100
+    },
+    "Factory.dc.html": {
+      "h": 1240,
+      "title": "Factory buildings",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 960,
+      "title": "Art direction",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "MoreBuildings.dc.html": {
+      "h": 1160,
+      "title": "More buildings",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "MoreItems.dc.html": {
+      "h": 1000,
+      "title": "More items and terrain",
+      "w": 1440,
+      "x": 3040,
+      "y": 4100
+    },
+    "Motion.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Moving parts",
+      "w": 1440,
+      "x": 1520,
+      "y": 6900
+    },
+    "Nests.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 2240,
+      "h": 2660,
+      "title": "Nests growing and merging (proposed)",
+      "page": "nests"
+    },
+    "NightDamage.dc.html": {
+      "h": 1120,
+      "title": "Night lighting and damage",
+      "w": 1440,
+      "x": 3040,
+      "y": 5220
+    },
+    "Palisade.dc.html": {
+      "h": 1500,
+      "title": "Palisade and wall runs",
+      "w": 1440,
+      "x": 3040,
+      "y": 1360
+    },
+    "Readability.dc.html": {
+      "h": 1100,
+      "title": "Readability upgrades",
+      "w": 1440,
+      "x": 3040,
+      "y": 6460
+    },
+    "Resources.dc.html": {
+      "h": 960,
+      "title": "Items and ore nodes",
+      "w": 1440,
+      "x": 0,
+      "y": 2460
+    },
+    "Scene.dc.html": {
+      "h": 967,
+      "title": "In-game scene",
+      "w": 1445,
+      "x": 1515,
+      "y": 2377
+    },
+    "Seasons.dc.html": {
+      "h": 680,
+      "title": "Seasons",
+      "w": 1440,
+      "x": 1520,
+      "y": 6100
+    },
+    "Shipyard.dc.html": {
+      "h": 1006,
+      "title": "Shipyard and ship",
+      "w": 1444,
+      "x": 3040,
+      "y": 2974
+    },
+    "Terrain.dc.html": {
+      "h": 940,
+      "title": "Terrain and engineer",
+      "w": 1440,
+      "x": 0,
+      "y": 3540
+    },
+    "UI.dc.html": {
+      "h": 1180,
+      "title": "UI icons and menus",
+      "w": 1440,
+      "x": 1520,
+      "y": 4720
+    },
+    "ShipSideView.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1900,
+      "title": "Ship side view",
+      "page": "ship"
+    },
+    "FinOptions.dc.html": {
+      "x": 0,
+      "y": 2000,
+      "w": 1700,
+      "h": 1000,
+      "title": "Front fin options",
+      "page": "ship"
+    },
+    "BareTrees.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1060,
+      "title": "Bare trees (proposed)",
+      "page": "trees"
+    },
+    "OreVeins.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1600,
+      "h": 3600,
+      "title": "Ore veins (proposed)",
+      "page": "ore"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-23T22:45:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "current-title": {
+      "kind": "title1",
+      "maxW": 2960,
+      "page": "current",
+      "text": "Current art · 0.87.8, every sprite in src/art",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "guide": {
+      "fill": "blue",
+      "size": 40,
+      "text": "Board guide · Foundry Front art upgrade\n\nThis page is the art upgrade as it was drawn (0.40.0, D-075). Its sprites went into the game's src/art, and many have changed or been added since (the Wood Age, power, the ship, more defenses).\nThe Current art page shows every sprite as the game draws it now (0.87.8), straight from src/art.\n\nDirection: Art direction · In-game scene\nBuildings: Factory buildings · More buildings · Shipyard and ship · Defenses · Palisade and wall runs\nEnemies: Bugs · Nests · Movement animations\nItems and terrain: Items and ore nodes · More items and terrain · Terrain and engineer · Seasons\nUI: UI icons and menus\nEffects and polish: Effects and missing pieces · Moving parts · Night lighting and damage · Readability upgrades",
+      "w": 1440,
+      "x": 0,
+      "y": -1105
+    },
+    "ship-title": {
+      "kind": "title1",
+      "maxW": 1440,
+      "page": "ship",
+      "text": "Ship and shipyard · in the game from 0.87.8",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "trees-title": {
+      "x": 0,
+      "y": -300,
+      "text": "Trees through the seasons · proposed art",
+      "kind": "title1",
+      "maxW": 1440,
+      "page": "trees"
+    },
+    "ore-title": {
+      "x": 0,
+      "y": -300,
+      "text": "Ore patches · proposed art",
+      "kind": "title1",
+      "maxW": 1600,
+      "page": "ore"
+    },
+    "nests-title": {
+      "x": 0,
+      "y": -300,
+      "text": "Nests growing and merging · proposed art",
+      "kind": "title1",
+      "maxW": 2240,
+      "page": "nests"
+    }
+  },
+  "order": [
+    "CurrentFactory.dc.html",
+    "CurrentDefense.dc.html",
+    "CurrentShip.dc.html",
+    "CurrentWorking.dc.html",
+    "CurrentBugs.dc.html",
+    "CurrentItems.dc.html",
+    "CurrentTerrain.dc.html",
+    "CurrentEffectsUI.dc.html",
+    "Main.dc.html",
+    "Factory.dc.html",
+    "Defense.dc.html",
+    "Bugs.dc.html",
+    "Resources.dc.html",
+    "Scene.dc.html",
+    "Terrain.dc.html",
+    "Nests.dc.html",
+    "Animations.dc.html",
+    "Palisade.dc.html",
+    "MoreBuildings.dc.html",
+    "Shipyard.dc.html",
+    "MoreItems.dc.html",
+    "UI.dc.html",
+    "Effects.dc.html",
+    "Seasons.dc.html",
+    "NightDamage.dc.html",
+    "Readability.dc.html",
+    "Motion.dc.html",
+    "ShipSideView.dc.html",
+    "FinOptions.dc.html",
+    "BareTrees.dc.html",
+    "OreVeins.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "upgrade",
+      "name": "Art upgrade v1"
+    },
+    {
+      "id": "current",
+      "name": "Current art"
+    },
+    {
+      "id": "ship",
+      "name": "Ship and shipyard"
+    },
+    {
+      "id": "trees",
+      "name": "Trees"
+    },
+    {
+      "id": "ore",
+      "name": "Ore"
+    },
+    {
+      "id": "nests",
+      "name": "Nests"
+    }
+  ],
+  "title": "Foundry Front Art Upgrade"
+}
