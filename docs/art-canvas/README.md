@@ -28,6 +28,7 @@ id afterwards (see CLAUDE.md's gotchas).
 - `ore.cjs` and `ore2.cjs`: the richest ore field of each kind near the hub at two zooms, and an extractor on a field beside a worked-out tile.
 - `nests.cjs`: one nest at each stage, then merged over two and four cells.
 - `shipgame.cjs`: the ship at several stages on the map, and the shipyard's Side view.
+- `batch3.cjs`: batch 3 (D-158): Hardcore bugs and a glowing nest, a drone, Mk plates, the hub breach, an extractor's worn ore, an idle belt in fall and snowfall in winter.
 - `batch2.cjs`: batch 2 (D-157): the nursery, pads, pylon, beacon, port at work, the railgun charging, the tesla's bolt and stores at each fill.
 - `batch1.cjs`: the first batch of Ideas in the game (D-156): guns mid-recoil, wasps, beetles, young bugs at each age and a working greenhouse.
 

@@ -149,7 +149,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Steam Turbine (D-121): a bladed rotor in a steel casing, with a copper generator coil | 2×2 | Static, plus a 4-frame working strip (rotor turning, spark) | 1 + 4 | P2 | Placeholder (`buildings/steam_turbine`, `steam_turbine_working_4f`) |
 | Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Upgraded in 0.87.7: glass insulators, braces, stones at its foot and a long shadow (`buildings/power_pole`) |
 | Storage Silo (D-122): a round steel silo roof inside a square frame, with an output hatch | 2×2 | A gauge round the roof lights at a third, two thirds and full (D-157) | 4 | P2 | Placeholder (`buildings/storage_silo`, `storage_silo_1` to `_3`) |
-| Mk2 plate (D-122) | — | A gold plate with two chevrons on Mk2 extractors and furnaces, dim without electricity | — | P3 | Code |
+| Mk2 and Mk3 plates (D-122, D-127) | 64×56, drawn about half a tile wide | A bevelled, riveted plate with raised chevrons (two gold, three blue), glowing while the machine has electricity, dull without (D-158) | 4 | P3 | Placeholder (`effects/plate_mk2`, `plate_mk2_off`, `plate_mk3`, `plate_mk3_off`; code draws a flat plate without them) |
 | Sulfur node (D-123) | 1×1 | Yellow crystals in rock, like the other ore nodes | 1 | P2 | Placeholder (`terrain/node_sulfur`, recoloured from copper) |
 | Powder Mill (D-123): a stone pan with two edge runners, sulfur and charcoal bins | 2×2 | Static, plus a 4-frame working strip (runners turning, light) | 1 + 4 | P2 | Placeholder (`buildings/powder_mill`, `powder_mill_working_4f`) |
 | Circuit Works (D-125): a green circuit board with a chip and a placing head, coils in a tray, a lightning mark | 2×2 | Static, plus a 4-frame working strip (head dipping, solder spark, light) | 1 + 4 | P2 | Placeholder (`buildings/circuit_works`, `circuit_works_working_4f`) |
@@ -157,7 +157,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Arc Fence (D-126): steel posts with a lightning insulator, three live wires between them | 1×1, a run set like the walls (`arc_fence`, `_v`, corners, ends, `_pier`) | Static | 9 | P2 | Placeholder (`buildings/arc_fence*`) |
 | Floodlight (D-126): a lamp head with three bulbs on a post | 1×1 | Static (its light at night is drawn in code) | 1 | P2 | Placeholder (`buildings/floodlight`) |
 | Drone Pad (D-128): a landing pad with a yellow H in a dashed ring and corner lights | 1×1 | Static, plus a 4-frame working strip while powered: the lights chase round (D-157) | 1 + 4 | P2 | Placeholder (`buildings/drone_pad`, `drone_pad_working_4f`) |
-| Drone (D-128): a small quadcopter seen from above, rotors spinning, carrying an item | ~0.5 tile | Drawn in code | — | P3 | Code |
+| Drone (D-128): a small quadcopter seen from above, rotors spinning, carrying an item | ~0.65 tile | 4 frames: two blades per rotor turning, nav lights blinking; turned the way it flies (D-158). Its shadow and item are drawn in code | 4 | P3 | Placeholder (`units/drone_4f`) |
 | Shield Pylon (D-129): an octagonal plate with a glowing blue orb | 1×1 | Static, plus a 4-frame working strip while powered: the orb pulses (D-157); its dome is drawn in code | 1 + 4 | P2 | Placeholder (`buildings/shield_pylon`, `shield_pylon_working_4f`) |
 | Railgun (D-129): an octagonal base with a ring of lights; twin rails with copper coils on a turret | 2×2 | Base, plus a barrel layer that turns to aim; a 5-frame strip of the coils charging, firing and cooling (D-157) | 2 + 5 | P2 | Placeholder (`buildings/railgun_base`, `railgun_barrel`, `railgun_barrel_charge_5f`) |
 | Teleporter Pad (D-131): a violet pad with a glowing portal ring | 1×1 | Static, plus a 4-frame working strip in use: the ring turns, motes spiral in (D-157) | 1 + 4 | P2 | Placeholder (`buildings/teleporter`, `teleporter_working_4f`) |
@@ -213,10 +213,11 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Dust burst, where a trebuchet's stone lands (D-150): dirt clods thrown out, a ring of dust spreading and settling | 128×128 | 5 | P2 | Upgraded (`effects/dust_burst_5f`) |
 | Damage smoke and fire (D-150): smoke drifting up from a hurt building; flames flickering on a badly hurt one | Building size | 4 each | P2 | Upgraded (`effects/damage_1_4f`, `effects/damage_2_4f`, built from `damage_1` and `damage_2` by `art/animate.mjs`) |
 | Nests by kind and stage (D-152) | Drawn in a 4-tile box at every stage, so the art grows inside it (the mound blocks 2×2 tiles); merged nests 1.3× with tunnels in code; outline in code | 5 kinds × 3 stages + angry + damaged + destroyed | P2 | Done, drawn by `art/nests.mjs` (the Earthworks look): `nests/warren_1` to `nests/barrow_3`. Hardcore draws them darker and redder in code. Overlays `nests/angry`, `nests/damaged`, `nests/destroyed` as before; blight is drawn in code |
+| Hardcore nest glow (D-158) | Over the nest, the same box | Each nest drawing's burrows lit red-orange from deep inside; the game pulses it | 20 | P2 | Placeholder (`nests/<kind>_<stage>_glow`, by `art/extras.mjs`) |
 | Queen nests (D-152) | 4-tile box, drawn 4.6 tiles across | 1 per kind | P2 | Done, by `art/nests.mjs`: `nests/warren_queen` to `nests/barrow_queen` |
 | Queens (D-152) | 2-tile box, drawn 1.6× the bug | 1 per bug | P2 | Done, by `art/queens.mjs`: `enemies/crawler_queen` to `enemies/beetle_queen`. No walking strips yet: they waddle |
 | Chitin (item, D-065): an olive bug-shell plate | Item size | 1 | P2 | Upgraded (`items/chitin`) |
-| Hub breach (shockwave) | 256×256 | 6 | P3 | Code |
+| Hub breach (shockwave): a flash, a ring of blue light, dust and chunks of the hub (D-158) | 128×128, drawn 2.2 hub widths across | 6 | P3 | Placeholder (`effects/hub_breach_6f`) |
 
 ## UI
 
@@ -227,8 +228,8 @@ sky-blue accent shape, on a 24×24 grid. If an icon uses the colour names
 
 | Asset | Size | Priority | Status |
 |---|---|---|---|
-| App icon master | 1024×1024 (no transparency, for the stores) | P3 | Needed (after naming). Can start from `ui/logo.svg` |
-| Favicon / PWA icons | 512×512 and 192×192 | P3 | Placeholder |
+| App icon master: the logo's factory and shield in the clearing at dusk, pines behind, the hazard stripe below (D-158) | 1024×1024 (no transparency, for the stores) | P3 | Placeholder (`art/icon.svg`, `art/icon-1024.png`, by `art/extras.mjs`) |
+| Favicon / PWA icons: the app icon at 512, 192 and 180 (Apple), a maskable one with its art in the middle 80%, and a shield favicon that reads at 16 px (D-158) | 512×512 and 192×192 | P3 | Placeholder (`public/icon-*.png`, `apple-touch-icon.png`, `favicon.svg`, `favicon-32.png`) |
 | Logo / wordmark | Vector (SVG) | P3 | Upgraded mark `ui/logo.svg`; the wordmark is text for now |
 | UI icons (`src/art/ui/`): health, research, pause, play, fast, menu, rotate, demolish, close, save, help, home, new, lock, skull, factory, collect, feedback, coop, undo, copy, settings | 24×24 grid, SVG preferred | P3 | Upgraded |
 | Research icons (one per research, 10 today) | 64×64 | P3 | Optional |

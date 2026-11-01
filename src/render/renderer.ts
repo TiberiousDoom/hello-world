@@ -87,6 +87,65 @@ const NEST_BOX = 4;
 const NEST_QUEEN_BOX = 4.6;
 /** Hardcore nests (D-133): the same art, darker and redder. */
 const HARDCORE_NEST_FILTER = 'brightness(72%) sepia(35%) hue-rotate(-30deg) saturate(170%)';
+
+/** Hardcore bugs' copies of their sprites and frames (D-158), made once each. */
+const hardCopies = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>();
+let veinTexture: HTMLCanvasElement | undefined;
+/** Thin red veins wandering across a square, to lay over a bug's shell. Drawn once, the same every time. */
+function veins(): HTMLCanvasElement {
+  if (veinTexture) return veinTexture;
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  g.strokeStyle = '#ff3a22';
+  g.lineCap = 'round';
+  for (let k = 0; k < 26; k++) {
+    let x = rnd() * 256;
+    let y = rnd() * 256;
+    let a = rnd() * Math.PI * 2;
+    g.lineWidth = 1.5 + rnd() * 2;
+    g.beginPath();
+    g.moveTo(x, y);
+    for (let s = 0; s < 14; s++) {
+      a += (rnd() - 0.5) * 1.2;
+      x += Math.cos(a) * 9;
+      y += Math.sin(a) * 9;
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  return (veinTexture = c);
+}
+/** A bug's sprite for Hardcore: darker and redder, red veins under the shell, a red haze about it. */
+function hardened(img: HTMLCanvasElement): HTMLCanvasElement {
+  let out = hardCopies.get(img);
+  if (out) return out;
+  out = document.createElement('canvas');
+  out.width = img.width;
+  out.height = img.height;
+  const g = out.getContext('2d')!;
+  const blur = img.width / 24;
+  g.shadowColor = 'rgba(255,40,20,0.7)';
+  g.shadowBlur = blur;
+  g.filter = 'brightness(62%) sepia(30%) hue-rotate(-25deg) saturate(150%)';
+  g.drawImage(img, 0, 0);
+  g.shadowBlur = 0;
+  g.filter = 'none';
+  // The veins only where the bug is (source-atop), not on its haze.
+  const shell = document.createElement('canvas');
+  shell.width = img.width;
+  shell.height = img.height;
+  const sg = shell.getContext('2d')!;
+  sg.drawImage(img, 0, 0);
+  sg.globalCompositeOperation = 'source-in';
+  sg.globalAlpha = 0.75;
+  sg.drawImage(veins(), 0, 0, img.width, img.height);
+  g.drawImage(shell, 0, 0);
+  hardCopies.set(img, out);
+  return out;
+}
 /** Tiles across a nest's art is drawn: a fixed box by kind (D-152), bigger merged (D-132); a destroyed one's crater 2. */
 const nestArtSize = (n: Nest): number => (n.destroyed ? 2 : (n.queen ? NEST_QUEEN_BOX : NEST_BOX) * (n.cells ? 1.3 : 1));
 /** The shipyard and its ship are drawn 3 tiles square. */
@@ -172,6 +231,8 @@ const FOREST_CANOPY = '#1f4a2e';
 const FIREFLIES = 70;
 const LEAVES = 3; // in each LEAF_CELL square of the map
 const LEAF_CELL = 18; // tiles
+/** Snowflakes in each LEAF_CELL square in winter (D-158). */
+const SNOWFLAKES = 14;
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
 
 /** A cheap integer hash, for choosing decorations per tile. */
@@ -286,6 +347,8 @@ export class Renderer {
   private enemies = new Map<number, { x: number; y: number; angle: number; type: EnemyType; queen?: boolean; walked: number; movedAt: number; trail: [number, number][] }>();
   private effects: Effect[] = [];
   private breaches = -1;
+  /** Drawing Hardcore bugs (D-158): sprites go through hardened(). */
+  private hardLook = false;
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
   /** The look being drawn (#42, D-154), and the night overlay's canvas. */
@@ -494,7 +557,10 @@ export class Renderer {
       const full = e.maxHp * grown;
       if (e.hp < full - 0.5) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / full, '#e0445a');
     };
+    // Hardcore bugs (D-158) are darker, with glowing red veins and a red haze about them.
+    this.hardLook = s.mode === 'hardcore';
     for (const e of s.enemies) if (!ENEMIES[e.type].flies) drawBug(e);
+    this.hardLook = false;
 
     // Engineers and bugs walk under the trees (#95); a faint engineer shows through so it isn't lost.
     // The trees' shadows turn with the sun, so the canopy is repainted as it moves.
@@ -516,7 +582,9 @@ export class Renderer {
       ctx.beginPath();
       ctx.ellipse(e.x + 0.25, e.y + 0.35, 0.22, 0.12, 0, 0, Math.PI * 2);
       ctx.fill();
+      this.hardLook = s.mode === 'hardcore';
       drawBug(e);
+      this.hardLook = false;
     }
 
     this.drawForest(s.width, s.height, x0f, y0f, x1f, y1f, z);
@@ -692,6 +760,7 @@ export class Renderer {
 
   private drawCanvas(img: HTMLCanvasElement, x: number, y: number, size: number, angle: number): void {
     const ctx = this.ctx;
+    if (this.hardLook) img = hardened(img);
     if (angle) {
       ctx.save();
       ctx.translate(x + size / 2, y + size / 2);
@@ -787,7 +856,13 @@ export class Renderer {
     const hard = standing && world.state.mode === 'hardcore';
     if (hard) ctx.filter = HARDCORE_NEST_FILTER;
     const drawn = this.drawSprite(key, cx - size / 2, cy - size / 2, size);
-    if (hard) ctx.filter = 'none';
+    if (hard) {
+      ctx.filter = 'none';
+      // Their burrows glow red from deep inside (D-158), pulsing slowly.
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(world.state.time * 1.6 + n.id);
+      this.drawSprite(`${key}_glow`, cx - size / 2, cy - size / 2, size);
+      ctx.globalAlpha = 1;
+    }
     if (drawn) {
       if (!standing) return;
       const burrow = moundSize(n);
@@ -1288,6 +1363,24 @@ export class Renderer {
     const c1x = Math.floor(x1f / LEAF_CELL);
     const c1y = Math.floor(y1f / LEAF_CELL);
     if ((c1x - c0x + 1) * (c1y - c0y + 1) > 40) return;
+    // In winter, snow drifts down over the map (D-158), the same way: big flakes fall faster and sway.
+    if (this.season === 'winter') {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let i = 0; i < SNOWFLAKES; i++) {
+        const hv = hash(i, 211);
+        const size = 0.045 + ((hv >>> 20) % 4) * 0.016;
+        const fall = 0.6 + size * 12;
+        const ox = ((hv % 997) / 997) * LEAF_CELL + Math.sin(t * 0.9 + i) * 0.25;
+        const oy = ((((hv >>> 10) % 997) / 997) * LEAF_CELL + t * fall) % LEAF_CELL;
+        for (let cy = c0y; cy <= c1y; cy++)
+          for (let cx = c0x; cx <= c1x; cx++) {
+            const fx = cx * LEAF_CELL + ox;
+            const fy = cy * LEAF_CELL + oy;
+            if (fx < x0f - 1 || fx > x1f + 1 || fy < y0f - 1 || fy > y1f + 1) continue;
+            dot(ctx, fx, fy, size);
+          }
+      }
+    }
     for (let i = 0; i < LEAVES; i++) {
       const hv = hash(i, 131);
       const ox = (((hv % 997) / 997) * LEAF_CELL + t * (0.5 + (i % 3) * 0.15)) % LEAF_CELL;
@@ -1420,6 +1513,46 @@ export class Renderer {
         ctx.lineWidth = 1 / 32;
       }
     }
+    // Where an extractor works a patch, the shelf round it is worn (D-158): gravel spilled and scuffed, and
+    // scratches from the work. On ore tiles beside it.
+    if (!detail) return;
+    for (const b of s.buildings) {
+      if (b.type !== 'extractor' || b.x + 3 < xa || b.x - 1 > xb || b.y + 3 < ya || b.y - 1 > yb) continue;
+      const [fw, fh] = world.footprintOf(b);
+      for (let y = b.y - 1; y <= b.y + fh; y++)
+        for (let x = b.x - 1; x <= b.x + fw; x++) {
+          if (x >= b.x && x < b.x + fw && y >= b.y && y < b.y + fh) continue;
+          const k = kindAt(x, y);
+          if (!k || !joinedOre(kindAt, x, y)) continue;
+          const c = TERRACE_COLORS[k]!;
+          const lift = terraceLevel(kindAt, x, y, k) * TERRACE_CLIFF;
+          const h = hash(x, y + 4242);
+          // Toward the extractor: the near side of this tile.
+          const nx = x + 0.5 + Math.sign(b.x + fw / 2 - (x + 0.5)) * 0.25;
+          const ny = y + 0.5 + Math.sign(b.y + fh / 2 - (y + 0.5)) * 0.25 - lift;
+          for (let g = 0; g < 6; g++) {
+            const gx = nx + (((h >>> (g * 3)) % 40) - 20) / 100;
+            const gy = ny + (((h >>> (g * 3 + 2)) % 40) - 20) / 100;
+            ctx.fillStyle = g % 2 ? c.light : c.ore;
+            ctx.strokeStyle = INK;
+            ctx.lineWidth = 1 / 96;
+            ctx.beginPath();
+            ctx.arc(gx, gy, 0.03 + (g % 3) * 0.012, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.strokeStyle = c.light;
+          ctx.lineWidth = 1 / 40;
+          ctx.beginPath();
+          for (let m = 0; m < 2; m++) {
+            const sx = nx + (((h >>> (m * 5 + 1)) % 30) - 15) / 100;
+            const sy = ny + (((h >>> (m * 5 + 3)) % 30) - 15) / 100;
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + 0.12, sy + 0.05);
+          }
+          ctx.stroke();
+        }
+    }
   }
 
   /**
@@ -1547,6 +1680,28 @@ export class Renderer {
     for (const it of b.belt) {
       const [x, y] = this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET));
       this.beltItems.push([it.item, x, y]);
+    }
+    // In fall, leaves settle on a belt that carries nothing (D-158), and blow off once it runs.
+    if (!b.belt.length && (this.season === 'fall' || this.season === 'late')) {
+      const hv = hash(b.x, b.y + 9001);
+      const ctx = this.ctx;
+      for (let k = 0; k < (hv % 5 < 2 ? 0 : (hv % 5) - 1) && k < 2; k++) {
+        const [lx, ly] = at(((hv >>> (4 + k * 7)) % 80) / 100 - 0.4, ((hv >>> (9 + k * 5)) % 50) / 100 - 0.25);
+        ctx.save();
+        ctx.translate(lx, ly);
+        ctx.rotate(((hv >>> (3 + k)) % 360) * (Math.PI / 180));
+        ctx.fillStyle = LEAF_COLORS[(hv + k) % LEAF_COLORS.length];
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 0.12, 0.055, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(80,40,10,0.6)';
+        ctx.lineWidth = 0.012;
+        ctx.beginPath();
+        ctx.moveTo(-0.1, 0);
+        ctx.lineTo(0.11, 0);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
@@ -2222,6 +2377,12 @@ export class Renderer {
     // Mk2 machines (D-122): a gold plate with two chevrons in the bottom-left corner; Mk3 (D-127) a blue one with three.
     if ((b.tier === 2 || b.tier === 3) && !DEFENCE_TIERS.types.includes(b.type)) {
       const mk3 = b.tier === 3;
+      // A bevelled, riveted plate (D-158), glowing while the machine has electricity; drawn in code without it.
+      const plate = sprite(`effects/plate_${mk3 ? 'mk3' : 'mk2'}${world.electrified(b) > 0 ? '' : '_off'}`);
+      if (plate) ctx.drawImage(plate, b.x + 0.04, b.y + fh - 0.56, 0.56, 0.49);
+    }
+    if ((b.tier === 2 || b.tier === 3) && !DEFENCE_TIERS.types.includes(b.type) && !sprite('effects/plate_mk2')) {
+      const mk3 = b.tier === 3;
       ctx.fillStyle = '#0f1a2e';
       roundRect(ctx, b.x + 0.1, b.y + fh - 0.5, 0.42, 0.36, 0.06);
       ctx.fill();
@@ -2648,7 +2809,9 @@ export class Renderer {
       const hub = world.hub;
       if (hub) {
         const c = hub.x + HUB_SIZE / 2;
-        this.effects.push({ kind: 'shockwave', x: c, y: hub.y + HUB_SIZE / 2, r: 9, born: now, life: 900, color: '63,169,245' });
+        // A flash, a shockwave of blue light, dust and chunks of the hub thrown out (D-158); a ring in code without it.
+        if (!this.spriteFx('effects/hub_breach', c, hub.y + HUB_SIZE / 2, HUB_SIZE * 2.2, 900, now))
+          this.effects.push({ kind: 'shockwave', x: c, y: hub.y + HUB_SIZE / 2, r: 9, born: now, life: 900, color: '63,169,245' });
       }
     }
     this.effects = this.effects.filter((fx) => now - fx.born < fx.life);
@@ -2705,6 +2868,14 @@ export class Renderer {
       const [x, y] = at;
       ctx.fillStyle = 'rgba(10,26,12,0.25)';
       dot(ctx, x + 0.25, y + 0.35, 0.22); // its shadow on the ground below
+      // Its sprite (D-158): rotors turning, nav lights blinking, facing the way it flies.
+      const home = world.byId.get(d.home);
+      const to = world.byId.get(d.to);
+      const heading = home && to ? Math.atan2(to.y - home.y, to.x - home.x) + (d.back ? Math.PI : 0) : 0;
+      if (this.drawFrame('units/drone', now / 40 + d.home, x - 0.32, y - 0.32, 0.64, heading)) {
+        if (!d.back && d.count > 0) this.drawItem(d.item, x, y + 0.2, 0.22);
+        continue;
+      }
       ctx.strokeStyle = '#0f1a2e';
       ctx.lineWidth = 0.05;
       ctx.beginPath();

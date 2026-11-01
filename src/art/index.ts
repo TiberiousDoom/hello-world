@@ -24,6 +24,13 @@ const TILES: Record<string, [number, number]> = {
   'buildings/hub_damaged': [8, 8],
   // Each nest kind's stages and queen nest (D-152), drawn in a 4-tile box: the art grows inside it.
   ...Object.fromEntries(['warren', 'runnel', 'hive', 'den', 'barrow'].flatMap((k) => ['1', '2', '3', 'queen'].map((s) => [`nests/${k}_${s}`, [4, 4] as [number, number]]))),
+  // The glow in a Hardcore nest's burrows (D-158), laid over the nest.
+  ...Object.fromEntries(['warren', 'runnel', 'hive', 'den', 'barrow'].flatMap((k) => ['1', '2', '3', 'queen'].map((s) => [`nests/${k}_${s}_glow`, [4, 4] as [number, number]]))),
+  // Mk2 and Mk3 plates (D-158): 64 × 56.
+  'effects/plate_mk2': [1, 0.875],
+  'effects/plate_mk2_off': [1, 0.875],
+  'effects/plate_mk3': [1, 0.875],
+  'effects/plate_mk3_off': [1, 0.875],
   // Queens (D-152) are drawn about one and a half tiles across.
   ...Object.fromEntries(['crawler', 'runner', 'brute', 'wasp', 'beetle'].map((b) => [`enemies/${b}_queen`, [2, 2] as [number, number]])),
   'nests/angry': [2, 2],
