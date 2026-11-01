@@ -33,6 +33,8 @@ const TILES: Record<string, [number, number]> = {
   'effects/plate_mk3_off': [1, 0.875],
   // Queens (D-152) are drawn about one and a half tiles across.
   ...Object.fromEntries(['crawler', 'runner', 'brute', 'wasp', 'beetle'].map((b) => [`enemies/${b}_queen`, [2, 2] as [number, number]])),
+  // Their walk, attack and summoning strips (D-159).
+  ...Object.fromEntries(['crawler', 'runner', 'brute', 'wasp', 'beetle'].flatMap((b) => ['walk', 'attack', 'summon'].map((a) => [`enemies/${b}_queen_${a}`, [2, 2] as [number, number]]))),
   'nests/angry': [2, 2],
   'nests/damaged': [2, 2],
   'nests/destroyed': [2, 2],

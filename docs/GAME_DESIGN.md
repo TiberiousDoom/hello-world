@@ -407,7 +407,8 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   day the snow comes, settling on the ground, the trees and the pines and covering the grass and flowers
   bit by bit. It lies full for a day, and melts over the last half of winter's last day: flowers come back
   in the first half of that melt and leaves in the second. Pines keep their needles all year. Snow falls through
-  winter, and in fall leaves settle on belts that carry nothing (D-158). Only the look changes: the rules (tree regrowth) change on the day the season does.
+  winter, and in fall leaves settle on belts that carry nothing (D-158). Some spring days it rains, ponds ripple,
+  and fog drifts over the clearing at dawn; none of this changes the rules (D-159). Only the look changes: the rules (tree regrowth) change on the day the season does.
 - **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
   right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
   and short at midday, and right in the evening, growing long towards dusk. At night the moon casts
@@ -736,7 +737,8 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   with the ship drawn from the side: built stages solid, the current one filling in as its parts
   arrive, and the rest as dashed outlines, with each stage's progress listed below. During the launch
   countdown the engines glow round the ship's foot and smoke rolls out over the pad.
-- **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**.
+- **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**; in its
+  last seconds the ship climbs off its pad (D-159).
   The engines wake **every nest within 48 tiles** of the shipyard on the first run, **8 tiles further for
   each run delivered** (up to 96), because a loaded ship is heavier and needs more thrust (D-049). They
   also wake **at least the 3 nearest** live
