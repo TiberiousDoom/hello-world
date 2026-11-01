@@ -3,6 +3,17 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens and fireworks
+### New
+- **Building and demolishing show:** a timber frame and a rising line of light over what goes up, and dust and broken bits where something comes down.
+- **The hub answers:** a count floats up off it as deliveries arrive, and rings of blue light pulse out when research finishes.
+- **Turrets lock on:** brackets close on what they're aiming at, turning red. A turret running low on ammo blinks red.
+- **A raid is coming:** a siren turns on the hub and a red glow pulses along the side of the screen the raiders come from.
+- **Ship milestones:** fireworks over the ship when a stage is finished, and four lamps round the pad light one by one through the launch countdown, then turn green.
+- **Bugs die their own way:** a wasp spirals down, a beetle curls up into a dull husk, a brute crumples into a stain.
+- **Footprints in the snow** trail behind bugs in winter, and **eyes watch from the forest's edge** at night.
+- **A destroyed nest bursts with chitin.**
+
 ## 0.88.6 · 2026-11-01 · Rain, fireflies and the ship's climb
 ### New
 - **The ship climbs at lift-off:** in its last seconds on the pad it rises toward you, growing as it goes, while the smoke rolls out across the pad.

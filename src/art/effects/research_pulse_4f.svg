@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 128">
+<svg x="0" y="0" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="19.2" fill="none" stroke="#7cc4ff" stroke-width="5.5" opacity="0.9" /><circle cx="64" cy="64" r="40.3" fill="none" stroke="#7cc4ff" stroke-width="3.0" opacity="0.5" /><circle cx="64" cy="64" r="16" fill="#bfe4ff" opacity="0.6" /></svg>
+<svg x="128" y="0" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="29.8" fill="none" stroke="#7cc4ff" stroke-width="4.3" opacity="0.7" /><circle cx="64" cy="64" r="50.9" fill="none" stroke="#7cc4ff" stroke-width="1.8" opacity="0.3" /></svg>
+<svg x="256" y="0" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="40.3" fill="none" stroke="#7cc4ff" stroke-width="3.0" opacity="0.5" /><circle cx="64" cy="64" r="19.2" fill="none" stroke="#7cc4ff" stroke-width="5.5" opacity="0.9" /></svg>
+<svg x="384" y="0" width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="50.9" fill="none" stroke="#7cc4ff" stroke-width="1.8" opacity="0.3" /><circle cx="64" cy="64" r="29.8" fill="none" stroke="#7cc4ff" stroke-width="4.3" opacity="0.7" /></svg>
+</svg>

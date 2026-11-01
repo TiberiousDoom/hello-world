@@ -286,7 +286,7 @@ interface Layer {
 const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
 
 interface Effect {
-  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob';
+  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob' | 'label';
   x: number;
   y: number;
   r: number; // for a sprite, its size in tiles
@@ -359,6 +359,16 @@ export class Renderer {
   private breaches = -1;
   /** Drawing Hardcore bugs (D-158): sprites go through hardened(). */
   private hardLook = false;
+  /** Where each building stood (centre and size), to show it coming down when it's demolished (D-160). */
+  private spots = new Map<number, [number, number, number]>();
+  /** Hub stock, research done, ship stage and fallen nests last frame, for their effects (D-160). */
+  private stockWas = -1;
+  private labelAt = 0;
+  private researchWas = -1;
+  private stageWas = -1;
+  private nestsDown = new Set<number>();
+  /** When each turret last showed its lock-on (ms) (D-160). */
+  private lockedAt = new Map<number, number>();
   /** When each player joined (ms), to wave (D-159); players already there when the game was first drawn didn't. */
   private joinedAt = new Map<number, number>();
   private seenPlayers: Set<number> | null = null;
@@ -602,6 +612,24 @@ export class Renderer {
     };
     // Hardcore bugs (D-158) are darker, with glowing red veins and a red haze about them.
     this.hardLook = s.mode === 'hardcore';
+    // Footprints in the snow behind each bug (D-160), fading back along its trail.
+    if (this.season === 'winter') {
+      for (const e of s.enemies) {
+        const tr = this.enemies.get(e.id)?.trail;
+        if (!tr || ENEMIES[e.type].flies || e.type === 'runner') continue;
+        for (let k = tr.length - 1, n = 0; k > 0; k -= 2, n++) {
+          const [px, py] = tr[k];
+          const [qx, qy] = tr[k - 1];
+          const a = Math.atan2(py - qy, px - qx) + Math.PI / 2;
+          const side = n % 2 ? 1 : -1;
+          ctx.fillStyle = `rgba(90,106,122,${(0.5 * (1 - n / 40)).toFixed(2)})`;
+          ctx.beginPath();
+          ctx.ellipse(px + Math.cos(a) * 0.1 * side, py + Math.sin(a) * 0.1 * side, 0.06, 0.04, a, 0, Math.PI * 2);
+          ctx.fill();
+          if (n > 40) break;
+        }
+      }
+    }
     for (const e of s.enemies) if (!ENEMIES[e.type].flies) drawBug(e);
     this.hardLook = false;
 
@@ -639,6 +667,9 @@ export class Renderer {
     this.drawAmbient(world, x0f, y0f, x1f, y1f, now, z);
     this.drawFog(world);
     if (ui) this.drawNight(world, x0, y0, x1, y1);
+    // Over the night's dark: eyes at the forest's edge, and a raid's warning (D-160).
+    if (ui) this.drawEyes(world, x0, y0, x1, y1, now);
+    if (ui) this.drawRaidWarning(world, now);
 
     if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
@@ -1126,6 +1157,65 @@ export class Renderer {
    * Night (#42): a dark blue wash over the map, with pools of light around the hub, the engineer,
    * turrets and working machines so the factory stays readable. Fades in at dusk and out at dawn.
    */
+  /** At night, pairs of eyes watch from the forest's edge, blinking now and then (D-160). */
+  private drawEyes(world: World, x0: number, y0: number, x1: number, y1: number, now: number): void {
+    const dark = darkness(world.state.time);
+    if (dark < 0.4) return;
+    const s = world.state;
+    const ctx = this.ctx;
+    ctx.globalAlpha = Math.min(1, (dark - 0.4) * 2.5);
+    for (let y = Math.max(1, y0); y < Math.min(s.height - 1, y1); y++)
+      for (let x = Math.max(1, x0); x < Math.min(s.width - 1, x1); x++) {
+        if (hash(x, y + 3131) % 45 || s.trees[world.idx(x, y)] !== TREE) continue;
+        // On the forest's edge: a tree with open ground beside it.
+        if (s.trees[world.idx(x + 1, y)] === TREE && s.trees[world.idx(x - 1, y)] === TREE && s.trees[world.idx(x, y + 1)] === TREE && s.trees[world.idx(x, y - 1)] === TREE) continue;
+        const h = hash(x, y);
+        const img = frame('effects/eyes', Math.floor(now / 220 + h) % 23 === 0 ? 2 : 0);
+        if (img) ctx.drawImage(img, x, y + 0.25, 1, 0.5);
+      }
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * A raid on its way (D-160): a siren turning on the hub, and a red glow pulsing along the edge of the screen
+   * the raiders come from.
+   */
+  private drawRaidWarning(world: World, now: number): void {
+    const raiders = world.state.enemies.filter((e) => e.raid);
+    const hub = world.hub;
+    if (!raiders.length || !hub || this.reducedMotion) return;
+    const ctx = this.ctx;
+    const [hx, hy] = world.centreOf(hub);
+    const a = now / 300;
+    ctx.fillStyle = 'rgba(255,90,58,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.arc(hx, hy, HUB_SIZE * 0.9, a - 0.3, a + 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ff5a3a';
+    dot(ctx, hx, hy, 0.35);
+    ctx.fillStyle = '#ffd0c0';
+    dot(ctx, hx, hy, 0.15);
+    // The edge: toward where the raiders are, on average.
+    const mx = raiders.reduce((t, e) => t + e.x, 0) / raiders.length - hx;
+    const my = raiders.reduce((t, e) => t + e.y, 0) / raiders.length - hy;
+    const pulse = 0.25 + 0.2 * Math.sin(now / 250);
+    const c = ctx.canvas;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const horiz = Math.abs(mx) > Math.abs(my);
+    const band = Math.min(c.width, c.height) * 0.12;
+    const [gx0, gy0, gx1, gy1] = horiz ? (mx > 0 ? [c.width, 0, c.width - band, 0] : [0, 0, band, 0]) : my > 0 ? [0, c.height, 0, c.height - band] : [0, 0, 0, band];
+    const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+    g.addColorStop(0, `rgba(255,42,26,${pulse.toFixed(2)})`);
+    g.addColorStop(1, 'rgba(255,42,26,0)');
+    ctx.fillStyle = g;
+    if (horiz) ctx.fillRect(mx > 0 ? c.width - band : 0, 0, band, c.height);
+    else ctx.fillRect(0, my > 0 ? c.height - band : 0, c.width, band);
+    ctx.restore();
+  }
+
   private drawNight(world: World, x0: number, y0: number, x1: number, y1: number): void {
     const dark = darkness(world.state.time);
     if (dark <= 0) return;
@@ -2471,6 +2561,14 @@ export class Renderer {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);
       }
+      // Running low: the turret's base blinks red (D-160).
+      if (turret.ammoItem && turret.maxShots > 0 && b.ammo + (b.better ?? 0) < turret.maxShots * 0.2 && Math.floor(now / 350) % 2 === 0) {
+        ctx.strokeStyle = 'rgba(255,74,58,0.85)';
+        ctx.lineWidth = 0.07;
+        ctx.beginPath();
+        ctx.arc(b.x + fw / 2, b.y + fw / 2, fw * 0.46, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       if (turret.ammoItem) {
         const better = b.better ?? 0;
         // Better ammo (D-136) shows as its own colour at the bar's start.
@@ -2734,6 +2832,26 @@ export class Renderer {
       ctx.globalAlpha = 1;
     });
     if (firing) this.drawLaunchSmoke(b, now, world);
+    // Countdown lamps at the pad's corners (D-160): they light one by one, then all turn green to lift off.
+    if (firing && ship.launchAt != null) {
+      const left = (ship.launchAt - world.state.time) / SHIP.launchTime;
+      const lit = Math.min(4, Math.floor((1 - left) * 4) + (left < 0.04 ? 1 : 0));
+      const green = left < 0.06;
+      [
+        [0.5, 0.5],
+        [SHIP_SIZE - 0.5, 0.5],
+        [SHIP_SIZE - 0.5, SHIP_SIZE - 0.5],
+        [0.5, SHIP_SIZE - 0.5],
+      ].forEach(([dx, dy], k) => {
+        const on = k < lit;
+        if (on) {
+          ctx.fillStyle = green ? 'rgba(110,224,122,0.35)' : 'rgba(255,90,58,0.35)';
+          dot(ctx, b.x + dx, b.y + dy, 0.4);
+        }
+        ctx.fillStyle = on ? (green ? '#6ee07a' : '#ff5a3a') : '#3a2a28';
+        dot(ctx, b.x + dx, b.y + dy, 0.18);
+      });
+    }
   }
 
   /** The engines firing for launch, seen from above (D-151): a glow round the foot of the ship, flickering. */
@@ -2909,6 +3027,11 @@ export class Renderer {
       const aim = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
       if (b) {
         this.aims.set(b.id, aim);
+        // Brackets close on what it's aiming at (D-160), now and then rather than every shot.
+        if (now - (this.lockedAt.get(b.id) ?? -Infinity) > 900) {
+          this.lockedAt.set(b.id, now);
+          this.spriteFx('effects/lock_on', sh.x2, sh.y2, 0.9, 360, now);
+        }
         this.fired.set(b.id, now);
       }
       if (b?.type === 'trebuchet') {
@@ -2943,7 +3066,7 @@ export class Renderer {
       let movedAt = prev?.movedAt ?? s.time;
       // Where it has been, for the runner's body to follow (#96).
       const trail = prev?.trail ?? [[e.x, e.y]];
-      if (e.type === 'runner') {
+      if (e.type === 'runner' || (this.season === 'winter' && !ENEMIES[e.type].flies)) {
         const [lx, ly] = trail[trail.length - 1];
         if (Math.hypot(e.x - lx, e.y - ly) > 0.04) {
           trail.push([e.x, e.y]);
@@ -2984,6 +3107,7 @@ export class Renderer {
       const mended = world.buildingAt(Math.floor(h.x), Math.floor(h.y));
       if (mended) this.repairing.set(mended.id, now);
     }
+    if (!this.seenPlayers) for (const n of s.nests) if (n.destroyed) this.nestsDown.add(n.id);
     // Who joined, and what went up beside whom (D-159).
     const ids = new Set(s.players.map((p) => p.id));
     if (this.seenPlayers) for (const id of ids) if (!this.seenPlayers.has(id)) this.joinedAt.set(id, now);
@@ -2995,7 +3119,53 @@ export class Renderer {
         for (const p of s.players) if (Math.hypot(p.x - cx, p.y - cy) < 4) this.builtAt.set(p.id, now);
       }
     }
+    // Building and demolishing (D-160): a frame and a rising line over what went up; dust where something
+    // was taken down (not lost to bugs: that has its own debris and ruin).
+    if (this.seenBuildings) {
+      for (const b of s.buildings) {
+        if (this.seenBuildings.has(b.id) || b.type === 'belt' || b.type === 'express_belt' || b.type === 'roller') continue;
+        const [cx, cy] = world.centreOf(b);
+        const [fw, fh] = world.footprintOf(b);
+        this.spriteFx('effects/build', cx, cy, Math.max(fw, fh) * 1.05, 550, now);
+      }
+      const lostIds = new Set(world.lost.map((l) => l.id));
+      for (const [id, [cx, cy, size]] of this.spots) if (!world.byId.has(id) && !lostIds.has(id)) this.spriteFx('effects/demolish', cx, cy, size * 1.3, 500, now);
+    }
+    this.spots.clear();
+    for (const b of s.buildings) {
+      if (b.type === 'belt' || b.type === 'express_belt' || b.type === 'roller') continue;
+      const [cx, cy] = world.centreOf(b);
+      const [fw, fh] = world.footprintOf(b);
+      this.spots.set(b.id, [cx, cy, Math.max(fw, fh)]);
+    }
     this.seenBuildings = new Set(s.buildings.map((b) => b.id));
+    const hubB = world.hub;
+    if (hubB) {
+      const [hx, hy] = world.centreOf(hubB);
+      // Deliveries: a count floating up off the hub, at most every 700 ms.
+      const stock = Object.values(s.inventory).reduce((a, n) => a + (n ?? 0), 0);
+      if (this.stockWas >= 0 && stock > this.stockWas && now - this.labelAt > 700) {
+        this.effects.push({ kind: 'label', x: hx, y: hy - HUB_SIZE * 0.35, r: 0.6, born: now, life: 900, color: `+${stock - this.stockWas}` });
+        this.labelAt = now;
+        this.stockWas = stock;
+      } else if (this.stockWas < 0 || stock < this.stockWas || now - this.labelAt > 700) this.stockWas = stock;
+      // Research finished: rings of blue light pulse out from the hub.
+      if (this.researchWas >= 0 && s.researched.length > this.researchWas) this.spriteFx('effects/research_pulse', hx, hy, HUB_SIZE * 1.6, 1000, now);
+      this.researchWas = s.researched.length;
+    }
+    // A ship stage finished: fireworks over the shipyard.
+    const yard = shipyard(world);
+    if (yard && this.stageWas >= 0 && s.ship.stage > this.stageWas) this.spriteFx('effects/fireworks', yard.x + SHIP_SIZE / 2, yard.y + SHIP_SIZE / 2, SHIP_SIZE * 1.1, 1400, now);
+    this.stageWas = s.ship.stage;
+    // A nest destroyed: chitin bursts out of it (D-160).
+    for (const n of s.nests) {
+      if (!n.destroyed || this.nestsDown.has(n.id)) continue;
+      const first = this.nestsDown.size === 0 && !this.seenPlayers;
+      this.nestsDown.add(n.id);
+      if (first || n.into != null) continue;
+      const [cx, cy] = nestCentre(n);
+      for (let k = 0; k < 3; k++) this.spriteFx('effects/chitin_drop', cx + Math.cos(k * 2.1) * 0.9, cy + Math.sin(k * 2.1) * 0.9, 0.8, 700, now + k * 120);
+    }
 
     // Mining by hand (#38): sparks on every tap, and a puff of the ore when one comes loose.
     for (const tap of world.taps) {
@@ -3011,7 +3181,12 @@ export class Renderer {
       if (alive.has(id)) continue;
       this.enemies.delete(id);
       const radius = (e.queen ? QUEENS.bug.size : 1) * ENEMIES[e.type].radius;
-      if (!breached && !this.spriteFx('effects/death_splat', e.x, e.y, radius * 4.5, 500, now, e.angle)) {
+      // Each kind dies its own way where it has a strip for it (D-160), else the shared splat.
+      if (
+        !breached &&
+        !this.spriteFx(`enemies/${e.type}_death`, e.x, e.y, Math.min(ENEMY_SPRITE_MAX * (e.queen ? QUEENS.bug.size : 1), radius * ENEMY_SPRITE_SCALE), 650, now, e.angle) &&
+        !this.spriteFx('effects/death_splat', e.x, e.y, radius * 4.5, 500, now, e.angle)
+      ) {
         this.effects.push({ kind: 'puff', x: e.x, y: e.y, r: radius * 2.2, born: now, life: 400, color: '224,68,90' });
       }
     }
@@ -3522,6 +3697,18 @@ export class Renderer {
           ctx.lineTo(fx.x + Math.cos(ang) * d1, fx.y + Math.sin(ang) * d1);
         }
         ctx.stroke();
+      } else if (fx.kind === 'label') {
+        // A count floating up off the hub as deliveries arrive (D-160).
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.font = `800 ${fx.r}px Montserrat, system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = fx.r / 6;
+        ctx.strokeStyle = '#0f1a2e';
+        ctx.fillStyle = '#ffd36b';
+        ctx.strokeText(fx.color, fx.x, fx.y - t * 0.8);
+        ctx.fillText(fx.color, fx.x, fx.y - t * 0.8);
+        ctx.restore();
       } else if (fx.kind === 'puff') {
         ctx.fillStyle = `rgba(${fx.color},${0.6 * a})`;
         for (let i = 0; i < 6; i++) {

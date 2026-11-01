@@ -76,6 +76,8 @@ const TILES: Record<string, [number, number]> = {
   'buildings/railgun_barrel_charge': [2, 2],
   // The tesla's bolt (D-157): four times as long as it's wide, stretched from the tesla to its target.
   'effects/tesla_bolt': [4, 1],
+  // Eyes at the forest's edge (D-160): a pair, twice as wide as tall.
+  'effects/eyes': [1, 0.5],
   'buildings/shipyard': [5, 5],
   'buildings/ship_scaffold': [5, 5],
   'buildings/ship_pad': [5, 5],
