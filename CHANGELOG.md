@@ -3,6 +3,16 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.5 · 2026-11-01 · Hardcore bugs, drones and snowfall
+### New
+- **Hardcore bugs look the part:** darker, with glowing red veins under the shell and a red haze about them. Hardcore nests glow red from deep in their burrows, pulsing slowly.
+- **Drones** are drawn as little quadcopters, rotors turning and nav lights blinking, facing the way they fly.
+- **When the hub falls,** a shockwave of blue light bursts out from it, with dust and chunks of the hub thrown out.
+- **Mk2 and Mk3 machines** carry a riveted plate with raised chevrons, glowing while they have electricity.
+- **Snow falls in winter,** and in fall leaves settle on belts that carry nothing, blowing off once they run.
+- **Extractors wear their ore patch:** gravel and scratches on the shelf round where they dig.
+- **A new app icon:** the factory and its shield in the clearing at dusk, and a shield favicon for the browser tab.
+
 ## 0.88.4 · 2026-11-01 · Buildings that show their work
 ### New
 - **Buildings show what they're doing:** the Tree Nursery's saplings sprout as its watering can tips, the Teleporter Pad's ring turns while it's in use, the Drone Pad's lights chase round, the Shield Pylon's orb pulses, the Orbital Strike Beacon's dish swings as its light blinks, a hub port's crate rides out as it sends, and a gantry crane works over the shipyard while the ship is being built.

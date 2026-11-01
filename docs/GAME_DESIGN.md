@@ -406,7 +406,8 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   fallen leaves gather on the ground), and winter starts bare; then over the first half of winter's first
   day the snow comes, settling on the ground, the trees and the pines and covering the grass and flowers
   bit by bit. It lies full for a day, and melts over the last half of winter's last day: flowers come back
-  in the first half of that melt and leaves in the second. Pines keep their needles all year. Only the look changes: the rules (tree regrowth) change on the day the season does.
+  in the first half of that melt and leaves in the second. Pines keep their needles all year. Snow falls through
+  winter, and in fall leaves settle on belts that carry nothing (D-158). Only the look changes: the rules (tree regrowth) change on the day the season does.
 - **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
   right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
   and short at midday, and right in the evening, growing long towards dusk. At night the moon casts
@@ -595,7 +596,8 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   and belts count, and pond tiles count as covered). Building there provokes the nest as usual, and a nest
   that's partly built over breeds **twice as fast again**. While you hold a tool, or once you've started,
   the tiles still to cover are marked, with a bar for how much is done. Destroying it drops chitin as usual,
-  and a queen nest's queen comes out. Hardcore nests are drawn darker and redder.
+  and a queen nest's queen comes out. Hardcore nests are drawn darker and redder, their burrows glowing red from
+  within, and Hardcore bugs darker, with red veins and a red haze (D-158).
 
 | Bug | HP | Speed (tiles/s) | Damage to buildings |
 |---|---|---|---|
