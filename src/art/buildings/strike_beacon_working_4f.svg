@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64"><svg x="0" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g>
+        <rect x="6" y="8" width="54" height="54" rx="6" fill="#0a1a0c" opacity="0.3" />
+        <rect x="4" y="4" width="54" height="54" rx="6" fill="#4a3a3a" stroke="#0f1a2e" stroke-width="2.5" />
+        <path d="M4 50 L12 58 M14 58 L4 48 M58 14 L50 4 M48 4 L58 14" stroke="#f2c14e" stroke-width="3" />
+        <path d="M31 46 V24" stroke="#8d99a6" stroke-width="4" stroke-linecap="round" />
+        <path transform="rotate(-10 31 22)" d="M18 22 Q31 4 44 22 Z" fill="#c9ced4" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M31 22 L31 12" stroke="#0f1a2e" stroke-width="2" />
+        <circle cx="31" cy="11" r="7" fill="#ff5a3c" opacity="0.35" /><circle cx="31" cy="11" r="3.5" fill="#ff8a6c" stroke="#0f1a2e" stroke-width="1.5" />
+        <rect x="21" y="44" width="20" height="8" rx="2" fill="#2b3138" stroke="#0f1a2e" stroke-width="2" />
+        <g fill="none" stroke="#ff5a3c" stroke-width="1.5"><path d="M24.0 9.0 Q31 3.0 38.0 9.0" opacity="0.90" /><path d="M17.0 6.0 Q31 -3.0 45.0 6.0" opacity="0.50" /></g>
+      </g>
+      </svg><svg x="64" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g>
+        <rect x="6" y="8" width="54" height="54" rx="6" fill="#0a1a0c" opacity="0.3" />
+        <rect x="4" y="4" width="54" height="54" rx="6" fill="#4a3a3a" stroke="#0f1a2e" stroke-width="2.5" />
+        <path d="M4 50 L12 58 M14 58 L4 48 M58 14 L50 4 M48 4 L58 14" stroke="#f2c14e" stroke-width="3" />
+        <path d="M31 46 V24" stroke="#8d99a6" stroke-width="4" stroke-linecap="round" />
+        <path transform="rotate(0 31 22)" d="M18 22 Q31 4 44 22 Z" fill="#c9ced4" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M31 22 L31 12" stroke="#0f1a2e" stroke-width="2" />
+        <circle cx="31" cy="11" r="3.5" fill="#7a2a1c" stroke="#0f1a2e" stroke-width="1.5" />
+        <rect x="21" y="44" width="20" height="8" rx="2" fill="#2b3138" stroke="#0f1a2e" stroke-width="2" />
+        <g fill="none" stroke="#ff5a3c" stroke-width="1.5"><path d="M20.5 7.5 Q31 0.0 41.5 7.5" opacity="0.70" /><path d="M13.5 4.5 Q31 -6.0 48.5 4.5" opacity="0.30" /></g>
+      </g>
+      </svg><svg x="128" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g>
+        <rect x="6" y="8" width="54" height="54" rx="6" fill="#0a1a0c" opacity="0.3" />
+        <rect x="4" y="4" width="54" height="54" rx="6" fill="#4a3a3a" stroke="#0f1a2e" stroke-width="2.5" />
+        <path d="M4 50 L12 58 M14 58 L4 48 M58 14 L50 4 M48 4 L58 14" stroke="#f2c14e" stroke-width="3" />
+        <path d="M31 46 V24" stroke="#8d99a6" stroke-width="4" stroke-linecap="round" />
+        <path transform="rotate(10 31 22)" d="M18 22 Q31 4 44 22 Z" fill="#c9ced4" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M31 22 L31 12" stroke="#0f1a2e" stroke-width="2" />
+        <circle cx="31" cy="11" r="7" fill="#ff5a3c" opacity="0.35" /><circle cx="31" cy="11" r="3.5" fill="#ff8a6c" stroke="#0f1a2e" stroke-width="1.5" />
+        <rect x="21" y="44" width="20" height="8" rx="2" fill="#2b3138" stroke="#0f1a2e" stroke-width="2" />
+        <g fill="none" stroke="#ff5a3c" stroke-width="1.5"><path d="M17.0 6.0 Q31 -3.0 45.0 6.0" opacity="0.50" /><path d="M24.0 9.0 Q31 3.0 38.0 9.0" opacity="0.90" /></g>
+      </g>
+      </svg><svg x="192" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g>
+        <rect x="6" y="8" width="54" height="54" rx="6" fill="#0a1a0c" opacity="0.3" />
+        <rect x="4" y="4" width="54" height="54" rx="6" fill="#4a3a3a" stroke="#0f1a2e" stroke-width="2.5" />
+        <path d="M4 50 L12 58 M14 58 L4 48 M58 14 L50 4 M48 4 L58 14" stroke="#f2c14e" stroke-width="3" />
+        <path d="M31 46 V24" stroke="#8d99a6" stroke-width="4" stroke-linecap="round" />
+        <path transform="rotate(0 31 22)" d="M18 22 Q31 4 44 22 Z" fill="#c9ced4" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" />
+        <path d="M31 22 L31 12" stroke="#0f1a2e" stroke-width="2" />
+        <circle cx="31" cy="11" r="3.5" fill="#7a2a1c" stroke="#0f1a2e" stroke-width="1.5" />
+        <rect x="21" y="44" width="20" height="8" rx="2" fill="#2b3138" stroke="#0f1a2e" stroke-width="2" />
+        <g fill="none" stroke="#ff5a3c" stroke-width="1.5"><path d="M13.5 4.5 Q31 -6.0 48.5 4.5" opacity="0.30" /><path d="M20.5 7.5 Q31 0.0 41.5 7.5" opacity="0.70" /></g>
+      </g>
+      </svg></svg>

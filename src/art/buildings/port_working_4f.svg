@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64"><defs><radialGradient id="mBlue"><stop offset="0" stop-color="#bfe4ff" stop-opacity="0.9" /><stop offset="1" stop-color="#3fa9f5" stop-opacity="0" /></radialGradient>
+      <pattern id="mHaz" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#f2c14e" /><rect width="4" height="8" fill="#1b2230" /></pattern>
+      <linearGradient id="mNavy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3566b3" /><stop offset="1" stop-color="#1a3766" /></linearGradient>
+      <filter id="mSh1" x="-15%" y="-15%" width="140%" height="140%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="1.4" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+      </defs><svg x="0" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g filter="url(#mSh1)"><rect x="4" y="4" width="56" height="56" rx="7" fill="url(#mNavy)" stroke="#0f1a2e" stroke-width="3" /></g>
+          <path d="M7 54 V11 Q7 7 11 7 H54" fill="none" stroke="#7cb0ff" stroke-width="1.6" stroke-linecap="round" opacity="0.7" />
+          <rect x="0" y="8" width="11" height="48" fill="url(#mHaz)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="16" y="16" width="28" height="28" rx="4" fill="#16305a" stroke="#0f1a2e" stroke-width="2" />
+          <g transform="translate(-3 0)" opacity="1"><path d="M20 24 L30 19 L40 24 V36 L30 41 L20 36 Z" fill="#e8eef6" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+          <path d="M20 24 L30 29 L40 24 M30 29 V41" fill="none" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M22 25 L29 21.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" /></g>
+          <ellipse cx="55" cy="32" rx="9" ry="10" fill="url(#mBlue)" opacity="0.6" />
+          <rect x="49" y="24" width="12" height="16" rx="2" fill="#1b2230" stroke="#0f1a2e" stroke-width="2" />
+          <path d="M52 27 L58 32 L52 37" fill="none" stroke="#3fa9f5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          <g><circle cx="22" cy="50" r="1.6" fill="#ffd36b" /><circle cx="28" cy="50" r="1.6" fill="#3a4656" /><circle cx="34" cy="50" r="1.6" fill="#3a4656" /></g>
+        </svg><svg x="64" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g filter="url(#mSh1)"><rect x="4" y="4" width="56" height="56" rx="7" fill="url(#mNavy)" stroke="#0f1a2e" stroke-width="3" /></g>
+          <path d="M7 54 V11 Q7 7 11 7 H54" fill="none" stroke="#7cb0ff" stroke-width="1.6" stroke-linecap="round" opacity="0.7" />
+          <rect x="0" y="8" width="11" height="48" fill="url(#mHaz)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="16" y="16" width="28" height="28" rx="4" fill="#16305a" stroke="#0f1a2e" stroke-width="2" />
+          <g transform="translate(1 0)" opacity="1"><path d="M20 24 L30 19 L40 24 V36 L30 41 L20 36 Z" fill="#e8eef6" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+          <path d="M20 24 L30 29 L40 24 M30 29 V41" fill="none" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M22 25 L29 21.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" /></g>
+          <ellipse cx="55" cy="32" rx="9" ry="10" fill="url(#mBlue)" opacity="0.6" />
+          <rect x="49" y="24" width="12" height="16" rx="2" fill="#1b2230" stroke="#0f1a2e" stroke-width="2" />
+          <path d="M52 27 L58 32 L52 37" fill="none" stroke="#3fa9f5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          <g><circle cx="22" cy="50" r="1.6" fill="#ffd36b" /><circle cx="28" cy="50" r="1.6" fill="#3a4656" /><circle cx="34" cy="50" r="1.6" fill="#3a4656" /></g>
+        </svg><svg x="128" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g filter="url(#mSh1)"><rect x="4" y="4" width="56" height="56" rx="7" fill="url(#mNavy)" stroke="#0f1a2e" stroke-width="3" /></g>
+          <path d="M7 54 V11 Q7 7 11 7 H54" fill="none" stroke="#7cb0ff" stroke-width="1.6" stroke-linecap="round" opacity="0.7" />
+          <rect x="0" y="8" width="11" height="48" fill="url(#mHaz)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="16" y="16" width="28" height="28" rx="4" fill="#16305a" stroke="#0f1a2e" stroke-width="2" />
+          <g transform="translate(5 0)" opacity="1"><path d="M20 24 L30 19 L40 24 V36 L30 41 L20 36 Z" fill="#e8eef6" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+          <path d="M20 24 L30 29 L40 24 M30 29 V41" fill="none" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M22 25 L29 21.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" /></g>
+          <ellipse cx="55" cy="32" rx="9" ry="10" fill="url(#mBlue)" opacity="0.6" />
+          <rect x="49" y="24" width="12" height="16" rx="2" fill="#1b2230" stroke="#0f1a2e" stroke-width="2" />
+          <path d="M52 27 L58 32 L52 37" fill="none" stroke="#3fa9f5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          <g><circle cx="22" cy="50" r="1.6" fill="#ffd36b" /><circle cx="28" cy="50" r="1.6" fill="#ffd36b" /><circle cx="34" cy="50" r="1.6" fill="#3a4656" /></g>
+        </svg><svg x="192" y="0" width="64" height="64" viewBox="0 0 64 64" overflow="hidden"><g filter="url(#mSh1)"><rect x="4" y="4" width="56" height="56" rx="7" fill="url(#mNavy)" stroke="#0f1a2e" stroke-width="3" /></g>
+          <path d="M7 54 V11 Q7 7 11 7 H54" fill="none" stroke="#7cb0ff" stroke-width="1.6" stroke-linecap="round" opacity="0.7" />
+          <rect x="0" y="8" width="11" height="48" fill="url(#mHaz)" stroke="#0f1a2e" stroke-width="2" />
+          <rect x="16" y="16" width="28" height="28" rx="4" fill="#16305a" stroke="#0f1a2e" stroke-width="2" />
+          <g transform="translate(9 0)" opacity="0.55"><path d="M20 24 L30 19 L40 24 V36 L30 41 L20 36 Z" fill="#e8eef6" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+          <path d="M20 24 L30 29 L40 24 M30 29 V41" fill="none" stroke="#0f1a2e" stroke-width="1.6" />
+          <path d="M22 25 L29 21.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" /></g>
+          <ellipse cx="55" cy="32" rx="9" ry="10" fill="url(#mBlue)" opacity="0.6" />
+          <rect x="49" y="24" width="12" height="16" rx="2" fill="#1b2230" stroke="#0f1a2e" stroke-width="2" />
+          <path d="M52 27 L58 32 L52 37" fill="none" stroke="#3fa9f5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          <g><circle cx="22" cy="50" r="1.6" fill="#ffd36b" /><circle cx="28" cy="50" r="1.6" fill="#ffd36b" /><circle cx="34" cy="50" r="1.6" fill="#ffd36b" /></g>
+        </svg></svg>

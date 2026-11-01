@@ -221,6 +221,80 @@ const MACHINES = {
       }
     return onTop(svg, `<g fill="#e8f8ff">${mist.join('')}</g><circle cx="112" cy="65" r="${[5, 7, 5, 4][i]}" fill="#3fa9f5" opacity="${[0.25, 0.4, 0.25, 0.15][i]}" />`);
   },
+  // --- Buildings that show what they do (D-157) ---
+  tree_nursery(svg, i) {
+    // The back row sprouts and fills out, the middle row sways, and the watering can tips and drips.
+    const g = [2.5, 3.6, 4.8, 5.6][i];
+    svg = swap(svg, '<circle cx="34" cy="92" r="5" /><circle cx="64" cy="90" r="5.5" /><circle cx="94" cy="92" r="5" />', `<circle cx="34" cy="92" r="${g.toFixed(1)}" /><circle cx="64" cy="90" r="${(g * 1.1).toFixed(1)}" /><circle cx="94" cy="92" r="${g.toFixed(1)}" />`, 'nursery back row');
+    const sway = (k) => (Math.sin((i / FRAMES) * Math.PI * 2 + k) * 0.9).toFixed(1);
+    svg = swap(svg, '<circle cx="34" cy="58" r="7" /><circle cx="64" cy="55" r="8" /><circle cx="94" cy="58" r="7" />', `<circle cx="${34 + +sway(0)}" cy="58" r="7" /><circle cx="${64 + +sway(1)}" cy="55" r="8" /><circle cx="${94 + +sway(2)}" cy="58" r="7" />`, 'nursery middle row');
+    svg = swap(svg, '<g transform="translate(96 104)"', `<g transform="translate(96 104) rotate(${[0, -14, -24, -10][i]} -3 -1)"`, 'nursery can');
+    const drops = [[], [], [[104, 96], [101, 100], [106, 101]], [[102, 100], [105, 104]]][i];
+    return onTop(svg, drops.map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="1.2" ry="1.8" fill="#9ad4ff" stroke="#0f1a2e" stroke-width="0.5" />`).join(''));
+  },
+  teleporter(svg, i) {
+    // The portal ring turns, the glow swells and settles, and motes of light spiral in.
+    svg = swap(svg, '<circle cx="31" cy="31" r="11" stroke-dasharray="4 3" />', `<circle cx="31" cy="31" r="11" stroke-dasharray="4 3" stroke-dashoffset="${-i * 1.75}" />`, 'teleporter ring');
+    svg = swap(svg, '<circle cx="31" cy="31" r="17" fill="url(#tpGlow)" />', `<circle cx="31" cy="31" r="${[16, 17, 18, 17][i]}" fill="url(#tpGlow)" />`, 'teleporter glow');
+    let motes = '';
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2 + (i / 4) * (Math.PI / 2);
+      const r = 15 - ((i + k) % 4) * 2.5;
+      motes += `<circle cx="${(31 + r * Math.cos(a)).toFixed(1)}" cy="${(31 + r * Math.sin(a)).toFixed(1)}" r="1.3" fill="#ffffff" opacity="${(0.4 + 0.15 * ((i + k) % 4)).toFixed(2)}" />`;
+    }
+    return onTop(svg, motes);
+  },
+  drone_pad(svg, i) {
+    // The corner lights chase round the pad and the dashed landing ring turns.
+    svg = swap(svg, 'stroke-dasharray="5 3" />', `stroke-dasharray="5 3" stroke-dashoffset="${i * 2}" />`, 'drone pad ring');
+    const LIGHTS = '<g fill="#6ee07a" stroke="#0f1a2e" stroke-width="1"><circle cx="11" cy="11" r="2.2" /><circle cx="51" cy="11" r="2.2" /><circle cx="11" cy="51" r="2.2" /><circle cx="51" cy="51" r="2.2" /></g>';
+    const lights = [[11, 11], [51, 11], [51, 51], [11, 51]]
+      .map(([x, y], k) => (k === i ? `<circle cx="${x}" cy="${y}" r="5" fill="#6ee07a" opacity="0.35" /><circle cx="${x}" cy="${y}" r="2.4" fill="#d6ffd9" stroke="#0f1a2e" stroke-width="1" />` : `<circle cx="${x}" cy="${y}" r="2.2" fill="#2f6a3a" stroke="#0f1a2e" stroke-width="1" />`))
+      .join('');
+    return swap(svg, LIGHTS, lights, 'drone pad lights');
+  },
+  shield_pylon(svg, i) {
+    // The orb pulses and a ring of light rises off it and fades.
+    const halo = `<circle cx="32" cy="32" r="${[13, 15, 17, 14][i]}" fill="#9ad4ff" opacity="${[0.25, 0.4, 0.3, 0.2][i]}" />`;
+    svg = swap(svg, '<circle cx="32" cy="32" r="11" fill="url(#spOrb)"', `${halo}<circle cx="32" cy="32" r="11" fill="url(#spOrb)"`, 'pylon halo');
+    return onTop(svg, `<circle cx="32" cy="32" r="${12 + i * 4.5}" fill="none" stroke="#bfe9ff" stroke-width="1.6" opacity="${(0.9 - i * 0.25).toFixed(2)}" />` + (i === 1 ? '<circle cx="32" cy="32" r="5" fill="#ffffff" opacity="0.45" />' : ''));
+  },
+  strike_beacon(svg, i) {
+    // The dish swings to and fro, the red light blinks, and rings of signal rise from it.
+    svg = swap(svg, '<path d="M18 22 Q31 4 44 22 Z"', `<path transform="rotate(${[-10, 0, 10, 0][i]} 31 22)" d="M18 22 Q31 4 44 22 Z"`, 'beacon dish');
+    svg = swap(svg, '<circle cx="31" cy="11" r="3.5" fill="#ff5a3c"', `${i % 2 === 0 ? '<circle cx="31" cy="11" r="7" fill="#ff5a3c" opacity="0.35" />' : ''}<circle cx="31" cy="11" r="3.5" fill="${i % 2 === 0 ? '#ff8a6c' : '#7a2a1c'}"`, 'beacon light');
+    const waves = [0, 0.5]
+      .map((o) => {
+        const t = (i / 4 + o) % 1;
+        const w = 7 + t * 14;
+        return `<path d="M${(31 - w).toFixed(1)} ${(9 - t * 6).toFixed(1)} Q31 ${(3 - t * 12).toFixed(1)} ${(31 + w).toFixed(1)} ${(9 - t * 6).toFixed(1)}" opacity="${(0.9 - t * 0.8).toFixed(2)}" />`;
+      })
+      .join('');
+    return swap(svg, '<g fill="none" stroke="#ff5a3c" stroke-width="1.5" opacity="0.8"><path d="M24 8 Q31 2 38 8" /><path d="M20 5 Q31 -4 42 5" /></g>', `<g fill="none" stroke="#ff5a3c" stroke-width="1.5">${waves}</g>`, 'beacon waves');
+  },
+  port(svg, i) {
+    // A crate rides out toward the hatch while the three lights count it out.
+    const a = svg.indexOf('<path d="M20 24 L30 19 L40 24 V36 L30 41 L20 36 Z"');
+    const end = svg.indexOf('/>', svg.indexOf('<path d="M22 25 L29 21.5"')) + 2;
+    if (a < 0 || end < 2) throw new Error('port crate: not found');
+    svg = svg.slice(0, a) + `<g transform="translate(${[-3, 1, 5, 9][i]} 0)" opacity="${i === 3 ? 0.55 : 1}">${svg.slice(a, end)}</g>` + svg.slice(end);
+    const lights = [22, 28, 34].map((x, k) => `<circle cx="${x}" cy="50" r="1.6" fill="${k <= i - 1 || (i === 0 && k === 0) ? '#ffd36b' : '#3a4656'}" />`).join('');
+    return swap(svg, '<g fill="#ffd36b"><circle cx="22" cy="50" r="1.6" /><circle cx="28" cy="50" r="1.6" /><circle cx="34" cy="50" r="1.6" fill="#3a4656" /></g>', `<g>${lights}</g>`, 'port lights');
+  },
+  shipyard(svg, i) {
+    // A gantry crane across the two towers: its trolley runs along the beam and lowers its hook, and the
+    // tower lights blink in turn.
+    const x = [64, 88, 112, 88][i];
+    const drop = [0, 14, 20, 8][i];
+    return onTop(
+      svg,
+      `<path d="M13 44 H179" stroke="#0f1a2e" stroke-width="5" /><path d="M13 44 H179" stroke="#f2c14e" stroke-width="3" />` +
+        `<rect x="${x - 8}" y="39" width="16" height="10" rx="2" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" />` +
+        `<path d="M${x} 49 V${56 + drop}" stroke="#0f1a2e" stroke-width="1.6" />` +
+        `<path d="M${x - 3} ${56 + drop} h6 v3 q0 4 -3 4 q-3 0 -3 -3" fill="none" stroke="#c9d2de" stroke-width="2" stroke-linecap="round" />` +
+        [13, 179].map((cx, k) => `${(i + k) % 2 === 0 ? `<circle cx="${cx}" cy="38" r="5" fill="#ff5a4a" opacity="0.4" />` : ''}<circle cx="${cx}" cy="38" r="2.2" fill="${(i + k) % 2 === 0 ? '#ff8a7a' : '#6a2a22'}" />`).join(''),
+    );
+  },
 };
 
 /** Lays the frames side by side, each clipped to its own square, sharing the sprite's defs. */

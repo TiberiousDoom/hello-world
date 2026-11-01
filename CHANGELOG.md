@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.4 · 2026-11-01 · Buildings that show their work
+### New
+- **Buildings show what they're doing:** the Tree Nursery's saplings sprout as its watering can tips, the Teleporter Pad's ring turns while it's in use, the Drone Pad's lights chase round, the Shield Pylon's orb pulses, the Orbital Strike Beacon's dish swings as its light blinks, a hub port's crate rides out as it sends, and a gantry crane works over the shipyard while the ship is being built.
+- **The railgun charges up:** its copper coils glow hotter between shots, white just before it fires, then cool.
+- **The tesla's lightning** is a forked bolt with a glow and a white core.
+- **Storage shows how full it is:** a crate opens to show what it holds, a Storage Unit's compartments fill with goods, and a Storage Silo lights a gauge round its roof.
+
 ## 0.88.3 · 2026-11-01 · Wingbeats, recoil and pale young bugs
 ### New
 - **Guns kick when they fire:** the turret, Turret Mk.2, cannon, mortar and artillery each slide their barrel back under the head and ease it out again, with a wisp of smoke at the muzzle. The bigger the gun, the harder the kick.
