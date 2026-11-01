@@ -408,7 +408,9 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   bit by bit. It lies full for a day, and melts over the last half of winter's last day: flowers come back
   in the first half of that melt and leaves in the second. Pines keep their needles all year. Snow falls through
   winter, and in fall leaves settle on belts that carry nothing (D-158). Some spring days it rains, ponds ripple,
-  and fog drifts over the clearing at dawn; none of this changes the rules (D-159). Only the look changes: the rules (tree regrowth) change on the day the season does.
+  and fog drifts over the clearing at dawn; none of this changes the rules (D-159). By day cloud shadows drift over
+  the map, birds cross it, rabbits and deer come to the forest's edge, and in summer butterflies flit about; trees
+  blossom in spring and flowers close at night (D-161). Only the look changes: the rules (tree regrowth) change on the day the season does.
 - **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
   right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
   and short at midday, and right in the evening, growing long towards dusk. At night the moon casts

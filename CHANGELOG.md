@@ -3,7 +3,7 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
-## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens and fireworks
+## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens, fireworks and life in the clearing
 ### New
 - **Building and demolishing show:** a timber frame and a rising line of light over what goes up, and dust and broken bits where something comes down.
 - **The hub answers:** a count floats up off it as deliveries arrive, and rings of blue light pulse out when research finishes.
@@ -13,6 +13,12 @@ what's **New** and what's **Fixed**.
 - **Bugs die their own way:** a wasp spirals down, a beetle curls up into a dull husk, a brute crumples into a stain.
 - **Footprints in the snow** trail behind bugs in winter, and **eyes watch from the forest's edge** at night.
 - **A destroyed nest bursts with chitin.**
+- **Life in the clearing by day:** cloud shadows drift over the map, little flocks of birds cross it (hurrying where bugs are about), and a rabbit or a deer appears at the forest's edge when no bugs are near.
+- **Seasons:** a third of the broadleaf trees blossom in spring, butterflies flit about in summer, and flowers close for the night.
+- **The water wheel splashes and the well's bucket comes up full.**
+- **Co-op players wear their own colours:** orange, blue, green and purple overalls. A knocked-out engineer gets back up, shaking off the stars.
+- **Every research topic has a badge** in the research menu, and toolbar buttons lift as the pointer passes over them.
+- **Wear:** walls crack as they're damaged, a spike pit's stakes break as its charge runs down, and the grass wears to a dirt path where engineers walk most.
 
 ## 0.88.6 · 2026-11-01 · Rain, fireflies and the ship's climb
 ### New

@@ -1228,8 +1228,11 @@ export class Hud {
               })
               .join(' ') + ` <span class="muted">· ${formatTime(r.time)}</span>`;
       const bar = err !== 'done' && (active || progress > 0) ? `<div class="bar"><div style="width:${progress * 100}%"></div></div>` : '';
+      // Each topic's badge (D-160): what it unlocks, on a hexagon coloured by its age.
+      const badge = artUrl(`ui/research_${r.id}`);
       return `<div class="research ${err ?? 'ready'} ${active ? 'active' : ''}">
-        <div><b>${esc(r.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br>
+        ${badge ? `<img class="research-badge" src="${badge}" alt="">` : ''}
+        <div class="research-text"><b>${esc(r.name)}</b> <span class="muted">→ ${esc(unlocks)}</span><br>
         <span class="muted">${esc(r.description)}</span><br>${items}${state ? '<br>' + state : ''}${bar}</div>
         <div>${action}</div></div>`;
     };

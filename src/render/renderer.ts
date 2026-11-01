@@ -243,6 +243,12 @@ const HOT_MS = 2500;
 const RUIN_MS = 60000;
 /** Seconds before lift-off that the ship starts to climb (D-159). */
 const LIFT = 4;
+/** Co-op players' overalls (D-160): the first keeps the sprite's orange; the rest are turned blue, green, purple. */
+const PLAYER_TINTS = ['', 'hue-rotate(185deg) saturate(110%)', 'hue-rotate(95deg)', 'hue-rotate(250deg)'];
+/** Walls that crack as they're damaged (D-160). */
+const CRACKS: BuildingType[] = ['wall', 'reinforced_wall', 'steel_wall', 'palisade'];
+/** How many crossings wear a tile's grass right down to a path (D-160). */
+const PATH_WEAR = 60;
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
 
 /** A cheap integer hash, for choosing decorations per tile. */
@@ -359,6 +365,14 @@ export class Renderer {
   private breaches = -1;
   /** Drawing Hardcore bugs (D-158): sprites go through hardened(). */
   private hardLook = false;
+  /** Flowers drawn closed in the ground layer: night (D-160). */
+  private flowersShut = false;
+  /** When each knocked-out engineer got back up (ms) (D-160). */
+  private upAt = new Map<number, number>();
+  private wasDown = new Set<number>();
+  /** How often an engineer has walked over each tile this session, for the worn paths (D-160). */
+  private trodden: Uint16Array | null = null;
+  private treadAt = new Map<number, number>();
   /** Where each building stood (centre and size), to show it coming down when it's demolished (D-160). */
   private spots = new Map<number, [number, number, number]>();
   /** Hub stock, research done, ship stage and fallen nests last frame, for their effects (D-160). */
@@ -492,7 +506,9 @@ export class Renderer {
     this.next = turn.next;
     // The cached layers are repainted in 16 steps while one season gives way to the next.
     this.shift = Math.floor(turn.shift * 16) / 16;
-    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}|${this.shift}`;
+    // Flowers close for the night (D-160): the ground is repainted at dusk and at dawn.
+    this.flowersShut = darkness(world.state.time) > 0.5;
+    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}|${this.shift}|${this.flowersShut}`;
     this.sun = sunAt(world.state.time);
     const sun = this.sun;
     const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
@@ -538,6 +554,7 @@ export class Renderer {
     this.drawBeltItems(now);
     for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b, z);
     for (const r of this.ruins) this.drawFrame('effects/ruin', now / 250, r.x - r.size / 2, r.y - r.size / 2, r.size);
+    this.drawWornPaths(world, x0, y0, x1, y1);
     this.drawShadows(world, standing);
     for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
@@ -665,6 +682,7 @@ export class Renderer {
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
     this.drawAmbient(world, x0f, y0f, x1f, y1f, now, z);
+    if (ui) this.drawLife(world, x0, y0, x1, y1, now, z);
     this.drawFog(world);
     if (ui) this.drawNight(world, x0, y0, x1, y1);
     // Over the night's dark: eyes at the forest's edge, and a raid's warning (D-160).
@@ -1157,6 +1175,96 @@ export class Renderer {
    * Night (#42): a dark blue wash over the map, with pools of light around the hub, the engineer,
    * turrets and working machines so the factory stays readable. Fades in at dusk and out at dawn.
    */
+  /** Where engineers walk most, the grass wears into a dirt path (D-160): fainter where it's been crossed less. */
+  private drawWornPaths(world: World, x0: number, y0: number, x1: number, y1: number): void {
+    const t = this.trodden;
+    if (!t || t.length !== world.state.width * world.state.height) return;
+    const ctx = this.ctx;
+    // Three shades, each one shape over every tile worn that far, so neighbouring tiles join into a path.
+    for (const [least, alpha] of [
+      [4, 0.2],
+      [PATH_WEAR / 3, 0.15],
+      [PATH_WEAR, 0.15],
+    ] as const) {
+      const path = new Path2D();
+      for (let y = Math.max(0, y0); y <= Math.min(world.state.height - 1, y1); y++)
+        for (let x = Math.max(0, x0); x <= Math.min(world.state.width - 1, x1); x++) {
+          if (t[world.idx(x, y)] < least) continue;
+          path.moveTo(x + 1.12, y + 0.5);
+          path.ellipse(x + 0.5, y + 0.5, 0.62, 0.56, 0, 0, Math.PI * 2);
+        }
+      ctx.fillStyle = `rgba(138,106,68,${alpha})`;
+      ctx.fill(path, 'nonzero');
+    }
+  }
+
+  /**
+   * Life in the clearing by day (D-160): cloud shadows drifting over everything, birds crossing (scattering
+   * from bugs), a rabbit or a deer at the forest's edge, and butterflies in summer.
+   */
+  private drawLife(world: World, x0: number, y0: number, x1: number, y1: number, now: number, z: number): void {
+    if (this.reducedMotion || darkness(world.state.time) > 0.3) return;
+    const ctx = this.ctx;
+    const s = world.state;
+    const t = now / 1000;
+    // Cloud shadows: soft dark patches drifting slowly across the map.
+    for (let cy = Math.floor(y0 / 16) - 1; cy <= y1 / 16 + 1; cy++)
+      for (let cx = Math.floor(x0 / 24) - 1; cx <= x1 / 24 + 1; cx++) {
+        const hv = hash(cx, cy + 6100);
+        if (hv % 3) continue;
+        const px = cx * 24 + (((hv % 2400) / 100 + t * 0.4) % 24);
+        const py = cy * 16 + ((hv >>> 12) % 1600) / 100;
+        const r = 5 + ((hv >>> 6) % 5);
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+        g.addColorStop(0, 'rgba(10,20,34,0.16)');
+        g.addColorStop(1, 'rgba(10,20,34,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(px, py, r, r * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    // Birds crossing in a little flock; faster, and higher, where bugs are about.
+    for (let k = 0; k < 2; k++) {
+      const hv = hash(Math.floor(t / 20) + k * 97, 6200);
+      const u = (t % 20) / 20;
+      const bx = x0 + ((hv % 1000) / 1000) * (x1 - x0) + (u - 0.5) * (x1 - x0) * 1.2;
+      const by = y1 - u * (y1 - y0) * 1.1;
+      const near = s.enemies.some((e) => Math.abs(e.x - bx) < 5 && Math.abs(e.y - by) < 5);
+      for (let n = 0; n < 4; n++) {
+        const img = frame('units/bird', now / (near ? 50 : 90) + n * 3);
+        if (img) ctx.drawImage(img, bx + (n % 2) * 0.6 - n * 0.3, by + n * 0.5, near ? 0.7 : 0.55, near ? 0.7 : 0.55);
+      }
+    }
+    // A rabbit or a deer at the forest's edge, keeping away from bugs.
+    if (z >= 20)
+      for (let y = Math.max(1, y0); y < Math.min(s.height - 1, y1); y++)
+        for (let x = Math.max(1, x0); x < Math.min(s.width - 1, x1); x++) {
+          const hv = hash(x, y + 6300);
+          if (hv % 90 || s.trees[world.idx(x, y)] === TREE || world.buildingAt(x, y) || world.isWater(x, y)) continue;
+          const edge = s.trees[world.idx(x + 1, y)] === TREE || s.trees[world.idx(x - 1, y)] === TREE || s.trees[world.idx(x, y - 1)] === TREE;
+          if (!edge || s.enemies.some((e) => Math.abs(e.x - x) < 6 && Math.abs(e.y - y) < 6)) continue;
+          const deer = (hv >>> 8) % 3 === 0;
+          const img = frame(deer ? 'units/deer' : 'units/rabbit', now / (deer ? 600 : 160) + hv);
+          if (!img) continue;
+          ctx.save();
+          ctx.translate(x + 0.5, y + 0.5);
+          ctx.rotate(((hv >>> 4) % 8) * (Math.PI / 4));
+          const size = deer ? 1.5 : 0.8;
+          ctx.drawImage(img, -size / 2, -size / 2, size, size);
+          ctx.restore();
+        }
+    // Butterflies in summer, flitting about.
+    if (this.season === 'summer')
+      for (let i = 0; i < 24; i++) {
+        const hv = hash(i, 6400);
+        const fx = ((hv % 10007) / 10007) * s.width + Math.sin(t * 0.5 + i) * 2;
+        const fy = (((hv >>> 13) % 10007) / 10007) * s.height + Math.cos(t * 0.4 + i * 1.3) * 1.5;
+        if (fx < x0 - 1 || fx > x1 + 1 || fy < y0 - 1 || fy > y1 + 1) continue;
+        const img = frame('effects/butterfly', now / 70 + i);
+        if (img) ctx.drawImage(img, fx - 0.2, fy - 0.2, 0.4, 0.4);
+      }
+  }
+
   /** At night, pairs of eyes watch from the forest's edge, blinking now and then (D-160). */
   private drawEyes(world: World, x0: number, y0: number, x1: number, y1: number, now: number): void {
     const dark = darkness(world.state.time);
@@ -1298,8 +1406,9 @@ export class Renderer {
     if (pick < 21 && this.lookOf(((h >>> 4) % 1000) / 1000, false) === 'winter' && sprite('terrain/ground_winter')) return;
     const jx = ((h >>> 8) % 40) / 100 - 0.2;
     const jy = ((h >>> 16) % 40) / 100 - 0.2;
-    // Plants stand upright (#94); only pebbles turn.
-    this.drawSprite(key, x + jx, y + jy, 1, key === 'terrain/pebbles' ? (((h >>> 24) % 4) * Math.PI) / 2 : 0);
+    // Plants stand upright (#94); only pebbles turn. Flowers close at night (D-160).
+    const shut = this.flowersShut && (key === 'terrain/flowers' || key === 'terrain/flowers_blue') && sprite(`${key}_closed`);
+    this.drawSprite(shut ? `${key}_closed` : key, x + jx, y + jy, 1, key === 'terrain/pebbles' ? (((h >>> 24) % 4) * Math.PI) / 2 : 0);
   }
 
   /** A soft shadow where the clearing meets the forest. */
@@ -1377,7 +1486,9 @@ export class Renderer {
         const season = this.lookOf((hash(x + 9000, y) % 1000) / 1000, true);
         const art = SEASON_ART[season];
         const pine = kind >= 5 && kind < 9;
-        const key = season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : art.round;
+        // In spring, a third of the broadleaf trees are in blossom (D-160).
+        const blossom = season === 'spring' && !pine && hv % 3 === 0 && sprite('terrain/tree_round_blossom');
+        const key = season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : blossom ? 'terrain/tree_round_blossom' : art.round;
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const jx = ((hv >>> 12) % 20) / 100 - 0.1;
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
@@ -2589,6 +2700,17 @@ export class Renderer {
     if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / REPAIR.maxCharge, '#3fbf5f');
     if (b.type === 'port') this.drawPortCollar(world, b, now, z);
     if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
+    // Walls crack as they're damaged; a spike pit's stakes wear down with its charge (D-160).
+    if (CRACKS.includes(b.type) && b.hp < world.maxHp(b)) {
+      const part = b.hp / world.maxHp(b);
+      const stage = part < 0.25 ? 3 : part < 0.5 ? 2 : part < 0.75 ? 1 : 0;
+      if (stage) this.drawSprite(`effects/crack_${stage}`, b.x, b.y, 1);
+    }
+    if (b.type === 'spike_pit') {
+      const part = b.ammo / SPIKES.maxCharge;
+      const stage = part < 0.1 ? 3 : part < 0.33 ? 2 : part < 0.66 ? 1 : 0;
+      if (stage) this.drawSprite(`effects/spikes_worn_${stage}`, b.x, b.y, 1);
+    }
     // Scaffolding while it's being mended (D-159).
     if (now - (this.repairing.get(b.id) ?? -Infinity) < 900) this.drawFrame('effects/scaffold', now / 150, b.x, b.y, Math.max(fw, fh));
     if (b.type === 'crate' && b.outputs.length) {
@@ -3390,6 +3512,12 @@ export class Renderer {
     const ctx = this.ctx;
     const t = world.state.time;
     for (const p of world.state.players) {
+      // Back on its feet after being knocked out (D-160): it gets up, the stars clearing.
+      if (p.downUntil == null && this.wasDown.has(p.id)) {
+        this.wasDown.delete(p.id);
+        this.upAt.set(p.id, now);
+      }
+      if (p.downUntil != null) this.wasDown.add(p.id);
       if (p.downUntil != null) {
         // Knocked out (D-074): seeing stars where it fell, until it's back up at the hub (D-082).
         const was = this.players.get(p.id);
@@ -3483,7 +3611,20 @@ export class Renderer {
         d.angle = Math.atan2(Math.floor(p.mining!.tile / w) + 0.5 - d.y, (p.mining!.tile % w) + 0.5 - d.x);
       }
       const at: [number, number, number, number] = [d.x - 0.5, d.y - 0.5, 1, d.angle];
-      if (!this.drawFrame(strip, i, ...at) && !this.drawSprite(`units/engineer${frame}`, ...at)) {
+      // Each co-op player in their own overalls (D-160): orange, blue, green, purple.
+      const tint = PLAYER_TINTS[world.state.players.indexOf(p) % PLAYER_TINTS.length];
+      if (tint) ctx.filter = tint;
+      const gettingUp = now - (this.upAt.get(p.id) ?? -Infinity) < 900 && frameCount('units/engineer_up');
+      const drew = gettingUp ? this.drawFrame('units/engineer_up', ((now - this.upAt.get(p.id)!) / 900) * 4, ...at) : this.drawFrame(strip, i, ...at);
+      if (tint) ctx.filter = bitten ? 'sepia(1) saturate(6) hue-rotate(-40deg)' : 'none';
+      // Where engineers walk most, the grass wears to a path (D-160).
+      const tile = world.idx(Math.floor(d.x), Math.floor(d.y));
+      if (moving && this.treadAt.get(p.id) !== tile) {
+        this.treadAt.set(p.id, tile);
+        this.trodden ??= new Uint16Array(world.state.width * world.state.height);
+        if (this.trodden.length === world.state.width * world.state.height && this.trodden[tile] < 65535) this.trodden[tile]++;
+      }
+      if (!drew && !this.drawSprite(`units/engineer${frame}`, ...at)) {
         ctx.fillStyle = '#ffcc33';
         dot(ctx, d.x, d.y, 0.3);
       }

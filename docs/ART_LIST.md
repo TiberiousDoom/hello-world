@@ -199,6 +199,8 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Upgraded (`effects/death_splat_4f`) |
 | Deaths by kind (D-160): the wasp spiralling down, the beetle curling into a husk, the brute crumpling into a stain | 64×64 | 4 each | P2 | Placeholder (`enemies/wasp_death_4f`, `beetle_death_4f`, `brute_death_4f`, by `art/feedback.mjs`); other bugs keep the shared splat |
 | Feedback effects (D-160): building (a frame and a rising line), demolishing (dust and bits), research done (blue rings), lock-on (closing brackets), fireworks over the ship, chitin bursting from a nest, eyes at the forest's edge | 128×128 (fireworks 192, lock-on and chitin 64, eyes 64×32) | 4–5 each | P3 | Placeholder (`effects/build_5f`, `demolish_4f`, `research_pulse_4f`, `lock_on_4f`, `fireworks_4f`, `chitin_drop_4f`, `eyes_4f`) |
+| Life in the clearing (D-161): a bird, a rabbit, a deer, a butterfly; a broadleaf tree in blossom; flowers closed for the night | bird and butterfly 32×32, rabbit 64, deer 96; tree 128; flowers 64 | 4 frames each for the animals | P3 | Placeholder (`units/bird_4f`, `rabbit_4f`, `deer_4f`, `effects/butterfly_4f`, `terrain/tree_round_blossom`, `terrain/flowers_closed`, `flowers_blue_closed`, by `art/clearing.mjs`) |
+| Wear and people (D-161): wall cracks in three stages (over any wall piece), a spike pit's stakes worn in three, the engineer getting up, a badge per research topic | 64×64 | — | P3 | Placeholder (`effects/crack_1` to `_3`, `effects/spikes_worn_1` to `_3`, `units/engineer_up_4f`, `ui/research_<id>`) |
 
 ## Effects
 
