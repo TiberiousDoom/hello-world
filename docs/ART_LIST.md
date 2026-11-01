@@ -125,7 +125,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Underground belt exit | 1×1 | A belt coming up out of a hooded mouth on the west side (#35) | 1 | P2 | Upgraded |
 | Hub port | 1×1 | Should look like part of the hub, with output to the east | 1 | P2 | Upgraded |
 | Turret base | 1×1 | Static | 1 | P1 | Upgraded |
-| Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot | 1 | P1 | Upgraded |
+| Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot. Firing: a 5-frame recoil strip (`turret_barrel_fire_5f`, D-156), as for Turret Mk.2, cannon, mortar and artillery, built by `art/animate.mjs` | 1 + 5 | P1 | Upgraded |
 | Cannon base | 1×1 | | 1 | P2 | Upgraded |
 | Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Upgraded |
 | Repair station | 1×1 | A workshop pad: a cog with a spanner across it, a welding arm with sparks, a toolbox. Working (mending something): the torch flares, the cog turns | 1 + 4 working | P2 | Upgraded (redrawn after the art review); working strip `repair_working_4f` |
@@ -162,7 +162,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Railgun (D-129): an octagonal base with a ring of lights; twin rails with copper coils on a turret | 2×2 | Base, plus a barrel layer that turns to aim | 2 | P2 | Placeholder (`buildings/railgun_base`, `railgun_barrel`) |
 | Teleporter Pad (D-131): a violet pad with a glowing portal ring | 1×1 | Static | 1 | P2 | Placeholder (`buildings/teleporter`) |
 | Orbital Strike Beacon (D-131): a dish on a mast with a red light, hazard stripes | 1×1 | Static (the strike is drawn in code) | 1 | P2 | Placeholder (`buildings/strike_beacon`) |
-| Greenhouse (D-131): saplings under glass panes | 2×2 | Static | 1 | P2 | Placeholder (`buildings/greenhouse`) |
+| Greenhouse (D-131): saplings under glass panes | 2×2 | Idle and working: the saplings sway, mist drifts down, the grow light warms (D-156) | 1 + 4 | P2 | Placeholder; working strip `greenhouse_working_4f` |
 | Tree Nursery (D-134): a fenced plot with rows of saplings growing up, and a watering can | 2×2 | Static | 1 | P2 | Placeholder (`buildings/tree_nursery`) |
 | Turret Mk.2 (D-123): a darker turret base and a four-barrel head | 1×1 | Base and barrel (`turret2_base`, `turret2_barrel`), like the turret | 2 | P2 | Placeholder |
 | Steel wall set (D-123) | 1×1 each | The wall set in blue-grey steel, the same pieces (`steel_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
@@ -192,9 +192,9 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Crawler: long, flat and segmented, six legs, dark orange | ~28 px (fits a 32×32 frame) | 4 walk, 4 attack | P1 | Upgraded (`crawler_walk_4f`, `crawler_attack_4f`; `crawler`, `crawler_b`; redrawn after the art review) |
 | Runner: glossy black, centipede-like, many legs | ~22 px (32×32); in play drawn about 3× as long | 4 walk, 4 attack | P2 | Upgraded (`runner_walk_4f`, `runner_attack_4f`; `runner`, `runner_b`; redrawn after the art review). In play it's drawn in code since #96: a long segmented body that follows its trail and sways; the sprites remain for the menu and fallbacks |
 | Brute: four-legged and centaur-like (no human top): a heavy rear body, a raised front body with two hooked claws; very dark red | ~46 px (64×64) | 4 walk, 4 attack | P2 | Upgraded (`brute_walk_4f`, `brute_attack_4f`; `brute`, `brute_b`; redrawn after the art review) |
-| Wasp (D-135): striped yellow and black, four see-through wings, red eyes | ~28 px (64×64) | 2 wingbeats | P2 | Placeholder (`wasp`, `wasp_b`; drawn above the trees, with a ground shadow) |
-| Beetle (D-135): a domed blue-black shell split down the middle, six legs, glowing eyes | ~40 px (64×64) | 2 walk | P2 | Upgraded in 0.87.7: glossy split wing cases, an armoured collar, mandibles, jointed legs (`beetle`, `beetle_b`) |
-| Young crawler, runner and brute (D-065, D-071): smaller, duller versions that grow into the adults | about 60% of the adult | 2 walk each | P2 | Code (the adult sprites drawn smaller, duller and a little darker, D-075) |
+| Wasp (D-135): striped yellow and black, four see-through wings, red eyes | ~28 px (64×64) | 4 wingbeat, 4 sting (D-156) | P2 | Placeholder (`wasp_walk_4f`, `wasp_attack_4f`; `wasp`, `wasp_b`; drawn above the trees, with a ground shadow) |
+| Beetle (D-135): a domed blue-black shell split down the middle, six legs, glowing eyes | ~40 px (64×64) | 4 walk, 4 bite (D-156) | P2 | Upgraded in 0.87.7: glossy split wing cases, an armoured collar, mandibles, jointed legs (`beetle_walk_4f`, `beetle_attack_4f`; `beetle`, `beetle_b`) |
+| Young crawler, runner and brute (D-065, D-071): smaller, paler versions that grow into the adults | about 60% of the adult | as the adult | P2 | Code (the adult sprites drawn smaller and pale, like a fresh moult, colouring up as they grow, D-156) |
 | Death puff or splat (shared) | 64×64 | 4–6 | P2 | Upgraded (`effects/death_splat_4f`) |
 
 ## Effects

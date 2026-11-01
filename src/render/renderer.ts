@@ -49,7 +49,7 @@ import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn, type Look } from '../sim/clock';
 import { TERRACE_TOP, joinedOre, terraceLevel, terracePiece, type TerracePiece } from './terraces';
-import { Nest, bugDef, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
+import { Nest, bugDef, coverTiles, coveredTiles, growth, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
 import { BeltLook, beltLook } from './belts';
@@ -239,10 +239,11 @@ function hubCornerAhead(world: World, b: Building): boolean {
 /** The night's dark is drawn at this fraction of the screen's resolution (it has no sharp edges). */
 const NIGHT_RES = 0.25;
 /** Firing animations, each strip played once over this many ms per shot: the trebuchet's arm, the ballista's string. */
-const FIRE_MS: Partial<Record<BuildingType, number>> = { trebuchet: 700, ballista: 260 };
+// The guns' recoil strips (D-156) are shorter than their time between shots, so each shot plays in full.
+const FIRE_MS: Partial<Record<BuildingType, number>> = { trebuchet: 700, ballista: 260, turret: 200, turret2: 140, cannon: 300, mortar: 320, artillery: 450 };
 /** How far through its swing the trebuchet lets go of the stone. */
 const TREBUCHET_RELEASE = 0.38;
-/** Guns kick back along the barrel as they fire, and ease forward again (ms, tiles). */
+/** Guns kick back along the barrel as they fire, and ease forward again (ms, tiles): the railgun, and any gun whose recoil strip hasn't loaded. */
 const RECOIL = { ms: 140, kick: 0.07 };
 const KICKS: BuildingType[] = ['turret', 'turret2', 'cannon', 'mortar', 'artillery', 'railgun'];
 /** How fast the smoke and flames on a damaged building move (ms a frame). */
@@ -462,11 +463,15 @@ export class Renderer {
       const biting = !!track && s.time - track.movedAt > 0.15 && this.biting(world, e, def.radius);
       const frame = step % 2 && sprite(`enemies/${e.type}_b`) ? '_b' : '';
       const bob = 1 + 0.03 * Math.sin(now / 90 + e.id);
-      // Young bugs (D-065) are smaller, duller and a little darker until they grow up (D-075: pale ones vanished
-      // on the light grass); their health bar is out of what they can have now.
+      // Young bugs (D-065) are smaller, and pale like an insect fresh from a moult, colouring up as they grow
+      // (D-156; their dark outlines keep them from vanishing on the grass, D-075). Their health bar is out of
+      // what they can have now.
       const grown = strength(world, e);
       const size = Math.min(ENEMY_SPRITE_MAX * (e.queen ? QUEENS.bug.size : 1), def.radius * ENEMY_SPRITE_SCALE) * bob * (0.4 + 0.6 * grown);
-      if (grown < 1) ctx.filter = `saturate(${Math.round(55 + 45 * grown)}%) brightness(${Math.round(80 + 20 * grown)}%)`;
+      if (grown < 1) {
+        const pale = 0.65 * (1 - growth(world, e));
+        ctx.filter = `sepia(${Math.round(100 * pale)}%) saturate(${Math.round(100 - 50 * pale)}%) brightness(${Math.round(100 + 70 * pale)}%)`;
+      }
       const x = ex - size / 2;
       const y = ey - size / 2;
       // A queen (D-152) has one drawing of her own: she waddles rather than scuttles.

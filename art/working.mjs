@@ -189,6 +189,38 @@ const MACHINES = {
     svg = swap(svg, /<g fill="#e6c48c">.*?<\/g>/s.exec(svg)?.[0] ?? 'sawmill dust', dots('#e6c48c', dust), 'sawmill sawdust');
     return svg;
   },
+  greenhouse(svg, i) {
+    // The saplings sway (each row a little out of step), the grow light warms under the glass, mist drifts
+    // down from the two crossbars, and the power light by the input pulses.
+    const plants = [
+      [34, 36, 12], [64, 32, 10], [94, 38, 12],
+      [36, 70, 10], [66, 66, 13], [94, 72, 10],
+      [34, 98, 9], [64, 98, 11], [94, 100, 9],
+    ];
+    const LEAVES = '<g fill="#3f8f4f" stroke="#1f4a28" stroke-width="2">';
+    const a = svg.indexOf(LEAVES);
+    const b = svg.indexOf('</g>', svg.indexOf('<g fill="#6cbf5a">')) + 4;
+    if (a < 0 || b < 4) throw new Error('greenhouse plants: not found');
+    const ph = (i / FRAMES) * Math.PI * 2;
+    let leaves = LEAVES;
+    let lights = '<g fill="#6cbf5a">';
+    plants.forEach(([x, y, r], k) => {
+      const dx = 1.6 * Math.sin(ph + (k % 3) * 1.1 + Math.floor(k / 3) * 0.7);
+      const rr = r * (1 + 0.05 * Math.sin(ph + k));
+      leaves += `<circle cx="${(x + dx).toFixed(1)}" cy="${y}" r="${rr.toFixed(1)}" />`;
+      lights += `<circle cx="${(x + dx - rr * 0.28).toFixed(1)}" cy="${(y - rr * 0.28).toFixed(1)}" r="${(rr * 0.34).toFixed(1)}" />`;
+    });
+    svg = svg.slice(0, a) + leaves + '</g>' + lights + '</g>' + svg.slice(b);
+    const GLASS = '<rect x="12" y="12" width="104" height="104" rx="6" fill="url(#ghGlass)"';
+    svg = swap(svg, GLASS, `<rect x="12" y="12" width="104" height="104" rx="6" fill="#ffd36b" opacity="${[0.1, 0.22, 0.14, 0.06][i]}" />${GLASS}`, 'greenhouse glow');
+    const mist = [];
+    for (const bar of [46, 82])
+      for (const x of [24, 40, 56, 72, 88, 104]) {
+        const d = 3 + ((i * 4 + x / 8) % 12);
+        mist.push(`<circle cx="${x + ((x / 8) % 3) - 1}" cy="${(bar + d).toFixed(1)}" r="${(2.4 - d / 10).toFixed(1)}" opacity="${(1 - d / 18).toFixed(2)}" />`);
+      }
+    return onTop(svg, `<g fill="#e8f8ff">${mist.join('')}</g><circle cx="112" cy="65" r="${[5, 7, 5, 4][i]}" fill="#3fa9f5" opacity="${[0.25, 0.4, 0.25, 0.15][i]}" />`);
+  },
 };
 
 /** Lays the frames side by side, each clipped to its own square, sharing the sprite's defs. */

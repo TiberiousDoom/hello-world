@@ -529,7 +529,7 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   **60–90 s**, of a kind it's short of, until it's back to full. An angry nest doesn't breed, and its
   timer starts again once it calms down. A destroyed nest never breeds. A mound with no bugs left
   still stands, counts as a live nest, and breeds back.
-- **Young bugs** hatch at **half** an adult's health and bite, smaller, duller and a little darker, and grow into adults
+- **Young bugs** hatch at **half** an adult's health and bite, smaller and pale, like an insect fresh from a moult, and grow into adults
   over **3 minutes**: their health and bite rise steadily, keeping any damage they've taken.
 - **Threat (D-065, D-072).** A threat level starts at 0 and rises by 1 every **18 minutes** of play, up
   to 10. A message says when it rises, and the clock in the top bar shows it (⚠). At each level:
