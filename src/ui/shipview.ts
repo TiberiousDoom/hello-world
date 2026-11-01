@@ -35,7 +35,7 @@ const defs = (p: string): string => `<defs>
 </defs>`;
 
 /** Each stage's drawing, and its silhouette alone for the dashed outline. */
-const PARTS: Record<string, (p: string) => { ghost: string; art: string }> = {
+const PARTS: Record<string, (p: string) => { ghost: string; art: string; over?: string }> = {
   // The Iron Age's launch pad (D-118): a brick slab, an iron blast plate, a flame trench under the engine.
   pad: (p) => ({
     ghost: '<path d="M14 240 V226 L22 220 H178 L186 226 V240 Z" />',
@@ -77,20 +77,25 @@ const PARTS: Record<string, (p: string) => { ghost: string; art: string }> = {
   // The Electric Age's engine (D-130): a thrust section, a main bell, two booster pods and the fins.
   engine: (p) => ({
     ghost:
-      '<path d="M74 186 H126 V206 L132 222 H68 L74 206 Z M56 214 V156 Q64 144 72 156 V214 Z M128 214 V156 Q136 144 144 156 V214 Z M74 168 L48 210 H74 Z M126 168 L152 210 H126 Z M78 180 L62 218 H80 Z M122 180 L138 218 H120 Z" />',
+      '<path d="M74 186 H126 V206 L132 222 H68 L74 206 Z M56 214 V156 Q64 144 72 156 V214 Z M128 214 V156 Q136 144 144 156 V214 Z M74 168 L48 210 H74 Z M126 168 L152 210 H126 Z M77 174 L40 204 V222 H46 L77 202 Z M123 174 L160 204 V222 H154 L123 202 Z" />',
     art: `<g stroke="${INK}" stroke-linejoin="round">
 <path d="M74 166 L46 208 Q46 212 50 212 H74 Z" fill="url(#${p}navy)" stroke-width="2" /><path d="M126 166 L154 208 Q154 212 150 212 H126 Z" fill="url(#${p}navy)" stroke-width="2" />
 <path d="M70 176 L52 204" stroke="#6f9ad8" stroke-width="1.2" stroke-linecap="round" fill="none" />
 <path d="M56 212 V158 Q64 144 72 158 V212 Z" fill="url(#${p}hull)" stroke-width="2" /><path d="M128 212 V158 Q136 144 144 158 V212 Z" fill="url(#${p}hull)" stroke-width="2" />
 <path d="M56 168 H72 M128 168 H144" stroke="#1d3b6e" stroke-width="3" /><path d="M58 160 Q62 152 66 152" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" />
 <path d="M58 212 L56 222 H72 L70 212 Z M130 212 L128 222 H144 L142 212 Z" fill="url(#${p}bell)" stroke-width="1.8" />
-<path d="M78 180 L62 214 Q61 219 66 219 H80 Z" fill="url(#${p}navy)" stroke-width="2" /><path d="M122 180 L138 214 Q139 219 134 219 H120 Z" fill="url(#${p}navy)" stroke-width="2" />
-<path d="M76 188 L66 210" stroke="#6f9ad8" stroke-width="1.2" stroke-linecap="round" fill="none" />
 <rect x="74" y="186" width="52" height="22" rx="2" fill="url(#${p}steel)" stroke-width="2" />
 <g fill="#2a2f3c" stroke="none"><rect x="80" y="191" width="3" height="12" rx="1" /><rect x="86" y="191" width="3" height="12" rx="1" /><rect x="111" y="191" width="3" height="12" rx="1" /><rect x="117" y="191" width="3" height="12" rx="1" /></g>
 <circle cx="100" cy="197" r="5" fill="#3fa9f5" stroke-width="1.6" /><circle cx="98.5" cy="195.5" r="1.6" fill="#e8f6ff" stroke="none" />
 <path d="M84 208 L76 224 H124 L116 208 Z" fill="url(#${p}bell)" stroke-width="2" />
 <path d="M80 216 H120" stroke="#8a96a8" stroke-width="1" fill="none" /><path d="M84 210 L78 222" stroke="#c9d2de" stroke-width="1.2" stroke-linecap="round" fill="none" />
+</g>`,
+    // The front pair of fins (clipped deltas), bolted to the hull's sides by steel fairings: drawn over the hull.
+    over: `<g stroke="${INK}" stroke-linejoin="round">
+<path d="M77 174 L40 204 V222 H46 L77 202 Z" fill="url(#${p}navy)" stroke-width="2.2" /><path d="M123 174 L160 204 V222 H154 L123 202 Z" fill="url(#${p}navy)" stroke-width="2.2" />
+<path d="M72 180 L43 204 M128 180 L157 204" stroke="#6f9ad8" stroke-width="1.4" stroke-linecap="round" fill="none" />
+<g fill="url(#${p}steel)" stroke-width="1.6"><rect x="73" y="172" width="6" height="32" rx="2.5" /><rect x="121" y="172" width="6" height="32" rx="2.5" /></g>
+<g fill="#3e4858" stroke="none"><circle cx="76" cy="178.4" r="1" /><circle cx="76" cy="188" r="1" /><circle cx="76" cy="197.6" r="1" /><circle cx="124" cy="178.4" r="1" /><circle cx="124" cy="188" r="1" /><circle cx="124" cy="197.6" r="1" /></g>
 </g>`,
   }),
 
@@ -149,17 +154,22 @@ const PARTS: Record<string, (p: string) => { ghost: string; art: string }> = {
 export function shipSideView(world: World): string {
   const progress = stageProgress(world);
   const p = 'sv-';
-  // The pad and scaffolding first, behind; then the ship from the bottom up.
-  const order = ['pad', 'scaffold', 'engine', 'hull', 'life', 'nav'];
+  // The pad and scaffolding first, behind; then the ship from the bottom up. `engine+` is the engine's
+  // front fins, which sit in front of the hull.
+  const order = ['pad', 'scaffold', 'engine', 'hull', 'engine+', 'life', 'nav'];
   const parts = order
-    .map((id) => {
+    .map((key) => {
+      const front = key.endsWith('+');
+      const id = front ? key.slice(0, -1) : key;
       const i = SHIP.stages.findIndex((s) => s.id === id);
       const part = PARTS[id]?.(p);
-      if (i < 0 || !part) return '';
+      const art = front ? part?.over : part?.art;
+      if (i < 0 || !part || art === undefined) return '';
       const v = progress[i];
-      if (v >= 1) return part.art;
-      const ghost = `<g fill="none" stroke="#7d8aa3" stroke-width="1.5" stroke-dasharray="5 4">${part.ghost}</g>`;
-      return v > 0 ? `${ghost}<g opacity="${(0.25 + 0.6 * v).toFixed(2)}">${part.art}</g>` : ghost;
+      if (v >= 1) return art;
+      // The dashed outline is drawn once, with the part's back layer.
+      const ghost = front ? '' : `<g fill="none" stroke="#7d8aa3" stroke-width="1.5" stroke-dasharray="5 4">${part.ghost}</g>`;
+      return v > 0 ? `${ghost}<g opacity="${(0.25 + 0.6 * v).toFixed(2)}">${art}</g>` : ghost;
     })
     .join('');
   const svg =

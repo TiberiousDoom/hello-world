@@ -22,7 +22,9 @@ How the game works on `master` today. Balance numbers live in
   a real walk.
 - **Ore runs out (D-096):** each ore tile holds **1,200 ore**; mining by hand and extractors both take
   from it, and once it's used up the tile is bare ground. Touching tiles of one ore are drawn as one
-  patch, on a shared bed of earth.
+  patch, rising from the ground as a terrace (D-155): the whole patch is a low shelf of rock, and where it's
+  at least three tiles across a second, higher shelf sits on it. Each shelf has rounded edges and a cliff on
+  its near side with a band of ore along it. A tile of ore on its own is a small pile of rocks.
 - **Forest (D-044):** about 14% of the map is trees, in noise-shaped woods. Trees never grow on ore,
   and none grow within 20 tiles of the hub's centre. A small grove (radius 3) sits just outside that
   clearing, so the first Lumber Camp is close by. See [Wood](#wood).
@@ -393,14 +395,17 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   |---|---|---|---|
   | Spring | 4 (36 min) | 1.5× faster | Fresh green grass and trees |
   | Summer | 2 (18 min) | 2× faster | A warm light; a few broadleaf trees already turning |
-  | Fall | 4 (36 min) | 0.75× (slower) | Leaf litter on the ground, orange trees and bronze pines |
-  | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare frosted trees and snowy pines; grass and flowers are under the snow |
+  | Fall | 4 (36 min) | 0.75× (slower) | Leaf litter on the ground, orange trees and bronze pines; by its end the broadleaf trees are bare but for a few last leaves, and fallen leaves cover the ground |
+  | Winter | 2 (18 min) | 0.5× (slowest) | Snow on the ground, bare broadleaf trees with snow on their limbs, and snowy pines; grass and flowers are under the snow |
 
   A stump's regrowth time is set by the season it's cut in.
-- **Seasons fade in (D-111):** over the last day of each season the land turns to the next one's look.
-  Trees change one by one, each at its own moment; the ground and the light cross-fade; snow covers the
-  grass and flowers bit by bit. Coming out of winter, flowers come back in the first half of that day and
-  leaves in the second. Only the look changes: the rules (tree regrowth) change on the day the season does.
+- **Seasons fade in (D-111, D-154):** over the last day of each season the land turns to the next one's look.
+  Trees change one by one, each at its own moment; the ground and the light cross-fade. Fall and winter
+  are different: over the last day of fall the leaves fall (the broadleaf trees go bare, one by one, and
+  fallen leaves gather on the ground), and winter starts bare; then over the first half of winter's first
+  day the snow comes, settling on the ground, the trees and the pines and covering the grass and flowers
+  bit by bit. It lies full for a day, and melts over the last half of winter's last day: flowers come back
+  in the first half of that melt and leaves in the second. Pines keep their needles all year. Only the look changes: the rules (tree regrowth) change on the day the season does.
 - **Shadows (D-101, D-111):** buildings and trees cast shadows that move with the sun. The sun rises on the
   right (east), crosses the south and sets on the left, so shadows point left in the morning, a little up
   and short at midday, and right in the evening, growing long towards dusk. At night the moon casts

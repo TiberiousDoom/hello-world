@@ -42,13 +42,13 @@ import {
   isMachine,
   FUEL,
   burnsFuel,
-  type Season,
 } from '../sim/data';
 import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, defenceTier, outOfFuel } from '../sim/world';
 import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
 import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
-import { clockAt, darkness, seasonTurn } from '../sim/clock';
+import { clockAt, darkness, seasonTurn, type Look } from '../sim/clock';
+import { TERRACE_TOP, joinedOre, terraceLevel, terracePiece, type TerracePiece } from './terraces';
 import { Nest, bugDef, coverTiles, coveredTiles, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
@@ -58,6 +58,23 @@ import { Camera } from './camera';
 
 const RESOURCE_NODES = ['', 'terrain/node_iron', 'terrain/node_copper', 'terrain/node_stone', 'terrain/node_sulfur'];
 const RESOURCE_COLORS = ['', '#5a4232', '#1f6e5c', '#6e6b64', '#6e6224'];
+/**
+ * Ore patches as terraces (D-155), by resource: the rock of each step's top, its lit edge, the cliff's rock,
+ * and the band of ore along the cliff with its highlight.
+ */
+const TERRACE_COLORS = [
+  null,
+  { rock: '#6e5a4c', light: '#97806d', cliff: '#4f4036', ore: '#a0553a', oreLight: '#d9906a' },
+  { rock: '#4f4a46', light: '#7c756e', cliff: '#36322f', ore: '#3fbfa0', oreLight: '#b6fae6' },
+  { rock: '#a8a296', light: '#dad4c9', cliff: '#6f6a62', ore: '#d6d0c4', oreLight: '#f4f0e8' },
+  { rock: '#4f4a46', light: '#7c756e', cliff: '#36322f', ore: '#e8d23a', oreLight: '#fff7b0' },
+];
+/** The ink outline, as on the sprites. */
+const INK = '#0f1a2e';
+/** How far a terrace step's inside corners curve, in tiles (D-155). */
+const TERRACE_FILLET = 0.32;
+/** How tall each terrace's cliff stands, in tiles (D-155). */
+const TERRACE_CLIFF = 0.2;
 /** The bed of earth under an ore patch (D-096), darker than the grass. */
 const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,76,70,0.75)', 'rgba(96,86,34,0.75)'];
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
@@ -84,22 +101,29 @@ const STILL_BELTS_BELOW = 20;
  * A wash over the ground for each season (#42). The seasons have their own ground and trees (D-082),
  * so this only warms summer and settles the grass tufts and flowers into fall leaves and snow.
  */
-const SEASON_TINT: Record<Season['id'], string | null> = {
+const SEASON_TINT: Record<Look, string | null> = {
   spring: null,
   summer: 'rgba(255,214,110,0.07)',
   fall: 'rgba(214,120,40,0.07)',
+  late: 'rgba(200,110,40,0.08)',
   winter: 'rgba(228,238,255,0.12)',
 };
-/** Each season's sprites for the ground and the two kinds of tree (summer is the art as first drawn). */
-const SEASON_ART: Record<Season['id'], { ground: string; round: string; pine: string; over?: [string, string] }> = {
+/**
+ * Each look's sprites for the ground and the two kinds of tree (summer is the art as first drawn). At the end
+ * of fall the broadleaf trees are down to their last leaves on fallen leaves, and in winter they're bare
+ * with snow on their limbs (D-154); pines keep their needles, with snow laid over them in winter.
+ */
+const SEASON_ART: Record<Look, { ground: string; round: string; pine: string; bare?: boolean; snow?: string }> = {
   spring: { ground: 'terrain/ground_spring', round: 'terrain/tree_round_spring', pine: 'terrain/tree_pine_spring' },
   summer: { ground: 'terrain/ground', round: 'terrain/tree_round', pine: 'terrain/tree_pine' },
   fall: { ground: 'terrain/ground_fall', round: 'terrain/tree_round_fall', pine: 'terrain/tree_pine_fall' },
+  late: { ground: 'terrain/ground_leaves', round: 'terrain/tree_round_late', pine: 'terrain/tree_pine_fall', bare: true },
   winter: {
     ground: 'terrain/ground_winter',
     round: 'terrain/tree_round_winter',
     pine: 'terrain/tree_pine_winter',
-    over: ['terrain/tree_round_winter_frost', 'terrain/tree_pine_winter_snow'],
+    bare: true,
+    snow: 'terrain/tree_pine_winter_snow',
   },
 };
 /**
@@ -259,10 +283,10 @@ export class Renderer {
   private breaches = -1;
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
-  /** The season being drawn (#42), and the night overlay's canvas. */
-  private season: Season['id'] = 'spring';
-  /** The season coming next, and how far the land has turned towards it (D-111). */
-  private next: Season['id'] = 'summer';
+  /** The look being drawn (#42, D-154), and the night overlay's canvas. */
+  private season: Look = 'spring';
+  /** The look coming next, and how far the land has turned towards it (D-111). */
+  private next: Look = 'summer';
   private shift = 0;
   /** Where shadows fall this frame: the offset per tile of height, and how dark they are (D-101). */
   private sun = { dx: 0, dy: 0, alpha: 0 };
@@ -364,7 +388,7 @@ export class Renderer {
 
     // Ground, decorations and resources (cached). Beyond the map's edge is forest.
     const turn = seasonTurn(world.state.time);
-    this.season = turn.season;
+    this.season = turn.look;
     this.next = turn.next;
     // The cached layers are repainted in 16 steps while one season gives way to the next.
     this.shift = Math.floor(turn.shift * 16) / 16;
@@ -904,12 +928,15 @@ export class Renderer {
         if (r) this.drawPatch(world, r, x, y);
       }
     }
+    // Touching ore tiles rise as terraces (D-155); a tile on its own keeps its rocks (drawNode below).
+    this.drawTerraces(world, x0, y0, x1, y1, decorate);
     for (let y = Math.max(0, y0); y < Math.min(s.height, y1); y++) {
       for (let x = Math.max(0, x0); x < Math.min(s.width, x1); x++) {
         const i = world.idx(x, y);
         const r = s.resources[i];
-        if (r) this.drawNode(r, x, y);
-        else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
+        if (r) {
+          if (!joinedOre(this.oreAt(world), x, y)) this.drawNode(r, x, y);
+        } else if (s.trees[i] === STUMP) this.drawSprite('terrain/stump', x, y, 1, ((hash(x, y) % 4) * Math.PI) / 2);
         else if (decorate && !world.tiles[i] && !s.trees[i] && !world.isWater(x, y)) this.drawDecoration(x, y);
       }
     }
@@ -931,7 +958,7 @@ export class Renderer {
    * Which season's look one tree or plant shows while the land turns (D-111): each changes at its own
    * moment, from `h` in [0, 1). Coming out of winter, flowers return in the first half and leaves in the second.
    */
-  private lookOf(h: number, leaves: boolean): Season['id'] {
+  private lookOf(h: number, leaves: boolean): Look {
     const at = this.season === 'winter' ? (leaves ? 0.5 + h / 2 : h / 2) : h;
     return this.shift > at ? this.next : this.season;
   }
@@ -1134,7 +1161,7 @@ export class Renderer {
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
         const at: [number, number, number, number] = [x + 0.5 + jx - size / 2, y + 0.5 + jy - size / 2, size, (((hv >>> 4) % 8) * Math.PI) / 4];
         if (this.drawSprite(key, ...at) || this.drawSprite(pine ? 'terrain/tree_pine' : 'terrain/tree_round', ...at)) {
-          if (art.over) this.drawSprite(art.over[pine ? 1 : 0], ...at); // snow and frost settle on top
+          if (pine && art.snow) this.drawSprite(art.snow, ...at); // snow settles on top
         } else {
           ctx.fillStyle = FOREST_CANOPY;
           dot(ctx, x + 0.5, y + 0.5, 0.55);
@@ -1189,21 +1216,28 @@ export class Renderer {
     const ctx = this.ctx;
     const len = Math.hypot(dx, dy) * SHADOW.tree;
     const angle = Math.atan2(dy, dx);
-    ctx.beginPath();
+    // Bare trees (D-154) let most of the light through: their shadow is a faint one, in a path of its own.
+    const leafy = new Path2D();
+    const bare = new Path2D();
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         if (trees[world.idx(x, y)] !== TREE) continue;
         const hv = hash(x + 5000, y + 5000);
+        const kind = hv % 10;
+        const pine = kind >= 5 && kind < 9;
+        const path = !pine && SEASON_ART[this.lookOf((hash(x + 9000, y) % 1000) / 1000, true)].bare ? bare : leafy;
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const r = size * 0.36;
         const cx = x + 0.5 + dx * SHADOW.tree * 0.6;
         const cy = y + 0.5 + dy * SHADOW.tree * 0.6;
-        ctx.moveTo(cx + Math.cos(angle) * (r + len / 2), cy + Math.sin(angle) * (r + len / 2));
-        ctx.ellipse(cx, cy, r + len / 2, r, angle, 0, Math.PI * 2);
+        path.moveTo(cx + Math.cos(angle) * (r + len / 2), cy + Math.sin(angle) * (r + len / 2));
+        path.ellipse(cx, cy, r + len / 2, r, angle, 0, Math.PI * 2);
       }
     }
     ctx.fillStyle = `rgba(10,16,30,${alpha})`;
-    ctx.fill('nonzero');
+    ctx.fill(leafy, 'nonzero');
+    ctx.fillStyle = `rgba(10,16,30,${alpha * 0.3})`;
+    ctx.fill(bare, 'nonzero');
   }
 
   /** Winter frost on the trees drawn into a cached canopy (only where trees were painted), until their winter art loads. */
@@ -1280,6 +1314,171 @@ export class Renderer {
     ctx.fillStyle = PATCH_COLORS[kind];
     roundRect(ctx, x + l, y + t, 1 - l - r, 1 - t - b, Math.min(l, r, t, b) ? 0.25 : 0.12);
     ctx.fill();
+  }
+
+  /** The ore on a tile, 0 for none or off the map. */
+  private oreAt(world: World): (x: number, y: number) => number {
+    return (x, y) => (world.inBounds(x, y) ? world.state.resources[world.idx(x, y)] : 0);
+  }
+
+  /**
+   * Ore patches as terraces (D-155): each step is drawn as one shape, every piece outlined and then every
+   * piece filled, so only the step's own edge keeps its ink. Below the top of each step its cliff shows on
+   * the near side: a band of ore over darker rock.
+   */
+  private drawTerraces(world: World, x0: number, y0: number, x1: number, y1: number, detail: boolean): void {
+    const ctx = this.ctx;
+    const kindAt = this.oreAt(world);
+    const s = world.state;
+    // A row more above, for the cliffs that hang down into the area painted.
+    const ya = Math.max(0, y0 - 1);
+    const yb = Math.min(s.height, y1 + 1);
+    const xa = Math.max(0, x0);
+    const xb = Math.min(s.width, x1);
+    const line = 1 / 16;
+    for (let level = 1; level <= TERRACE_TOP; level++) {
+      const pieces: [TerracePiece, number, number, number][] = [];
+      for (let y = ya; y < yb; y++)
+        for (let x = xa; x < xb; x++) {
+          const k = kindAt(x, y);
+          if (!k || !joinedOre(kindAt, x, y)) continue;
+          const p = terracePiece(kindAt, x, y, k, level);
+          if (p) pieces.push([p, k, x, y]);
+        }
+      if (!pieces.length) break;
+      const lift = (level - 1) * TERRACE_CLIFF;
+      const shape = (dx: number, dy: number, kind = 0) => {
+        ctx.beginPath();
+        for (const [p, k] of pieces) if (!kind || k === kind) this.terracePath(p, dx, dy - lift);
+      };
+      // The shadow, then the cliff (outlined as one, then filled), its band of ore, then the step's top.
+      shape(0.05, TERRACE_CLIFF + 0.06);
+      ctx.fillStyle = 'rgba(10,19,34,0.3)';
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = line;
+      ctx.lineJoin = 'round';
+      shape(0, TERRACE_CLIFF);
+      ctx.stroke();
+      for (let k = 1; k < TERRACE_COLORS.length; k++) {
+        const c = TERRACE_COLORS[k]!;
+        if (!pieces.some((p) => p[1] === k)) continue;
+        shape(0, TERRACE_CLIFF, k);
+        ctx.fillStyle = c.cliff;
+        ctx.fill();
+        shape(0, TERRACE_CLIFF * 0.5, k);
+        ctx.fillStyle = c.ore;
+        ctx.fill();
+      }
+      shape(0, 0);
+      ctx.stroke();
+      for (let k = 1; k < TERRACE_COLORS.length; k++) {
+        if (!pieces.some((p) => p[1] === k)) continue;
+        shape(0, 0, k);
+        ctx.fillStyle = level === 1 ? TERRACE_COLORS[k]!.rock : TERRACE_COLORS[k]!.light;
+        ctx.fill();
+      }
+      if (!detail) continue;
+      // The lit edge where a step ends on its north side, and a glint of ore here and there on top.
+      ctx.lineWidth = 1 / 32;
+      ctx.lineCap = 'round';
+      for (const [p, k, x, y] of pieces) {
+        const c = TERRACE_COLORS[k]!;
+        if (p.openNorth) {
+          ctx.globalAlpha = 0.6;
+          ctx.strokeStyle = level === 1 ? c.light : '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(p.x0 + (p.round[0] ? p.radius : 0), p.y0 + 0.05 - lift);
+          ctx.lineTo(p.x1 - (p.round[1] ? p.radius : 0), p.y0 + 0.05 - lift);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        const h = hash(x + 150 * level, y);
+        if (h % 3 || terraceLevel(kindAt, x, y, k) !== level) continue;
+        const gx = x + 0.35 + ((h >>> 4) % 30) / 100;
+        const gy = y + 0.4 + ((h >>> 9) % 30) / 100 - lift;
+        ctx.fillStyle = c.oreLight;
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1 / 80;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy);
+        ctx.lineTo(gx + 0.05, gy - 0.05);
+        ctx.lineTo(gx + 0.1, gy);
+        ctx.lineTo(gx + 0.05, gy + 0.03);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.lineWidth = 1 / 32;
+      }
+    }
+  }
+
+  /**
+   * One piece of a terrace step, as a subpath (all wound the same way, so the pieces fill as one). Outside
+   * corners curve by the piece's radius; inside corners are cut back with a curve the size of the inset, so
+   * the step's edge turns smoothly instead of leaving a notch.
+   */
+  private terracePath(p: TerracePiece, dx: number, dy: number): void {
+    const ctx = this.ctx;
+    const r = p.radius;
+    const m = p.inset;
+    const [tl, tr, br, bl] = p.round;
+    const [ntl, ntr, nbr, nbl] = p.notch;
+    const x0 = p.x0 + dx;
+    const x1 = p.x1 + dx;
+    const y0 = p.y0 + dy;
+    const y1 = p.y1 + dy;
+    ctx.moveTo(x0 + (tl ? r : ntl ? m : 0), y0);
+    if (tr) {
+      ctx.lineTo(x1 - r, y0);
+      ctx.quadraticCurveTo(x1, y0, x1, y0 + r);
+    } else if (ntr) {
+      ctx.lineTo(x1 - m, y0);
+      ctx.lineTo(x1 - m, y0 + m);
+      ctx.lineTo(x1, y0 + m);
+    } else ctx.lineTo(x1, y0);
+    if (br) {
+      ctx.lineTo(x1, y1 - r);
+      ctx.quadraticCurveTo(x1, y1, x1 - r, y1);
+    } else if (nbr) {
+      ctx.lineTo(x1, y1 - m);
+      ctx.lineTo(x1 - m, y1 - m);
+      ctx.lineTo(x1 - m, y1);
+    } else ctx.lineTo(x1, y1);
+    if (bl) {
+      ctx.lineTo(x0 + r, y1);
+      ctx.quadraticCurveTo(x0, y1, x0, y1 - r);
+    } else if (nbl) {
+      ctx.lineTo(x0 + m, y1);
+      ctx.lineTo(x0 + m, y1 - m);
+      ctx.lineTo(x0, y1 - m);
+    } else ctx.lineTo(x0, y1);
+    if (tl) {
+      ctx.lineTo(x0, y0 + r);
+      ctx.quadraticCurveTo(x0, y0, x0 + r, y0);
+    } else if (ntl) {
+      ctx.lineTo(x0, y0 + m);
+      ctx.lineTo(x0 + m, y0 + m);
+      ctx.lineTo(x0 + m, y0);
+    } else ctx.lineTo(x0, y0);
+    ctx.closePath();
+    // Each inside corner gets a curved fillet out into the open ground beside it, so the step's edge sweeps
+    // round the corner. (sx, sy) points from the corner into that open ground.
+    const fillet = (cx: number, cy: number, sx: number, sy: number) => {
+      const f = TERRACE_FILLET;
+      // Wound the same way as the piece (clockwise on screen), whichever corner it is.
+      const a: [number, number] = [cx, cy + sy * f];
+      const b: [number, number] = [cx + sx * f, cy];
+      const [p0, p1] = sx * sy < 0 ? [a, b] : [b, a];
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(...p0);
+      ctx.quadraticCurveTo(cx, cy, ...p1);
+      ctx.closePath();
+    };
+    if (ntr) fillet(x1 - m, y0 + m, 1, -1);
+    if (nbr) fillet(x1 - m, y1 - m, 1, 1);
+    if (nbl) fillet(x0 + m, y1 - m, -1, 1);
+    if (ntl) fillet(x0 + m, y0 + m, -1, -1);
   }
 
   private drawNode(kind: number, x: number, y: number): void {

@@ -52,7 +52,7 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 | Asset | Size | Frames | Priority | Status |
 |---|---|---|---|---|
 | Ground tile: grass, seamless, with a faint tile edge (3–4 variants so it doesn't look tiled) | 64×64 | 1 | P1 | Upgraded (`terrain/ground`, summer) |
-| Seasonal ground (D-082): spring grass, fall leaf litter, winter snow | 64×64 | 1 each | P2 | Upgraded (`terrain/ground_spring`, `ground_fall`, `ground_winter`) |
+| Seasonal ground (D-082, D-154): spring grass, fall leaf litter, fallen leaves at the end of fall, winter snow | 64×64 | 1 each | P2 | Upgraded (`terrain/ground_spring`, `ground_fall`, `ground_leaves`, `ground_winter`; `ground_leaves` drawn by `art/trees.mjs`) |
 | Map edge: soft shadow where the clearing meets the forest | — | 1 | P3 | Code |
 | Iron ore node (2–3 variants), on a dirt patch with a transparent background | 64×64 | 1 | P1 | Upgraded |
 | Copper ore node (2–3 variants) | 64×64 | 1 | P1 | Upgraded |
@@ -60,7 +60,7 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 | Decorations, transparent: grass tuft, flowers (2 colourways), mushrooms, pebbles. Scattered on empty tiles | 64×64 | 1 | P2 | Upgraded (`terrain/tuft`, `flowers`, `flowers_blue`, `mushrooms`, `pebbles`) |
 | Trees, top-down canopies with a soft shadow: round, autumn, pine, berry bush. They fill a band around the map | 128×128 (2 tiles) | 1 | P2 | Upgraded (`terrain/tree_round`, `tree_autumn`, `tree_pine`, `bush`) |
 | Map trees (D-044): the same canopies, drawn about 1.4 tiles across on every forest tile. Zoomed far out, a plain canopy colour | — | — | P2 | Uses the tree sprites |
-| Seasonal trees (D-082): round and pine canopies for spring, fall and winter, with snow (pines) and frost (round trees) drawn over them in winter | 128×128 (2 tiles) | 1 each | P2 | Upgraded (`terrain/tree_round_spring`, `_fall`, `_winter`, `_winter_frost`; `tree_pine_spring`, `_fall`, `_winter`, `_winter_snow`) |
+| Seasonal trees (D-082, D-154): round and pine canopies for spring and fall; the round (broadleaf) tree bare from above at the end of fall, with a few last leaves (`_late`), and in winter with snow along its limbs (`_winter`); pines with snow drawn over them in winter | 128×128 (2 tiles) | 1 each | P2 | Upgraded (`terrain/tree_round_spring`, `_fall`, `_late`, `_winter`; `tree_pine_spring`, `_fall`, `_winter`, `_winter_snow`). The bare trees are drawn by `art/trees.mjs` (0.88.2) |
 | Tree stump, with a sprouting twig, on a transparent background | 64×64 | 1 | P2 | Upgraded (`terrain/stump`) |
 | Fireflies and drifting leaves | — | — | P3 | Code |
 
@@ -94,7 +94,7 @@ Drawn small on belts (about 20 px on screen) and larger in menus, so they need s
 
 Ponds (D-115) are drawn in code: a muddy shore, water, deeper water away from the edge, and glints close up.
 
-Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tiles read as one patch (D-096).
+Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only for a tile of ore on its own. Touching tiles of one ore are drawn in code as terraces (D-155, `src/render/terraces.ts`): a shelf of rock for the patch and a higher one where it's three tiles across, rounded outside corners and curved inside ones, each with a cliff showing a band of ore. Their colours per ore are `TERRACE_COLORS` in the renderer.
 
 ## Buildings
 
@@ -131,7 +131,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth, so touching tile
 | Repair station | 1×1 | A workshop pad: a cog with a spanner across it, a welding arm with sparks, a toolbox. Working (mending something): the torch flares, the cog turns | 1 + 4 working | P2 | Upgraded (redrawn after the art review); working strip `repair_working_4f` |
 | Shipyard | 3×3 (192×192) | A landing pad under camouflage netting, with gantries | 1 | P2 | Upgraded |
 | Ship stages (D-151) | 5×5 overlays | The ship seen from straight above, like everything else on the map, drawn stage by stage: `ship_hull` (the round fuselage, open at the top, with its long shadow), `ship_engine` (four fins and two booster pods), `ship_life` (oxygen tanks north and south, green lights), `ship_nav` (the navy nose cone with cockpit glass, a radar dish and the beacon). Each overlay holds only its own parts. At launch the game draws the engines' glow round the ship's foot and smoke rolling out | 1 each | P2 | Upgraded in 0.87.8 (top-down; was a three-quarter view) |
-| Ship side view (D-151) | 200×260 SVG in the shipyard's Side view window | The ship from the side, stage by stage: brick pad with an iron blast plate, timber scaffold towers with a crane, the engine (bell, boosters, fins), the white hull with navy bands, life support (green portholes, hatch, tanks) and the navy nose with cockpit glass and beacon; each with a silhouette for the dashed outline | 6 parts | P2 | Upgraded in 0.87.8 (drawn in code in `src/ui/shipview.ts`) |
+| Ship side view (D-151) | 200×260 SVG in the shipyard's Side view window | The ship from the side, stage by stage: brick pad with an iron blast plate, timber scaffold towers with a crane, the engine (bell, boosters, the back fins behind them, and the front fins: clipped deltas bolted to the hull's sides and drawn in front of it), the white hull with navy bands, life support (green portholes, hatch, tanks) and the navy nose with cockpit glass and beacon; each with a silhouette for the dashed outline | 6 parts | P2 | Upgraded in 0.87.8, front fins redrawn in 0.88.2 (drawn in code in `src/ui/shipview.ts`) |
 | Lumber Camp | 2×2 (128×128) | A log pile and a saw, facing east. The game draws an output port at the middle of the east edge. Working: the saw spins, sawdust flies | 1 + 4 working | P2 | Upgraded; working strip `lumber_camp_working_4f` |
 | Sawmill | 2×2 (128×128) | A saw bench, logs in and planks out, facing east. Working: the saw spins, the log feeds in, sawdust flies | 1 + 4 working | P2 | Upgraded; working strip `sawmill_working_4f` |
 | Palisade set | 1×1 each | Chosen from neighbours: east–west runs seen from above as log tops (`palisade`), north–south runs in side view (`palisade_v`), corners `palisade_nw`, `_ne`, `_sw`, `_se`, gate ends `palisade_end_w`, `_end_e` and a lone post `palisade_post` | 1 | P2 | Upgraded |
