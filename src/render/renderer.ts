@@ -243,12 +243,19 @@ const HOT_MS = 2500;
 const RUIN_MS = 60000;
 /** Seconds before lift-off that the ship starts to climb (D-159). */
 const LIFT = 4;
-/** Co-op players' overalls (D-160): the first keeps the sprite's orange; the rest are turned blue, green, purple. */
-const PLAYER_TINTS = ['', 'hue-rotate(185deg) saturate(110%)', 'hue-rotate(95deg)', 'hue-rotate(250deg)'];
+/** The filter that turns the engineer's orange overalls (hue 28°) to a player's colour (D-161); a grey one goes pale. */
+function overalls(color: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max - min < 0.15) return 'saturate(0) brightness(140%)';
+  const h = max === r ? ((g - b) / (max - min) + 6) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
+  return `hue-rotate(${Math.round(h * 60 - 28)}deg)`;
+}
 /** Walls that crack as they're damaged (D-160). */
 const CRACKS: BuildingType[] = ['wall', 'reinforced_wall', 'steel_wall', 'palisade'];
-/** How many crossings wear a tile's grass right down to a path (D-160). */
-const PATH_WEAR = 60;
+/** Buildings that don't smoke and burn as they're damaged (D-161). */
+const NO_FIRE: BuildingType[] = [...CRACKS, 'arc_fence', 'spike_pit'];
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
 
 /** A cheap integer hash, for choosing decorations per tile. */
@@ -370,9 +377,7 @@ export class Renderer {
   /** When each knocked-out engineer got back up (ms) (D-160). */
   private upAt = new Map<number, number>();
   private wasDown = new Set<number>();
-  /** How often an engineer has walked over each tile this session, for the worn paths (D-160). */
-  private trodden: Uint16Array | null = null;
-  private treadAt = new Map<number, number>();
+
   /** Where each building stood (centre and size), to show it coming down when it's demolished (D-160). */
   private spots = new Map<number, [number, number, number]>();
   /** Hub stock, research done, ship stage and fallen nests last frame, for their effects (D-160). */
@@ -554,7 +559,6 @@ export class Renderer {
     this.drawBeltItems(now);
     for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b, z);
     for (const r of this.ruins) this.drawFrame('effects/ruin', now / 250, r.x - r.size / 2, r.y - r.size / 2, r.size);
-    this.drawWornPaths(world, x0, y0, x1, y1);
     this.drawShadows(world, standing);
     for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
@@ -1175,29 +1179,6 @@ export class Renderer {
    * Night (#42): a dark blue wash over the map, with pools of light around the hub, the engineer,
    * turrets and working machines so the factory stays readable. Fades in at dusk and out at dawn.
    */
-  /** Where engineers walk most, the grass wears into a dirt path (D-160): fainter where it's been crossed less. */
-  private drawWornPaths(world: World, x0: number, y0: number, x1: number, y1: number): void {
-    const t = this.trodden;
-    if (!t || t.length !== world.state.width * world.state.height) return;
-    const ctx = this.ctx;
-    // Three shades, each one shape over every tile worn that far, so neighbouring tiles join into a path.
-    for (const [least, alpha] of [
-      [4, 0.2],
-      [PATH_WEAR / 3, 0.15],
-      [PATH_WEAR, 0.15],
-    ] as const) {
-      const path = new Path2D();
-      for (let y = Math.max(0, y0); y <= Math.min(world.state.height - 1, y1); y++)
-        for (let x = Math.max(0, x0); x <= Math.min(world.state.width - 1, x1); x++) {
-          if (t[world.idx(x, y)] < least) continue;
-          path.moveTo(x + 1.12, y + 0.5);
-          path.ellipse(x + 0.5, y + 0.5, 0.62, 0.56, 0, 0, Math.PI * 2);
-        }
-      ctx.fillStyle = `rgba(138,106,68,${alpha})`;
-      ctx.fill(path, 'nonzero');
-    }
-  }
-
   /**
    * Life in the clearing by day (D-160): cloud shadows drifting over everything, birds crossing (scattering
    * from bugs), a rabbit or a deer at the forest's edge, and butterflies in summer.
@@ -2558,7 +2539,8 @@ export class Renderer {
 
   /** Cracks and smoke over a building's footprint once it's badly hurt (the hub has its own damaged sprite). */
   private drawDamage(world: World, b: Building, fw: number, fh: number, now: number): void {
-    if (b.type === 'hub' || isBelt(b.type)) return;
+    // Walls, fences and spike pits don't smoke and burn: walls crack instead (D-161).
+    if (b.type === 'hub' || isBelt(b.type) || NO_FIRE.includes(b.type)) return;
     const health = b.hp / world.maxHp(b);
     const key = health < 0.25 ? 'effects/damage_2' : health < 0.5 ? 'effects/damage_1' : undefined;
     if (!key) return;
@@ -3575,14 +3557,6 @@ export class Renderer {
         k++;
       }
       for (; k < carried.length; k++) this.drawItem(carried[carried.length - 1 - k], d.x - 0.3 - 0.1 * k, d.y + 0.3, 0.3); // no room on the trail yet
-      // In co-op, a ring in each player's colour tells the engineers apart.
-      if (world.state.players.length > 1) {
-        ctx.strokeStyle = PLAYER_COLORS[p.id % PLAYER_COLORS.length];
-        ctx.lineWidth = 3 / z;
-        ctx.beginPath();
-        ctx.ellipse(d.x, d.y + 0.28, 0.36, 0.16, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
       const moving = p.path.length > 0 || !!p.walk;
       const frame = moving && Math.floor(d.walked / 0.35) % 2 ? '_b' : '';
       // A red flash just after a bite (D-074).
@@ -3611,19 +3585,12 @@ export class Renderer {
         d.angle = Math.atan2(Math.floor(p.mining!.tile / w) + 0.5 - d.y, (p.mining!.tile % w) + 0.5 - d.x);
       }
       const at: [number, number, number, number] = [d.x - 0.5, d.y - 0.5, 1, d.angle];
-      // Each co-op player in their own overalls (D-160): orange, blue, green, purple.
-      const tint = PLAYER_TINTS[world.state.players.indexOf(p) % PLAYER_TINTS.length];
+      // In co-op, each engineer wears overalls in their player's colour (D-161), the one the lobby shows.
+      const tint = world.state.players.length > 1 ? overalls(PLAYER_COLORS[p.id % PLAYER_COLORS.length]) : '';
       if (tint) ctx.filter = tint;
       const gettingUp = now - (this.upAt.get(p.id) ?? -Infinity) < 900 && frameCount('units/engineer_up');
       const drew = gettingUp ? this.drawFrame('units/engineer_up', ((now - this.upAt.get(p.id)!) / 900) * 4, ...at) : this.drawFrame(strip, i, ...at);
       if (tint) ctx.filter = bitten ? 'sepia(1) saturate(6) hue-rotate(-40deg)' : 'none';
-      // Where engineers walk most, the grass wears to a path (D-160).
-      const tile = world.idx(Math.floor(d.x), Math.floor(d.y));
-      if (moving && this.treadAt.get(p.id) !== tile) {
-        this.treadAt.set(p.id, tile);
-        this.trodden ??= new Uint16Array(world.state.width * world.state.height);
-        if (this.trodden.length === world.state.width * world.state.height && this.trodden[tile] < 65535) this.trodden[tile]++;
-      }
       if (!drew && !this.drawSprite(`units/engineer${frame}`, ...at)) {
         ctx.fillStyle = '#ffcc33';
         dot(ctx, d.x, d.y, 0.3);

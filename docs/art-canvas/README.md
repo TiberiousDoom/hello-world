@@ -28,7 +28,7 @@ id afterwards (see CLAUDE.md's gotchas).
 - `ore.cjs` and `ore2.cjs`: the richest ore field of each kind near the hub at two zooms, and an extractor on a field beside a worked-out tile.
 - `nests.cjs`: one nest at each stage, then merged over two and four cells.
 - `shipgame.cjs`: the ship at several stages on the map, and the shipyard's Side view.
-- `batch5b.cjs`: batch 5, part 2 (D-161): co-op colours, wall cracks, worn spikes and a worn path, birds, spring blossom, summer, flowers closed at night, and the research badges.
+- `batch5b.cjs`: batch 5, part 2 (D-161): co-op colours, wall cracks (walls no longer burn), worn spikes, birds, spring blossom, summer, flowers closed at night, and the research badges.
 - `batch5a.cjs`: batch 5, part 1 (D-160): building and demolishing, a delivery and research, lock-on and low ammo, a raid warning, deaths by kind, footprints in snow, and eyes at night.
 - `batch4.cjs`: batch 4 (D-159): ingots and ore on a belt, wire sparks, scaffolding, a ruin, a queen calling, a hatchling, rain and fog, and night.
 - `batch3.cjs`: batch 3 (D-158): Hardcore bugs and a glowing nest, a drone, Mk plates, the hub breach, an extractor's worn ore, an idle belt in fall and snowfall in winter.

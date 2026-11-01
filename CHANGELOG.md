@@ -16,9 +16,9 @@ what's **New** and what's **Fixed**.
 - **Life in the clearing by day:** cloud shadows drift over the map, little flocks of birds cross it (hurrying where bugs are about), and a rabbit or a deer appears at the forest's edge when no bugs are near.
 - **Seasons:** a third of the broadleaf trees blossom in spring, butterflies flit about in summer, and flowers close for the night.
 - **The water wheel splashes and the well's bucket comes up full.**
-- **Co-op players wear their own colours:** orange, blue, green and purple overalls. A knocked-out engineer gets back up, shaking off the stars.
+- **Co-op players wear their own colours:** each engineer's overalls are their player's colour from the lobby, in place of the coloured ring under them. A knocked-out engineer gets back up, shaking off the stars.
 - **Every research topic has a badge** in the research menu, and toolbar buttons lift as the pointer passes over them.
-- **Wear:** walls crack as they're damaged, a spike pit's stakes break as its charge runs down, and the grass wears to a dirt path where engineers walk most.
+- **Wear:** walls crack as they're damaged instead of smoking and catching fire, and a spike pit's stakes break as its charge runs down.
 
 ## 0.88.6 · 2026-11-01 · Rain, fireflies and the ship's climb
 ### New

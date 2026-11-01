@@ -1,5 +1,5 @@
 // Batch 5, part 2 of the Ideas in the game (D-160): blossom, clouds, birds and animals, butterflies,
-// flowers closed at night, co-op colours, wall cracks, worn spikes, a worn path, the water wheel and well,
+// flowers closed at night, co-op colours, wall cracks (walls don't burn), worn spikes, the water wheel and well,
 // and the research badges. node shots/batch5b.cjs [folder]
 const { chromium } = require('playwright');
 (async () => {
@@ -28,10 +28,8 @@ const { chromium } = require('playwright');
     // A second, third and fourth player, standing in a row.
     for (let k = 1; k < 4; k++) { const q = JSON.parse(JSON.stringify(s.players[0])); q.id = 100 + k; q.x = x0 + 1 + k; q.y = y0 + 3; s.players.push(q); }
     s.players[0].x = x0 + 1; s.players[0].y = y0 + 3;
-    // A worn path, as if walked many times.
-    const r = window.game.renderer;
-    r.trodden = new Uint16Array(s.width * s.height);
-    for (let x = x0; x < x0 + 12; x++) { r.trodden[w.idx(x, y0 + 6)] = 60; r.trodden[w.idx(x, y0 + 7)] = 20; }
+    // A furnace badly hurt beside the walls: it smokes and burns; the walls only crack.
+    const f = put('furnace', x0 + 10, y0 + 5); if (f) f.hp = w.maxHp(f) * 0.15;
     return { x: x0 + 6, y: y0 + 3, hub: [hub.x, hub.y] };
   }, ["iron_ore", "copper_ore", "stone", "iron_plate", "copper_ingot", "brick", "gear", "wire", "motor", "log", "plank", "stake", "dowel", "peg", "rope", "truss", "charcoal", "steel", "chitin", "iron_ingot", "iron_rod", "rivet", "steel_beam", "bearing", "sulfur", "gunpowder", "casing", "bullet", "shell", "ap_bullet", "he_shell", "circuit", "coil", "hub", "belt", "express_belt", "splitter", "tunnel", "extractor", "furnace", "workshop", "assembler", "turret", "cannon", "mortar", "artillery", "tesla", "ballista", "repair", "port", "wall", "reinforced_wall", "teleporter", "strike_beacon", "tree_nursery", "greenhouse", "shield_pylon", "railgun", "drone_pad", "arc_fence", "floodlight", "steel_wall", "lumber_camp", "sawmill", "blacksmith", "machine_shop", "circuit_works", "steel_works", "powder_mill", "shaft", "well", "water_wheel", "boiler", "steam_turbine", "power_pole", "palisade", "roller", "spike_pit", "trebuchet", "crate", "storage", "storage_silo", "shipyard"]);
   const cam = async (x, y, z) => { await p.evaluate(([x, y, z]) => { const c = window.game.camera; c.x = x; c.y = y; c.zoom = z; window.game.world.layout++; }, [x, y, z]); await p.waitForTimeout(400); };
