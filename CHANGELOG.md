@@ -3,6 +3,23 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens, fireworks and life in the clearing
+### New
+- **Building and demolishing show:** a timber frame and a rising line of light over what goes up, and dust and broken bits where something comes down.
+- **The hub answers:** a count floats up off it as deliveries arrive, and rings of blue light pulse out when research finishes.
+- **Turrets lock on:** brackets close on what they're aiming at, turning red. A turret running low on ammo blinks red.
+- **A raid is coming:** a siren turns on the hub and a red glow pulses along the side of the screen the raiders come from.
+- **Ship milestones:** fireworks over the ship when a stage is finished, and four lamps round the pad light one by one through the launch countdown, then turn green.
+- **Bugs die their own way:** a wasp spirals down, a beetle curls up into a dull husk, a brute crumples into a stain.
+- **Footprints in the snow** trail behind bugs in winter, and **eyes watch from the forest's edge** at night.
+- **A destroyed nest bursts with chitin.**
+- **Life in the clearing by day:** cloud shadows drift over the map, little flocks of birds cross it (hurrying where bugs are about), and a rabbit or a deer appears at the forest's edge when no bugs are near.
+- **Seasons:** a third of the broadleaf trees blossom in spring, butterflies flit about in summer, and flowers close for the night.
+- **The water wheel splashes and the well's bucket comes up full.**
+- **Co-op players wear their own colours:** each engineer's overalls are their player's colour from the lobby, in place of the coloured ring under them. A knocked-out engineer gets back up, shaking off the stars.
+- **Every research topic has a badge** in the research menu, and toolbar buttons lift as the pointer passes over them.
+- **Wear:** walls crack as they're damaged instead of smoking and catching fire, and a spike pit's stakes break as its charge runs down.
+
 ## 0.88.6 · 2026-11-01 · Rain, fireflies and the ship's climb
 ### New
 - **The ship climbs at lift-off:** in its last seconds on the pad it rises toward you, growing as it goes, while the smoke rolls out across the pad.

@@ -168,13 +168,25 @@ const MACHINES = {
   },
   well(svg, i) {
     // The crank turns a quarter of the way round over the loop, and back to the start: four-fold symmetric.
-    return swap(svg, '<g id="wCrank" transform="rotate(0 64 64)">', `<g id="wCrank" transform="rotate(${22.5 * i} 64 64)">`, 'well crank');
+    svg = swap(svg, '<g id="wCrank" transform="rotate(0 64 64)">', `<g id="wCrank" transform="rotate(${22.5 * i} 64 64)">`, 'well crank');
+    // The bucket on its rope comes up full and goes back down (D-160): smaller as it sinks into the well.
+    const d = [0.14, 0.07, 0, 0.07][i];
+    const k = 1 - d * 2;
+    return onTop(svg, `<path d="M64 38 V${(54 + d * 128).toFixed(1)}" stroke="#c9a06a" stroke-width="1.4" /><g transform="translate(64 ${(61 + d * 128).toFixed(1)}) scale(${k.toFixed(2)})"><rect x="-11.5" y="-11.5" width="23" height="23" rx="2.5" fill="#8a6234" stroke="#0f1a2e" stroke-width="1.6" /><rect x="-9" y="-9" width="18" height="18" rx="2" fill="${i === 2 ? '#7fc4ec' : '#3a2a1c'}" /></g>`);
   },
   water_wheel(svg, i) {
     // Eight paddles: an eighth of a turn over the loop. Spray flies off the paddles in the water.
     svg = swap(svg, 'translate(160 32) rotate(0)', `translate(160 32) rotate(${11.25 * i})`, 'water wheel');
     const spray = [[[150, 58], [168, 60]], [[154, 60], [172, 58]], [[148, 60], [164, 58]], [[156, 58], [170, 60]]][i];
-    return swap(svg, '<g fill="#d6f0ff" opacity="0"><circle cx="150" cy="56" r="2" /></g>', dots('#d6f0ff', spray, 2), 'water wheel spray');
+    svg = swap(svg, '<g fill="#d6f0ff" opacity="0"><circle cx="150" cy="56" r="2" /></g>', dots('#d6f0ff', spray, 2), 'water wheel spray');
+    // Splashes thrown off the rim as the paddles come round, and a ring of foam (D-160).
+    let splash = '';
+    for (let k = 0; k < 9; k++) {
+      const a = ((k / 9) * 0.9 + i * 0.22) * Math.PI + Math.PI * 0.3;
+      const d = 30 + ((k * 7 + i * 3) % 7);
+      splash += `<circle cx="${(160 + d * Math.cos(a)).toFixed(1)}" cy="${(32 + d * Math.sin(a)).toFixed(1)}" r="${(1.2 + ((k + i) % 3) * 0.6).toFixed(1)}" fill="#e8f8ff" stroke="#3a7aa8" stroke-width="0.5" />`;
+    }
+    return onTop(svg, `<circle cx="160" cy="32" r="${31 + i}" fill="none" stroke="#e8f8ff" stroke-width="1.6" stroke-dasharray="${3 + i} 5" stroke-dashoffset="${i * 4}" opacity="0.7" />${splash}`);
   },
   sawmill(svg, i) {
     svg = swap(svg, 'translate(64 64) rotate(4)', `translate(64 64) rotate(${4 + 5.625 * i})`, 'sawmill saw');

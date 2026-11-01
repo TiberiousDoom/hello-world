@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 3 L57 17 V47 L32 61 L7 47 V17 Z" fill="#2a4a7a" stroke="#0f1a2e" stroke-width="2.5" stroke-linejoin="round" /><path d="M32 7 L53 19 V45 L32 57 L11 45 V19 Z" fill="none" stroke="#7cc4ff" stroke-width="1.5" opacity="0.8" /><svg x="15" y="15" width="34" height="34" viewBox="0 0 64 64"><defs><linearGradient id="rSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef3f9" /><stop offset="1" stop-color="#7d8a9d" /></linearGradient>
+      <linearGradient id="rMotor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ad96f5" /><stop offset="0.5" stop-color="#6e52c6" /><stop offset="1" stop-color="#3e2a80" /></linearGradient>
+      </defs><g>
+        <rect x="46" y="28" width="12" height="8" rx="2" fill="url(#rSteel)" stroke="#0f1a2e" stroke-width="2.5" />
+        <rect x="10" y="19" width="38" height="26" rx="8" fill="url(#rMotor)" stroke="#0f1a2e" stroke-width="3.5" />
+        <path d="M19 21 V43 M25 21 V43 M31 21 V43 M37 21 V43" stroke="#45318f" stroke-width="2.2" />
+        <path d="M15 23.5 H42" stroke="#ddd2ff" stroke-width="2.5" stroke-linecap="round" opacity="0.9" />
+        <rect x="5" y="23" width="8" height="18" rx="2.5" fill="#3a4656" stroke="#0f1a2e" stroke-width="2.5" />
+        <rect x="26" y="13" width="8" height="7" rx="1.5" fill="#f2c14e" stroke="#0f1a2e" stroke-width="2" />
+      </g>
+
+      </svg></svg>

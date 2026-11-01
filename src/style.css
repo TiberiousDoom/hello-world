@@ -307,11 +307,18 @@ body.in-menu #toasts {
 }
 .tool .icon {
   position: relative;
+  transition: transform 0.15s ease-out;
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+/* The tool under the pointer lifts and tilts a little (D-160). */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .tool:hover .icon {
+    transform: translateY(-3px) rotate(-4deg) scale(1.08);
+  }
 }
 .tool .icon img {
   position: absolute;
@@ -594,8 +601,20 @@ body.in-menu #toasts {
   padding: 10px 0;
   border-top: 1px solid var(--border);
 }
-.research > div:first-child {
+.research > div:first-child,
+.research > .research-text {
   min-width: 0;
+  flex: 1;
+}
+/* Each topic's badge (D-160). */
+.research-badge {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+}
+.research.done .research-badge,
+.research.requires .research-badge {
+  opacity: 0.55;
 }
 .research b {
   font-family: var(--display);

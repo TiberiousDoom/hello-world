@@ -243,6 +243,19 @@ const HOT_MS = 2500;
 const RUIN_MS = 60000;
 /** Seconds before lift-off that the ship starts to climb (D-159). */
 const LIFT = 4;
+/** The filter that turns the engineer's orange overalls (hue 28°) to a player's colour (D-161); a grey one goes pale. */
+function overalls(color: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max - min < 0.15) return 'saturate(0) brightness(140%)';
+  const h = max === r ? ((g - b) / (max - min) + 6) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
+  return `hue-rotate(${Math.round(h * 60 - 28)}deg)`;
+}
+/** Walls that crack as they're damaged (D-160). */
+const CRACKS: BuildingType[] = ['wall', 'reinforced_wall', 'steel_wall', 'palisade'];
+/** Buildings that don't smoke and burn as they're damaged (D-161). */
+const NO_FIRE: BuildingType[] = [...CRACKS, 'arc_fence', 'spike_pit'];
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
 
 /** A cheap integer hash, for choosing decorations per tile. */
@@ -286,7 +299,7 @@ interface Layer {
 const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
 
 interface Effect {
-  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob';
+  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob' | 'label';
   x: number;
   y: number;
   r: number; // for a sprite, its size in tiles
@@ -359,6 +372,22 @@ export class Renderer {
   private breaches = -1;
   /** Drawing Hardcore bugs (D-158): sprites go through hardened(). */
   private hardLook = false;
+  /** Flowers drawn closed in the ground layer: night (D-160). */
+  private flowersShut = false;
+  /** When each knocked-out engineer got back up (ms) (D-160). */
+  private upAt = new Map<number, number>();
+  private wasDown = new Set<number>();
+
+  /** Where each building stood (centre and size), to show it coming down when it's demolished (D-160). */
+  private spots = new Map<number, [number, number, number]>();
+  /** Hub stock, research done, ship stage and fallen nests last frame, for their effects (D-160). */
+  private stockWas = -1;
+  private labelAt = 0;
+  private researchWas = -1;
+  private stageWas = -1;
+  private nestsDown = new Set<number>();
+  /** When each turret last showed its lock-on (ms) (D-160). */
+  private lockedAt = new Map<number, number>();
   /** When each player joined (ms), to wave (D-159); players already there when the game was first drawn didn't. */
   private joinedAt = new Map<number, number>();
   private seenPlayers: Set<number> | null = null;
@@ -482,7 +511,9 @@ export class Renderer {
     this.next = turn.next;
     // The cached layers are repainted in 16 steps while one season gives way to the next.
     this.shift = Math.floor(turn.shift * 16) / 16;
-    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}|${this.shift}`;
+    // Flowers close for the night (D-160): the ground is repainted at dusk and at dawn.
+    this.flowersShut = darkness(world.state.time) > 0.5;
+    const stamp = `${world.layout}|${spritesLoaded()}|${this.season}|${this.shift}|${this.flowersShut}`;
     this.sun = sunAt(world.state.time);
     const sun = this.sun;
     const view: [number, number, number, number] = [Math.floor(x0f) - 1, Math.floor(y0f) - 1, Math.ceil(x1f) + 1, Math.ceil(y1f) + 1];
@@ -602,6 +633,24 @@ export class Renderer {
     };
     // Hardcore bugs (D-158) are darker, with glowing red veins and a red haze about them.
     this.hardLook = s.mode === 'hardcore';
+    // Footprints in the snow behind each bug (D-160), fading back along its trail.
+    if (this.season === 'winter') {
+      for (const e of s.enemies) {
+        const tr = this.enemies.get(e.id)?.trail;
+        if (!tr || ENEMIES[e.type].flies || e.type === 'runner') continue;
+        for (let k = tr.length - 1, n = 0; k > 0; k -= 2, n++) {
+          const [px, py] = tr[k];
+          const [qx, qy] = tr[k - 1];
+          const a = Math.atan2(py - qy, px - qx) + Math.PI / 2;
+          const side = n % 2 ? 1 : -1;
+          ctx.fillStyle = `rgba(90,106,122,${(0.5 * (1 - n / 40)).toFixed(2)})`;
+          ctx.beginPath();
+          ctx.ellipse(px + Math.cos(a) * 0.1 * side, py + Math.sin(a) * 0.1 * side, 0.06, 0.04, a, 0, Math.PI * 2);
+          ctx.fill();
+          if (n > 40) break;
+        }
+      }
+    }
     for (const e of s.enemies) if (!ENEMIES[e.type].flies) drawBug(e);
     this.hardLook = false;
 
@@ -637,8 +686,12 @@ export class Renderer {
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
     this.drawAmbient(world, x0f, y0f, x1f, y1f, now, z);
+    if (ui) this.drawLife(world, x0, y0, x1, y1, now, z);
     this.drawFog(world);
     if (ui) this.drawNight(world, x0, y0, x1, y1);
+    // Over the night's dark: eyes at the forest's edge, and a raid's warning (D-160).
+    if (ui) this.drawEyes(world, x0, y0, x1, y1, now);
+    if (ui) this.drawRaidWarning(world, now);
 
     if (!ui) return;
     const sel = ui.selected != null ? world.byId.get(ui.selected) : undefined;
@@ -1126,6 +1179,132 @@ export class Renderer {
    * Night (#42): a dark blue wash over the map, with pools of light around the hub, the engineer,
    * turrets and working machines so the factory stays readable. Fades in at dusk and out at dawn.
    */
+  /**
+   * Life in the clearing by day (D-160): cloud shadows drifting over everything, birds crossing (scattering
+   * from bugs), a rabbit or a deer at the forest's edge, and butterflies in summer.
+   */
+  private drawLife(world: World, x0: number, y0: number, x1: number, y1: number, now: number, z: number): void {
+    if (this.reducedMotion || darkness(world.state.time) > 0.3) return;
+    const ctx = this.ctx;
+    const s = world.state;
+    const t = now / 1000;
+    // Cloud shadows: soft dark patches drifting slowly across the map.
+    for (let cy = Math.floor(y0 / 16) - 1; cy <= y1 / 16 + 1; cy++)
+      for (let cx = Math.floor(x0 / 24) - 1; cx <= x1 / 24 + 1; cx++) {
+        const hv = hash(cx, cy + 6100);
+        if (hv % 3) continue;
+        const px = cx * 24 + (((hv % 2400) / 100 + t * 0.4) % 24);
+        const py = cy * 16 + ((hv >>> 12) % 1600) / 100;
+        const r = 5 + ((hv >>> 6) % 5);
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+        g.addColorStop(0, 'rgba(10,20,34,0.16)');
+        g.addColorStop(1, 'rgba(10,20,34,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(px, py, r, r * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    // Birds crossing in a little flock; faster, and higher, where bugs are about.
+    for (let k = 0; k < 2; k++) {
+      const hv = hash(Math.floor(t / 20) + k * 97, 6200);
+      const u = (t % 20) / 20;
+      const bx = x0 + ((hv % 1000) / 1000) * (x1 - x0) + (u - 0.5) * (x1 - x0) * 1.2;
+      const by = y1 - u * (y1 - y0) * 1.1;
+      const near = s.enemies.some((e) => Math.abs(e.x - bx) < 5 && Math.abs(e.y - by) < 5);
+      for (let n = 0; n < 4; n++) {
+        const img = frame('units/bird', now / (near ? 50 : 90) + n * 3);
+        if (img) ctx.drawImage(img, bx + (n % 2) * 0.6 - n * 0.3, by + n * 0.5, near ? 0.7 : 0.55, near ? 0.7 : 0.55);
+      }
+    }
+    // A rabbit or a deer at the forest's edge, keeping away from bugs.
+    if (z >= 20)
+      for (let y = Math.max(1, y0); y < Math.min(s.height - 1, y1); y++)
+        for (let x = Math.max(1, x0); x < Math.min(s.width - 1, x1); x++) {
+          const hv = hash(x, y + 6300);
+          if (hv % 90 || s.trees[world.idx(x, y)] === TREE || world.buildingAt(x, y) || world.isWater(x, y)) continue;
+          const edge = s.trees[world.idx(x + 1, y)] === TREE || s.trees[world.idx(x - 1, y)] === TREE || s.trees[world.idx(x, y - 1)] === TREE;
+          if (!edge || s.enemies.some((e) => Math.abs(e.x - x) < 6 && Math.abs(e.y - y) < 6)) continue;
+          const deer = (hv >>> 8) % 3 === 0;
+          const img = frame(deer ? 'units/deer' : 'units/rabbit', now / (deer ? 600 : 160) + hv);
+          if (!img) continue;
+          ctx.save();
+          ctx.translate(x + 0.5, y + 0.5);
+          ctx.rotate(((hv >>> 4) % 8) * (Math.PI / 4));
+          const size = deer ? 1.5 : 0.8;
+          ctx.drawImage(img, -size / 2, -size / 2, size, size);
+          ctx.restore();
+        }
+    // Butterflies in summer, flitting about.
+    if (this.season === 'summer')
+      for (let i = 0; i < 24; i++) {
+        const hv = hash(i, 6400);
+        const fx = ((hv % 10007) / 10007) * s.width + Math.sin(t * 0.5 + i) * 2;
+        const fy = (((hv >>> 13) % 10007) / 10007) * s.height + Math.cos(t * 0.4 + i * 1.3) * 1.5;
+        if (fx < x0 - 1 || fx > x1 + 1 || fy < y0 - 1 || fy > y1 + 1) continue;
+        const img = frame('effects/butterfly', now / 70 + i);
+        if (img) ctx.drawImage(img, fx - 0.2, fy - 0.2, 0.4, 0.4);
+      }
+  }
+
+  /** At night, pairs of eyes watch from the forest's edge, blinking now and then (D-160). */
+  private drawEyes(world: World, x0: number, y0: number, x1: number, y1: number, now: number): void {
+    const dark = darkness(world.state.time);
+    if (dark < 0.4) return;
+    const s = world.state;
+    const ctx = this.ctx;
+    ctx.globalAlpha = Math.min(1, (dark - 0.4) * 2.5);
+    for (let y = Math.max(1, y0); y < Math.min(s.height - 1, y1); y++)
+      for (let x = Math.max(1, x0); x < Math.min(s.width - 1, x1); x++) {
+        if (hash(x, y + 3131) % 45 || s.trees[world.idx(x, y)] !== TREE) continue;
+        // On the forest's edge: a tree with open ground beside it.
+        if (s.trees[world.idx(x + 1, y)] === TREE && s.trees[world.idx(x - 1, y)] === TREE && s.trees[world.idx(x, y + 1)] === TREE && s.trees[world.idx(x, y - 1)] === TREE) continue;
+        const h = hash(x, y);
+        const img = frame('effects/eyes', Math.floor(now / 220 + h) % 23 === 0 ? 2 : 0);
+        if (img) ctx.drawImage(img, x, y + 0.25, 1, 0.5);
+      }
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * A raid on its way (D-160): a siren turning on the hub, and a red glow pulsing along the edge of the screen
+   * the raiders come from.
+   */
+  private drawRaidWarning(world: World, now: number): void {
+    const raiders = world.state.enemies.filter((e) => e.raid);
+    const hub = world.hub;
+    if (!raiders.length || !hub || this.reducedMotion) return;
+    const ctx = this.ctx;
+    const [hx, hy] = world.centreOf(hub);
+    const a = now / 300;
+    ctx.fillStyle = 'rgba(255,90,58,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.arc(hx, hy, HUB_SIZE * 0.9, a - 0.3, a + 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ff5a3a';
+    dot(ctx, hx, hy, 0.35);
+    ctx.fillStyle = '#ffd0c0';
+    dot(ctx, hx, hy, 0.15);
+    // The edge: toward where the raiders are, on average.
+    const mx = raiders.reduce((t, e) => t + e.x, 0) / raiders.length - hx;
+    const my = raiders.reduce((t, e) => t + e.y, 0) / raiders.length - hy;
+    const pulse = 0.25 + 0.2 * Math.sin(now / 250);
+    const c = ctx.canvas;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const horiz = Math.abs(mx) > Math.abs(my);
+    const band = Math.min(c.width, c.height) * 0.12;
+    const [gx0, gy0, gx1, gy1] = horiz ? (mx > 0 ? [c.width, 0, c.width - band, 0] : [0, 0, band, 0]) : my > 0 ? [0, c.height, 0, c.height - band] : [0, 0, 0, band];
+    const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+    g.addColorStop(0, `rgba(255,42,26,${pulse.toFixed(2)})`);
+    g.addColorStop(1, 'rgba(255,42,26,0)');
+    ctx.fillStyle = g;
+    if (horiz) ctx.fillRect(mx > 0 ? c.width - band : 0, 0, band, c.height);
+    else ctx.fillRect(0, my > 0 ? c.height - band : 0, c.width, band);
+    ctx.restore();
+  }
+
   private drawNight(world: World, x0: number, y0: number, x1: number, y1: number): void {
     const dark = darkness(world.state.time);
     if (dark <= 0) return;
@@ -1208,8 +1387,9 @@ export class Renderer {
     if (pick < 21 && this.lookOf(((h >>> 4) % 1000) / 1000, false) === 'winter' && sprite('terrain/ground_winter')) return;
     const jx = ((h >>> 8) % 40) / 100 - 0.2;
     const jy = ((h >>> 16) % 40) / 100 - 0.2;
-    // Plants stand upright (#94); only pebbles turn.
-    this.drawSprite(key, x + jx, y + jy, 1, key === 'terrain/pebbles' ? (((h >>> 24) % 4) * Math.PI) / 2 : 0);
+    // Plants stand upright (#94); only pebbles turn. Flowers close at night (D-160).
+    const shut = this.flowersShut && (key === 'terrain/flowers' || key === 'terrain/flowers_blue') && sprite(`${key}_closed`);
+    this.drawSprite(shut ? `${key}_closed` : key, x + jx, y + jy, 1, key === 'terrain/pebbles' ? (((h >>> 24) % 4) * Math.PI) / 2 : 0);
   }
 
   /** A soft shadow where the clearing meets the forest. */
@@ -1287,7 +1467,9 @@ export class Renderer {
         const season = this.lookOf((hash(x + 9000, y) % 1000) / 1000, true);
         const art = SEASON_ART[season];
         const pine = kind >= 5 && kind < 9;
-        const key = season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : art.round;
+        // In spring, a third of the broadleaf trees are in blossom (D-160).
+        const blossom = season === 'spring' && !pine && hv % 3 === 0 && sprite('terrain/tree_round_blossom');
+        const key = season === 'summer' && kind === 9 ? 'terrain/tree_autumn' : pine ? art.pine : blossom ? 'terrain/tree_round_blossom' : art.round;
         const size = 1.35 + ((hv >>> 8) % 30) / 100;
         const jx = ((hv >>> 12) % 20) / 100 - 0.1;
         const jy = ((hv >>> 20) % 20) / 100 - 0.1;
@@ -2357,7 +2539,8 @@ export class Renderer {
 
   /** Cracks and smoke over a building's footprint once it's badly hurt (the hub has its own damaged sprite). */
   private drawDamage(world: World, b: Building, fw: number, fh: number, now: number): void {
-    if (b.type === 'hub' || isBelt(b.type)) return;
+    // Walls, fences and spike pits don't smoke and burn: walls crack instead (D-161).
+    if (b.type === 'hub' || isBelt(b.type) || NO_FIRE.includes(b.type)) return;
     const health = b.hp / world.maxHp(b);
     const key = health < 0.25 ? 'effects/damage_2' : health < 0.5 ? 'effects/damage_1' : undefined;
     if (!key) return;
@@ -2471,6 +2654,14 @@ export class Renderer {
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         dot(ctx, b.x + fw / 2, b.y + fw / 2, 0.3);
       }
+      // Running low: the turret's base blinks red (D-160).
+      if (turret.ammoItem && turret.maxShots > 0 && b.ammo + (b.better ?? 0) < turret.maxShots * 0.2 && Math.floor(now / 350) % 2 === 0) {
+        ctx.strokeStyle = 'rgba(255,74,58,0.85)';
+        ctx.lineWidth = 0.07;
+        ctx.beginPath();
+        ctx.arc(b.x + fw / 2, b.y + fw / 2, fw * 0.46, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       if (turret.ammoItem) {
         const better = b.better ?? 0;
         // Better ammo (D-136) shows as its own colour at the bar's start.
@@ -2491,6 +2682,17 @@ export class Renderer {
     if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / REPAIR.maxCharge, '#3fbf5f');
     if (b.type === 'port') this.drawPortCollar(world, b, now, z);
     if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
+    // Walls crack as they're damaged; a spike pit's stakes wear down with its charge (D-160).
+    if (CRACKS.includes(b.type) && b.hp < world.maxHp(b)) {
+      const part = b.hp / world.maxHp(b);
+      const stage = part < 0.25 ? 3 : part < 0.5 ? 2 : part < 0.75 ? 1 : 0;
+      if (stage) this.drawSprite(`effects/crack_${stage}`, b.x, b.y, 1);
+    }
+    if (b.type === 'spike_pit') {
+      const part = b.ammo / SPIKES.maxCharge;
+      const stage = part < 0.1 ? 3 : part < 0.33 ? 2 : part < 0.66 ? 1 : 0;
+      if (stage) this.drawSprite(`effects/spikes_worn_${stage}`, b.x, b.y, 1);
+    }
     // Scaffolding while it's being mended (D-159).
     if (now - (this.repairing.get(b.id) ?? -Infinity) < 900) this.drawFrame('effects/scaffold', now / 150, b.x, b.y, Math.max(fw, fh));
     if (b.type === 'crate' && b.outputs.length) {
@@ -2734,6 +2936,26 @@ export class Renderer {
       ctx.globalAlpha = 1;
     });
     if (firing) this.drawLaunchSmoke(b, now, world);
+    // Countdown lamps at the pad's corners (D-160): they light one by one, then all turn green to lift off.
+    if (firing && ship.launchAt != null) {
+      const left = (ship.launchAt - world.state.time) / SHIP.launchTime;
+      const lit = Math.min(4, Math.floor((1 - left) * 4) + (left < 0.04 ? 1 : 0));
+      const green = left < 0.06;
+      [
+        [0.5, 0.5],
+        [SHIP_SIZE - 0.5, 0.5],
+        [SHIP_SIZE - 0.5, SHIP_SIZE - 0.5],
+        [0.5, SHIP_SIZE - 0.5],
+      ].forEach(([dx, dy], k) => {
+        const on = k < lit;
+        if (on) {
+          ctx.fillStyle = green ? 'rgba(110,224,122,0.35)' : 'rgba(255,90,58,0.35)';
+          dot(ctx, b.x + dx, b.y + dy, 0.4);
+        }
+        ctx.fillStyle = on ? (green ? '#6ee07a' : '#ff5a3a') : '#3a2a28';
+        dot(ctx, b.x + dx, b.y + dy, 0.18);
+      });
+    }
   }
 
   /** The engines firing for launch, seen from above (D-151): a glow round the foot of the ship, flickering. */
@@ -2909,6 +3131,11 @@ export class Renderer {
       const aim = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
       if (b) {
         this.aims.set(b.id, aim);
+        // Brackets close on what it's aiming at (D-160), now and then rather than every shot.
+        if (now - (this.lockedAt.get(b.id) ?? -Infinity) > 900) {
+          this.lockedAt.set(b.id, now);
+          this.spriteFx('effects/lock_on', sh.x2, sh.y2, 0.9, 360, now);
+        }
         this.fired.set(b.id, now);
       }
       if (b?.type === 'trebuchet') {
@@ -2943,7 +3170,7 @@ export class Renderer {
       let movedAt = prev?.movedAt ?? s.time;
       // Where it has been, for the runner's body to follow (#96).
       const trail = prev?.trail ?? [[e.x, e.y]];
-      if (e.type === 'runner') {
+      if (e.type === 'runner' || (this.season === 'winter' && !ENEMIES[e.type].flies)) {
         const [lx, ly] = trail[trail.length - 1];
         if (Math.hypot(e.x - lx, e.y - ly) > 0.04) {
           trail.push([e.x, e.y]);
@@ -2984,6 +3211,7 @@ export class Renderer {
       const mended = world.buildingAt(Math.floor(h.x), Math.floor(h.y));
       if (mended) this.repairing.set(mended.id, now);
     }
+    if (!this.seenPlayers) for (const n of s.nests) if (n.destroyed) this.nestsDown.add(n.id);
     // Who joined, and what went up beside whom (D-159).
     const ids = new Set(s.players.map((p) => p.id));
     if (this.seenPlayers) for (const id of ids) if (!this.seenPlayers.has(id)) this.joinedAt.set(id, now);
@@ -2995,7 +3223,53 @@ export class Renderer {
         for (const p of s.players) if (Math.hypot(p.x - cx, p.y - cy) < 4) this.builtAt.set(p.id, now);
       }
     }
+    // Building and demolishing (D-160): a frame and a rising line over what went up; dust where something
+    // was taken down (not lost to bugs: that has its own debris and ruin).
+    if (this.seenBuildings) {
+      for (const b of s.buildings) {
+        if (this.seenBuildings.has(b.id) || b.type === 'belt' || b.type === 'express_belt' || b.type === 'roller') continue;
+        const [cx, cy] = world.centreOf(b);
+        const [fw, fh] = world.footprintOf(b);
+        this.spriteFx('effects/build', cx, cy, Math.max(fw, fh) * 1.05, 550, now);
+      }
+      const lostIds = new Set(world.lost.map((l) => l.id));
+      for (const [id, [cx, cy, size]] of this.spots) if (!world.byId.has(id) && !lostIds.has(id)) this.spriteFx('effects/demolish', cx, cy, size * 1.3, 500, now);
+    }
+    this.spots.clear();
+    for (const b of s.buildings) {
+      if (b.type === 'belt' || b.type === 'express_belt' || b.type === 'roller') continue;
+      const [cx, cy] = world.centreOf(b);
+      const [fw, fh] = world.footprintOf(b);
+      this.spots.set(b.id, [cx, cy, Math.max(fw, fh)]);
+    }
     this.seenBuildings = new Set(s.buildings.map((b) => b.id));
+    const hubB = world.hub;
+    if (hubB) {
+      const [hx, hy] = world.centreOf(hubB);
+      // Deliveries: a count floating up off the hub, at most every 700 ms.
+      const stock = Object.values(s.inventory).reduce((a, n) => a + (n ?? 0), 0);
+      if (this.stockWas >= 0 && stock > this.stockWas && now - this.labelAt > 700) {
+        this.effects.push({ kind: 'label', x: hx, y: hy - HUB_SIZE * 0.35, r: 0.6, born: now, life: 900, color: `+${stock - this.stockWas}` });
+        this.labelAt = now;
+        this.stockWas = stock;
+      } else if (this.stockWas < 0 || stock < this.stockWas || now - this.labelAt > 700) this.stockWas = stock;
+      // Research finished: rings of blue light pulse out from the hub.
+      if (this.researchWas >= 0 && s.researched.length > this.researchWas) this.spriteFx('effects/research_pulse', hx, hy, HUB_SIZE * 1.6, 1000, now);
+      this.researchWas = s.researched.length;
+    }
+    // A ship stage finished: fireworks over the shipyard.
+    const yard = shipyard(world);
+    if (yard && this.stageWas >= 0 && s.ship.stage > this.stageWas) this.spriteFx('effects/fireworks', yard.x + SHIP_SIZE / 2, yard.y + SHIP_SIZE / 2, SHIP_SIZE * 1.1, 1400, now);
+    this.stageWas = s.ship.stage;
+    // A nest destroyed: chitin bursts out of it (D-160).
+    for (const n of s.nests) {
+      if (!n.destroyed || this.nestsDown.has(n.id)) continue;
+      const first = this.nestsDown.size === 0 && !this.seenPlayers;
+      this.nestsDown.add(n.id);
+      if (first || n.into != null) continue;
+      const [cx, cy] = nestCentre(n);
+      for (let k = 0; k < 3; k++) this.spriteFx('effects/chitin_drop', cx + Math.cos(k * 2.1) * 0.9, cy + Math.sin(k * 2.1) * 0.9, 0.8, 700, now + k * 120);
+    }
 
     // Mining by hand (#38): sparks on every tap, and a puff of the ore when one comes loose.
     for (const tap of world.taps) {
@@ -3011,7 +3285,12 @@ export class Renderer {
       if (alive.has(id)) continue;
       this.enemies.delete(id);
       const radius = (e.queen ? QUEENS.bug.size : 1) * ENEMIES[e.type].radius;
-      if (!breached && !this.spriteFx('effects/death_splat', e.x, e.y, radius * 4.5, 500, now, e.angle)) {
+      // Each kind dies its own way where it has a strip for it (D-160), else the shared splat.
+      if (
+        !breached &&
+        !this.spriteFx(`enemies/${e.type}_death`, e.x, e.y, Math.min(ENEMY_SPRITE_MAX * (e.queen ? QUEENS.bug.size : 1), radius * ENEMY_SPRITE_SCALE), 650, now, e.angle) &&
+        !this.spriteFx('effects/death_splat', e.x, e.y, radius * 4.5, 500, now, e.angle)
+      ) {
         this.effects.push({ kind: 'puff', x: e.x, y: e.y, r: radius * 2.2, born: now, life: 400, color: '224,68,90' });
       }
     }
@@ -3215,6 +3494,12 @@ export class Renderer {
     const ctx = this.ctx;
     const t = world.state.time;
     for (const p of world.state.players) {
+      // Back on its feet after being knocked out (D-160): it gets up, the stars clearing.
+      if (p.downUntil == null && this.wasDown.has(p.id)) {
+        this.wasDown.delete(p.id);
+        this.upAt.set(p.id, now);
+      }
+      if (p.downUntil != null) this.wasDown.add(p.id);
       if (p.downUntil != null) {
         // Knocked out (D-074): seeing stars where it fell, until it's back up at the hub (D-082).
         const was = this.players.get(p.id);
@@ -3272,14 +3557,6 @@ export class Renderer {
         k++;
       }
       for (; k < carried.length; k++) this.drawItem(carried[carried.length - 1 - k], d.x - 0.3 - 0.1 * k, d.y + 0.3, 0.3); // no room on the trail yet
-      // In co-op, a ring in each player's colour tells the engineers apart.
-      if (world.state.players.length > 1) {
-        ctx.strokeStyle = PLAYER_COLORS[p.id % PLAYER_COLORS.length];
-        ctx.lineWidth = 3 / z;
-        ctx.beginPath();
-        ctx.ellipse(d.x, d.y + 0.28, 0.36, 0.16, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
       const moving = p.path.length > 0 || !!p.walk;
       const frame = moving && Math.floor(d.walked / 0.35) % 2 ? '_b' : '';
       // A red flash just after a bite (D-074).
@@ -3308,7 +3585,13 @@ export class Renderer {
         d.angle = Math.atan2(Math.floor(p.mining!.tile / w) + 0.5 - d.y, (p.mining!.tile % w) + 0.5 - d.x);
       }
       const at: [number, number, number, number] = [d.x - 0.5, d.y - 0.5, 1, d.angle];
-      if (!this.drawFrame(strip, i, ...at) && !this.drawSprite(`units/engineer${frame}`, ...at)) {
+      // In co-op, each engineer wears overalls in their player's colour (D-161), the one the lobby shows.
+      const tint = world.state.players.length > 1 ? overalls(PLAYER_COLORS[p.id % PLAYER_COLORS.length]) : '';
+      if (tint) ctx.filter = tint;
+      const gettingUp = now - (this.upAt.get(p.id) ?? -Infinity) < 900 && frameCount('units/engineer_up');
+      const drew = gettingUp ? this.drawFrame('units/engineer_up', ((now - this.upAt.get(p.id)!) / 900) * 4, ...at) : this.drawFrame(strip, i, ...at);
+      if (tint) ctx.filter = bitten ? 'sepia(1) saturate(6) hue-rotate(-40deg)' : 'none';
+      if (!drew && !this.drawSprite(`units/engineer${frame}`, ...at)) {
         ctx.fillStyle = '#ffcc33';
         dot(ctx, d.x, d.y, 0.3);
       }
@@ -3522,6 +3805,18 @@ export class Renderer {
           ctx.lineTo(fx.x + Math.cos(ang) * d1, fx.y + Math.sin(ang) * d1);
         }
         ctx.stroke();
+      } else if (fx.kind === 'label') {
+        // A count floating up off the hub as deliveries arrive (D-160).
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.font = `800 ${fx.r}px Montserrat, system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = fx.r / 6;
+        ctx.strokeStyle = '#0f1a2e';
+        ctx.fillStyle = '#ffd36b';
+        ctx.strokeText(fx.color, fx.x, fx.y - t * 0.8);
+        ctx.fillText(fx.color, fx.x, fx.y - t * 0.8);
+        ctx.restore();
       } else if (fx.kind === 'puff') {
         ctx.fillStyle = `rgba(${fx.color},${0.6 * a})`;
         for (let i = 0; i < 6; i++) {
