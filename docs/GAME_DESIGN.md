@@ -177,7 +177,8 @@ with, so emptying one and building it again isn't a free refill.
   fits in the engineer's inventory, and **Drop off** puts items in.
 - **Storage Unit** (1×2, #87, D-116): its Iron Age upgrade. It holds **6 stacks of up to 50**, of any mix
   of items (300 in all), takes them from the back and sides, and sends them out of its front, first in,
-  first out, onto a belt or roller there. Collect and Drop off work as on the crate.
+  first out, onto a belt or roller there. Collect and Drop off work as on the crate. Stores show how full they
+  are: a crate opens to show its item, and the Storage Unit's compartments and the silo's gauge fill in thirds (D-157).
 - **The Storage Silo** (D-122, Express Logistics) is the same with **12 stacks of 100** (1200 items) on a 2×2
   footprint.
 - **Water power (D-113, D-115, D-117):** belts, turrets and cannons need power. A **Well** (anywhere) gives

@@ -226,3 +226,92 @@ const f1 = (n) => n.toFixed(1);
     );
   }
 }
+
+// --- The railgun charges (D-157): its copper coils heat from the back forward and glow white along the
+// rails, it fires, and they cool. Frames: charging (3), firing, cooling.
+{
+  const still = read('buildings/railgun_barrel');
+  const COILS = '<g fill="#d98a3a" stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" /><rect x="94" y="46" width="6" height="36" rx="2" /></g>';
+  const LINE = '<path d="M66 64 H118" stroke="#6ec8ff" stroke-width="3" stroke-linecap="round" opacity="0.85" />';
+  const glow = (x, c) => (c === '#d98a3a' ? '' : `<rect x="${x - 4}" y="42" width="14" height="44" rx="5" fill="${c}" opacity="0.35" />`);
+  write(
+    'buildings/railgun_barrel_charge_5f',
+    strip(
+      [
+        ['#e8a050', '#d98a3a', 0.5, 0],
+        ['#ffd6a0', '#e8a050', 0.7, 0],
+        ['#eaf8ff', '#cfefff', 1, 0],
+        ['#ffffff', '#ffffff', 1, 1],
+        ['#f0b070', '#d98a3a', 0.6, 0],
+      ].map(([back, front, line, fire]) => {
+        let t = swap(still, COILS, `${glow(76, back)}${glow(94, front)}<g stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" fill="${back}" /><rect x="94" y="46" width="6" height="36" rx="2" fill="${front}" /></g>`, 'railgun coils');
+        t = swap(t, LINE, `<path d="M66 64 H118" stroke="#6ec8ff" stroke-width="${2 + line * 3}" stroke-linecap="round" opacity="${line}" />${line === 1 ? '<path d="M66 64 H118" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />' : ''}`, 'railgun line');
+        return fire ? t.replace(/<\/svg>\s*$/, '<circle cx="122" cy="64" r="5.5" fill="#bfe9ff" opacity="0.6" /><circle cx="122" cy="64" r="3" fill="#ffffff" /></svg>') : t;
+      }),
+    ),
+  );
+}
+
+// --- The tesla's bolt (D-157): three jagged bolts, each with a glow, a white core and forks, drawn
+// stretched from the tesla to the bug (the code drew one bolt itself before). 128 × 32, from left to right.
+{
+  let seed = 11;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const bolt = () => {
+    const pts = [[4, 16]];
+    for (let x = 14; x < 124; x += 10) pts.push([x + (rnd() - 0.5) * 4, 16 + (rnd() - 0.5) * 16]);
+    pts.push([124, 16]);
+    const d = 'M' + pts.map(([x, y]) => `${f1(x)} ${f1(y)}`).join(' L');
+    let forks = '';
+    for (let k = 0; k < 3; k++) {
+      const [x, y] = pts[2 + Math.floor(rnd() * (pts.length - 4))];
+      const dir = rnd() < 0.5 ? -1 : 1;
+      forks += `M${f1(x)} ${f1(y)} L${f1(x + 6 + rnd() * 4)} ${f1(y + dir * (4 + rnd() * 3))} L${f1(x + 12 + rnd() * 4)} ${f1(y + dir * (6 + rnd() * 4))}`;
+    }
+    return (
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 32">` +
+      `<path d="${d}" fill="none" stroke="#3fa9f5" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity="0.25" />` +
+      `<path d="${d}${forks}" fill="none" stroke="#8fd0ff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="0.9" />` +
+      `<path d="${d}" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" />` +
+      `<circle cx="124" cy="16" r="5" fill="#bfe9ff" opacity="0.6" /><circle cx="124" cy="16" r="2.4" fill="#ffffff" /></svg>`
+    );
+  };
+  const frames = [bolt(), bolt(), bolt()];
+  // Not square, so laid out here rather than by strip().
+  write('effects/tesla_bolt_3f', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 32">\n${frames.map((f, i) => f.replace('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 32">', `<svg x="${i * 128}" y="0" width="128" height="32" viewBox="0 0 128 32">`)).join('\n')}\n</svg>\n`);
+}
+
+// --- Storage that shows how full it is (D-157). The crate opens to show what it holds (the game draws the
+// item in it); the Storage Unit's compartments fill with goods; the silo lights a gauge round its roof.
+{
+  const crate = read('buildings/crate');
+  let open = swap(crate, '<path d="M9 9 L55 55 M55 9 L9 55" stroke="#7a4a22"', '<path d="M9 9 L55 55 M55 9 L9 55" opacity="0" stroke="#7a4a22"', 'crate lid');
+  open = swap(open, '<path d="M9 9 L55 55 M55 9 L9 55" stroke="#c48f52"', '<path d="M9 9 L55 55 M55 9 L9 55" opacity="0" stroke="#c48f52"', 'crate lid');
+  open = swap(open, '<path d="M5 18 H59 M5 32 H59 M5 46 H59" stroke="#8a5a32"', '<rect x="8" y="8" width="48" height="48" rx="2" fill="#4a2f18" /><path d="M8 8 H56" stroke="#2a1a0c" stroke-width="3" opacity="0.6" /><path d="M5 18 H59 M5 32 H59 M5 46 H59" opacity="0" stroke="#8a5a32"', 'crate inside');
+  write('buildings/crate_open', open);
+
+  const unit = read('buildings/storage');
+  const slots = [[10, 10], [34, 10], [10, 48], [34, 48], [10, 86], [34, 86]];
+  /** Goods in a compartment: sacks and boxes, not any one item (the unit holds a mix). */
+  const goods = (x, y, k) =>
+    k % 2
+      ? `<g stroke="#0f1a2e" stroke-width="1.2"><rect x="${x + 3}" y="${y + 14}" width="14" height="14" rx="1.5" fill="#c89a5a" /><path d="M${x + 3} ${y + 21} H${x + 17}" stroke="#8a5a32" /><rect x="${x + 5}" y="${y + 4}" width="10" height="10" rx="1.5" fill="#d9a866" /></g>`
+      : `<g stroke="#0f1a2e" stroke-width="1.2"><ellipse cx="${x + 10}" cy="${y + 20}" rx="7.5" ry="8" fill="#b8a07a" /><path d="M${x + 7} ${y + 13} q3 -3 6 0" fill="none" /><ellipse cx="${x + 10}" cy="${y + 9}" rx="5" ry="4.5" fill="#9aa8b8" /></g>`;
+  for (const [n, level] of [[2, 1], [4, 2], [6, 3]]) write(`buildings/storage_${level}`, unit.replace(/<\/svg>\s*$/, `${slots.slice(0, n).map(([x, y], k) => goods(x, y + 2, k)).join('')}</svg>`));
+
+  const silo = read('buildings/storage_silo');
+  for (const level of [1, 2, 3]) {
+    let g = '';
+    const n = 24;
+    for (let k = 0; k < n; k++) {
+      const a0 = -Math.PI / 2 + (k / n) * Math.PI * 2 + 0.03;
+      const a1 = -Math.PI / 2 + ((k + 1) / n) * Math.PI * 2 - 0.03;
+      const lit = k < Math.round((level / 3) * n);
+      g += `<path d="M${f1(60 + 53 * Math.cos(a0))} ${f1(64 + 53 * Math.sin(a0))} A53 53 0 0 1 ${f1(60 + 53 * Math.cos(a1))} ${f1(64 + 53 * Math.sin(a1))}" stroke="${lit ? '#3fa9f5' : '#2a3442'}" stroke-width="4" fill="none" />`;
+    }
+    write(`buildings/storage_silo_${level}`, silo.replace(/<\/svg>\s*$/, `${g}</svg>`));
+  }
+}

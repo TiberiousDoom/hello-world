@@ -102,8 +102,8 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 |---|---|---|---|---|---|
 | Hub | 8×8 (512×512; 5×5 before D-108, the same art scaled up) | Centrepiece, with a damaged variant drawn below half health (`buildings/hub_damaged`) | 1 (+idle loop) | P1 | Upgraded |
 | Wooden roller (D-106): a narrow wooden frame with rollers across | 1×1 | Drawn in code in play (frame, turning rollers, corners as an L); the sprite is the toolbar icon | 1 | P2 | Placeholder (`buildings/roller`) |
-| Storage crate (D-106): a wooden crate, its front marked | 1×1 | | 1 | P2 | Placeholder (`buildings/crate`) |
-| Storage Unit (D-116): a steel cabinet of six compartments, its front marked | 1×2 (64×128), facing east | Sends out of its top tile's front | 1 | P2 | Placeholder (`buildings/storage`) |
+| Storage crate (D-106): a wooden crate, its front marked | 1×1 | Open while it holds anything, its item drawn inside by the game (D-157) | 2 | P2 | Placeholder (`buildings/crate`, `crate_open`) |
+| Storage Unit (D-116): a steel cabinet of six compartments, its front marked | 1×2 (64×128), facing east | Sends out of its top tile's front; its compartments fill with goods at a third, two thirds and full (D-157) | 4 | P2 | Placeholder (`buildings/storage`, `storage_1` to `_3`) |
 | Ship scaffolding (D-109): a wooden lattice around the pad, seen from above | 5×5 | The ship's first stage on the map (`buildings/ship_scaffold`); the shipyard and the other ship stages are drawn at 5×5 too (3×3 before D-109) | 1 | P2 | Placeholder |
 | Ship launch pad (D-118): a brick slab with a riveted iron blast plate in the middle, seen from above | 5×5 | The ship's Iron Age stage (`buildings/ship_pad`), drawn under the scaffolding and the ship | 1 | P2 | Placeholder |
 | Spike pit (D-107): a dug pit bristling with sharpened stakes | 1×1 | A charge bar shows its wear | 1 | P2 | Placeholder (`buildings/spike_pit`) |
@@ -123,13 +123,13 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Splitter | 1×2 (64×128), facing east | A box straddling two belt lanes, an arrow on each: two lanes in, two out (#34) | 1 | P2 | Upgraded |
 | Underground belt entrance | 1×1 | A belt running into a hooded mouth on the east side, diving underground (#35) | 1 | P2 | Upgraded |
 | Underground belt exit | 1×1 | A belt coming up out of a hooded mouth on the west side (#35) | 1 | P2 | Upgraded |
-| Hub port | 1×1 | Should look like part of the hub, with output to the east | 1 | P2 | Upgraded |
+| Hub port | 1×1 | Should look like part of the hub, with output to the east. Sending: a 4-frame strip of a crate riding out (D-157) | 1 + 4 | P2 | Upgraded (`port_working_4f`) |
 | Turret base | 1×1 | Static | 1 | P1 | Upgraded |
 | Turret barrel | 1×1 | Separate layer that rotates to aim; centred pivot. Firing: a 5-frame recoil strip (`turret_barrel_fire_5f`, D-156), as for Turret Mk.2, cannon, mortar and artillery, built by `art/animate.mjs` | 1 + 5 | P1 | Upgraded |
 | Cannon base | 1×1 | | 1 | P2 | Upgraded |
 | Cannon barrel | 1×1 | Separate layer, as for the turret | 1 | P2 | Upgraded |
 | Repair station | 1×1 | A workshop pad: a cog with a spanner across it, a welding arm with sparks, a toolbox. Working (mending something): the torch flares, the cog turns | 1 + 4 working | P2 | Upgraded (redrawn after the art review); working strip `repair_working_4f` |
-| Shipyard | 3×3 (192×192) | A landing pad under camouflage netting, with gantries | 1 | P2 | Upgraded |
+| Shipyard | 3×3 (192×192) | A landing pad under camouflage netting, with gantries. While the ship is built: a gantry crane at work (D-157) | 1 + 4 | P2 | Upgraded (`shipyard_working_4f`) |
 | Ship stages (D-151) | 5×5 overlays | The ship seen from straight above, like everything else on the map, drawn stage by stage: `ship_hull` (the round fuselage, open at the top, with its long shadow), `ship_engine` (four fins and two booster pods), `ship_life` (oxygen tanks north and south, green lights), `ship_nav` (the navy nose cone with cockpit glass, a radar dish and the beacon). Each overlay holds only its own parts. At launch the game draws the engines' glow round the ship's foot and smoke rolling out | 1 each | P2 | Upgraded in 0.87.8 (top-down; was a three-quarter view) |
 | Ship side view (D-151) | 200×260 SVG in the shipyard's Side view window | The ship from the side, stage by stage: brick pad with an iron blast plate, timber scaffold towers with a crane, the engine (bell, boosters, the back fins behind them, and the front fins: clipped deltas bolted to the hull's sides and drawn in front of it), the white hull with navy bands, life support (green portholes, hatch, tanks) and the navy nose with cockpit glass and beacon; each with a silhouette for the dashed outline | 6 parts | P2 | Upgraded in 0.87.8, front fins redrawn in 0.88.2 (drawn in code in `src/ui/shipview.ts`) |
 | Lumber Camp | 2×2 (128×128) | A log pile and a saw, facing east. The game draws an output port at the middle of the east edge. Working: the saw spins, sawdust flies | 1 + 4 working | P2 | Upgraded; working strip `lumber_camp_working_4f` |
@@ -141,14 +141,14 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Ballista bow | 1×1 | Separate layer that turns to aim: the bow at the front of the stock, string drawn back, no arrow; centred pivot | 1 | P2 | Upgraded (`buildings/ballista_barrel`) |
 | Tesla base | 1×1 | Static | 1 | P2 | Upgraded (`buildings/tesla_base`) |
 | Tesla coil | 1×1 | Separate layer that turns to aim, like the turret barrel, no arrow; centred pivot | 1 | P2 | Upgraded (`buildings/tesla_barrel`) |
-| Tesla lightning | — | A jagged bolt with a glow, redrawn every frame | — | P3 | Code; Reference `effects/tesla_bolt` (a guide for the code) |
+| Tesla lightning | 4×1 tiles, stretched to the target | A jagged bolt with a glow, a white core and forks, one of three each frame (D-157) | 3 | P3 | Placeholder (`effects/tesla_bolt_3f`; code draws a bolt if it's missing) |
 | Wall set | 1×1 each | Near top-down capstones, chosen from neighbours: `wall` (east–west), `wall_v`, corners `wall_nw`, `_ne`, `_sw`, `_se`, gate ends `wall_end_w`, `_end_e` and a lone pier `wall_pier` | 1 | P2 | Upgraded |
 | Steel Works (D-120): a rolling mill, two steel rolls with a glowing billet between them, beams stacked below | 2×2 | Static, plus a 4-frame working strip (rolls turning, billet feeding, glow) | 1 + 4 | P2 | Placeholder (`buildings/steel_works`, `steel_works_working_4f`) |
 | Steel beam and bearing items (D-120) | 16×16 | An I-beam; a ball bearing | 1 each | P3 | Placeholder (`items/steel_beam`, `items/bearing`) |
 | Boiler (D-121): a brick firebox with a riveted steel drum, a fire behind the grate and a smoke stack | 2×2 | Static, plus a 4-frame working strip (fire flickering, glow, smoke) | 1 + 4 | P2 | Placeholder (`buildings/boiler`, `boiler_working_4f`) |
 | Steam Turbine (D-121): a bladed rotor in a steel casing, with a copper generator coil | 2×2 | Static, plus a 4-frame working strip (rotor turning, spark) | 1 + 4 | P2 | Placeholder (`buildings/steam_turbine`, `steam_turbine_working_4f`) |
 | Power pole (D-121): a wooden pole with a cross-arm and three insulators, seen from above | 1×1 | Static; the game draws the wires between poles | 1 | P2 | Upgraded in 0.87.7: glass insulators, braces, stones at its foot and a long shadow (`buildings/power_pole`) |
-| Storage Silo (D-122): a round steel silo roof inside a square frame, with an output hatch | 2×2 | Static | 1 | P2 | Placeholder (`buildings/storage_silo`) |
+| Storage Silo (D-122): a round steel silo roof inside a square frame, with an output hatch | 2×2 | A gauge round the roof lights at a third, two thirds and full (D-157) | 4 | P2 | Placeholder (`buildings/storage_silo`, `storage_silo_1` to `_3`) |
 | Mk2 plate (D-122) | — | A gold plate with two chevrons on Mk2 extractors and furnaces, dim without electricity | — | P3 | Code |
 | Sulfur node (D-123) | 1×1 | Yellow crystals in rock, like the other ore nodes | 1 | P2 | Placeholder (`terrain/node_sulfur`, recoloured from copper) |
 | Powder Mill (D-123): a stone pan with two edge runners, sulfur and charcoal bins | 2×2 | Static, plus a 4-frame working strip (runners turning, light) | 1 + 4 | P2 | Placeholder (`buildings/powder_mill`, `powder_mill_working_4f`) |
@@ -156,14 +156,14 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 | Circuit board and coil items (D-125) | 16×16 | A green board with a chip; a copper coil on a core | 1 each | P3 | Placeholder (`items/circuit`, `items/coil`) |
 | Arc Fence (D-126): steel posts with a lightning insulator, three live wires between them | 1×1, a run set like the walls (`arc_fence`, `_v`, corners, ends, `_pier`) | Static | 9 | P2 | Placeholder (`buildings/arc_fence*`) |
 | Floodlight (D-126): a lamp head with three bulbs on a post | 1×1 | Static (its light at night is drawn in code) | 1 | P2 | Placeholder (`buildings/floodlight`) |
-| Drone Pad (D-128): a landing pad with a yellow H in a dashed ring and corner lights | 1×1 | Static | 1 | P2 | Placeholder (`buildings/drone_pad`) |
+| Drone Pad (D-128): a landing pad with a yellow H in a dashed ring and corner lights | 1×1 | Static, plus a 4-frame working strip while powered: the lights chase round (D-157) | 1 + 4 | P2 | Placeholder (`buildings/drone_pad`, `drone_pad_working_4f`) |
 | Drone (D-128): a small quadcopter seen from above, rotors spinning, carrying an item | ~0.5 tile | Drawn in code | — | P3 | Code |
-| Shield Pylon (D-129): an octagonal plate with a glowing blue orb | 1×1 | Static (its dome is drawn in code) | 1 | P2 | Placeholder (`buildings/shield_pylon`) |
-| Railgun (D-129): an octagonal base with a ring of lights; twin rails with copper coils on a turret | 2×2 | Base, plus a barrel layer that turns to aim | 2 | P2 | Placeholder (`buildings/railgun_base`, `railgun_barrel`) |
-| Teleporter Pad (D-131): a violet pad with a glowing portal ring | 1×1 | Static | 1 | P2 | Placeholder (`buildings/teleporter`) |
-| Orbital Strike Beacon (D-131): a dish on a mast with a red light, hazard stripes | 1×1 | Static (the strike is drawn in code) | 1 | P2 | Placeholder (`buildings/strike_beacon`) |
+| Shield Pylon (D-129): an octagonal plate with a glowing blue orb | 1×1 | Static, plus a 4-frame working strip while powered: the orb pulses (D-157); its dome is drawn in code | 1 + 4 | P2 | Placeholder (`buildings/shield_pylon`, `shield_pylon_working_4f`) |
+| Railgun (D-129): an octagonal base with a ring of lights; twin rails with copper coils on a turret | 2×2 | Base, plus a barrel layer that turns to aim; a 5-frame strip of the coils charging, firing and cooling (D-157) | 2 + 5 | P2 | Placeholder (`buildings/railgun_base`, `railgun_barrel`, `railgun_barrel_charge_5f`) |
+| Teleporter Pad (D-131): a violet pad with a glowing portal ring | 1×1 | Static, plus a 4-frame working strip in use: the ring turns, motes spiral in (D-157) | 1 + 4 | P2 | Placeholder (`buildings/teleporter`, `teleporter_working_4f`) |
+| Orbital Strike Beacon (D-131): a dish on a mast with a red light, hazard stripes | 1×1 | Static, plus a 4-frame working strip while powered: the dish swings, the light blinks (D-157); the strike is drawn in code | 1 + 4 | P2 | Placeholder (`buildings/strike_beacon`, `strike_beacon_working_4f`) |
 | Greenhouse (D-131): saplings under glass panes | 2×2 | Idle and working: the saplings sway, mist drifts down, the grow light warms (D-156) | 1 + 4 | P2 | Placeholder; working strip `greenhouse_working_4f` |
-| Tree Nursery (D-134): a fenced plot with rows of saplings growing up, and a watering can | 2×2 | Static | 1 | P2 | Placeholder (`buildings/tree_nursery`) |
+| Tree Nursery (D-134): a fenced plot with rows of saplings growing up, and a watering can | 2×2 | Static, plus a 4-frame working strip: the back row sprouts, the can tips (D-157) | 1 + 4 | P2 | Placeholder (`buildings/tree_nursery`, `tree_nursery_working_4f`) |
 | Turret Mk.2 (D-123): a darker turret base and a four-barrel head | 1×1 | Base and barrel (`turret2_base`, `turret2_barrel`), like the turret | 2 | P2 | Placeholder |
 | Steel wall set (D-123) | 1×1 each | The wall set in blue-grey steel, the same pieces (`steel_wall`, `_v`, corners, ends, `_pier`) | 1 | P2 | Placeholder (recoloured from the wall set) |
 | Sulfur, gunpowder, casing and bullet items (D-123) | 16×16 | A yellow crystal; a powder sack; a brass casing; two cartridges | 1 each | P3 | Placeholder |

@@ -69,15 +69,21 @@ test('the toolbar scrolls with the mouse wheel, and the Inventory button sits be
   });
   const strip = page.locator('#toolbar .tools');
   await expect.poll(() => strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
-  const stripBox = (await strip.boundingBox())!;
-  const pack = (await page.locator('#toolbar [data-tool="pack"]').boundingBox())!;
+  // The toolbar is rebuilt as the HUD updates: measure once it's settled, not mid-rebuild (a null box).
+  const box = async (sel: string) => {
+    let b = await page.locator(sel).boundingBox();
+    await expect.poll(async () => (b = await page.locator(sel).boundingBox())).not.toBeNull();
+    return b!;
+  };
+  const stripBox = await box('#toolbar .tools');
+  const pack = await box('#toolbar [data-tool="pack"]');
   expect(pack.x).toBeGreaterThanOrEqual(stripBox.x + stripBox.width);
   await page.mouse.move(stripBox.x + stripBox.width / 2, stripBox.y + stripBox.height / 2);
   await page.mouse.wheel(0, 600);
   await expect.poll(() => strip.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
   // The last tool can be scrolled fully into view, left of the Inventory button.
   await page.mouse.wheel(0, 10000);
-  const last = (await page.locator('#toolbar .tools [data-tool="demolish"]').boundingBox())!;
+  const last = await box('#toolbar .tools [data-tool="demolish"]');
   expect(last.x + last.width).toBeLessThanOrEqual(pack.x);
 });
 

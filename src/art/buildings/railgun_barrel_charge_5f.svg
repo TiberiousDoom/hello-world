@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 128">
+<svg x="0" y="0" width="128" height="128" viewBox="0 0 128 128"><defs>
+            <linearGradient id="rbRail-f0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3dae2" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+            <radialGradient id="rbBody-f0" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#6d8aa8" /><stop offset="1" stop-color="#263b52" /></radialGradient>
+          </defs>
+          <rect x="58" y="50" width="66" height="8" rx="2" fill="url(#rbRail-f0)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="58" y="70" width="66" height="8" rx="2" fill="url(#rbRail-f0)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="62" y="59" width="58" height="10" fill="#1b2a3a" />
+          <path d="M66 64 H118" stroke="#6ec8ff" stroke-width="3.5" stroke-linecap="round" opacity="0.5" />
+          <rect x="72" y="42" width="14" height="44" rx="5" fill="#e8a050" opacity="0.35" /><g stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" fill="#e8a050" /><rect x="94" y="46" width="6" height="36" rx="2" fill="#d98a3a" /></g>
+          <rect x="30" y="40" width="46" height="48" rx="10" fill="url(#rbBody-f0)" stroke="#0f1a2e" stroke-width="4" />
+          <circle cx="52" cy="64" r="10" fill="#1b2a3a" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="52" cy="64" r="5" fill="#6ec8ff" />
+          <rect x="20" y="52" width="12" height="24" rx="3" fill="#263b52" stroke="#0f1a2e" stroke-width="3" />
+        </svg>
+<svg x="128" y="0" width="128" height="128" viewBox="0 0 128 128"><defs>
+            <linearGradient id="rbRail-f1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3dae2" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+            <radialGradient id="rbBody-f1" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#6d8aa8" /><stop offset="1" stop-color="#263b52" /></radialGradient>
+          </defs>
+          <rect x="58" y="50" width="66" height="8" rx="2" fill="url(#rbRail-f1)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="58" y="70" width="66" height="8" rx="2" fill="url(#rbRail-f1)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="62" y="59" width="58" height="10" fill="#1b2a3a" />
+          <path d="M66 64 H118" stroke="#6ec8ff" stroke-width="4.1" stroke-linecap="round" opacity="0.7" />
+          <rect x="72" y="42" width="14" height="44" rx="5" fill="#ffd6a0" opacity="0.35" /><rect x="90" y="42" width="14" height="44" rx="5" fill="#e8a050" opacity="0.35" /><g stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" fill="#ffd6a0" /><rect x="94" y="46" width="6" height="36" rx="2" fill="#e8a050" /></g>
+          <rect x="30" y="40" width="46" height="48" rx="10" fill="url(#rbBody-f1)" stroke="#0f1a2e" stroke-width="4" />
+          <circle cx="52" cy="64" r="10" fill="#1b2a3a" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="52" cy="64" r="5" fill="#6ec8ff" />
+          <rect x="20" y="52" width="12" height="24" rx="3" fill="#263b52" stroke="#0f1a2e" stroke-width="3" />
+        </svg>
+<svg x="256" y="0" width="128" height="128" viewBox="0 0 128 128"><defs>
+            <linearGradient id="rbRail-f2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3dae2" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+            <radialGradient id="rbBody-f2" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#6d8aa8" /><stop offset="1" stop-color="#263b52" /></radialGradient>
+          </defs>
+          <rect x="58" y="50" width="66" height="8" rx="2" fill="url(#rbRail-f2)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="58" y="70" width="66" height="8" rx="2" fill="url(#rbRail-f2)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="62" y="59" width="58" height="10" fill="#1b2a3a" />
+          <path d="M66 64 H118" stroke="#6ec8ff" stroke-width="5" stroke-linecap="round" opacity="1" /><path d="M66 64 H118" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+          <rect x="72" y="42" width="14" height="44" rx="5" fill="#eaf8ff" opacity="0.35" /><rect x="90" y="42" width="14" height="44" rx="5" fill="#cfefff" opacity="0.35" /><g stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" fill="#eaf8ff" /><rect x="94" y="46" width="6" height="36" rx="2" fill="#cfefff" /></g>
+          <rect x="30" y="40" width="46" height="48" rx="10" fill="url(#rbBody-f2)" stroke="#0f1a2e" stroke-width="4" />
+          <circle cx="52" cy="64" r="10" fill="#1b2a3a" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="52" cy="64" r="5" fill="#6ec8ff" />
+          <rect x="20" y="52" width="12" height="24" rx="3" fill="#263b52" stroke="#0f1a2e" stroke-width="3" />
+        </svg>
+<svg x="384" y="0" width="128" height="128" viewBox="0 0 128 128"><defs>
+            <linearGradient id="rbRail-f3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3dae2" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+            <radialGradient id="rbBody-f3" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#6d8aa8" /><stop offset="1" stop-color="#263b52" /></radialGradient>
+          </defs>
+          <rect x="58" y="50" width="66" height="8" rx="2" fill="url(#rbRail-f3)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="58" y="70" width="66" height="8" rx="2" fill="url(#rbRail-f3)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="62" y="59" width="58" height="10" fill="#1b2a3a" />
+          <path d="M66 64 H118" stroke="#6ec8ff" stroke-width="5" stroke-linecap="round" opacity="1" /><path d="M66 64 H118" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+          <rect x="72" y="42" width="14" height="44" rx="5" fill="#ffffff" opacity="0.35" /><rect x="90" y="42" width="14" height="44" rx="5" fill="#ffffff" opacity="0.35" /><g stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" fill="#ffffff" /><rect x="94" y="46" width="6" height="36" rx="2" fill="#ffffff" /></g>
+          <rect x="30" y="40" width="46" height="48" rx="10" fill="url(#rbBody-f3)" stroke="#0f1a2e" stroke-width="4" />
+          <circle cx="52" cy="64" r="10" fill="#1b2a3a" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="52" cy="64" r="5" fill="#6ec8ff" />
+          <rect x="20" y="52" width="12" height="24" rx="3" fill="#263b52" stroke="#0f1a2e" stroke-width="3" />
+        <circle cx="122" cy="64" r="5.5" fill="#bfe9ff" opacity="0.6" /><circle cx="122" cy="64" r="3" fill="#ffffff" /></svg>
+<svg x="512" y="0" width="128" height="128" viewBox="0 0 128 128"><defs>
+            <linearGradient id="rbRail-f4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3dae2" /><stop offset="1" stop-color="#5d6b7b" /></linearGradient>
+            <radialGradient id="rbBody-f4" cx="40%" cy="35%" r="0.7"><stop offset="0" stop-color="#6d8aa8" /><stop offset="1" stop-color="#263b52" /></radialGradient>
+          </defs>
+          <rect x="58" y="50" width="66" height="8" rx="2" fill="url(#rbRail-f4)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="58" y="70" width="66" height="8" rx="2" fill="url(#rbRail-f4)" stroke="#0f1a2e" stroke-width="3" />
+          <rect x="62" y="59" width="58" height="10" fill="#1b2a3a" />
+          <path d="M66 64 H118" stroke="#6ec8ff" stroke-width="3.8" stroke-linecap="round" opacity="0.6" />
+          <rect x="72" y="42" width="14" height="44" rx="5" fill="#f0b070" opacity="0.35" /><g stroke="#0f1a2e" stroke-width="1.5"><rect x="76" y="46" width="6" height="36" rx="2" fill="#f0b070" /><rect x="94" y="46" width="6" height="36" rx="2" fill="#d98a3a" /></g>
+          <rect x="30" y="40" width="46" height="48" rx="10" fill="url(#rbBody-f4)" stroke="#0f1a2e" stroke-width="4" />
+          <circle cx="52" cy="64" r="10" fill="#1b2a3a" stroke="#0f1a2e" stroke-width="2.5" />
+          <circle cx="52" cy="64" r="5" fill="#6ec8ff" />
+          <rect x="20" y="52" width="12" height="24" rx="3" fill="#263b52" stroke="#0f1a2e" stroke-width="3" />
+        </svg>
+</svg>

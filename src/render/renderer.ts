@@ -28,6 +28,8 @@ import {
   QUEENS,
   footprint,
   SHIP,
+  CRATE_SIZE,
+  STORES,
   HUB_WEAPON,
   ITEMS,
   ItemId,
@@ -246,6 +248,8 @@ const TREBUCHET_RELEASE = 0.38;
 /** Guns kick back along the barrel as they fire, and ease forward again (ms, tiles): the railgun, and any gun whose recoil strip hasn't loaded. */
 const RECOIL = { ms: 140, kick: 0.07 };
 const KICKS: BuildingType[] = ['turret', 'turret2', 'cannon', 'mortar', 'artillery', 'railgun'];
+/** Buildings whose working strip shows what they do (D-157): no machine glow round them. */
+const SHOWS_WORK: BuildingType[] = ['tree_nursery', 'drone_pad', 'shield_pylon', 'strike_beacon', 'teleporter', 'port', 'shipyard'];
 /** How fast the smoke and flames on a damaged building move (ms a frame). */
 const DAMAGE_FRAME_MS = 150;
 let spotCanvas: HTMLCanvasElement | null = null;
@@ -1949,7 +1953,39 @@ export class Renderer {
       return sprite(key) ? key : `buildings/${b.type}`;
     }
     if (b.type === 'hub' && b.hp < world.maxHp(b) / 2 && sprite('buildings/hub_damaged')) return 'buildings/hub_damaged';
+    // Stores show how full they are (D-157): a third, two thirds, full. The crate opens to show what it holds.
+    const store = STORES[b.type];
+    if (store && b.outputs.length) {
+      const level = Math.min(3, Math.ceil((3 * b.outputs.length) / (store.slots * store.stack)));
+      const key = `buildings/${b.type}_${level}`;
+      if (sprite(key)) return key;
+    }
+    if (b.type === 'crate' && b.outputs.length && sprite('buildings/crate_open')) return 'buildings/crate_open';
     return `buildings/${b.type}`;
+  }
+
+  /**
+   * Buildings that show what they do with a working strip (D-157): the nursery always tending its saplings,
+   * pads and pylons while they have electricity, a teleporter in use, a port sending, the shipyard while the
+   * ship is being built.
+   */
+  private showsWork(world: World, b: Building): boolean {
+    switch (b.type) {
+      case 'tree_nursery':
+        return true;
+      case 'drone_pad':
+      case 'shield_pylon':
+      case 'strike_beacon':
+        return world.electrified(b) > 0;
+      case 'teleporter':
+        return world.electrified(b) > 0 && (b.filter != null || b.outputs.length > 0);
+      case 'port':
+        return b.progress > 0 || b.outputs.length > 0;
+      case 'shipyard':
+        return world.state.ship.stage < SHIP.stages.length && !launching(world);
+      default:
+        return false;
+    }
   }
 
   /**
@@ -2037,7 +2073,8 @@ export class Renderer {
       b.type === 'water_wheel' ||
       (b.type === 'boiler' && world.boilerWorks(b)) ||
       (b.type === 'steam_turbine' && world.steam(b) > 0) ||
-      (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6));
+      (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6)) ||
+      this.showsWork(world, b);
     const key = this.spriteKey(world, b);
     const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * 8 + b.id) : undefined;
     if (!this.drawSpriteRect(key, b.x, b.y, fw, fh, directional ? b.dir : 0, anim ?? sprite(key))) {
@@ -2052,7 +2089,7 @@ export class Renderer {
     if (big && directional && b.type !== 'splitter' && b.type !== 'water_wheel') this.drawOutputPort(world, b, z);
 
     // Working machines glow and pulse.
-    if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel') {
+    if (working && b.type !== 'repair' && b.type !== 'well' && b.type !== 'water_wheel' && !SHOWS_WORK.includes(b.type)) {
       const pulse = 0.5 + 0.5 * Math.sin(now / 120 + b.id);
       const glow =
         b.type === 'furnace'
@@ -2095,6 +2132,12 @@ export class Renderer {
         const n = frameCount(`buildings/${b.type}_barrel_fire`);
         drawn = n > 0 && this.drawFrame(`buildings/${b.type}_barrel_fire`, Math.floor((since / fireMs) * n), b.x, b.y, fw, aim);
       }
+      if (!drawn && b.type === 'railgun' && frameCount('buildings/railgun_barrel_charge')) {
+        // The railgun (D-157): fires (frame 3), cools (4), then its coils charge over the rest of its reload (0 to 2).
+        const reload = 1000 / turret.rate;
+        const f = since < 120 ? 3 : since < 400 ? 4 : Math.min(2, Math.floor(((since - 400) / Math.max(1, reload - 500)) * 3));
+        drawn = this.drawFrame('buildings/railgun_barrel_charge', f, b.x, b.y, fw, aim);
+      }
       const kick = KICKS.includes(b.type) && since < RECOIL.ms ? RECOIL.kick * (1 - since / RECOIL.ms) : 0;
       if (!drawn) drawn = this.drawSprite(`buildings/${b.type}_barrel`, b.x - Math.cos(aim) * kick, b.y - Math.sin(aim) * kick, fw, aim);
       if (!drawn) {
@@ -2121,6 +2164,18 @@ export class Renderer {
     if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / REPAIR.maxCharge, '#3fbf5f');
     if (b.type === 'port') this.drawPortCollar(world, b, now, z);
     if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
+    if (b.type === 'crate' && b.outputs.length) {
+      // The open crate's goods (D-157): one to four of its item, more as it fills.
+      const n = Math.min(4, Math.ceil((4 * b.outputs.length) / CRATE_SIZE));
+      const spots = [
+        [0.5, 0.5],
+        [0.33, 0.33],
+        [0.67, 0.67],
+        [0.67, 0.33],
+        [0.33, 0.67],
+      ].slice(n === 1 ? 0 : 1, n === 1 ? 1 : n + 1);
+      for (const [dx, dy] of spots) this.drawItem(b.outputs[0], b.x + dx, b.y + dy, 0.3);
+    }
 
     if (b.type === 'extractor' && b.recipe) {
       if (b.progress >= 0) bar(ctx, b.x + 0.12, b.y + fh - 0.14, fw - 0.24, b.progress / EXTRACTOR_PERIOD, '#8fd18f');
@@ -2738,6 +2793,17 @@ export class Renderer {
     const dx = sh.x2 - sh.x1;
     const dy = sh.y2 - sh.y1;
     const len = Math.hypot(dx, dy) || 1;
+    // The bolt's sprite (D-157), stretched from the tesla to the bug: one of three, swapped every 50 ms.
+    const bolt = frame('effects/tesla_bolt', performance.now() / 50 + sh.x1 * 7);
+    if (bolt) {
+      ctx.save();
+      ctx.translate(sh.x1, sh.y1);
+      ctx.rotate(Math.atan2(dy, dx));
+      ctx.globalAlpha = fade;
+      ctx.drawImage(bolt, 0, -0.25, len, 0.5);
+      ctx.restore();
+      return;
+    }
     const steps = Math.max(3, Math.round(len * 3));
     const pts: [number, number][] = [[sh.x1, sh.y1]];
     for (let i = 1; i < steps; i++) {

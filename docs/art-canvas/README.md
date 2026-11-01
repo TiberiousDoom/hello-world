@@ -28,6 +28,7 @@ id afterwards (see CLAUDE.md's gotchas).
 - `ore.cjs` and `ore2.cjs`: the richest ore field of each kind near the hub at two zooms, and an extractor on a field beside a worked-out tile.
 - `nests.cjs`: one nest at each stage, then merged over two and four cells.
 - `shipgame.cjs`: the ship at several stages on the map, and the shipyard's Side view.
+- `batch2.cjs`: batch 2 (D-157): the nursery, pads, pylon, beacon, port at work, the railgun charging, the tesla's bolt and stores at each fill.
 - `batch1.cjs`: the first batch of Ideas in the game (D-156): guns mid-recoil, wasps, beetles, young bugs at each age and a working greenhouse.
 
 To publish a board, give the Artifact tool the canvas's link, the folder written to as its `root`, `project/canvas.json`

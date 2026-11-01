@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 192"><defs><g id="sLeaf"><ellipse cx="0" cy="0" rx="7" ry="3.6" fill="#3b6e3f" /><path d="M-6 0 H6" stroke="#2f5a35" stroke-width="0.8" /></g>
+
+      <filter id="sSh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="3" dy="5" stdDeviation="3" flood-color="#0a1322" flood-opacity="0.55" /></filter>
+      <g id="sTower">
+        <rect x="0" y="0" width="18" height="120" fill="#0a1322" opacity="0.3" transform="translate(3 5)" />
+        <path d="M2 0 V120 M16 0 V120" stroke="#0f1a2e" stroke-width="5" />
+        <path d="M2 0 V120 M16 0 V120" stroke="url(#sTruss)" stroke-width="3" />
+        <path d="M2 0 L16 15 L2 30 L16 45 L2 60 L16 75 L2 90 L16 105 L2 120" fill="none" stroke="#8a96a8" stroke-width="2" />
+        <path d="M2 15 H16 M2 45 H16 M2 75 H16 M2 105 H16" stroke="#5a6478" stroke-width="1.5" />
+        <rect x="-3" y="-4" width="24" height="8" rx="2" fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.8" />
+        <rect x="-3" y="116" width="24" height="8" rx="2" fill="#5a6478" stroke="#0f1a2e" stroke-width="1.8" />
+        <circle cx="9" cy="0" r="2" fill="#ff5a4a" />
+      </g>
+      <linearGradient id="sTruss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c9d2de" /><stop offset="1" stop-color="#6d7a8d" /></linearGradient>
+      <linearGradient id="sPad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a6c66" /><stop offset="1" stop-color="#3e403c" /></linearGradient>
+      </defs><svg x="0" y="0" width="192" height="192" viewBox="0 0 192 192" overflow="hidden"><g>
+        <g filter="url(#sSh)"><rect x="4" y="4" width="184" height="184" rx="10" fill="#2f3230" stroke="#0f1a2e" stroke-width="3" /></g>
+        <rect x="22" y="18" width="148" height="156" rx="8" fill="url(#sPad)" stroke="#2a2c28" stroke-width="2" />
+        <g stroke="#55574f" stroke-width="1.5"><path d="M22 57 H170 M22 96 H170 M22 135 H170 M59 18 V174 M96 18 V174 M133 18 V174" /></g>
+        <g stroke="#2e302c" stroke-width="1" opacity="0.7"><path d="M40 30 l6 4 M120 150 l5 -3 M150 70 l-4 5 M50 120 l-3 6" /></g>
+        <path d="M24 20 H168" stroke="#8a8c86" stroke-width="2" opacity="0.6" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#1d1f1c" stroke-width="10" opacity="0.3" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#f2c14e" stroke-width="4" stroke-dasharray="14 9" />
+        <circle cx="96" cy="100" r="36" fill="none" stroke="#e8e4d8" stroke-width="2" opacity="0.6" />
+        <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M96 34 l-8 10 h16 z" /><path d="M96 166 l-8 -10 h16 z" /><path d="M30 100 l10 -8 v16 z" /><path d="M162 100 l-10 -8 v16 z" /></g>
+        <g fill="#f2c14e"><path d="M22 18 h20 l-20 20 z" /><path d="M170 18 h-20 l20 20 z" /><path d="M22 174 h20 l-20 -20 z" /><path d="M170 174 h-20 l20 -20 z" /></g>
+        <g fill="#ffd36b"><circle cx="30" cy="60" r="2" /><circle cx="30" cy="140" r="2" /><circle cx="162" cy="60" r="2" /><circle cx="162" cy="140" r="2" /></g>
+        <use href="#sTower" x="4" y="38" />
+        <use href="#sTower" x="170" y="38" />
+        <path d="M22 44 H52 M140 44 H170" stroke="#0f1a2e" stroke-width="4" /><path d="M22 44 H52 M140 44 H170" stroke="#8a96a8" stroke-width="2.4" />
+        <g opacity="0.85" stroke="#26402b" stroke-width="1.1"><path d="M6 6 L186 186 M186 6 L6 186" opacity="0" /></g>
+        <g>
+          <rect x="4" y="4" width="184" height="12" fill="#26402b" opacity="0.55" /><rect x="4" y="176" width="184" height="12" fill="#26402b" opacity="0.55" />
+          <path d="M4 10 Q26 18 48 10 T92 10 T136 10 T188 10 M4 182 Q26 174 48 182 T92 182 T136 182 T188 182" fill="none" stroke="#1d3220" stroke-width="1.2" />
+          <use href="#sLeaf" transform="translate(14 8) rotate(20)" /><use href="#sLeaf" transform="translate(34 12) rotate(-30)" /><use href="#sLeaf" transform="translate(58 7) rotate(10)" /><use href="#sLeaf" transform="translate(82 13) rotate(-15)" /><use href="#sLeaf" transform="translate(108 8) rotate(35)" /><use href="#sLeaf" transform="translate(134 12) rotate(-20)" /><use href="#sLeaf" transform="translate(158 7) rotate(15)" /><use href="#sLeaf" transform="translate(180 12) rotate(-40)" />
+          <use href="#sLeaf" transform="translate(12 184) rotate(-20)" /><use href="#sLeaf" transform="translate(36 180) rotate(30)" /><use href="#sLeaf" transform="translate(62 185) rotate(-10)" /><use href="#sLeaf" transform="translate(88 179) rotate(15)" /><use href="#sLeaf" transform="translate(112 184) rotate(-35)" /><use href="#sLeaf" transform="translate(138 180) rotate(20)" /><use href="#sLeaf" transform="translate(162 185) rotate(-15)" /><use href="#sLeaf" transform="translate(182 180) rotate(40)" />
+          <g fill="#4f8a4c"><ellipse cx="24" cy="10" rx="4" ry="2" /><ellipse cx="96" cy="9" rx="4" ry="2" /><ellipse cx="170" cy="11" rx="4" ry="2" /><ellipse cx="50" cy="183" rx="4" ry="2" /><ellipse cx="124" cy="182" rx="4" ry="2" /></g>
+        </g>
+      </g>
+
+      <path d="M13 44 H179" stroke="#0f1a2e" stroke-width="5" /><path d="M13 44 H179" stroke="#f2c14e" stroke-width="3" /><rect x="56" y="39" width="16" height="10" rx="2" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><path d="M64 49 V56" stroke="#0f1a2e" stroke-width="1.6" /><path d="M61 56 h6 v3 q0 4 -3 4 q-3 0 -3 -3" fill="none" stroke="#c9d2de" stroke-width="2" stroke-linecap="round" /><circle cx="13" cy="38" r="5" fill="#ff5a4a" opacity="0.4" /><circle cx="13" cy="38" r="2.2" fill="#ff8a7a" /><circle cx="179" cy="38" r="2.2" fill="#6a2a22" /></svg><svg x="192" y="0" width="192" height="192" viewBox="0 0 192 192" overflow="hidden"><g>
+        <g filter="url(#sSh)"><rect x="4" y="4" width="184" height="184" rx="10" fill="#2f3230" stroke="#0f1a2e" stroke-width="3" /></g>
+        <rect x="22" y="18" width="148" height="156" rx="8" fill="url(#sPad)" stroke="#2a2c28" stroke-width="2" />
+        <g stroke="#55574f" stroke-width="1.5"><path d="M22 57 H170 M22 96 H170 M22 135 H170 M59 18 V174 M96 18 V174 M133 18 V174" /></g>
+        <g stroke="#2e302c" stroke-width="1" opacity="0.7"><path d="M40 30 l6 4 M120 150 l5 -3 M150 70 l-4 5 M50 120 l-3 6" /></g>
+        <path d="M24 20 H168" stroke="#8a8c86" stroke-width="2" opacity="0.6" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#1d1f1c" stroke-width="10" opacity="0.3" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#f2c14e" stroke-width="4" stroke-dasharray="14 9" />
+        <circle cx="96" cy="100" r="36" fill="none" stroke="#e8e4d8" stroke-width="2" opacity="0.6" />
+        <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M96 34 l-8 10 h16 z" /><path d="M96 166 l-8 -10 h16 z" /><path d="M30 100 l10 -8 v16 z" /><path d="M162 100 l-10 -8 v16 z" /></g>
+        <g fill="#f2c14e"><path d="M22 18 h20 l-20 20 z" /><path d="M170 18 h-20 l20 20 z" /><path d="M22 174 h20 l-20 -20 z" /><path d="M170 174 h-20 l20 -20 z" /></g>
+        <g fill="#ffd36b"><circle cx="30" cy="60" r="2" /><circle cx="30" cy="140" r="2" /><circle cx="162" cy="60" r="2" /><circle cx="162" cy="140" r="2" /></g>
+        <use href="#sTower" x="4" y="38" />
+        <use href="#sTower" x="170" y="38" />
+        <path d="M22 44 H52 M140 44 H170" stroke="#0f1a2e" stroke-width="4" /><path d="M22 44 H52 M140 44 H170" stroke="#8a96a8" stroke-width="2.4" />
+        <g opacity="0.85" stroke="#26402b" stroke-width="1.1"><path d="M6 6 L186 186 M186 6 L6 186" opacity="0" /></g>
+        <g>
+          <rect x="4" y="4" width="184" height="12" fill="#26402b" opacity="0.55" /><rect x="4" y="176" width="184" height="12" fill="#26402b" opacity="0.55" />
+          <path d="M4 10 Q26 18 48 10 T92 10 T136 10 T188 10 M4 182 Q26 174 48 182 T92 182 T136 182 T188 182" fill="none" stroke="#1d3220" stroke-width="1.2" />
+          <use href="#sLeaf" transform="translate(14 8) rotate(20)" /><use href="#sLeaf" transform="translate(34 12) rotate(-30)" /><use href="#sLeaf" transform="translate(58 7) rotate(10)" /><use href="#sLeaf" transform="translate(82 13) rotate(-15)" /><use href="#sLeaf" transform="translate(108 8) rotate(35)" /><use href="#sLeaf" transform="translate(134 12) rotate(-20)" /><use href="#sLeaf" transform="translate(158 7) rotate(15)" /><use href="#sLeaf" transform="translate(180 12) rotate(-40)" />
+          <use href="#sLeaf" transform="translate(12 184) rotate(-20)" /><use href="#sLeaf" transform="translate(36 180) rotate(30)" /><use href="#sLeaf" transform="translate(62 185) rotate(-10)" /><use href="#sLeaf" transform="translate(88 179) rotate(15)" /><use href="#sLeaf" transform="translate(112 184) rotate(-35)" /><use href="#sLeaf" transform="translate(138 180) rotate(20)" /><use href="#sLeaf" transform="translate(162 185) rotate(-15)" /><use href="#sLeaf" transform="translate(182 180) rotate(40)" />
+          <g fill="#4f8a4c"><ellipse cx="24" cy="10" rx="4" ry="2" /><ellipse cx="96" cy="9" rx="4" ry="2" /><ellipse cx="170" cy="11" rx="4" ry="2" /><ellipse cx="50" cy="183" rx="4" ry="2" /><ellipse cx="124" cy="182" rx="4" ry="2" /></g>
+        </g>
+      </g>
+
+      <path d="M13 44 H179" stroke="#0f1a2e" stroke-width="5" /><path d="M13 44 H179" stroke="#f2c14e" stroke-width="3" /><rect x="80" y="39" width="16" height="10" rx="2" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><path d="M88 49 V70" stroke="#0f1a2e" stroke-width="1.6" /><path d="M85 70 h6 v3 q0 4 -3 4 q-3 0 -3 -3" fill="none" stroke="#c9d2de" stroke-width="2" stroke-linecap="round" /><circle cx="13" cy="38" r="2.2" fill="#6a2a22" /><circle cx="179" cy="38" r="5" fill="#ff5a4a" opacity="0.4" /><circle cx="179" cy="38" r="2.2" fill="#ff8a7a" /></svg><svg x="384" y="0" width="192" height="192" viewBox="0 0 192 192" overflow="hidden"><g>
+        <g filter="url(#sSh)"><rect x="4" y="4" width="184" height="184" rx="10" fill="#2f3230" stroke="#0f1a2e" stroke-width="3" /></g>
+        <rect x="22" y="18" width="148" height="156" rx="8" fill="url(#sPad)" stroke="#2a2c28" stroke-width="2" />
+        <g stroke="#55574f" stroke-width="1.5"><path d="M22 57 H170 M22 96 H170 M22 135 H170 M59 18 V174 M96 18 V174 M133 18 V174" /></g>
+        <g stroke="#2e302c" stroke-width="1" opacity="0.7"><path d="M40 30 l6 4 M120 150 l5 -3 M150 70 l-4 5 M50 120 l-3 6" /></g>
+        <path d="M24 20 H168" stroke="#8a8c86" stroke-width="2" opacity="0.6" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#1d1f1c" stroke-width="10" opacity="0.3" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#f2c14e" stroke-width="4" stroke-dasharray="14 9" />
+        <circle cx="96" cy="100" r="36" fill="none" stroke="#e8e4d8" stroke-width="2" opacity="0.6" />
+        <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M96 34 l-8 10 h16 z" /><path d="M96 166 l-8 -10 h16 z" /><path d="M30 100 l10 -8 v16 z" /><path d="M162 100 l-10 -8 v16 z" /></g>
+        <g fill="#f2c14e"><path d="M22 18 h20 l-20 20 z" /><path d="M170 18 h-20 l20 20 z" /><path d="M22 174 h20 l-20 -20 z" /><path d="M170 174 h-20 l20 -20 z" /></g>
+        <g fill="#ffd36b"><circle cx="30" cy="60" r="2" /><circle cx="30" cy="140" r="2" /><circle cx="162" cy="60" r="2" /><circle cx="162" cy="140" r="2" /></g>
+        <use href="#sTower" x="4" y="38" />
+        <use href="#sTower" x="170" y="38" />
+        <path d="M22 44 H52 M140 44 H170" stroke="#0f1a2e" stroke-width="4" /><path d="M22 44 H52 M140 44 H170" stroke="#8a96a8" stroke-width="2.4" />
+        <g opacity="0.85" stroke="#26402b" stroke-width="1.1"><path d="M6 6 L186 186 M186 6 L6 186" opacity="0" /></g>
+        <g>
+          <rect x="4" y="4" width="184" height="12" fill="#26402b" opacity="0.55" /><rect x="4" y="176" width="184" height="12" fill="#26402b" opacity="0.55" />
+          <path d="M4 10 Q26 18 48 10 T92 10 T136 10 T188 10 M4 182 Q26 174 48 182 T92 182 T136 182 T188 182" fill="none" stroke="#1d3220" stroke-width="1.2" />
+          <use href="#sLeaf" transform="translate(14 8) rotate(20)" /><use href="#sLeaf" transform="translate(34 12) rotate(-30)" /><use href="#sLeaf" transform="translate(58 7) rotate(10)" /><use href="#sLeaf" transform="translate(82 13) rotate(-15)" /><use href="#sLeaf" transform="translate(108 8) rotate(35)" /><use href="#sLeaf" transform="translate(134 12) rotate(-20)" /><use href="#sLeaf" transform="translate(158 7) rotate(15)" /><use href="#sLeaf" transform="translate(180 12) rotate(-40)" />
+          <use href="#sLeaf" transform="translate(12 184) rotate(-20)" /><use href="#sLeaf" transform="translate(36 180) rotate(30)" /><use href="#sLeaf" transform="translate(62 185) rotate(-10)" /><use href="#sLeaf" transform="translate(88 179) rotate(15)" /><use href="#sLeaf" transform="translate(112 184) rotate(-35)" /><use href="#sLeaf" transform="translate(138 180) rotate(20)" /><use href="#sLeaf" transform="translate(162 185) rotate(-15)" /><use href="#sLeaf" transform="translate(182 180) rotate(40)" />
+          <g fill="#4f8a4c"><ellipse cx="24" cy="10" rx="4" ry="2" /><ellipse cx="96" cy="9" rx="4" ry="2" /><ellipse cx="170" cy="11" rx="4" ry="2" /><ellipse cx="50" cy="183" rx="4" ry="2" /><ellipse cx="124" cy="182" rx="4" ry="2" /></g>
+        </g>
+      </g>
+
+      <path d="M13 44 H179" stroke="#0f1a2e" stroke-width="5" /><path d="M13 44 H179" stroke="#f2c14e" stroke-width="3" /><rect x="104" y="39" width="16" height="10" rx="2" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><path d="M112 49 V76" stroke="#0f1a2e" stroke-width="1.6" /><path d="M109 76 h6 v3 q0 4 -3 4 q-3 0 -3 -3" fill="none" stroke="#c9d2de" stroke-width="2" stroke-linecap="round" /><circle cx="13" cy="38" r="5" fill="#ff5a4a" opacity="0.4" /><circle cx="13" cy="38" r="2.2" fill="#ff8a7a" /><circle cx="179" cy="38" r="2.2" fill="#6a2a22" /></svg><svg x="576" y="0" width="192" height="192" viewBox="0 0 192 192" overflow="hidden"><g>
+        <g filter="url(#sSh)"><rect x="4" y="4" width="184" height="184" rx="10" fill="#2f3230" stroke="#0f1a2e" stroke-width="3" /></g>
+        <rect x="22" y="18" width="148" height="156" rx="8" fill="url(#sPad)" stroke="#2a2c28" stroke-width="2" />
+        <g stroke="#55574f" stroke-width="1.5"><path d="M22 57 H170 M22 96 H170 M22 135 H170 M59 18 V174 M96 18 V174 M133 18 V174" /></g>
+        <g stroke="#2e302c" stroke-width="1" opacity="0.7"><path d="M40 30 l6 4 M120 150 l5 -3 M150 70 l-4 5 M50 120 l-3 6" /></g>
+        <path d="M24 20 H168" stroke="#8a8c86" stroke-width="2" opacity="0.6" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#1d1f1c" stroke-width="10" opacity="0.3" />
+        <circle cx="96" cy="100" r="56" fill="none" stroke="#f2c14e" stroke-width="4" stroke-dasharray="14 9" />
+        <circle cx="96" cy="100" r="36" fill="none" stroke="#e8e4d8" stroke-width="2" opacity="0.6" />
+        <g fill="#f2c14e" stroke="#0f1a2e" stroke-width="1.2" stroke-linejoin="round"><path d="M96 34 l-8 10 h16 z" /><path d="M96 166 l-8 -10 h16 z" /><path d="M30 100 l10 -8 v16 z" /><path d="M162 100 l-10 -8 v16 z" /></g>
+        <g fill="#f2c14e"><path d="M22 18 h20 l-20 20 z" /><path d="M170 18 h-20 l20 20 z" /><path d="M22 174 h20 l-20 -20 z" /><path d="M170 174 h-20 l20 -20 z" /></g>
+        <g fill="#ffd36b"><circle cx="30" cy="60" r="2" /><circle cx="30" cy="140" r="2" /><circle cx="162" cy="60" r="2" /><circle cx="162" cy="140" r="2" /></g>
+        <use href="#sTower" x="4" y="38" />
+        <use href="#sTower" x="170" y="38" />
+        <path d="M22 44 H52 M140 44 H170" stroke="#0f1a2e" stroke-width="4" /><path d="M22 44 H52 M140 44 H170" stroke="#8a96a8" stroke-width="2.4" />
+        <g opacity="0.85" stroke="#26402b" stroke-width="1.1"><path d="M6 6 L186 186 M186 6 L6 186" opacity="0" /></g>
+        <g>
+          <rect x="4" y="4" width="184" height="12" fill="#26402b" opacity="0.55" /><rect x="4" y="176" width="184" height="12" fill="#26402b" opacity="0.55" />
+          <path d="M4 10 Q26 18 48 10 T92 10 T136 10 T188 10 M4 182 Q26 174 48 182 T92 182 T136 182 T188 182" fill="none" stroke="#1d3220" stroke-width="1.2" />
+          <use href="#sLeaf" transform="translate(14 8) rotate(20)" /><use href="#sLeaf" transform="translate(34 12) rotate(-30)" /><use href="#sLeaf" transform="translate(58 7) rotate(10)" /><use href="#sLeaf" transform="translate(82 13) rotate(-15)" /><use href="#sLeaf" transform="translate(108 8) rotate(35)" /><use href="#sLeaf" transform="translate(134 12) rotate(-20)" /><use href="#sLeaf" transform="translate(158 7) rotate(15)" /><use href="#sLeaf" transform="translate(180 12) rotate(-40)" />
+          <use href="#sLeaf" transform="translate(12 184) rotate(-20)" /><use href="#sLeaf" transform="translate(36 180) rotate(30)" /><use href="#sLeaf" transform="translate(62 185) rotate(-10)" /><use href="#sLeaf" transform="translate(88 179) rotate(15)" /><use href="#sLeaf" transform="translate(112 184) rotate(-35)" /><use href="#sLeaf" transform="translate(138 180) rotate(20)" /><use href="#sLeaf" transform="translate(162 185) rotate(-15)" /><use href="#sLeaf" transform="translate(182 180) rotate(40)" />
+          <g fill="#4f8a4c"><ellipse cx="24" cy="10" rx="4" ry="2" /><ellipse cx="96" cy="9" rx="4" ry="2" /><ellipse cx="170" cy="11" rx="4" ry="2" /><ellipse cx="50" cy="183" rx="4" ry="2" /><ellipse cx="124" cy="182" rx="4" ry="2" /></g>
+        </g>
+      </g>
+
+      <path d="M13 44 H179" stroke="#0f1a2e" stroke-width="5" /><path d="M13 44 H179" stroke="#f2c14e" stroke-width="3" /><rect x="80" y="39" width="16" height="10" rx="2" fill="#3a4656" stroke="#0f1a2e" stroke-width="2" /><path d="M88 49 V64" stroke="#0f1a2e" stroke-width="1.6" /><path d="M85 64 h6 v3 q0 4 -3 4 q-3 0 -3 -3" fill="none" stroke="#c9d2de" stroke-width="2" stroke-linecap="round" /><circle cx="13" cy="38" r="2.2" fill="#6a2a22" /><circle cx="179" cy="38" r="5" fill="#ff5a4a" opacity="0.4" /><circle cx="179" cy="38" r="2.2" fill="#ff8a7a" /></svg></svg>
