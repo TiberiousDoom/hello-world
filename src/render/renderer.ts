@@ -54,6 +54,7 @@ import { TERRACE_TOP, joinedOre, terraceLevel, terracePiece, type TerracePiece }
 import { Nest, bugDef, coverTiles, coveredTiles, growth, isAngry, moundSize, nestCentre, ownsCell, strength, territory } from '../sim/nests';
 import { planSteps } from '../ui/plan';
 import { fogSize } from '../sim/fog';
+import { held } from '../sim/player';
 import { BeltLook, beltLook } from './belts';
 import { runPiece } from './runs';
 import { Camera } from './camera';
@@ -233,6 +234,15 @@ const LEAVES = 3; // in each LEAF_CELL square of the map
 const LEAF_CELL = 18; // tiles
 /** Snowflakes in each LEAF_CELL square in winter (D-158). */
 const SNOWFLAKES = 14;
+/** Seconds a hatchling takes to climb out of the ground (D-159). */
+const EMERGE = 0.6;
+/** Items that come off a belt hot from the furnace, and how long they glow (ms) (D-159). */
+const HOT_ITEMS: ItemId[] = ['iron_ingot', 'copper_ingot', 'steel'];
+const HOT_MS = 2500;
+/** How long a lost building's ruin smoulders (ms) (D-159). */
+const RUIN_MS = 60000;
+/** Seconds before lift-off that the ship starts to climb (D-159). */
+const LIFT = 4;
 const LEAF_COLORS = ['#c9923a', '#e8b65a', '#7fae4f', '#a8742e'];
 
 /** A cheap integer hash, for choosing decorations per tile. */
@@ -349,6 +359,18 @@ export class Renderer {
   private breaches = -1;
   /** Drawing Hardcore bugs (D-158): sprites go through hardened(). */
   private hardLook = false;
+  /** When each player joined (ms), to wave (D-159); players already there when the game was first drawn didn't. */
+  private joinedAt = new Map<number, number>();
+  private seenPlayers: Set<number> | null = null;
+  /** When a building last went up beside each player (ms), to hammer (D-159). */
+  private builtAt = new Map<number, number>();
+  private seenBuildings: Set<number> | null = null;
+  /** Buildings under repair (id to ms), for their scaffolding (D-159). */
+  private repairing = new Map<number, number>();
+  /** Burnt-out ruins where buildings were lost to bugs (D-159), until they fade or something is built there. */
+  private ruins: { x: number; y: number; size: number; born: number }[] = [];
+  /** When each ingot was first seen on a belt (ms): fresh from the furnace, it glows hot (D-159). */
+  private ingotSeen = new WeakMap<object, number>();
   private seenFelled = new WeakSet<object>();
   private seenTaps = new WeakSet<object>();
   /** The look being drawn (#42, D-154), and the night overlay's canvas. */
@@ -377,7 +399,7 @@ export class Renderer {
   private frames = 0;
   /** Gathered while belts are drawn, then drawn all at once: chevron points (x, y, six per chevron), and items. */
   private arrowPath: number[] = [];
-  private beltItems: [ItemId, number, number][] = [];
+  private beltItems: [ItemId, number, number, object][] = [];
   /** When the zoom last changed, and to what (canvas pixels per tile): see ZOOM_SETTLE. */
   private zoomedAt = -Infinity;
   private lastScale = 0;
@@ -503,12 +525,13 @@ export class Renderer {
     const looks = belts.map((b) => beltLook(world, b));
     belts.forEach((b, i) => this.drawBelt(b, looks[i], z));
     this.strokeBeltArrows(z);
-    this.drawBeltItems();
+    this.drawBeltItems(now);
     for (const b of belts) if (hubCornerAhead(world, b)) this.drawUnderHub(b, z);
+    for (const r of this.ruins) this.drawFrame('effects/ruin', now / 250, r.x - r.size / 2, r.y - r.size / 2, r.size);
     this.drawShadows(world, standing);
     for (const b of standing) this.drawBuilding(world, b, now, z);
     belts.forEach((b, i) => this.drawJoins(world, b, looks[i], z));
-    this.drawWires(poles, z, [x0, y0, x1, y1]);
+    this.drawWires(world, poles, z, [x0, y0, x1, y1], now);
 
     for (const n of nests) this.drawNestMarks(world, n, now, z, placing);
     if (hardcore) for (const n of nests) this.drawCover(world, n, z, placing);
@@ -539,11 +562,30 @@ export class Renderer {
         const pale = 0.65 * (1 - growth(world, e));
         ctx.filter = `sepia(${Math.round(100 * pale)}%) saturate(${Math.round(100 - 50 * pale)}%) brightness(${Math.round(100 + 70 * pale)}%)`;
       }
+      // A hatchling climbs up out of the ground (D-159): a dark hole, and the bug rising out of it.
+      const out = e.born != null ? Math.min(1, (s.time - e.born) / EMERGE) : 1;
+      if (out < 1) {
+        ctx.fillStyle = `rgba(30,20,10,${(0.6 * (1 - out)).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.ellipse(ex, ey, size * 0.45, size * 0.3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.2, out);
+        const k = 0.3 + 0.7 * out;
+        ctx.translate(ex, ey);
+        ctx.scale(k, k);
+        ctx.translate(-ex, -ey);
+      }
       const x = ex - size / 2;
       const y = ey - size / 2;
       // A queen (D-152) has one drawing of her own: she waddles rather than scuttles.
+      // A queen walks, lunges when she bites, and calls her nest out when it's roused (D-159).
+      const queenNest = e.queen ? s.nests.find((q) => q.id === e.nest) : undefined;
+      const still = !track || s.time - track.movedAt > 0.15;
+      const queenStrip = biting ? 'attack' : still && queenNest && isAngry(world, queenNest) ? 'summon' : 'walk';
       const drawn = e.queen
-        ? this.drawSprite(`enemies/${e.type}_queen`, x, y, size, angle + 0.06 * Math.sin((track?.walked ?? 0) * 3))
+        ? this.drawFrame(`enemies/${e.type}_queen_${queenStrip}`, queenStrip === 'walk' ? (track?.walked ?? 0) / 0.3 + e.id : s.time * (queenStrip === 'attack' ? 8 : 5), x, y, size, angle) ||
+          this.drawSprite(`enemies/${e.type}_queen`, x, y, size, angle + 0.06 * Math.sin((track?.walked ?? 0) * 3))
         : e.type === 'runner' && track
           ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
           : biting
@@ -553,6 +595,7 @@ export class Renderer {
         ctx.fillStyle = def.color;
         dot(ctx, ex, ey, def.radius * (0.4 + 0.6 * grown));
       }
+      if (out < 1) ctx.restore();
       if (grown < 1) ctx.filter = 'none';
       const full = e.maxHp * grown;
       if (e.hp < full - 0.5) bar(ctx, ex - 0.3, ey - def.radius - 0.22, 0.6, e.hp / full, '#e0445a');
@@ -593,7 +636,7 @@ export class Renderer {
     this.drawBlasts(world);
     this.drawEffects(now, z);
     this.drawHandMining(world, z);
-    this.drawAmbient(s.width, s.height, x0f, y0f, x1f, y1f, now, z);
+    this.drawAmbient(world, x0f, y0f, x1f, y1f, now, z);
     this.drawFog(world);
     if (ui) this.drawNight(world, x0, y0, x1, y1);
 
@@ -1118,7 +1161,12 @@ export class Renderer {
       const r = b.type === 'hub' ? 8 : lit ? FLOODLIGHT.radius : TURRETS[b.type] || b.type === 'repair' ? 3 : working ? 2.2 : 0;
       if (!r) continue;
       const [cx, cy] = world.centreOf(b);
-      light(cx, cy, r);
+      if (lit && !this.reducedMotion) {
+        // A floodlight's beam sweeps slowly from side to side, lighting a pool where it lands (D-159).
+        const a = b.dir * (Math.PI / 2) + 0.5 * Math.sin(world.state.time * 0.4 + b.id);
+        light(cx, cy, r * 0.55);
+        light(cx + Math.cos(a) * r * 0.45, cy + Math.sin(a) * r * 0.45, r * 0.7);
+      } else light(cx, cy, r);
       lights++;
     }
     for (const p of world.state.players) light(p.x, p.y, 4);
@@ -1337,10 +1385,13 @@ export class Renderer {
   }
 
   /** Fireflies drifting over the map and a few leaves blowing across the view. */
-  private drawAmbient(w: number, h: number, x0f: number, y0f: number, x1f: number, y1f: number, now: number, z: number): void {
+  private drawAmbient(world: World, x0f: number, y0f: number, x1f: number, y1f: number, now: number, z: number): void {
     if (this.reducedMotion) return;
+    const w = world.state.width;
+    const h = world.state.height;
     const ctx = this.ctx;
     const t = now / 1000;
+    this.drawWeather(world, x0f, y0f, x1f, y1f, t);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < FIREFLIES; i++) {
@@ -1350,6 +1401,14 @@ export class Renderer {
       if (fx < x0f - 1 || fx > x1f + 1 || fy < y0f - 1 || fy > y1f + 1) continue;
       const glow = Math.max(0, Math.sin(t * 1.3 + i * 0.9));
       if (glow < 0.05) continue;
+      // A firefly (D-159): a tiny beetle whose tail glows up and fades.
+      const fly = frame('effects/firefly', glow * 3.99);
+      if (fly && z >= 24) {
+        ctx.globalAlpha = Math.min(1, glow * 1.5);
+        ctx.drawImage(fly, fx - 0.22, fy - 0.22, 0.44, 0.44);
+        ctx.globalAlpha = 1;
+        continue;
+      }
       ctx.fillStyle = `rgba(214,255,120,${0.12 * glow})`;
       dot(ctx, fx, fy, 0.18);
       ctx.fillStyle = `rgba(240,255,170,${0.85 * glow})`;
@@ -1401,6 +1460,76 @@ export class Renderer {
           ctx.restore();
         }
       }
+    }
+  }
+
+  /**
+   * Weather (D-159), all for the look only: rain on some spring days, with splashes; rings spreading on the
+   * ponds; and fog drifting over the clearing at dawn.
+   */
+  private drawWeather(world: World, x0f: number, y0f: number, x1f: number, y1f: number, t: number): void {
+    const ctx = this.ctx;
+    const clock = clockAt(world.state.time);
+    // Rain: a third of spring's days, streaks slanting down and splashes where drops land.
+    if (this.season === 'spring' && hash(clock.day, 4401) % 3 === 0) {
+      ctx.strokeStyle = 'rgba(207,230,255,0.55)';
+      ctx.lineWidth = 0.025;
+      ctx.beginPath();
+      const step = 1.6;
+      for (let y = Math.floor(y0f / step) - 1; y <= y1f / step + 1; y++)
+        for (let x = Math.floor(x0f / step) - 1; x <= x1f / step + 1; x++) {
+          const hv = hash(x, y + 7000);
+          const ox = ((hv % 100) / 100) * step - ((t * 3) % step) * 0.3;
+          const oy = ((((hv >>> 8) % 100) / 100) * step + t * 9) % (step * 2);
+          const px = x * step + ox;
+          const py = y * step + oy;
+          ctx.moveTo(px, py);
+          ctx.lineTo(px - 0.1, py + 0.32);
+        }
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(232,244,255,0.5)';
+      ctx.lineWidth = 0.02;
+      for (let y = Math.floor(y0f / 3); y <= y1f / 3; y++)
+        for (let x = Math.floor(x0f / 3); x <= x1f / 3; x++) {
+          const hv = hash(x, y + 7100);
+          const u = (t * 1.5 + (hv % 100) / 100) % 1;
+          ctx.beginPath();
+          ctx.ellipse(x * 3 + ((hv >>> 7) % 300) / 100, y * 3 + ((hv >>> 14) % 300) / 100, 0.05 + u * 0.2, 0.03 + u * 0.12, 0, 0, Math.PI * 2);
+          ctx.globalAlpha = 1 - u;
+          ctx.stroke();
+        }
+      ctx.globalAlpha = 1;
+    }
+    // Ripples on the ponds: a few rings spreading and fading on each pond in view.
+    ctx.strokeStyle = 'rgba(205,238,252,0.7)';
+    ctx.lineWidth = 0.025;
+    for (let y = Math.max(0, Math.floor(y0f)); y <= Math.min(world.state.height - 1, y1f); y++)
+      for (let x = Math.max(0, Math.floor(x0f)); x <= Math.min(world.state.width - 1, x1f); x++) {
+        const hv = hash(x, y + 8100);
+        if (hv % 9 || !world.isWater(x, y) || !world.isWater(x + 1, y) || !world.isWater(x, y + 1) || !world.isWater(x - 1, y) || !world.isWater(x, y - 1)) continue;
+        const u = (t * 0.35 + (hv % 100) / 100) % 1;
+        ctx.globalAlpha = 1 - u;
+        ctx.beginPath();
+        ctx.ellipse(x + 0.5, y + 0.5, 0.1 + u * 0.7, 0.06 + u * 0.42, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    ctx.globalAlpha = 1;
+    // Fog at dawn: soft banks drifting across, thinning as the morning comes on.
+    if (!clock.night && clock.part < 0.14 && this.season !== 'winter') {
+      const thick = 1 - clock.part / 0.14;
+      for (let y = Math.floor(y0f / 6) - 1; y <= y1f / 6 + 1; y++)
+        for (let x = Math.floor(x0f / 9) - 1; x <= x1f / 9 + 1; x++) {
+          const hv = hash(x, y + 9100);
+          const cx = x * 9 + (((hv % 900) / 100 + t * 0.15) % 9);
+          const cy = y * 6 + ((hv >>> 9) % 600) / 100;
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 4);
+          g.addColorStop(0, `rgba(238,242,246,${(0.45 * thick).toFixed(3)})`);
+          g.addColorStop(1, 'rgba(238,242,246,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, 4, 1.4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
     }
   }
 
@@ -1679,7 +1808,7 @@ export class Renderer {
     // belt's arrows (drawBeltItems).
     for (const it of b.belt) {
       const [x, y] = this.smooth(it, ...at(it.pos - 0.5, it.lane === LEFT ? -LANE_OFFSET : LANE_OFFSET));
-      this.beltItems.push([it.item, x, y]);
+      this.beltItems.push([it.item, x, y, it]);
     }
     // In fall, leaves settle on a belt that carries nothing (D-158), and blow off once it runs.
     if (!b.belt.length && (this.season === 'fall' || this.season === 'late')) {
@@ -1726,8 +1855,36 @@ export class Renderer {
   }
 
   /** The items on straight belts, gathered by drawBelt, over every belt and its arrows. */
-  private drawBeltItems(): void {
-    for (const [item, x, y] of this.beltItems) this.drawItem(item, x, y, ITEM_ON_BELT);
+  private drawBeltItems(now: number): void {
+    const ctx = this.ctx;
+    for (const [item, x, y, it] of this.beltItems) {
+      // An ingot fresh from the furnace glows hot and cools over a few seconds on the belt (D-159).
+      if (HOT_ITEMS.includes(item)) {
+        let seen = this.ingotSeen.get(it);
+        if (seen == null) this.ingotSeen.set(it, (seen = now));
+        const heat = 1 - (now - seen) / HOT_MS;
+        if (heat > 0) {
+          ctx.fillStyle = `rgba(255,122,42,${(0.45 * heat).toFixed(2)})`;
+          dot(ctx, x, y, ITEM_ON_BELT * 0.75);
+        }
+      }
+      this.drawItem(item, x, y, ITEM_ON_BELT);
+      // Ore glints now and then (D-159).
+      if (!this.reducedMotion && RESOURCE_ITEMS.includes(item) && Math.floor(now / 90 + x * 17 + y * 31) % 40 === 0) {
+        ctx.fillStyle = '#ffffff';
+        const r = ITEM_ON_BELT * 0.28;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.06, y - 0.06 - r);
+        ctx.lineTo(x + 0.06 + r * 0.25, y - 0.06);
+        ctx.lineTo(x + 0.06 + r, y - 0.06);
+        ctx.lineTo(x + 0.06, y - 0.06 + r * 0.25);
+        ctx.lineTo(x + 0.06, y - 0.06 + r);
+        ctx.lineTo(x + 0.06 - r * 0.25, y - 0.06);
+        ctx.lineTo(x + 0.06 - r, y - 0.06);
+        ctx.lineTo(x + 0.06, y - 0.06 - r * 0.25);
+        ctx.fill();
+      }
+    }
     this.beltItems = [];
   }
 
@@ -2070,8 +2227,9 @@ export class Renderer {
 
   /** Wires between linked power poles (D-121), sagging a little between their tops. */
   /** The wires between power poles: only those crossing the screen, all in two strokes (outline, then copper). */
-  private drawWires(poles: Building[], z: number, [x0, y0, x1, y1]: [number, number, number, number]): void {
+  private drawWires(world: World, poles: Building[], z: number, [x0, y0, x1, y1]: [number, number, number, number], now: number): void {
     const wires: [number, number, number, number, number][] = [];
+    const live: [number, number, number, number, number][] = [];
     for (const p of poles) {
       for (const q of poles) {
         if (q.id >= p.id || (p.x - q.x) ** 2 + (p.y - q.y) ** 2 > ELECTRIC.link ** 2) continue;
@@ -2079,6 +2237,7 @@ export class Renderer {
         const sag = 0.12 + 0.03 * Math.hypot(bx - ax, by - ay);
         if (Math.max(ax, bx) < x0 || Math.min(ax, bx) > x1 || Math.max(ay, by) + sag < y0 || Math.min(ay, by) > y1) continue;
         wires.push([ax, ay, bx, by, sag]);
+        if (world.electrified(p) > 0) live.push([ax, ay, bx, by, sag]);
       }
     }
     if (!wires.length) return;
@@ -2098,6 +2257,19 @@ export class Renderer {
       ctx.stroke();
     }
     ctx.lineCap = 'butt';
+    // A spark runs along each wire carrying power (D-159).
+    if (this.reducedMotion) return;
+    live.forEach(([ax, ay, bx, by, sag], k) => {
+      const t = (now / 1400 + k * 0.37) % 1;
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2 + sag;
+      const x = (1 - t) * (1 - t) * ax + 2 * (1 - t) * t * mx + t * t * bx;
+      const y = (1 - t) * (1 - t) * ay + 2 * (1 - t) * t * my + t * t * by;
+      ctx.fillStyle = 'rgba(191,228,255,0.45)';
+      dot(ctx, x, y, 0.12);
+      ctx.fillStyle = '#ffffff';
+      dot(ctx, x, y, 0.045);
+    });
   }
 
   private spriteKey(world: World, b: Building): string {
@@ -2319,6 +2491,8 @@ export class Renderer {
     if (b.type === 'repair') bar(ctx, b.x + 0.12, b.y + 0.86, 0.76, b.ammo / REPAIR.maxCharge, '#3fbf5f');
     if (b.type === 'port') this.drawPortCollar(world, b, now, z);
     if (b.type === 'port' && b.filter) this.drawBadge(b.filter, b.x, b.y);
+    // Scaffolding while it's being mended (D-159).
+    if (now - (this.repairing.get(b.id) ?? -Infinity) < 900) this.drawFrame('effects/scaffold', now / 150, b.x, b.y, Math.max(fw, fh));
     if (b.type === 'crate' && b.outputs.length) {
       // The open crate's goods (D-157): one to four of its item, more as it fills.
       const n = Math.min(4, Math.ceil((4 * b.outputs.length) / CRATE_SIZE));
@@ -2543,10 +2717,23 @@ export class Renderer {
       // Launching, the engines' glow lies on the pad and scaffolding, under the ship itself.
       if (firing && st.id === 'hull') this.drawLaunchGlow(b, now);
       ctx.globalAlpha = alpha;
+      // In the last seconds before lift-off the ship rises toward the camera (D-159): growing as it climbs,
+      // drifting off its pad, its shadow left behind. The pad and scaffolding stay.
+      const rise = firing && st.id !== 'pad' && st.id !== 'scaffold' ? this.liftOf(world) : 0;
+      if (rise > 0) {
+        const k = 1 + 0.9 * rise * rise;
+        const cx = b.x + SHIP_SIZE / 2;
+        const cy = b.y + SHIP_SIZE / 2;
+        ctx.save();
+        ctx.translate(cx + 0.5 * rise * rise, cy - 0.7 * rise * rise);
+        ctx.scale(k, k);
+        ctx.translate(-cx, -cy);
+      }
       this.drawSprite(`buildings/ship_${st.id}`, b.x, b.y, SHIP_SIZE);
+      if (rise > 0) ctx.restore();
       ctx.globalAlpha = 1;
     });
-    if (firing) this.drawLaunchSmoke(b, now);
+    if (firing) this.drawLaunchSmoke(b, now, world);
   }
 
   /** The engines firing for launch, seen from above (D-151): a glow round the foot of the ship, flickering. */
@@ -2565,14 +2752,22 @@ export class Renderer {
   }
 
   /** Smoke rolling out from under the ship as it launches: puffs drifting outwards, fading as they go. */
-  private drawLaunchSmoke(b: Building, now: number): void {
+  /** How far the ship has climbed toward lift-off, 0 to 1, over its last LIFT seconds on the pad (D-159). */
+  private liftOf(world: World): number {
+    const at = world.state.ship.launchAt;
+    return at == null ? 0 : Math.max(0, Math.min(1, 1 - (at - world.state.time) / LIFT));
+  }
+
+  private drawLaunchSmoke(b: Building, now: number, world?: World): void {
     const ctx = this.ctx;
     const cx = b.x + SHIP_SIZE / 2;
     const cy = b.y + SHIP_SIZE / 2;
+    // As the ship climbs, the smoke rolls further out across the pad (D-159).
+    const spread = 1 + 1.5 * (world ? this.liftOf(world) : 0);
     for (let i = 0; i < 8; i++) {
       const t = (now / 2400 + i / 8) % 1;
       const a = i * 0.785 + 0.4;
-      const d = 1.5 + 1.1 * t;
+      const d = (1.5 + 1.1 * t) * spread;
       ctx.fillStyle = `rgba(200,195,186,${(0.55 * (1 - t)).toFixed(3)})`;
       dot(ctx, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.35 + 0.35 * t);
     }
@@ -2774,17 +2969,33 @@ export class Renderer {
         this.effects.push({ kind: 'puff', x: f.x + 0.5, y: f.y + 0.5, r: 0.8, born: now, life: 500, color: '127,174,79' });
       }
     }
-    // Buildings lost to bugs fly apart; mended ones sparkle.
+    // Buildings lost to bugs fly apart and leave a ruin (D-159); mended ones sparkle, inside scaffolding.
     for (const l of world.lost) {
       if (this.seenFelled.has(l)) continue;
       this.seenFelled.add(l);
       this.spriteFx('effects/debris', l.x, l.y, 1 + l.size * 0.5, 650, now);
+      this.ruins.push({ x: l.x, y: l.y, size: l.size, born: now });
     }
+    this.ruins = this.ruins.filter((r) => now - r.born < RUIN_MS && !world.buildingAt(Math.floor(r.x), Math.floor(r.y)));
     for (const h of world.healed) {
       if (this.seenFelled.has(h)) continue;
       this.seenFelled.add(h);
       this.spriteFx('effects/repair_sparkle', h.x, h.y, 0.9, 500, now);
+      const mended = world.buildingAt(Math.floor(h.x), Math.floor(h.y));
+      if (mended) this.repairing.set(mended.id, now);
     }
+    // Who joined, and what went up beside whom (D-159).
+    const ids = new Set(s.players.map((p) => p.id));
+    if (this.seenPlayers) for (const id of ids) if (!this.seenPlayers.has(id)) this.joinedAt.set(id, now);
+    this.seenPlayers = ids;
+    if (this.seenBuildings) {
+      for (const b of s.buildings) {
+        if (this.seenBuildings.has(b.id) || b.type === 'belt' || b.type === 'express_belt' || b.type === 'roller') continue;
+        const [cx, cy] = world.centreOf(b);
+        for (const p of s.players) if (Math.hypot(p.x - cx, p.y - cy) < 4) this.builtAt.set(p.id, now);
+      }
+    }
+    this.seenBuildings = new Set(s.buildings.map((b) => b.id));
 
     // Mining by hand (#38): sparks on every tap, and a puff of the ore when one comes loose.
     for (const tap of world.taps) {
@@ -3076,7 +3287,21 @@ export class Renderer {
       if (bitten) ctx.filter = 'sepia(1) saturate(6) hue-rotate(-40deg)';
       // Walking, working (mining by hand), or idle, each its own strip (D-082).
       const working = !moving && !!p.mining && t - p.mining.at < 0.5;
-      const [strip, i] = moving ? ['units/engineer_walk', d.walked / 0.2] : working ? ['units/engineer_work', t * 8] : ['units/engineer_idle', t * 2.5];
+      // Carrying something, the engineer holds a crate in both hands; beside something just built, it hammers;
+      // a player who has just joined a co-op game waves (D-159).
+      const waving = (this.joinedAt.get(p.id) ?? -Infinity) > now - 2500;
+      const hammering = !moving && (this.builtAt.get(p.id) ?? -Infinity) > now - 800;
+      const [strip, i]: [string, number] = moving
+        ? held(p) > 0 && frameCount('units/engineer_carry')
+          ? ['units/engineer_carry', d.walked / 0.2]
+          : ['units/engineer_walk', d.walked / 0.2]
+        : working
+          ? ['units/engineer_work', t * 8]
+          : hammering && frameCount('units/engineer_build')
+            ? ['units/engineer_build', now / 100]
+            : waving && frameCount('units/engineer_wave')
+              ? ['units/engineer_wave', now / 160]
+              : ['units/engineer_idle', t * 2.5];
       if (working) {
         // Face the ore being mined.
         const w = world.state.width;

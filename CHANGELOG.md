@@ -3,6 +3,17 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.6 · 2026-11-01 · Rain, fireflies and the ship's climb
+### New
+- **The ship climbs at lift-off:** in its last seconds on the pad it rises toward you, growing as it goes, while the smoke rolls out across the pad.
+- **The engineer carries a crate** in both hands while carrying anything, **hammers** beside something just built, and **waves** on joining a game together.
+- **Queens walk, lunge when they bite, and call their nest out** with rings of red scent when it's roused.
+- **Hatchlings climb up out of the ground** where they hatch.
+- **Sparks run along the power lines** while they carry electricity, and **floodlight beams sweep** slowly at night.
+- **Weather:** rain on some spring days, ripples spreading on the ponds, and fog drifting over the clearing at dawn. Fireflies are little glowing beetles now.
+- **Ingots come off the furnace glowing hot** and cool on the belt, and ore glints as it rides.
+- **Scaffolding goes up** round a building being repaired, and a building lost to bugs leaves a smouldering ruin for a while.
+
 ## 0.88.5 · 2026-11-01 · Hardcore bugs, drones and snowfall
 ### New
 - **Hardcore bugs look the part:** darker, with glowing red veins under the shell and a red haze about them. Hardcore nests glow red from deep in their burrows, pulsing slowly.

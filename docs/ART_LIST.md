@@ -62,7 +62,8 @@ Priority: **P1** = needed to replace the placeholders in the core loop,
 | Map trees (D-044): the same canopies, drawn about 1.4 tiles across on every forest tile. Zoomed far out, a plain canopy colour | — | — | P2 | Uses the tree sprites |
 | Seasonal trees (D-082, D-154): round and pine canopies for spring and fall; the round (broadleaf) tree bare from above at the end of fall, with a few last leaves (`_late`), and in winter with snow along its limbs (`_winter`); pines with snow drawn over them in winter | 128×128 (2 tiles) | 1 each | P2 | Upgraded (`terrain/tree_round_spring`, `_fall`, `_late`, `_winter`; `tree_pine_spring`, `_fall`, `_winter`, `_winter_snow`). The bare trees are drawn by `art/trees.mjs` (0.88.2) |
 | Tree stump, with a sprouting twig, on a transparent background | 64×64 | 1 | P2 | Upgraded (`terrain/stump`) |
-| Fireflies and drifting leaves | — | — | P3 | Code |
+| Fireflies and drifting leaves | 32×32 (firefly) | A tiny beetle whose tail glows and fades (D-159); leaves in code | 4 | P3 | Placeholder (`effects/firefly_4f`); leaves Code |
+| Scaffolding round a building under repair, and a lost building's ruin (D-159) | 128×128, drawn at the building's size | Timber poles and planks with sparks; charred rubble, embers and smoke | 4 each | P3 | Placeholder (`effects/scaffold_4f`, `effects/ruin_4f`) |
 
 ## Items
 
@@ -179,7 +180,7 @@ Ore nodes are drawn at 0.86 of a tile on a shared bed of earth (D-096), and only
 
 | Asset | Size on screen | Frames | Priority | Status |
 |---|---|---|---|---|
-| Engineer (the player character, #40): top-down, facing east; orange overalls and boots (the animation strips; the older single sprite has a yellow hard hat) | 1 tile (64×64) | 4 walk, 4 work (mining by hand, facing the ore), 4 idle, 4 knocked out (seeing stars where it fell) | P1 | Upgraded (`units/engineer_walk_4f`, `_work_4f`, `_idle_4f`, `_ko_4f`; `engineer` and `engineer_b` until they load) |
+| Engineer (the player character, #40): top-down, facing east; orange overalls and boots (the animation strips; the older single sprite has a yellow hard hat) | 1 tile (64×64) | 4 walk, 4 work (mining by hand, facing the ore), 4 idle, 4 knocked out (seeing stars where it fell), 4 carry, 4 build (hammering), 4 wave (D-159) | P1 | Upgraded (`units/engineer_walk_4f`, `_work_4f`, `_idle_4f`, `_ko_4f`, `_carry_4f`, `_build_4f`, `_wave_4f`; `engineer` and `engineer_b` until they load) |
 
 ## Enemies
 
@@ -215,7 +216,7 @@ played while an angry bug stands at a building or an engineer (D-082). The older
 | Nests by kind and stage (D-152) | Drawn in a 4-tile box at every stage, so the art grows inside it (the mound blocks 2×2 tiles); merged nests 1.3× with tunnels in code; outline in code | 5 kinds × 3 stages + angry + damaged + destroyed | P2 | Done, drawn by `art/nests.mjs` (the Earthworks look): `nests/warren_1` to `nests/barrow_3`. Hardcore draws them darker and redder in code. Overlays `nests/angry`, `nests/damaged`, `nests/destroyed` as before; blight is drawn in code |
 | Hardcore nest glow (D-158) | Over the nest, the same box | Each nest drawing's burrows lit red-orange from deep inside; the game pulses it | 20 | P2 | Placeholder (`nests/<kind>_<stage>_glow`, by `art/extras.mjs`) |
 | Queen nests (D-152) | 4-tile box, drawn 4.6 tiles across | 1 per kind | P2 | Done, by `art/nests.mjs`: `nests/warren_queen` to `nests/barrow_queen` |
-| Queens (D-152) | 2-tile box, drawn 1.6× the bug | 1 per bug | P2 | Done, by `art/queens.mjs`: `enemies/crawler_queen` to `enemies/beetle_queen`. No walking strips yet: they waddle |
+| Queens (D-152) | 2-tile box, drawn 1.6× the bug | 1 per bug, plus 4 walk, 4 attack, 4 summon (D-159) | P2 | Done, by `art/queens.mjs`: `enemies/crawler_queen` to `enemies/beetle_queen`; their strips by `art/life.mjs` (`<bug>_queen_walk_4f`, `_attack_4f`, `_summon_4f`) |
 | Chitin (item, D-065): an olive bug-shell plate | Item size | 1 | P2 | Upgraded (`items/chitin`) |
 | Hub breach (shockwave): a flash, a ring of blue light, dust and chunks of the hub (D-158) | 128×128, drawn 2.2 hub widths across | 6 | P3 | Placeholder (`effects/hub_breach_6f`) |
 
