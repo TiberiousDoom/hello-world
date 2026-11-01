@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64">
+<svg x="0" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+        <radialGradient id="btShell-f0" cx="36%" cy="26%" r="80%"><stop offset="0" stop-color="#9cc6ea" /><stop offset="0.35" stop-color="#4a74a0" /><stop offset="0.75" stop-color="#22385a" /><stop offset="1" stop-color="#121e32" /></radialGradient>
+        <linearGradient id="btPro-f0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a7896" /><stop offset="1" stop-color="#16243a" /></linearGradient>
+        <linearGradient id="btHead-f0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5a6a" /><stop offset="1" stop-color="#121a24" /></linearGradient>
+      </defs>
+      <!-- Six jointed legs -->
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 17 L20.8 11 L16.2 7 M32 16 L31.2 9 L26.8 4 M41 22 L47.8 16 L54.2 12 M22 47 L17.2 53 L9.8 57 M32 48 L34.8 55 L33.2 60 M41 42 L44.2 48 L47.8 52" stroke="#0f1a2e" stroke-width="3.6" />
+        <path d="M22 17 L20.8 11 L16.2 7 M32 16 L31.2 9 L26.8 4 M41 22 L47.8 16 L54.2 12 M22 47 L17.2 53 L9.8 57 M32 48 L34.8 55 L33.2 60 M41 42 L44.2 48 L47.8 52" stroke="#2c4462" stroke-width="2" />
+      </g>
+      <!-- Wing cases: two glossy halves split down the middle -->
+      <path d="M9 32 Q9 15 26 14.5 Q38 14.5 41 22 L41 32 Z" fill="url(#btShell-f0)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M9 32 Q9 49 26 49.5 Q38 49.5 41 42 L41 32 Z" fill="url(#btShell-f0)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M8.5 32 H41" stroke="#0f1a2e" stroke-width="1.8" />
+      <path d="M14 23 Q20 16.5 32 17" fill="none" stroke="#d6ecff" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+      <path d="M14 37 Q18 44 26 45.5" fill="none" stroke="#9cc6ea" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
+      <g fill="#16243a" opacity="0.55"><circle cx="19" cy="25" r="1.4" /><circle cx="28" cy="23" r="1.4" /><circle cx="35" cy="26" r="1.2" /><circle cx="19" cy="39" r="1.4" /><circle cx="28" cy="41" r="1.4" /><circle cx="35" cy="38" r="1.2" /></g>
+      <circle cx="21" cy="21" r="1.4" fill="#ffffff" opacity="0.8" />
+      <!-- Armoured collar, head and mandibles -->
+      <path d="M40 23 Q47 22 49 27 V37 Q47 42 40 41 Z" fill="url(#btPro-f0)" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+      <path d="M42 25.5 Q46 25 47 28" fill="none" stroke="#a8c6e4" stroke-width="1.1" stroke-linecap="round" opacity="0.8" />
+      <path d="M48.5 26.5 Q56 25.5 57.5 32 Q56 38.5 48.5 37.5 Z" fill="url(#btHead-f0)" stroke="#0f1a2e" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M56 28 Q61.5 25.5 62.5 29.5 Q60 29 57.5 30.5 M56 36 Q61.5 38.5 62.5 34.5 Q60 35 57.5 33.5" fill="#2a2f3c" stroke="#0f1a2e" stroke-width="1.4" stroke-linejoin="round" />
+      <path d="M52 27 Q55 21 59 19 M52 37 Q55 43 59 45" fill="none" stroke="#0f1a2e" stroke-width="1.2" stroke-linecap="round" />
+      <g fill="#7ad0ff" stroke="#0f1a2e" stroke-width="0.6"><circle cx="53.5" cy="29" r="1.7" /><circle cx="53.5" cy="35" r="1.7" /></g>
+      <g fill="#ffffff"><circle cx="53" cy="28.5" r="0.55" /><circle cx="53" cy="34.5" r="0.55" /></g>
+    </svg>
+<svg x="64" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+        <radialGradient id="btShell-f1" cx="36%" cy="26%" r="80%"><stop offset="0" stop-color="#9cc6ea" /><stop offset="0.35" stop-color="#4a74a0" /><stop offset="0.75" stop-color="#22385a" /><stop offset="1" stop-color="#121e32" /></radialGradient>
+        <linearGradient id="btPro-f1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a7896" /><stop offset="1" stop-color="#16243a" /></linearGradient>
+        <linearGradient id="btHead-f1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5a6a" /><stop offset="1" stop-color="#121a24" /></linearGradient>
+      </defs>
+      <!-- Six jointed legs -->
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 17 L19.0 11 L13.0 7 M32 16 L33.0 9 L30.0 4 M41 22 L46.0 16 L51.0 12 M22 47 L19.0 53 L13.0 57 M32 48 L33.0 55 L30.0 60 M41 42 L46.0 48 L51.0 52" stroke="#0f1a2e" stroke-width="3.6" />
+        <path d="M22 17 L19.0 11 L13.0 7 M32 16 L33.0 9 L30.0 4 M41 22 L46.0 16 L51.0 12 M22 47 L19.0 53 L13.0 57 M32 48 L33.0 55 L30.0 60 M41 42 L46.0 48 L51.0 52" stroke="#2c4462" stroke-width="2" />
+      </g>
+      <!-- Wing cases: two glossy halves split down the middle -->
+      <path d="M9 32 Q9 15 26 14.5 Q38 14.5 41 22 L41 32 Z" fill="url(#btShell-f1)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M9 32 Q9 49 26 49.5 Q38 49.5 41 42 L41 32 Z" fill="url(#btShell-f1)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M8.5 32 H41" stroke="#0f1a2e" stroke-width="1.8" />
+      <path d="M14 23 Q20 16.5 32 17" fill="none" stroke="#d6ecff" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+      <path d="M14 37 Q18 44 26 45.5" fill="none" stroke="#9cc6ea" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
+      <g fill="#16243a" opacity="0.55"><circle cx="19" cy="25" r="1.4" /><circle cx="28" cy="23" r="1.4" /><circle cx="35" cy="26" r="1.2" /><circle cx="19" cy="39" r="1.4" /><circle cx="28" cy="41" r="1.4" /><circle cx="35" cy="38" r="1.2" /></g>
+      <circle cx="21" cy="21" r="1.4" fill="#ffffff" opacity="0.8" />
+      <!-- Armoured collar, head and mandibles -->
+      <path d="M40 23 Q47 22 49 27 V37 Q47 42 40 41 Z" fill="url(#btPro-f1)" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+      <path d="M42 25.5 Q46 25 47 28" fill="none" stroke="#a8c6e4" stroke-width="1.1" stroke-linecap="round" opacity="0.8" />
+      <path d="M48.5 26.5 Q56 25.5 57.5 32 Q56 38.5 48.5 37.5 Z" fill="url(#btHead-f1)" stroke="#0f1a2e" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M56 28 Q61.5 25.5 62.5 29.5 Q60 29 57.5 30.5 M56 36 Q61.5 38.5 62.5 34.5 Q60 35 57.5 33.5" fill="#2a2f3c" stroke="#0f1a2e" stroke-width="1.4" stroke-linejoin="round" />
+      <path d="M52 27 Q55 21 59 19 M52 37 Q55 43 59 45" fill="none" stroke="#0f1a2e" stroke-width="1.2" stroke-linecap="round" />
+      <g fill="#7ad0ff" stroke="#0f1a2e" stroke-width="0.6"><circle cx="53.5" cy="29" r="1.7" /><circle cx="53.5" cy="35" r="1.7" /></g>
+      <g fill="#ffffff"><circle cx="53" cy="28.5" r="0.55" /><circle cx="53" cy="34.5" r="0.55" /></g>
+    </svg>
+<svg x="128" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+        <radialGradient id="btShell-f2" cx="36%" cy="26%" r="80%"><stop offset="0" stop-color="#9cc6ea" /><stop offset="0.35" stop-color="#4a74a0" /><stop offset="0.75" stop-color="#22385a" /><stop offset="1" stop-color="#121e32" /></radialGradient>
+        <linearGradient id="btPro-f2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a7896" /><stop offset="1" stop-color="#16243a" /></linearGradient>
+        <linearGradient id="btHead-f2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5a6a" /><stop offset="1" stop-color="#121a24" /></linearGradient>
+      </defs>
+      <!-- Six jointed legs -->
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 17 L17.2 11 L9.8 7 M32 16 L34.8 9 L33.2 4 M41 22 L44.2 16 L47.8 12 M22 47 L20.8 53 L16.2 57 M32 48 L31.2 55 L26.8 60 M41 42 L47.8 48 L54.2 52" stroke="#0f1a2e" stroke-width="3.6" />
+        <path d="M22 17 L17.2 11 L9.8 7 M32 16 L34.8 9 L33.2 4 M41 22 L44.2 16 L47.8 12 M22 47 L20.8 53 L16.2 57 M32 48 L31.2 55 L26.8 60 M41 42 L47.8 48 L54.2 52" stroke="#2c4462" stroke-width="2" />
+      </g>
+      <!-- Wing cases: two glossy halves split down the middle -->
+      <path d="M9 32 Q9 15 26 14.5 Q38 14.5 41 22 L41 32 Z" fill="url(#btShell-f2)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M9 32 Q9 49 26 49.5 Q38 49.5 41 42 L41 32 Z" fill="url(#btShell-f2)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M8.5 32 H41" stroke="#0f1a2e" stroke-width="1.8" />
+      <path d="M14 23 Q20 16.5 32 17" fill="none" stroke="#d6ecff" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+      <path d="M14 37 Q18 44 26 45.5" fill="none" stroke="#9cc6ea" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
+      <g fill="#16243a" opacity="0.55"><circle cx="19" cy="25" r="1.4" /><circle cx="28" cy="23" r="1.4" /><circle cx="35" cy="26" r="1.2" /><circle cx="19" cy="39" r="1.4" /><circle cx="28" cy="41" r="1.4" /><circle cx="35" cy="38" r="1.2" /></g>
+      <circle cx="21" cy="21" r="1.4" fill="#ffffff" opacity="0.8" />
+      <!-- Armoured collar, head and mandibles -->
+      <path d="M40 23 Q47 22 49 27 V37 Q47 42 40 41 Z" fill="url(#btPro-f2)" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+      <path d="M42 25.5 Q46 25 47 28" fill="none" stroke="#a8c6e4" stroke-width="1.1" stroke-linecap="round" opacity="0.8" />
+      <path d="M48.5 26.5 Q56 25.5 57.5 32 Q56 38.5 48.5 37.5 Z" fill="url(#btHead-f2)" stroke="#0f1a2e" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M56 28 Q61.5 25.5 62.5 29.5 Q60 29 57.5 30.5 M56 36 Q61.5 38.5 62.5 34.5 Q60 35 57.5 33.5" fill="#2a2f3c" stroke="#0f1a2e" stroke-width="1.4" stroke-linejoin="round" />
+      <path d="M52 27 Q55 21 59 19 M52 37 Q55 43 59 45" fill="none" stroke="#0f1a2e" stroke-width="1.2" stroke-linecap="round" />
+      <g fill="#7ad0ff" stroke="#0f1a2e" stroke-width="0.6"><circle cx="53.5" cy="29" r="1.7" /><circle cx="53.5" cy="35" r="1.7" /></g>
+      <g fill="#ffffff"><circle cx="53" cy="28.5" r="0.55" /><circle cx="53" cy="34.5" r="0.55" /></g>
+    </svg>
+<svg x="192" y="0" width="64" height="64" viewBox="0 0 64 64"><defs>
+        <radialGradient id="btShell-f3" cx="36%" cy="26%" r="80%"><stop offset="0" stop-color="#9cc6ea" /><stop offset="0.35" stop-color="#4a74a0" /><stop offset="0.75" stop-color="#22385a" /><stop offset="1" stop-color="#121e32" /></radialGradient>
+        <linearGradient id="btPro-f3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a7896" /><stop offset="1" stop-color="#16243a" /></linearGradient>
+        <linearGradient id="btHead-f3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a5a6a" /><stop offset="1" stop-color="#121a24" /></linearGradient>
+      </defs>
+      <!-- Six jointed legs -->
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 17 L19.0 11 L13.0 7 M32 16 L33.0 9 L30.0 4 M41 22 L46.0 16 L51.0 12 M22 47 L19.0 53 L13.0 57 M32 48 L33.0 55 L30.0 60 M41 42 L46.0 48 L51.0 52" stroke="#0f1a2e" stroke-width="3.6" />
+        <path d="M22 17 L19.0 11 L13.0 7 M32 16 L33.0 9 L30.0 4 M41 22 L46.0 16 L51.0 12 M22 47 L19.0 53 L13.0 57 M32 48 L33.0 55 L30.0 60 M41 42 L46.0 48 L51.0 52" stroke="#2c4462" stroke-width="2" />
+      </g>
+      <!-- Wing cases: two glossy halves split down the middle -->
+      <path d="M9 32 Q9 15 26 14.5 Q38 14.5 41 22 L41 32 Z" fill="url(#btShell-f3)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M9 32 Q9 49 26 49.5 Q38 49.5 41 42 L41 32 Z" fill="url(#btShell-f3)" stroke="#0f1a2e" stroke-width="2.2" stroke-linejoin="round" />
+      <path d="M8.5 32 H41" stroke="#0f1a2e" stroke-width="1.8" />
+      <path d="M14 23 Q20 16.5 32 17" fill="none" stroke="#d6ecff" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+      <path d="M14 37 Q18 44 26 45.5" fill="none" stroke="#9cc6ea" stroke-width="1.2" stroke-linecap="round" opacity="0.5" />
+      <g fill="#16243a" opacity="0.55"><circle cx="19" cy="25" r="1.4" /><circle cx="28" cy="23" r="1.4" /><circle cx="35" cy="26" r="1.2" /><circle cx="19" cy="39" r="1.4" /><circle cx="28" cy="41" r="1.4" /><circle cx="35" cy="38" r="1.2" /></g>
+      <circle cx="21" cy="21" r="1.4" fill="#ffffff" opacity="0.8" />
+      <!-- Armoured collar, head and mandibles -->
+      <path d="M40 23 Q47 22 49 27 V37 Q47 42 40 41 Z" fill="url(#btPro-f3)" stroke="#0f1a2e" stroke-width="2" stroke-linejoin="round" />
+      <path d="M42 25.5 Q46 25 47 28" fill="none" stroke="#a8c6e4" stroke-width="1.1" stroke-linecap="round" opacity="0.8" />
+      <path d="M48.5 26.5 Q56 25.5 57.5 32 Q56 38.5 48.5 37.5 Z" fill="url(#btHead-f3)" stroke="#0f1a2e" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M56 28 Q61.5 25.5 62.5 29.5 Q60 29 57.5 30.5 M56 36 Q61.5 38.5 62.5 34.5 Q60 35 57.5 33.5" fill="#2a2f3c" stroke="#0f1a2e" stroke-width="1.4" stroke-linejoin="round" />
+      <path d="M52 27 Q55 21 59 19 M52 37 Q55 43 59 45" fill="none" stroke="#0f1a2e" stroke-width="1.2" stroke-linecap="round" />
+      <g fill="#7ad0ff" stroke="#0f1a2e" stroke-width="0.6"><circle cx="53.5" cy="29" r="1.7" /><circle cx="53.5" cy="35" r="1.7" /></g>
+      <g fill="#ffffff"><circle cx="53" cy="28.5" r="0.55" /><circle cx="53" cy="34.5" r="0.55" /></g>
+    </svg>
+</svg>

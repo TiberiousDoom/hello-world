@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.3 · 2026-11-01 · Wingbeats, recoil and pale young bugs
+### New
+- **Guns kick when they fire:** the turret, Turret Mk.2, cannon, mortar and artillery each slide their barrel back under the head and ease it out again, with a wisp of smoke at the muzzle. The bigger the gun, the harder the kick.
+- **Wasps beat their wings** as they fly, the wings sweeping and blurring, and **sting** by drawing back and stabbing forward, with a drop of green venom.
+- **Beetles walk on six legs,** three at a time, and **bite** with a lunge, their mandibles spreading wide and snapping shut.
+- **The greenhouse shows it's growing:** its saplings sway, mist drifts down over them and the grow light warms under the glass.
+- **Young bugs are pale,** like an insect fresh from a moult, and colour up as they grow into adults.
+
 ## 0.88.2 · 2026-10-31 · Falling leaves, ore terraces and bolted fins
 ### New
 - **Ore patches rise from the ground as terraces:** where ore tiles touch, the patch is one shelf of rock with rounded edges, a higher shelf on top where it's wide enough, and a band of ore showing along each cliff. A single tile of ore is still a small pile of rocks.
