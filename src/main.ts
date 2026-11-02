@@ -23,7 +23,7 @@ import { KeyList, UI_SCALE_MAX, UI_SCALE_MIN, applyUiScale, systemReducedMotion 
 import { keyName } from './ui/keys';
 import { LESSONS, Tutorial } from './ui/tutorial';
 import { Lobby } from './ui/lobby';
-import { RELAY_URL, SERVER_ROOM, roomStatus } from './net/client';
+import { RELAY_URL, SERVER_ROOM, askDesk, roomStatus } from './net/client';
 import { Coop } from './net/coop';
 import { CATCH_UP } from './net/lockstep';
 
@@ -609,7 +609,11 @@ const lobby = new Lobby(coop, {
   },
   openModal: (id) => hud.openModal(id),
   closeModals: () => hud.closeModals(),
-  server: { code: serverRoom, status: () => roomStatus(relay, serverRoom, AbortSignal.timeout(8000)) },
+  server: {
+    code: serverRoom,
+    status: (code) => roomStatus(relay, code, AbortSignal.timeout(8000)),
+    ask: (desk, ask, pass) => askDesk(relay, desk, VERSION, pass, ask),
+  },
   version: VERSION,
 });
 document.getElementById('mm-coop')!.addEventListener('click', () => lobby.open());

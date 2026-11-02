@@ -218,6 +218,87 @@ test("the dedicated server's card shows its status, and Join works only when it 
   await expect(page.locator('#coop-server-join')).toBeDisabled();
 });
 
+// Rooms players made on the server (D-164): the main room lists them; each has its own status. The relay
+// and the server's desk are faked here.
+test("the server's made rooms are listed with their own status, and a new one is made through its desk", async ({ page }) => {
+  const statuses: Record<string, object> = {};
+  await page.route(/http:\/\/relay\.test\/rooms\/(\w+)\/status/, (r) => {
+    const code = r.request().url().split('/')[4];
+    r.fulfill({ contentType: 'application/json', body: JSON.stringify(statuses[code] ?? { open: false, away: false, version: null, players: 0, max: 10, info: null }) });
+  });
+  const asked: { url: string; ask: Record<string, string> }[] = [];
+  const joined: string[] = [];
+  await page.routeWebSocket(/ws:\/\/relay\.test\/rooms\//, (ws) => {
+    const url = ws.url();
+    if (!url.includes('/rooms/CREWZZ')) {
+      // Joining a room: seen, then turned away (no game to send here).
+      joined.push(url);
+      ws.send(JSON.stringify({ t: 'refused', reason: 'no-room' }));
+      return ws.close();
+    }
+    // The desk: lets the player in, and makes the room it asks for.
+    ws.send(JSON.stringify({ t: 'welcome', slot: 1, players: [0, 1] }));
+    ws.onMessage((m) => {
+      const ask = JSON.parse(String(m));
+      asked.push({ url, ask });
+      ws.send(JSON.stringify({ t: 'host', data: JSON.stringify({ t: 'made', code: ask.code }) }));
+    });
+  });
+  await setProfile(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
+  await page.goto('/?relay=ws://relay.test&server=CREW42');
+  const versionBox = page.locator('.app-version').first();
+  await expect(versionBox).not.toBeEmpty();
+  const version = await versionBox.textContent();
+  const rooms = [
+    { code: 'CREWAB', name: 'Night shift' },
+    { code: 'CREWCD', name: '<b>Busy</b>' },
+    { code: 'CREWEF', name: 'Gone' },
+  ];
+  statuses.CREW42 = { open: true, away: false, version, players: 9, max: 10, info: { name: 'Crew', day: 3, season: 'Spring', desk: 'CREWZZ', rooms } };
+  statuses.CREWAB = { open: true, away: false, version, players: 2, max: 10, info: { name: 'Night shift', day: 40, season: 'Fall' } };
+  statuses.CREWCD = { open: true, away: false, version, players: 9, max: 10, info: { name: 'Busy', day: 1, season: 'Spring' } };
+
+  await page.click('#mm-coop');
+  const list = page.locator('#coop-room-list li');
+  await expect(list).toHaveCount(3);
+  // A full main room still lists the others.
+  await expect(page.locator('#coop-server')).toHaveAttribute('data-state', 'full');
+  await expect(list.nth(0)).toHaveAttribute('data-state', 'online');
+  await expect(list.nth(0)).toContainText('Day 40 · Fall · 2 of 9 players');
+  await expect(list.nth(0).locator('button')).toBeEnabled();
+  // Names are text, never markup.
+  await expect(list.nth(1).locator('b')).toHaveText('<b>Busy</b>');
+  await expect(list.nth(1)).toHaveAttribute('data-state', 'full');
+  await expect(list.nth(1).locator('button')).toBeDisabled();
+  await expect(list.nth(2)).toHaveAttribute('data-state', 'offline');
+
+  // Join goes to that room's code.
+  await list.nth(0).locator('button').click();
+  await expect.poll(() => joined.length).toBe(1);
+  expect(joined[0]).toContain('/rooms/CREWAB?role=guest');
+
+  // Making one: the desk is asked for a room with the server's prefix, and the game joins it.
+  await page.click('#coop-make-box summary');
+  await page.fill('#coop-make-name', '  Weekend   crew ');
+  await page.fill('#coop-make-pass', 'secret');
+  await page.click('#coop-make button');
+  await expect.poll(() => asked.length).toBe(1);
+  expect(asked[0].ask).toMatchObject({ t: 'new', name: 'Weekend crew' });
+  expect(asked[0].ask.code).toMatch(/^CREW[A-Z2-9]{2}$/);
+  // Its password goes hashed, never as typed.
+  expect(asked[0].ask.pass).toMatch(/^[0-9a-f]{64}$/);
+  await expect.poll(() => joined.length).toBe(2);
+  expect(joined[1]).toContain(`/rooms/${asked[0].ask.code}?role=guest`);
+
+  // A server without a desk has no form.
+  statuses.CREW42 = { ...statuses.CREW42, players: 0, info: { name: 'Crew', rooms } };
+  await page.locator('#coop [data-close]').first().click();
+  await page.click('#mm-coop');
+  await expect(page.locator('#coop-server')).toHaveAttribute('data-state', 'online');
+  await expect(page.locator('#coop-make-box')).toBeHidden();
+  await expect(list).toHaveCount(3);
+});
+
 test('Join the server joins its room with one button', async ({ page: host }) => {
   const guest = await host.context().newPage();
   await open(host, ALL_LESSONS);

@@ -2,7 +2,7 @@
 // co-op in two tabs without a network, a room run by the host's own page over a BroadcastChannel,
 // with the relay's rules from room.ts.
 
-import { CLOSE_LEAVING, HOST_GRACE_MS, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus } from './protocol';
+import { CLOSE_LEAVING, DeskAsk, DeskReply, HOST_GRACE_MS, RefuseReason, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus, validRelayMessage, validReply } from './protocol';
 import { Peer, admit, expire, leave, retire, route, status, welcome } from './room';
 
 /** The relay on Cloudflare. `?relay=ws://localhost:8787` picks a local one, `?relay=local` two tabs. */
@@ -28,6 +28,45 @@ export async function roomStatus(relay: string, code: string, signal?: AbortSign
   } catch {
     return null;
   }
+}
+
+/** How long a player waits for the server's desk to answer (ms): making a room opens it on the relay first. */
+export const DESK_WAIT_MS = 20_000;
+
+/**
+ * Asks the dedicated server's desk (D-164) for something (a new room), as a guest in the desk's room:
+ * resolves with its answer, why the relay turned this game away, or null if nothing came in time.
+ * `pass`: the server's password, hashed with the desk's code (`passHash`).
+ */
+export function askDesk(relay: string, desk: string, version: string, pass: string, ask: DeskAsk, waitMs = DESK_WAIT_MS): Promise<DeskReply | { refused: RefuseReason } | null> {
+  return new Promise((resolve) => {
+    const key = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const link = connect(relay, desk, 'guest', version, key, pass);
+    let done = false;
+    const finish = (answer: DeskReply | { refused: RefuseReason } | null) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      link.close();
+      resolve(answer);
+    };
+    const timer = setTimeout(() => finish(null), waitMs);
+    link.onMessage = (m) => {
+      if (!validRelayMessage(m)) return;
+      if (m.t === 'welcome') link.send(JSON.stringify(ask));
+      else if (m.t === 'refused') finish({ refused: m.reason });
+      else if (m.t === 'host') {
+        let reply: unknown;
+        try {
+          reply = JSON.parse(m.data);
+        } catch {
+          return;
+        }
+        if (validReply(reply)) finish(reply);
+      } else if (m.t === 'closed') finish(null);
+    };
+    link.onClose = () => finish(null);
+  });
 }
 
 export interface RelayLink {

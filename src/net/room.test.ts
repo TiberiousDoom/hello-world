@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { GUEST_RATE, HEARTBEAT, MAX_GUEST_MESSAGE, MAX_PLAYERS, RelayMessage, RoomInfo, infoMessage, Role, makeCode, passHash, reservedHash, sha256, validCode } from './protocol';
+import {
+  GUEST_RATE,
+  HEARTBEAT,
+  MAX_GUEST_MESSAGE,
+  MAX_PLAYERS,
+  MAX_SERVER_ROOMS,
+  ROOM_NAME_LENGTH,
+  cleanAsk,
+  roomName,
+  serverPrefix,
+  validReply,
+  RelayMessage,
+  RoomInfo,
+  infoMessage,
+  Role,
+  makeCode,
+  passHash,
+  reservedHash,
+  sha256,
+  validCode,
+} from './protocol';
 import { Allowance, CLOSE_POLICY, CLOSE_REPLACED, Peer, admit, cleanInfo, expire, leave, retire, route, status, welcome } from './room';
 
 /** A connection that records what it was sent, and whether it was closed. */
@@ -60,6 +80,11 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(reservedHash(`ABCDEF:x, 764D2J:${hash.toUpperCase()}`, '764D2J')).toBe(hash);
     expect(reservedHash('ABCDEF:x', '764D2J')).toBeUndefined();
     expect(reservedHash(undefined, '764D2J')).toBeUndefined();
+    // A prefix reserves every code starting with it: the rooms a server makes (D-164). An exact entry wins.
+    expect(reservedHash(`764D*:${hash}`, '764DXY')).toBe(hash);
+    expect(reservedHash(`764D*:${hash}`, '764EXY')).toBeUndefined();
+    expect(reservedHash(`764D*:${hash}, 764DXY:other`, '764DXY')).toBe('other');
+    expect(reservedHash(`*:${hash}`, '764DXY')).toBeUndefined();
     // Empty, so any host could have it, but it's reserved.
     expect(admit([], 'host', '1.0.0', 'mine', null, { reserved: hash, keyHash: await sha256('mine') })).toEqual({ refuse: 'taken' });
     expect(admit([], 'host', '1.0.0', 'server-key', null, { reserved: hash, keyHash: hash })).toEqual({ slot: 0 });
@@ -115,6 +140,18 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(host.closed).toBeUndefined();
     // A guest can't set it.
     route([host, guest], guest, infoMessage({ name: 'Mine now' }), () => expect.unreachable());
+  });
+
+  it("keeps a server's list of made rooms and its desk, checked (D-164)", () => {
+    const rooms = [{ code: '764DAB', name: '  Night\nshift  ' }, { code: 'bad', name: 'x' }, { code: '764DCD', name: '' }, 'nope'];
+    expect(cleanInfo({ name: 'S', desk: '764DZZ', rooms })).toEqual({ name: 'S', desk: '764DZZ', rooms: [{ code: '764DAB', name: 'Night shift' }] });
+    expect(cleanInfo({ desk: 'nope', rooms: 'nope' })).toEqual({});
+    // At most MAX_SERVER_ROOMS, so the info fits on the host's socket.
+    const many = Array.from({ length: 40 }, () => ({ code: '764DAB', name: 'ü'.repeat(60) }));
+    const kept = cleanInfo({ name: 'n'.repeat(40), day: 9999, season: 'Winter', desk: '764DZZ', rooms: many })!;
+    expect(kept.rooms).toHaveLength(MAX_SERVER_ROOMS);
+    expect(kept.rooms![0].name).toHaveLength(ROOM_NAME_LENGTH);
+    expect(new TextEncoder().encode(JSON.stringify(kept)).length).toBeLessThan(2048);
   });
 
   it("reports a room's status: open, waiting for its host, or not there (D-086)", () => {
@@ -212,5 +249,35 @@ describe('Co-op relay rooms (D-077)', () => {
     expect(sent).toBe(GUEST_RATE * 2);
     expect(allowance.take(1000 / GUEST_RATE)).toBe(true); // one more, a moment later
     expect(allowance.take(1000 / GUEST_RATE)).toBe(false);
+  });
+});
+
+describe("The dedicated server's desk (D-164)", () => {
+  it('takes only well-formed requests for a new room', () => {
+    const ok = { t: 'new', code: '764DAB', name: ' Weekend  crew ', pass: 'ab'.repeat(32) };
+    expect(cleanAsk(JSON.stringify(ok))).toEqual({ ...ok, name: 'Weekend crew' });
+    expect(cleanAsk(JSON.stringify({ ...ok, pass: '' }))?.pass).toBe('');
+    for (const bad of [
+      { ...ok, t: 'delete' },
+      { ...ok, code: '764DA0' },
+      { ...ok, name: ' \n ' },
+      { ...ok, pass: '<b>' },
+      { ...ok, pass: 'a'.repeat(65) },
+    ])
+      expect(cleanAsk(JSON.stringify(bad))).toBeNull();
+    expect(cleanAsk('not json')).toBeNull();
+    expect(cleanAsk('null')).toBeNull();
+    expect(validReply({ t: 'made', code: '764DAB' })).toBe(true);
+    expect(validReply({ t: 'no', reason: 'full' })).toBe(true);
+    expect(validReply({ t: 'no', reason: 'whatever' })).toBe(false);
+    expect(validReply({ t: 'made', code: '<img>' })).toBe(false);
+  });
+
+  it('names are one short line', () => {
+    expect(roomName('a\tb\u0000c')).toBe('a b c');
+    expect(roomName('x'.repeat(50))).toHaveLength(ROOM_NAME_LENGTH);
+    // Not cut through an emoji.
+    expect([...roomName('🦗'.repeat(30))]).toHaveLength(ROOM_NAME_LENGTH);
+    expect(serverPrefix('764D2J')).toBe('764D');
   });
 });

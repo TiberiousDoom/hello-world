@@ -821,6 +821,86 @@ body.in-menu #toasts {
   width: 100%;
   justify-content: center;
 }
+/* Rooms players made on the server (D-164): a row each, with its own light and Join. */
+.card .coop-server h4 {
+  margin: 14px 0 6px;
+  font: 700 13px var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.coop-room-list {
+  list-style: none;
+  padding: 0 !important;
+  margin: 0 0 8px;
+  display: grid;
+  gap: 6px;
+}
+.coop-room-list:empty {
+  display: none;
+}
+.coop-room-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--navy-deep);
+}
+.coop-room-list .coop-room-text {
+  flex: 1;
+  min-width: 0;
+}
+.coop-room-list .coop-room-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.coop-room-list b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coop-room-list small {
+  display: block;
+  color: var(--muted);
+}
+.coop-room-list button {
+  flex: none;
+}
+.coop-room-list li[data-state='online'] .coop-state {
+  color: var(--good);
+}
+.coop-room-list li[data-state='offline'] .coop-state {
+  color: var(--danger);
+}
+.coop-room-list li[data-state='away'] .coop-state,
+.coop-room-list li[data-state='full'] .coop-state,
+.coop-room-list li[data-state='version'] .coop-state {
+  color: var(--warn);
+}
+.coop-make-box summary {
+  cursor: pointer;
+  padding: 6px 0;
+  font-weight: 700;
+}
+.coop-make {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0;
+}
+.coop-make input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--navy-deep);
+  color: inherit;
+}
+.coop-make button {
+  justify-content: center;
+}
 .coop-code {
   margin: 0 0 10px;
   font: 800 34px var(--display);

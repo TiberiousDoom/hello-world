@@ -11,6 +11,7 @@ WorkingDirectory=/home/foundry/hello-world
 Environment=FOUNDRY_DATA=/home/foundry/server-data
 # Environment=FOUNDRY_ROOM=CREW42
 # Environment="FOUNDRY_NAME=Stephen's server"
+# Environment=FOUNDRY_MAX_ROOMS=4
 ExecStart=/usr/bin/node dist-server/server.mjs
 Restart=always
 RestartSec=5

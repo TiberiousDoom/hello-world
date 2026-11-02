@@ -158,7 +158,12 @@ CI from master.
 - **The door (D-140):** a room can be reserved in the relay's `RESERVED_ROOMS` secret, so only the host
   whose key hashes to the one named there can open it (the dedicated server's, whose code is public).
   A host can set a password: guests send it hashed with the room's code, and the relay turns away
-  any who don't match.
+  any who don't match. An entry ending in `*` (`764D*:hash`) reserves every code that starts with it:
+  the rooms players make on the dedicated server all share its prefix (D-164).
+- **The server's desk (D-164):** a room the dedicated server hosts that never starts a game. A guest's
+  messages there are requests (`DeskAsk` in `protocol.ts`); the server answers each one (`DeskReply`).
+  The main room's info lists the made rooms and the desk's code, at most 12 rooms, kept within the
+  relay's 2 KB per host.
 - **What the host lets in:** only commands a guest may send, with whole numbers and known names
   (`validCommand` in `lockstep.ts`); a fuzz test applies thousands of odd ones without a throw.
 

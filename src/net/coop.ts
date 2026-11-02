@@ -86,6 +86,11 @@ export class Coop {
   onEnd: (why: string, replaced?: boolean) => void = () => {};
   /** Another player points at tile (x, y) (D-080). */
   onPing: (player: number, x: number, y: number) => void = () => {};
+  /**
+   * A host's room that never starts a game: the dedicated server's desk (D-164). Guests' messages come
+   * here, to be answered with `reply`.
+   */
+  onAsk: ((slot: number, data: string) => void) | null = null;
 
   private link: RelayLink | null = null;
   /** The host's secret for its room: only it can take the room back after a dropped connection. */
@@ -198,6 +203,11 @@ export class Coop {
   setInfo(info: RoomInfo): void {
     this.info = info;
     if (this.role === 'host' && this.phase !== 'connecting') this.link?.send(infoMessage(info));
+  }
+
+  /** A desk's answer to one guest (D-164). */
+  reply(slot: number, data: string): void {
+    if (this.role === 'host' && this.phase === 'lobby') this.link?.send(JSON.stringify({ to: slot, data } satisfies HostSend));
   }
 
   /** This player points at tile (x, y), for everyone in the game (D-080). */
@@ -326,6 +336,7 @@ export class Coop {
         }
         return this.onChange();
       case 'from':
+        if (this.phase === 'lobby' && this.onAsk) return this.onAsk(m.slot, m.data);
         if (this.phase === 'playing' && this.players.includes(m.slot)) this.host?.receive(m.slot, m.data);
         return;
       case 'host':
