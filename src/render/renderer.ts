@@ -84,6 +84,10 @@ const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+/** Pixels per tile past which the eyes, rabbits and deer keep out of sight (#208): they're shy close up. */
+const SHY_ZOOM = 48;
+/** How many times rarer than at first (D-160) the eyes, rabbits, deer and bird flights are (#203, #208). */
+const WILD_RARER = 10;
 /** Tiles across that a nest's art is drawn (D-152): the same for every stage, so the art itself grows. */
 const NEST_BOX = 4;
 const NEST_QUEEN_BOX = 4.6;
@@ -300,7 +304,7 @@ interface Layer {
 const newLayer = (): Layer => ({ canvas: document.createElement('canvas'), key: '', x0: 0, y0: 0, x1: 0, y1: 0, scale: 1 });
 
 interface Effect {
-  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob' | 'label';
+  kind: 'puff' | 'blast' | 'shockwave' | 'sparks' | 'sprite' | 'lob';
   x: number;
   y: number;
   r: number; // for a sprite, its size in tiles
@@ -381,9 +385,7 @@ export class Renderer {
 
   /** Where each building stood (centre and size), to show it coming down when it's demolished (D-160). */
   private spots = new Map<number, [number, number, number]>();
-  /** Hub stock, research done, ship stage and fallen nests last frame, for their effects (D-160). */
-  private stockWas = -1;
-  private labelAt = 0;
+  /** Research done, ship stage and fallen nests last frame, for their effects (D-160). */
   private researchWas = -1;
   private stageWas = -1;
   private nestsDown = new Set<number>();
@@ -691,7 +693,7 @@ export class Renderer {
     this.drawFog(world);
     if (ui) this.drawNight(world, x0, y0, x1, y1);
     // Over the night's dark: eyes at the forest's edge, and a raid's warning (D-160).
-    if (ui) this.drawEyes(world, x0, y0, x1, y1, now);
+    if (ui) this.drawEyes(world, x0, y0, x1, y1, now, z);
     if (ui) this.drawRaidWarning(world, now);
 
     if (!ui) return;
@@ -1186,6 +1188,7 @@ export class Renderer {
     const flight = Math.floor(t / 20);
     for (const key of this.birdViews.keys()) if (Math.floor(key / 2) !== flight) this.birdViews.delete(key);
     for (let k = 0; k < 2; k++) {
+      if (hash(flight + k * 97, 6290) % WILD_RARER) continue; // most flights don't happen (#203)
       const hv = hash(flight + k * 97, 6200);
       const u = (t % 20) / 20;
       let v = this.birdViews.get(flight * 2 + k);
@@ -1199,12 +1202,12 @@ export class Renderer {
         if (img) ctx.drawImage(img, bx + (n % 2) * 0.6 - n * 0.3, by + n * 0.5, near ? 0.7 : 0.55, near ? 0.7 : 0.55);
       }
     }
-    // A rabbit or a deer at the forest's edge, keeping away from bugs.
-    if (z >= 20)
+    // A rabbit or a deer at the forest's edge, keeping away from bugs, and from a camera zoomed right in (#208).
+    if (z >= 20 && z < SHY_ZOOM)
       for (let y = Math.max(1, y0); y < Math.min(s.height - 1, y1); y++)
         for (let x = Math.max(1, x0); x < Math.min(s.width - 1, x1); x++) {
           const hv = hash(x, y + 6300);
-          if (hv % 90 || s.trees[world.idx(x, y)] === TREE || world.buildingAt(x, y) || world.isWater(x, y)) continue;
+          if (hv % (90 * WILD_RARER) || s.trees[world.idx(x, y)] === TREE || world.buildingAt(x, y) || world.isWater(x, y)) continue;
           const edge = s.trees[world.idx(x + 1, y)] === TREE || s.trees[world.idx(x - 1, y)] === TREE || s.trees[world.idx(x, y - 1)] === TREE;
           if (!edge || s.enemies.some((e) => Math.abs(e.x - x) < 6 && Math.abs(e.y - y) < 6)) continue;
           const deer = (hv >>> 8) % 3 === 0;
@@ -1229,16 +1232,16 @@ export class Renderer {
       }
   }
 
-  /** At night, pairs of eyes watch from the forest's edge, blinking now and then (D-160). */
-  private drawEyes(world: World, x0: number, y0: number, x1: number, y1: number, now: number): void {
+  /** At night, pairs of eyes watch from the forest's edge, blinking now and then (D-160); gone close up (#208). */
+  private drawEyes(world: World, x0: number, y0: number, x1: number, y1: number, now: number, z: number): void {
     const dark = darkness(world.state.time);
-    if (dark < 0.4) return;
+    if (dark < 0.4 || z >= SHY_ZOOM) return;
     const s = world.state;
     const ctx = this.ctx;
     ctx.globalAlpha = Math.min(1, (dark - 0.4) * 2.5);
     for (let y = Math.max(1, y0); y < Math.min(s.height - 1, y1); y++)
       for (let x = Math.max(1, x0); x < Math.min(s.width - 1, x1); x++) {
-        if (hash(x, y + 3131) % 45 || s.trees[world.idx(x, y)] !== TREE) continue;
+        if (hash(x, y + 3131) % (45 * WILD_RARER) || s.trees[world.idx(x, y)] !== TREE) continue;
         // On the forest's edge: a tree with open ground beside it.
         if (s.trees[world.idx(x + 1, y)] === TREE && s.trees[world.idx(x - 1, y)] === TREE && s.trees[world.idx(x, y + 1)] === TREE && s.trees[world.idx(x, y - 1)] === TREE) continue;
         const h = hash(x, y);
@@ -3229,13 +3232,6 @@ export class Renderer {
     const hubB = world.hub;
     if (hubB) {
       const [hx, hy] = world.centreOf(hubB);
-      // Deliveries: a count floating up off the hub, at most every 700 ms.
-      const stock = Object.values(s.inventory).reduce((a, n) => a + (n ?? 0), 0);
-      if (this.stockWas >= 0 && stock > this.stockWas && now - this.labelAt > 700) {
-        this.effects.push({ kind: 'label', x: hx, y: hy - HUB_SIZE * 0.35, r: 0.6, born: now, life: 900, color: `+${stock - this.stockWas}` });
-        this.labelAt = now;
-        this.stockWas = stock;
-      } else if (this.stockWas < 0 || stock < this.stockWas || now - this.labelAt > 700) this.stockWas = stock;
       // Research finished: rings of blue light pulse out from the hub.
       if (this.researchWas >= 0 && s.researched.length > this.researchWas) this.spriteFx('effects/research_pulse', hx, hy, HUB_SIZE * 1.6, 1000, now);
       this.researchWas = s.researched.length;
@@ -3788,18 +3784,6 @@ export class Renderer {
           ctx.lineTo(fx.x + Math.cos(ang) * d1, fx.y + Math.sin(ang) * d1);
         }
         ctx.stroke();
-      } else if (fx.kind === 'label') {
-        // A count floating up off the hub as deliveries arrive (D-160).
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.font = `800 ${fx.r}px Montserrat, system-ui, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.lineWidth = fx.r / 6;
-        ctx.strokeStyle = '#0f1a2e';
-        ctx.fillStyle = '#ffd36b';
-        ctx.strokeText(fx.color, fx.x, fx.y - t * 0.8);
-        ctx.fillText(fx.color, fx.x, fx.y - t * 0.8);
-        ctx.restore();
       } else if (fx.kind === 'puff') {
         ctx.fillStyle = `rgba(${fx.color},${0.6 * a})`;
         for (let i = 0; i < 6; i++) {

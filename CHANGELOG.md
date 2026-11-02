@@ -9,6 +9,8 @@ what's **New** and what's **Fixed**.
 - **An engineer something is built on top of steps out** to the nearest free tile. One caught in the middle of a shipyard could not move (#206).
 - **Birds stay on their path when you pan** instead of following the screen (#205).
 - **Merged nests are drawn without tunnels** to their other cells (#196).
+- **Wildlife is rarer and shyer:** birds, rabbits, deer and the eyes in the forest at night turn up a tenth as often, and rabbits, deer and eyes keep out of sight when you zoom right in (#203, #208).
+- **No more count floating up off the hub** as deliveries arrive (#203).
 
 ## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens, fireworks and life in the clearing
 ### New
