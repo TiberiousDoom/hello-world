@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.89.0 · 2026-11-02 · Rooms of your own on the server
+### New
+- **Make your own room on the dedicated server:** under Play together → **Make a room on the server**, give it a name (and a password if you like) and you're straight into a new world of its own. It stays on the server, always on like the main one, for you and your friends to come back to.
+- **The server's rooms are listed** below its card, each with its light, players and day, and its own Join button.
+- A room nobody plays in for a month is put away, and the server holds 4 made rooms unless its owner allows more.
+
 ## 0.88.8 · 2026-11-02 · One tap to mine, a grouped toolbar, and fixes
 ### New
 - **One tap keeps the engineer at it:** tap a tree or ore once and the engineer keeps chopping or mining by itself until the tree falls, the ore runs out, the inventory is full or you send it elsewhere. No more tapping again and again or holding down (#209).

@@ -1,9 +1,9 @@
-// The Play together dialog (D-078, D-079, D-086): join the dedicated server with one button, host a new
-// game, your own factory or a co-op game saved in this browser, or join a friend's with its room code (in
-// the lobby or under way). The room is in net/coop.ts.
+// The Play together dialog (D-078, D-079, D-086): join the dedicated server with one button, or one of the
+// rooms players made on it (D-164), or make one; host a new game, your own factory or a co-op game saved in
+// this browser, or join a friend's with its room code (in the lobby or under way). The room is in net/coop.ts.
 
-import type { Coop } from '../net/coop';
-import type { RoomStatus } from '../net/protocol';
+import { refusalText, type Coop } from '../net/coop';
+import { CODE_ALPHABET, CODE_LENGTH, DeskAsk, DeskReply, RefuseReason, RoomStatus, ServerRoom, passHash, roomName, serverPrefix } from '../net/protocol';
 import { PLAYER_COLORS } from './state';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -21,8 +21,15 @@ export interface LobbyActions {
   start(choice: HostChoice): void;
   openModal(id: string): void;
   closeModals(): void;
-  /** The dedicated server's room code, and how to ask the relay about it (D-086). */
-  server: { code: string; status(): Promise<RoomStatus | null> };
+  /**
+   * The dedicated server's main room code, how to ask the relay about a room (D-086), and how to ask the
+   * server's desk for a new room (D-164).
+   */
+  server: {
+    code: string;
+    status(code: string): Promise<RoomStatus | null>;
+    ask(desk: string, ask: DeskAsk, pass: string): Promise<DeskReply | { refused: RefuseReason } | null>;
+  };
   /** This game's version, which the server must match. */
   version: string;
 }
@@ -84,6 +91,9 @@ export function serverView(status: RoomStatus | null | undefined, version: strin
   return { state: 'online', label: 'Online', name, facts, note: null, canJoin: true };
 }
 
+/** Tries at making a room whose drawn code turns out taken. */
+const MAKE_TRIES = 3;
+
 export class Lobby {
   /** What the host chose to share, kept until Start. */
   private choice: HostChoice = 'new';
@@ -91,6 +101,11 @@ export class Lobby {
   private poll: ReturnType<typeof setInterval> | null = null;
   /** The latest check, so an older answer arriving late doesn't replace it. */
   private asked = 0;
+  /** The rooms players made on the server, and its desk, from the main room's last status (D-164). */
+  private rooms: ServerRoom[] = [];
+  private desk: string | null = null;
+  /** A room is being made: the form waits. */
+  private making = false;
 
   constructor(
     private coop: Coop,
@@ -99,6 +114,17 @@ export class Lobby {
     $('coop-server-join').addEventListener('click', () => {
       coop.joinRoom(actions.server.code, this.password(actions.server.code));
       this.status('Joining the server…');
+    });
+    $('coop-room-list').addEventListener('click', (e) => {
+      const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-code]');
+      if (!button) return;
+      const code = button.dataset.code!;
+      coop.joinRoom(code, this.password(code));
+      this.status(`Joining ${this.rooms.find((r) => r.code === code)?.name ?? 'the room'}…`);
+    });
+    $('coop-make').addEventListener('submit', (e) => {
+      e.preventDefault();
+      void this.make();
     });
     $('coop-host-new').addEventListener('click', () => this.host('new'));
     $('coop-host-saved').addEventListener('click', () => this.host('solo'));
@@ -141,13 +167,80 @@ export class Lobby {
    */
   private password(code: string): string {
     const typed = $<HTMLInputElement>('coop-password').value;
-    const stored = `foundry-front-pass-${code}`;
     try {
-      if (typed) localStorage.setItem(stored, typed);
-      return typed || (localStorage.getItem(stored) ?? '');
+      if (typed) localStorage.setItem(passKey(code), typed);
+      // A room made on the server without a password of its own has the server's (D-164).
+      const main = this.actions.server.code;
+      const fallback = code !== main && this.rooms.some((r) => r.code === code) ? localStorage.getItem(passKey(main)) : null;
+      return typed || (localStorage.getItem(passKey(code)) ?? fallback ?? '');
     } catch {
       return typed;
     }
+  }
+
+  /**
+   * Asks the server's desk for a new room (D-164), then joins it. The code is drawn here, with the server's
+   * prefix, so its password can be sent hashed with it; a code that's taken is drawn again.
+   */
+  private async make(): Promise<void> {
+    if (this.making || !this.desk || this.coop.phase !== 'idle') return;
+    const name = roomName($<HTMLInputElement>('coop-make-name').value);
+    if (!name) return this.status('Give the room a name.');
+    const own = $<HTMLInputElement>('coop-make-pass').value;
+    const main = this.actions.server.code;
+    // The desk has the server's password, like its main room.
+    const serverPass = this.password(main);
+    const desk = this.desk;
+    this.making = true;
+    this.setMaking(true);
+    this.status('Making the room…');
+    try {
+      const deskPass = await passHash(desk, serverPass);
+      for (let i = 0; i < MAKE_TRIES; i++) {
+        const used = new Set([main, desk, ...this.rooms.map((r) => r.code)]);
+        const code = drawCode(serverPrefix(main), used);
+        const reply = await this.actions.server.ask(desk, { t: 'new', code, name, pass: own ? await passHash(code, own) : '' }, deskPass);
+        if (reply && 'refused' in reply) {
+          if (reply.refused === 'password') {
+            $('coop-pass-row').hidden = false;
+            $<HTMLInputElement>('coop-password').focus();
+            return this.status("Making a room needs the server's password. Type it below, then try again.");
+          }
+          return this.status(refusalText(reply.refused, undefined, this.actions.version));
+        }
+        if (!reply) return this.status("The server didn't answer. Try again in a minute.");
+        if (reply.t === 'made') {
+          if (own) {
+            try {
+              localStorage.setItem(passKey(code), own);
+            } catch {
+              // Typed again when joining next time.
+            }
+          }
+          this.rooms = [...this.rooms, { code, name }];
+          $<HTMLInputElement>('coop-make-name').value = '';
+          $<HTMLInputElement>('coop-make-pass').value = '';
+          this.coop.joinRoom(code, own || serverPass);
+          return this.status(`Made ${name}. Joining…`);
+        }
+        if (reply.reason === 'taken') continue;
+        return this.status(
+          reply.reason === 'full'
+            ? 'The server has as many rooms as it allows. Join one of them, or ask its owner to make space.'
+            : reply.reason === 'busy'
+              ? "The server couldn't open the room in time. Try again in a minute."
+              : "The server couldn't make that room.",
+        );
+      }
+      this.status("The server couldn't find a free code. Try again.");
+    } finally {
+      this.making = false;
+      this.setMaking(false);
+    }
+  }
+
+  private setMaking(on: boolean): void {
+    $('coop-make').querySelector('button')!.disabled = on;
   }
 
   /** The room ended before the game began, or while it ran: say why. A room with a password asks for it. */
@@ -166,7 +259,7 @@ export class Lobby {
     const inRoom = c.phase === 'lobby' || c.phase === 'starting';
     $('coop-choose').hidden = inRoom;
     $('coop-room').hidden = !inRoom;
-    const server = c.code === this.actions.server.code;
+    const server = c.code === this.actions.server.code || this.rooms.some((r) => r.code === c.code);
     if (c.phase === 'connecting') this.status(c.role === 'host' ? 'Opening a room…' : server ? 'Joining the server…' : 'Joining…');
     if (!inRoom) return;
     $('coop-room-code').textContent = c.code;
@@ -201,8 +294,49 @@ export class Lobby {
     }
     if (this.coop.phase !== 'idle') return;
     const ask = ++this.asked;
-    const status = await this.actions.server.status();
-    if (ask === this.asked) this.showServer(status);
+    const status = await this.actions.server.status(this.actions.server.code);
+    if (ask !== this.asked) return;
+    this.showServer(status);
+    // The rooms players made, listed by the main room (D-164), each with its own status.
+    // Shown while the server is up on this version, even when its main room is full.
+    const up = status?.open && status.version === this.actions.version ? status : null;
+    this.rooms = up?.info?.rooms ?? [];
+    this.desk = up?.info?.desk ?? null;
+    const statuses = await Promise.all(this.rooms.map((r) => this.actions.server.status(r.code)));
+    if (ask === this.asked) this.showRooms(statuses);
+  }
+
+  /** The made rooms' rows, and the form to make one when the server has a desk. */
+  private showRooms(statuses: (RoomStatus | null)[]): void {
+    $('coop-rooms').hidden = !this.desk && !this.rooms.length;
+    $('coop-make-box').hidden = !this.desk;
+    $('coop-room-list').replaceChildren(
+      ...this.rooms.map((room, i) => {
+        // Built from elements, not HTML: the names come from players, through the relay.
+        const v = serverView(statuses[i], this.actions.version);
+        const li = document.createElement('li');
+        li.dataset.state = v.state;
+        const text = document.createElement('div');
+        text.className = 'coop-room-text';
+        const head = document.createElement('div');
+        head.className = 'coop-room-head';
+        const name = document.createElement('b');
+        name.textContent = room.name;
+        const state = document.createElement('span');
+        state.className = 'coop-state';
+        state.textContent = v.label;
+        head.append(name, state);
+        const facts = document.createElement('small');
+        facts.textContent = v.facts ? `${v.facts.game} · ${v.facts.players} players` : (v.note ?? '');
+        text.append(head, facts);
+        const join = document.createElement('button');
+        join.dataset.code = room.code;
+        join.textContent = 'Join';
+        join.disabled = !v.canJoin;
+        li.append(text, join);
+        return li;
+      }),
+    );
   }
 
   private showServer(status: RoomStatus | null | undefined): void {
@@ -228,5 +362,20 @@ export class Lobby {
 
   private status(text: string): void {
     $('coop-status').textContent = text;
+  }
+}
+
+/** Where a room's password is kept in this browser (D-140). */
+function passKey(code: string): string {
+  return `foundry-front-pass-${code}`;
+}
+
+/** A new room code starting with `prefix` (the server's, D-164) that isn't one of `used`. */
+export function drawCode(prefix: string, used: Set<string>): string {
+  for (;;) {
+    const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
+    let code = prefix;
+    for (let i = prefix.length; i < CODE_LENGTH; i++) code += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+    if (!used.has(code)) return code;
   }
 }

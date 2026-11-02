@@ -801,6 +801,12 @@ one research tree, one supply ship.
   takes one place), its game's day and season, and its version. **Join the server** works with no code,
   and only when joining can work; otherwise the card says why. It checks again every 10 seconds.
   A server can have a password (D-140): joining asks for it once, and the browser keeps it.
+- **Rooms on the server (D-164):** below Join the server, **More rooms on the server** lists the rooms
+  players made on it, each with its light, day and season, players, and Join. **Make a room on the
+  server** takes a name (up to 24 characters) and an optional password, makes a new Standard world on the
+  server and joins it. Making one needs the server's password, if it has one; a room made without a
+  password of its own has the server's. The server holds 4 made rooms by default; one nobody plays in for
+  30 days is archived by the server.
 - **Host or join:** below the server, **Host on this device** opens a room with a new game (Standard),
   their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
   share. The others type the code and press Join. Everyone must be on the same version; a mismatch is
@@ -813,7 +819,7 @@ one research tree, one supply ship.
   is back below the hub at once (it doesn't walk home through bug country), and what it carried goes into
   the hub's stock. Someone joining later in that slot takes it over.
 - **Dedicated server (D-084):** the game can also be hosted by a server instead of a player
-  ([server/README.md](../server/README.md)). Its room is always open with the same code, and the game
+  ([server/README.md](../server/README.md)). Its rooms are always open with the same codes, and each game
   starts at once, so everyone joins it under way. It is paused while nobody is in. The server takes slot 1
   but isn't a player: it has no engineer in the game (#184), so the first to join is player 2. If the server
   restarts, players see "The host is back" and carry on.

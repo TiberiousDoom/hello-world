@@ -110,7 +110,7 @@
               <h3 id="coop-server-name">Dedicated server</h3>
               <span id="coop-server-state" class="coop-state" role="status">Checking…</span>
             </div>
-            <p class="muted small">Always on, with one shared factory. Join any time; it keeps going after you leave.</p>
+            <p class="muted small">Always on. Join any time; it keeps going after you leave.</p>
             <div id="coop-server-facts" class="coop-facts" hidden>
               <span><small>Players</small><b id="coop-server-players"></b></span>
               <span><small>Game</small><b id="coop-server-game"></b></span>
@@ -118,6 +118,19 @@
             </div>
             <p id="coop-server-note" class="small coop-note" hidden></p>
             <button id="coop-server-join" class="primary"><i data-icon="play"></i>Join the server</button>
+            <div id="coop-rooms" hidden>
+              <h4>More rooms on the server</h4>
+              <ul id="coop-room-list" class="coop-room-list"></ul>
+              <details id="coop-make-box" class="coop-make-box">
+                <summary>Make a room on the server</summary>
+                <form id="coop-make" class="coop-make">
+                  <input id="coop-make-name" maxlength="24" placeholder="Room name" aria-label="Room name" autocomplete="off" />
+                  <input id="coop-make-pass" type="password" maxlength="64" placeholder="Password (optional)" aria-label="Room password (optional)" autocomplete="new-password" />
+                  <button type="submit" class="primary">Make the room</button>
+                </form>
+                <p class="muted small">A new world of its own, always on like the server's. A room nobody plays in for a month is put away.</p>
+              </details>
+            </div>
           </section>
           <h3>Host on this device</h3>
           <p class="muted small">Your browser runs the game. Share the room code with friends; the game ends when you leave.</p>

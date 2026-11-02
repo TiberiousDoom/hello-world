@@ -109,6 +109,70 @@ export interface RoomInfo {
   name?: string;
   day?: number;
   season?: string;
+  /** The dedicated server's main room only (D-164): the rooms players made on it, and its desk's code. */
+  rooms?: ServerRoom[];
+  desk?: string;
+}
+
+/** A room players made on the dedicated server (D-164), as its main room lists it. */
+export interface ServerRoom {
+  code: string;
+  name: string;
+}
+
+/** Rooms a server lists at most (the relay keeps a host's info in 2 KB), and a room name's length. */
+export const MAX_SERVER_ROOMS = 12;
+export const ROOM_NAME_LENGTH = 24;
+/**
+ * A dedicated server's rooms all start with its main room's first letters (D-164), so one entry in the
+ * relay's RESERVED_ROOMS ("764D*:hash") keeps every room it makes for it, even while it's down.
+ */
+export const SERVER_PREFIX_LENGTH = 4;
+
+/**
+ * What a player asks the dedicated server's desk (D-164): a new room. The player draws the code (with the
+ * server's prefix) so that it can send the room's password already hashed with it, as it does to join:
+ * the relay never sees a password. `pass` is empty for the server's own password.
+ */
+export interface DeskAsk {
+  t: 'new';
+  code: string;
+  name: string;
+  pass: string;
+}
+
+/** The desk's answer: the room is open, or why not ('taken': draw another code and ask again). */
+export type DeskReply = { t: 'made'; code: string } | { t: 'no'; reason: 'full' | 'taken' | 'bad' | 'busy' };
+
+/** A room name as players type it: one line, trimmed, short. Empty if there's nothing left. */
+export function roomName(raw: string): string {
+  // Control characters become spaces, then runs of spaces one.
+  const line = [...raw].map((c) => (c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127 ? ' ' : c)).join('');
+  return [...line.replace(/\s+/g, ' ').trim()].slice(0, ROOM_NAME_LENGTH).join('').trim();
+}
+
+/** A desk request, if it's well formed; null otherwise. */
+export function cleanAsk(raw: string): DeskAsk | null {
+  let a: unknown;
+  try {
+    a = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!a || typeof a !== 'object') return null;
+  const o = a as Record<string, unknown>;
+  if (o.t !== 'new' || typeof o.code !== 'string' || !validCode(o.code) || typeof o.name !== 'string' || typeof o.pass !== 'string') return null;
+  const name = roomName(o.name);
+  if (!name || !/^[0-9a-f]{0,64}$/.test(o.pass)) return null;
+  return { t: 'new', code: o.code, name, pass: o.pass };
+}
+
+/** The desk's answer, if it's well formed. */
+export function validReply(r: unknown): r is DeskReply {
+  if (!r || typeof r !== 'object') return false;
+  const o = r as Record<string, unknown>;
+  if (o.t === 'made') return typeof o.code === 'string' && validCode(o.code);
+  return o.t === 'no' && ['full', 'taken', 'bad', 'busy'].includes(o.reason as string);
 }
 
 /** A room as the relay reports it at /rooms/<code>/status (D-086), for the Play together screen. */
@@ -163,12 +227,22 @@ export async function passHash(code: string, password: string): Promise<string> 
 /**
  * Reserved rooms (D-140), as the relay's RESERVED_ROOMS secret holds them: "CODE:sha256-of-key", comma
  * separated. Only a host whose key hashes to that may open the code, so nobody else can take the
- * dedicated server's room while it's down. Returns the hash for `code`, if it's reserved.
+ * dedicated server's room while it's down. An entry ending in * ("764D*:hash") reserves every code that
+ * starts with what comes before it: the rooms players make on the server (D-164). An exact entry comes
+ * first. Returns the hash for `code`, if it's reserved.
  */
 export function reservedHash(reserved: string | undefined, code: string): string | undefined {
+  let prefixed: string | undefined;
   for (const entry of (reserved ?? '').split(',')) {
     const [c, hash] = entry.trim().split(':');
-    if (c === code && hash) return hash.toLowerCase();
+    if (!c || !hash) continue;
+    if (c === code) return hash.toLowerCase();
+    if (c.endsWith('*') && c.length > 1 && code.startsWith(c.slice(0, -1))) prefixed ??= hash.toLowerCase();
   }
-  return undefined;
+  return prefixed;
+}
+
+/** The start of every code a dedicated server makes rooms with (D-164): its main room's first letters. */
+export function serverPrefix(code: string): string {
+  return code.slice(0, SERVER_PREFIX_LENGTH);
 }

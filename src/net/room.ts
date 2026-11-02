@@ -2,7 +2,25 @@
 // Object in relay/src/index.ts keeps each connection's details on the socket itself, so a room that sleeps
 // between messages wakes up knowing who's in it.
 
-import { CLOSE_LEAVING, GUEST_RATE, HEARTBEAT, HostSend, MAX_GUEST_MESSAGE, MAX_HOST_MESSAGE, MAX_PLAYERS, RefuseReason, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus } from './protocol';
+import {
+  CLOSE_LEAVING,
+  GUEST_RATE,
+  HEARTBEAT,
+  HostSend,
+  MAX_GUEST_MESSAGE,
+  MAX_HOST_MESSAGE,
+  MAX_PLAYERS,
+  RefuseReason,
+  RelayMessage,
+  Role,
+  RoomHost,
+  RoomInfo,
+  RoomStatus,
+  MAX_SERVER_ROOMS,
+  ServerRoom,
+  roomName,
+  validCode,
+} from './protocol';
 
 /** A connection in a room: who it is, and how to reach it. */
 export interface Peer {
@@ -139,6 +157,17 @@ export function cleanInfo(raw: unknown): RoomInfo | null {
   if (typeof r.name === 'string' && r.name.trim()) info.name = r.name.trim().slice(0, 40);
   if (Number.isInteger(r.day) && (r.day as number) >= 1 && (r.day as number) < 1e7) info.day = r.day as number;
   if (typeof r.season === 'string' && r.season) info.season = r.season.slice(0, 12);
+  // A dedicated server's room list and desk (D-164).
+  if (typeof r.desk === 'string' && validCode(r.desk)) info.desk = r.desk;
+  if (Array.isArray(r.rooms)) {
+    const rooms: ServerRoom[] = [];
+    for (const room of r.rooms.slice(0, MAX_SERVER_ROOMS)) {
+      const o = room as Record<string, unknown> | null;
+      const name = typeof o?.name === 'string' ? roomName(o.name) : '';
+      if (typeof o?.code === 'string' && validCode(o.code) && name) rooms.push({ code: o.code, name });
+    }
+    info.rooms = rooms;
+  }
   return info;
 }
 
