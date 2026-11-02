@@ -3,6 +3,7 @@
 
 import {
   BELT_SPACING,
+  BELT_LANE,
   FOREST,
   NURSERY,
   BELT_SPEED,
@@ -2253,18 +2254,23 @@ export class World {
    * chopped the same way (D-093): the last tap fells it for LUMBER.logsPerTree logs, leaving a stump.
    */
   mineByHand(x: number, y: number, player = 0): HandTap | MineError {
+    const p = playerOf(this, player);
+    // Anything but a tap ends the work it keeps on with after one tap (#209).
+    const stop = (e: MineError): MineError => {
+      if (p) p.work = null;
+      return e;
+    };
     const tree = this.treeAt(x, y) === TREE;
     const ore = tree ? 'log' : this.resourceAt(x, y);
-    if (!ore) return 'no-ore';
-    if (this.buildingAt(x, y)) return 'occupied';
-    const p = playerOf(this, player);
-    if (!p || isDown(p)) return 'down';
+    if (!ore) return stop('no-ore');
+    if (this.buildingAt(x, y)) return stop('occupied');
+    if (!p || isDown(p)) return stop('down');
     if (!inReach(p.x, p.y, x, y)) {
       goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
       return 'far';
     }
     const yields = tree ? LUMBER.logsPerTree : 1;
-    if (roomFor(p, ore) < yields) return 'full';
+    if (roomFor(p, ore) < yields) return stop('full');
     const tile = this.idx(x, y);
     const t = this.state.time;
     const m = p.mining && p.mining.tile === tile && t - p.mining.at <= HAND_MINING.resetAfter ? p.mining : { tile, taps: 0, at: t };
@@ -2279,6 +2285,7 @@ export class World {
       else this.takeOre(tile);
     }
     p.mining = m;
+    p.work = { x, y, at: t }; // and keeps on tapping (#209)
     const tap: HandTap = { x, y, ore, item, age: 0 };
     this.taps.push(tap);
     return tap;
@@ -2761,14 +2768,36 @@ export class World {
    */
   private laneFrom(target: Building, fromX: number, fromY: number, lane?: Lane): Lane {
     if (lane == null || target.type === 'roller') return RIGHT; // rollers have one lane (D-106)
+    if (!this.sideFed(target, fromX, fromY)) return lane;
+    const left = ((target.dir + 3) % 4) as Dir;
+    return fromX === target.x + DX[left] && fromY === target.y + DY[left] ? LEFT : RIGHT;
+  }
+
+  /**
+   * Whether (fromX, fromY) feeds `target` from the side: not from behind, and not round a corner (a corner
+   * is a side that nothing else feeds, from behind or from the other side, so the line just turns).
+   */
+  private sideFed(target: Building, fromX: number, fromY: number): boolean {
     const d = target.dir;
-    if (fromX === target.x - DX[d] && fromY === target.y - DY[d]) return lane;
+    if (fromX === target.x - DX[d] && fromY === target.y - DY[d]) return false;
     const left = ((d + 3) % 4) as Dir;
     const fromLeft = fromX === target.x + DX[left] && fromY === target.y + DY[left];
-    // A corner: nothing feeds it from behind or from the other side, so the line just turns.
     const other = fromLeft ? (((d + 1) % 4) as Dir) : left;
-    if (!this.feedsInto(target.x - DX[d], target.y - DY[d], target) && !this.feedsInto(target.x + DX[other], target.y + DY[other], target)) return lane;
-    return fromLeft ? LEFT : RIGHT;
+    return this.feedsInto(target.x - DX[d], target.y - DY[d], target) || this.feedsInto(target.x + DX[other], target.y + DY[other], target);
+  }
+
+  /**
+   * Where along `target` an item fed in from the side lands (#204): level with where it was on the belt
+   * that fed it, half a lane ahead of or behind the middle, by that belt's lane. A roller's items run
+   * down its middle, so they land in the middle.
+   */
+  private sideEntry(target: Building, it: BeltItem, fromX: number, fromY: number): number {
+    const feeder = this.buildingAt(fromX, fromY);
+    if (!feeder || feeder.type === 'roller') return 0.5;
+    const f = DX.findIndex((dx, k) => dx === target.x - fromX && DY[k] === target.y - fromY);
+    // The feeder's left lane is on its left, looking the way it runs (#61): ahead along `target` or behind.
+    const leftAhead = (f + 3) % 4 === target.dir;
+    return 0.5 + ((it.lane === LEFT) === leftAhead ? BELT_LANE : -BELT_LANE);
   }
 
   /** Whether the building on tile (x, y) sends items onto `target`'s tile. */
@@ -2955,7 +2984,10 @@ export class World {
     if (!this.roomOn(target.belt, lane, BELT_SPACING)) return false;
     let last: BeltItem | undefined;
     for (let i = target.belt.length - 1; i >= 0 && !last; i--) if (target.belt[i].lane === lane) last = target.belt[i];
-    it.pos = Math.min(over, last ? last.pos - BELT_SPACING : 1);
+    // From behind or round a corner it carries on from the tile's start; from the side it lands level
+    // with where it was (#204), never ahead of what's already on its lane.
+    const at = this.sideFed(target, fromX, fromY) ? this.sideEntry(target, it, fromX, fromY) : over;
+    it.pos = Math.min(at, last ? last.pos - BELT_SPACING : 1);
     it.lane = lane;
     target.belt.push(it);
     this.movedThisTick.add(it);
@@ -3128,7 +3160,8 @@ export class World {
     const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
     const fuel = burnsFuel(b.type);
     if (recipe && !(fuel && b.ammo <= 0)) {
-      if (b.progress < 0 && b.outputs.length + recipe.count <= OUTPUT_BUFFER + 1) {
+      // Room for the whole batch; one bigger than the buffer (5 planks a log, #188) waits for it to empty.
+      if (b.progress < 0 && b.outputs.length + recipe.count <= Math.max(OUTPUT_BUFFER + 1, recipe.count)) {
         const ready = Object.entries(recipe.inputs).every(([k, n]) => (b.inputs[k as ItemId] ?? 0) >= n!);
         if (ready) {
           for (const [k, n] of Object.entries(recipe.inputs)) b.inputs[k as ItemId]! -= n!;
@@ -3139,7 +3172,12 @@ export class World {
         b.progress += dt * this.speedUp(b);
         if (fuel) b.ammo = Math.max(0, b.ammo - dt);
         if (b.progress >= recipe.time) {
-          for (let i = 0; i < recipe.count; i++) b.outputs.push(recipe.output);
+          // A burner making its own fuel (a furnace making charcoal) keeps itself going (#190): when its fuel
+          // store holds less than one piece's worth, one piece of what it made goes into the store instead.
+          const burn = fuel ? FUEL.burns[recipe.output] : undefined;
+          const own = burn && b.ammo < burn && b.ammo + burn <= FUEL.max ? 1 : 0;
+          if (own) b.ammo += burn!;
+          for (let i = own; i < recipe.count; i++) b.outputs.push(recipe.output);
           this.noteMade(b, recipe.count);
           b.progress = -1;
         }

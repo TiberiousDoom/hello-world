@@ -83,7 +83,7 @@ export const RECIPES: Recipe[] = [
   // Gears and wire moved from the workshop to the Machine Shop (D-113).
   { id: 'gear', machine: 'machine_shop', inputs: { iron_plate: 2 }, output: 'gear', count: 1, time: 2 },
   { id: 'wire', machine: 'machine_shop', inputs: { copper_ingot: 1 }, output: 'wire', count: 2, time: 1.5 },
-  { id: 'plank', machine: 'sawmill', inputs: { log: 1 }, output: 'plank', count: 2, time: 1.5 },
+  { id: 'plank', machine: 'sawmill', inputs: { log: 1 }, output: 'plank', count: 5, time: 1.5 },
   { id: 'stake', machine: 'sawmill', inputs: { plank: 1 }, output: 'stake', count: 3, time: 1.5 },
   { id: 'dowel', machine: 'sawmill', inputs: { plank: 1 }, output: 'dowel', count: 4, time: 1.5 },
   { id: 'charcoal', machine: 'furnace', inputs: { log: 2 }, output: 'charcoal', count: 1, time: 2.5, requires: 'charcoal' },
@@ -590,6 +590,8 @@ export const PONDS = { count: 16, minDist: 30, radius: [2.2, 4.2] as [number, nu
 export const isBelt = (t: BuildingType): boolean => t === 'belt' || t === 'express_belt' || t === 'roller';
 export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EXPRESS_BELT_SPEED : t === 'roller' ? ROLLER.speed : BELT_SPEED);
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
+/** How far each of a belt's two lanes runs from its middle, in tiles (#61); a side feed lands an item there (#204). */
+export const BELT_LANE = 0.21;
 export const OUTPUT_BUFFER = 3;
 
 export type EnemyType = 'crawler' | 'runner' | 'brute' | 'wasp' | 'beetle';
@@ -895,7 +897,8 @@ export const stageSize = (stage: number): number => (stage + 1) / 2;
  * left within their give-up distance.
  */
 export const RAIDS = {
-  firstNight: 2, // the first night with raids (day 2's)
+  firstNight: 6, // the first night with raids in Standard (day 6's, about 35 minutes in; #185)
+  hardcoreFirstNight: 2, // and in Hardcore
   chance: 0.5, // chance of a raid each night in Standard (Hardcore: every night)
   chancePerThreat: 0.1, // more likely with each threat level
   range: 40, // only nests whose centre is this close to one of your buildings raid

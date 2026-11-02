@@ -263,8 +263,8 @@ export const LESSONS: Lesson[] = [
         done: (c) => got(c, 'log') >= FIRST_LOGS,
         text: (c) =>
           byDevice(
-            `Everything starts with wood. Tap a tree: your engineer walks over, and every ${HAND_MINING.taps} taps fell it for ${LUMBER.logsPerTree} logs, which they carry. Hold your finger down to keep chopping. `,
-            `Everything starts with wood. Click a tree: your engineer walks over, and every ${HAND_MINING.taps} clicks fell it for ${LUMBER.logsPerTree} logs, which they carry. Hold the mouse button down to keep chopping. `,
+            `Everything starts with wood. Tap a tree: your engineer walks over, and every ${HAND_MINING.taps} taps fell it for ${LUMBER.logsPerTree} logs, which they carry. One tap and they keep chopping. `,
+            `Everything starts with wood. Click a tree: your engineer walks over, and every ${HAND_MINING.taps} clicks fell it for ${LUMBER.logsPerTree} logs, which they carry. One click and they keep chopping. `,
           ) + `Forestry and a Lumber Camp need ${FIRST_LOGS} logs: ${Math.min(FIRST_LOGS, got(c, 'log'))} of ${FIRST_LOGS}.`,
       },
       {
@@ -300,7 +300,7 @@ export const LESSONS: Lesson[] = [
         done: (c) => built(c, 'sawmill'),
         text: (c) =>
           c.ui.tool === 'sawmill'
-            ? "Place the sawmill touching the camp's arrow, so the logs go straight in. Each log becomes two planks." + confirmHint(c)
+            ? "Place the sawmill touching the camp's arrow, so the logs go straight in. Each log becomes five planks." + confirmHint(c)
             : (c.world.state.inventory.log ?? 0) >= SAWMILL_LOGS
               ? 'Logs need sawing into planks. Pick the Sawmill.'
               : `A Sawmill costs ${SAWMILL_LOGS} logs: ${c.world.state.inventory.log ?? 0} in stock. Select the camp and ${byDevice('tap', 'click')} Collect to fetch its logs (or chop some more), then bring them to the hub.`,

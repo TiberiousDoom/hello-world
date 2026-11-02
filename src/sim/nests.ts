@@ -526,7 +526,7 @@ export function onBuilt(w: World, b: Building): void {
 }
 
 /**
- * Night raids (D-065). At nightfall, from the second night on, a raid comes with RAIDS.chance (more with
+ * Night raids (D-065). At nightfall, from RAIDS.firstNight on (Hardcore: hardcoreFirstNight, #185), a raid comes with RAIDS.chance (more with
  * threat; every night in Hardcore): one calm nest near your buildings, picked at random, sends a party of
  * its grown bugs. The rest of the nest stays calm. Raiders go for the nearest buildings with no leash, and
  * biting doesn't anger their nest; at morning they go home.
@@ -534,7 +534,7 @@ export function onBuilt(w: World, b: Building): void {
 export function startRaids(w: World, before: number, now: number): void {
   const was = clockAt(before);
   const c = clockAt(now);
-  if (was.night || !c.night || c.day < RAIDS.firstNight) return;
+  if (was.night || !c.night || c.day < (w.state.mode === 'hardcore' ? RAIDS.hardcoreFirstNight : RAIDS.firstNight)) return;
   const s = w.state;
   const threat = threatAt(now, s.mode);
   const chance = s.mode === 'hardcore' ? 1 : RAIDS.chance + RAIDS.chancePerThreat * threat;

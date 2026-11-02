@@ -3,6 +3,24 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.8 · 2026-11-02 · One tap to mine, a grouped toolbar, and fixes
+### New
+- **One tap keeps the engineer at it:** tap a tree or ore once and the engineer keeps chopping or mining by itself until the tree falls, the ore runs out, the inventory is full or you send it elsewhere. No more tapping again and again or holding down (#209).
+- **The toolbar is grouped** into Logistics, Power, Production and Defence once you have more than 12 buildings, with buttons to jump to each group. On a phone one button steps through them (#195).
+- **A sawmill makes 5 planks from a log**, not 2 (#188, #207).
+- **A furnace making charcoal keeps itself fuelled,** burning about one piece in ten of what it makes (#190).
+- **Bugs wait longer before they raid:** the first raid comes on night 6, about 35 minutes in (night 2 in Hardcore, as before) (#185).
+- **Messages no longer pile up in a fight:** one that comes again counts up (×2, ×3), and at most 4 show at once (#197).
+- **Birdsong:** trills, two-note whistles, a sparrow's chips and a robin's warble, instead of plain beeps (#159).
+
+### Fixed
+- **Items fed into the side of a belt land where they were,** a little ahead of or behind the tile's middle, instead of jumping back to its start (#204).
+- **An engineer something is built on top of steps out** to the nearest free tile. One caught in the middle of a shipyard could not move (#206).
+- **Birds stay on their path when you pan** instead of following the screen (#205).
+- **Merged nests are drawn without tunnels** to their other cells (#196).
+- **Wildlife is rarer and shyer:** birds, rabbits, deer and the eyes in the forest at night turn up a tenth as often, and rabbits, deer and eyes keep out of sight when you zoom right in (#203, #208).
+- **No more count floating up off the hub** as deliveries arrive (#203).
+
 ## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens, fireworks and life in the clearing
 ### New
 - **Building and demolishing show:** a timber frame and a rising line of light over what goes up, and dust and broken bits where something comes down.
