@@ -4,6 +4,7 @@
 
 import { frame, frameCount, sprite, spritesLoaded } from '../art';
 import {
+  BELT_LANE,
   BUILDINGS,
   BuildingType,
   DX,
@@ -155,7 +156,7 @@ const SHIP_SIZE = 5; // the shipyard's footprint (3 before D-109)
 // The forest (D-028).
 const FOREST_FLOOR = '#1d3324';
 /** Belt lanes (#61): how far each lane is from the middle, and the size of items on them. */
-const LANE_OFFSET = 0.21;
+const LANE_OFFSET = BELT_LANE;
 const ITEM_ON_BELT = 0.34;
 /** Pixels per tile below which belt arrows stop sliding (#66). */
 const STILL_BELTS_BELOW = 20;
@@ -884,32 +885,6 @@ export class Renderer {
     return true;
   }
 
-  /** A merged nest's tunnels (D-132, D-152): a raised ridge of soil from its mound to each other cell it owns, ending in a burrow. */
-  private drawTunnels(n: Nest, cx: number, cy: number): void {
-    const ctx = this.ctx;
-    ctx.lineCap = 'round';
-    for (const [x, y] of n.cells ?? []) {
-      const [tx, ty] = [x + NESTS.cell / 2, y + NESTS.cell / 2];
-      for (const [color, width, off] of [
-        ['#24180e', 0.62, 0],
-        ['#5e4630', 0.46, 0],
-        ['#a8865c', 0.14, -0.05],
-      ] as const) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.beginPath();
-        ctx.moveTo(cx + off, cy + off);
-        ctx.lineTo(tx + off, ty + off);
-        ctx.stroke();
-      }
-      ctx.fillStyle = '#5e4630';
-      dot(ctx, tx, ty, 0.42);
-      ctx.fillStyle = '#0a0604';
-      dot(ctx, tx, ty, 0.24);
-    }
-    ctx.lineCap = 'butt';
-  }
-
   /** A nest's mound, and its territory's outline while placing or while it's angry. */
   private drawNestMarks(world: World, n: Nest, now: number, z: number, placing: boolean): void {
     const ctx = this.ctx;
@@ -945,7 +920,6 @@ export class Renderer {
     const angry = isAngry(world, n) && world.state.enemies.some((e) => e.nest === n.id);
     const standing = !n.destroyed;
     const [cx, cy] = nestCentre(n);
-    if (standing && n.cells) this.drawTunnels(n, cx, cy);
     const key = !standing ? 'nests/destroyed' : `nests/${n.kind}_${n.queen ? 'queen' : Math.min(n.stage, 3)}`;
     const size = nestArtSize(n);
     // Hardcore nests (D-133) are darker and redder.
@@ -1183,6 +1157,9 @@ export class Renderer {
    * Life in the clearing by day (D-160): cloud shadows drifting over everything, birds crossing (scattering
    * from bugs), a rabbit or a deer at the forest's edge, and butterflies in summer.
    */
+  /** The view each bird flight crosses, as it was when the flight began (#205), by flight and flock. */
+  private birdViews = new Map<number, [number, number, number, number]>();
+
   private drawLife(world: World, x0: number, y0: number, x1: number, y1: number, now: number, z: number): void {
     if (this.reducedMotion || darkness(world.state.time) > 0.3) return;
     const ctx = this.ctx;
@@ -1204,12 +1181,18 @@ export class Renderer {
         ctx.ellipse(px, py, r, r * 0.6, 0, 0, Math.PI * 2);
         ctx.fill();
       }
-    // Birds crossing in a little flock; faster, and higher, where bugs are about.
+    // Birds crossing in a little flock; faster, and higher, where bugs are about. Each flight crosses the
+    // view as it was when the flight began, fixed on the map, so panning doesn't drag the birds along (#205).
+    const flight = Math.floor(t / 20);
+    for (const key of this.birdViews.keys()) if (Math.floor(key / 2) !== flight) this.birdViews.delete(key);
     for (let k = 0; k < 2; k++) {
-      const hv = hash(Math.floor(t / 20) + k * 97, 6200);
+      const hv = hash(flight + k * 97, 6200);
       const u = (t % 20) / 20;
-      const bx = x0 + ((hv % 1000) / 1000) * (x1 - x0) + (u - 0.5) * (x1 - x0) * 1.2;
-      const by = y1 - u * (y1 - y0) * 1.1;
+      let v = this.birdViews.get(flight * 2 + k);
+      if (!v) this.birdViews.set(flight * 2 + k, (v = [x0, y0, x1, y1]));
+      const [vx0, vy0, vx1, vy1] = v;
+      const bx = vx0 + ((hv % 1000) / 1000) * (vx1 - vx0) + (u - 0.5) * (vx1 - vx0) * 1.2;
+      const by = vy1 - u * (vy1 - vy0) * 1.1;
       const near = s.enemies.some((e) => Math.abs(e.x - bx) < 5 && Math.abs(e.y - by) < 5);
       for (let n = 0; n < 4; n++) {
         const img = frame('units/bird', now / (near ? 50 : 90) + n * 3);

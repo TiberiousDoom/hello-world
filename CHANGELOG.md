@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.88.8 · 2026-11-02 · Fixes from playtesting
+### Fixed
+- **Items fed into the side of a belt land where they were,** a little ahead of or behind the tile's middle, instead of jumping back to its start (#204).
+- **An engineer something is built on top of steps out** to the nearest free tile. One caught in the middle of a shipyard could not move (#206).
+- **Birds stay on their path when you pan** instead of following the screen (#205).
+- **Merged nests are drawn without tunnels** to their other cells (#196).
+
 ## 0.88.7 · 2026-11-01 · Lock-ons, raid sirens, fireworks and life in the clearing
 ### New
 - **Building and demolishing show:** a timber frame and a rising line of light over what goes up, and dust and broken bits where something comes down.

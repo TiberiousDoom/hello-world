@@ -590,6 +590,8 @@ export const PONDS = { count: 16, minDist: 30, radius: [2.2, 4.2] as [number, nu
 export const isBelt = (t: BuildingType): boolean => t === 'belt' || t === 'express_belt' || t === 'roller';
 export const beltSpeed = (t: BuildingType): number => (t === 'express_belt' ? EXPRESS_BELT_SPEED : t === 'roller' ? ROLLER.speed : BELT_SPEED);
 export const BELT_SPACING = 0.34; // minimum gap between items on a belt
+/** How far each of a belt's two lanes runs from its middle, in tiles (#61); a side feed lands an item there (#204). */
+export const BELT_LANE = 0.21;
 export const OUTPUT_BUFFER = 3;
 
 export type EnemyType = 'crawler' | 'runner' | 'brute' | 'wasp' | 'beetle';

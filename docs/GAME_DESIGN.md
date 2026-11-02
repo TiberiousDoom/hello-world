@@ -197,8 +197,9 @@ with, so emptying one and building it again isn't a free refill.
   of a belt carries straight on onto the next one, at an even speed (#49).
 - **Lanes:** buildings (extractors, machines, lumber camps, hub ports) put items onto a belt's **right
   lane** (right as you look the way it runs). A belt feeding into another from the side puts its items
-  onto the **near lane**; coming from behind, round a corner, through an underground belt or a splitter,
-  items keep their lane. Machines and the hub take from both lanes.
+  onto the **near lane**, level with where each item was on the feeding belt: a little ahead of the
+  tile's middle or a little behind it, by the lane it came on (#204). Coming from behind, round a corner,
+  through an underground belt or a splitter, items keep their lane. Machines and the hub take from both lanes.
 - **Electricity (D-119, D-121):** a **Boiler** burns logs or charcoal (a 48 s store, fed like a furnace's) and
   needs water: it goes touching a **well** or a **water wheel**. A **Steam Turbine** touching a working boiler
   makes **60** electricity; a boiler touching two turbines shares its steam between them. **Power poles** carry
@@ -428,7 +429,8 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 - **Walking:** with no tool in hand, tap or click empty ground and the engineer walks there (4 tiles a
   second), around walls, machines and nest mounds; belts can be walked over. A ring marks where it's
   going. On a keyboard, **WASD or the arrow keys** walk it directly, and the camera follows. If
-  something is built across its way, it stops.
+  something is built across its way, it stops. If something is built on top of it, it steps out to the
+  nearest free tile (#206).
 - **Reach:** it mines and hands things over within **1.5 tiles**. Tapping ore, Collect, Pick up and
   Drop off send it over first if it's too far, and it does the job on arriving.
 - **Inventory (#87, D-090):** **12 slots**, each holding up to **10** of one item (120 in all). An item
@@ -590,7 +592,7 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   New maps start every nest part way through its first stage, so they don't all grow at once.
 - **Merging (D-132).** Every **10 minutes**, two calm nests of the same kind (not queen nests), both medium or
   large, whose territories touch, may merge into one nest. The one with the bigger brood takes the
-  other's cells, bugs, brood and mound health; its mound is drawn bigger, with a tunnel to each other cell. A merged nest owns up to
+  other's cells, bugs, brood and mound health; its mound is drawn bigger. A merged nest owns up to
   4 cells, and its bugs stroll over all of them. Building in any of its cells provokes it. Destroying it
   drops chitin for every cell it owns. A message says when nests merge.
 - **Hardcore nests (D-133).** In Hardcore, the threat level starts at **2**, and nests breed, spread and

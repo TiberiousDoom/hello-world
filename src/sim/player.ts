@@ -239,6 +239,7 @@ export function tickPlayers(w: World, dt: number, act: (p: Player, a: PlayerActi
       delete p.downUntil;
       delete p.hurtAt;
     }
+    if (blocked(w, Math.floor(p.x), Math.floor(p.y))) unstick(w, p);
     if (p.hp < PLAYER.hp && (p.hurtAt == null || w.state.time - p.hurtAt >= PLAYER.regenAfter)) {
       p.hp = Math.min(PLAYER.hp, p.hp + PLAYER.regen * dt);
     }
@@ -280,6 +281,33 @@ export function tickPlayers(w: World, dt: number, act: (p: Player, a: PlayerActi
       handOver(p, (item) => w.insert(hub, item, hub.x - 1, hub.y));
     }
   }
+}
+
+/** How far round an engineer to look for somewhere to stand, in tiles. */
+const UNSTICK_REACH = 12;
+
+/**
+ * An engineer stands where nobody can (#206): something big was built over them, like a shipyard, whose
+ * middle has no free tile next to it to walk to. They step out to the nearest free tile, and stop.
+ */
+function unstick(w: World, p: Player): void {
+  const [tx, ty] = [Math.floor(p.x), Math.floor(p.y)];
+  let best: [number, number] | null = null;
+  let bestD = Infinity;
+  for (let r = 1; r <= UNSTICK_REACH && !best; r++) {
+    for (let y = ty - r; y <= ty + r; y++) {
+      for (let x = tx - r; x <= tx + r; x++) {
+        if (Math.max(Math.abs(x - tx), Math.abs(y - ty)) !== r || blocked(w, x, y)) continue;
+        const d = hypot(x + 0.5 - p.x, y + 0.5 - p.y);
+        if (d < bestD) [best, bestD] = [[x, y], d];
+      }
+    }
+  }
+  if (!best) return;
+  p.x = best[0] + 0.5;
+  p.y = best[1] + 0.5;
+  p.path = [];
+  p.pending = null;
 }
 
 /** Keyboard walking moves freely, sliding along whatever is in the way. */

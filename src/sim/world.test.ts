@@ -11,6 +11,7 @@ import {
   STRIKE,
   TELEPORT,
   BELT_SPACING,
+  BELT_LANE,
   BELT_SPEED,
   BREACH,
   BUILDINGS,
@@ -1746,6 +1747,22 @@ describe('The player character (#40)', () => {
     expect(w.state.inventory.iron_ore).toBe(left);
   });
 
+  it('an engineer something big is built over steps out to the nearest free tile, and can walk again (#206)', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    const [x, y] = [w.hub!.x - 12, w.hub!.y + 2];
+    stand(w, x + 1, y + 1); // the middle of where a 3×3 assembler goes
+    w.state.inventory = { gear: 99, wire: 99 };
+    placed(w.place('assembler', x, y, 0));
+    w.tick();
+    const [tx, ty] = [Math.floor(p.x), Math.floor(p.y)];
+    expect(tx >= x && tx < x + 3 && ty >= y && ty < y + 3).toBe(false); // outside its footprint
+    expect(Math.max(Math.abs(tx - (x + 1)), Math.abs(ty - (y + 1)))).toBe(2); // just outside it
+    expect(w.moveTo(x - 4, y + 1)).toBe(true);
+    run(w, 4);
+    expect([Math.floor(p.x), Math.floor(p.y)]).toEqual([x - 4, y + 1]);
+  });
+
   it('standing off the middle of a tile in reach of an ore, but not quite in reach itself, steps closer and mines it (#169)', () => {
     const w = emptyWorld();
     const p = w.state.players[0];
@@ -1922,6 +1939,27 @@ describe('Two-lane belts and splitter filters (#61, #62)', () => {
     w.tick();
     expect(line[2].belt.find((it) => it.item === 'wire')?.lane).toBe(LEFT);
     expect(line[3].belt.find((it) => it.item === 'plank')?.lane).toBe(RIGHT);
+  });
+
+  it("an item fed in from the side lands level with where it was on the feeding belt, not at the tile's start (#204)", () => {
+    const w = emptyWorld();
+    const line = [20, 21, 22, 23, 24].map((x) => placed(w.place('belt', x, 20, 0))); // east
+    const a = placed(w.place('belt', 21, 19, 1)); // runs south into the line: its left lane is on the east side
+    const b = placed(w.place('belt', 23, 19, 1));
+    a.belt.push({ item: 'wire', pos: 1, lane: LEFT }); // the side nearer the line's front
+    b.belt.push({ item: 'plank', pos: 1, lane: RIGHT }); // the side nearer its back
+    w.tick();
+    expect(line[1].belt.find((it) => it.item === 'wire')?.pos).toBeCloseTo(0.5 + BELT_LANE);
+    expect(line[3].belt.find((it) => it.item === 'plank')?.pos).toBeCloseTo(0.5 - BELT_LANE);
+    // Never ahead of what's already on the lane it joins.
+    const c = placed(w.place('belt', 22, 21, 3)); // runs north into the line's right side
+    line[2].belt.push({ item: 'gear', pos: 0.5, lane: RIGHT });
+    c.belt.push({ item: 'stone', pos: 1, lane: RIGHT }); // its right lane is on the east side: ahead
+    w.tick();
+    const lane = line[2].belt.filter((it) => it.lane === RIGHT).map((it) => it.item);
+    expect(lane).toEqual(['gear', 'stone']);
+    const [gear, stone] = line[2].belt.filter((it) => it.lane === RIGHT);
+    expect(gear.pos - stone.pos).toBeGreaterThanOrEqual(BELT_SPACING - 1e-9);
   });
 
   it('a belt holds two lanes, each as full as a whole belt used to be', () => {

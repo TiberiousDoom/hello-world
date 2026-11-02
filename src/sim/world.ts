@@ -3,6 +3,7 @@
 
 import {
   BELT_SPACING,
+  BELT_LANE,
   FOREST,
   NURSERY,
   BELT_SPEED,
@@ -2761,14 +2762,36 @@ export class World {
    */
   private laneFrom(target: Building, fromX: number, fromY: number, lane?: Lane): Lane {
     if (lane == null || target.type === 'roller') return RIGHT; // rollers have one lane (D-106)
+    if (!this.sideFed(target, fromX, fromY)) return lane;
+    const left = ((target.dir + 3) % 4) as Dir;
+    return fromX === target.x + DX[left] && fromY === target.y + DY[left] ? LEFT : RIGHT;
+  }
+
+  /**
+   * Whether (fromX, fromY) feeds `target` from the side: not from behind, and not round a corner (a corner
+   * is a side that nothing else feeds, from behind or from the other side, so the line just turns).
+   */
+  private sideFed(target: Building, fromX: number, fromY: number): boolean {
     const d = target.dir;
-    if (fromX === target.x - DX[d] && fromY === target.y - DY[d]) return lane;
+    if (fromX === target.x - DX[d] && fromY === target.y - DY[d]) return false;
     const left = ((d + 3) % 4) as Dir;
     const fromLeft = fromX === target.x + DX[left] && fromY === target.y + DY[left];
-    // A corner: nothing feeds it from behind or from the other side, so the line just turns.
     const other = fromLeft ? (((d + 1) % 4) as Dir) : left;
-    if (!this.feedsInto(target.x - DX[d], target.y - DY[d], target) && !this.feedsInto(target.x + DX[other], target.y + DY[other], target)) return lane;
-    return fromLeft ? LEFT : RIGHT;
+    return this.feedsInto(target.x - DX[d], target.y - DY[d], target) || this.feedsInto(target.x + DX[other], target.y + DY[other], target);
+  }
+
+  /**
+   * Where along `target` an item fed in from the side lands (#204): level with where it was on the belt
+   * that fed it, half a lane ahead of or behind the middle, by that belt's lane. A roller's items run
+   * down its middle, so they land in the middle.
+   */
+  private sideEntry(target: Building, it: BeltItem, fromX: number, fromY: number): number {
+    const feeder = this.buildingAt(fromX, fromY);
+    if (!feeder || feeder.type === 'roller') return 0.5;
+    const f = DX.findIndex((dx, k) => dx === target.x - fromX && DY[k] === target.y - fromY);
+    // The feeder's left lane is on its left, looking the way it runs (#61): ahead along `target` or behind.
+    const leftAhead = (f + 3) % 4 === target.dir;
+    return 0.5 + ((it.lane === LEFT) === leftAhead ? BELT_LANE : -BELT_LANE);
   }
 
   /** Whether the building on tile (x, y) sends items onto `target`'s tile. */
@@ -2955,7 +2978,10 @@ export class World {
     if (!this.roomOn(target.belt, lane, BELT_SPACING)) return false;
     let last: BeltItem | undefined;
     for (let i = target.belt.length - 1; i >= 0 && !last; i--) if (target.belt[i].lane === lane) last = target.belt[i];
-    it.pos = Math.min(over, last ? last.pos - BELT_SPACING : 1);
+    // From behind or round a corner it carries on from the tile's start; from the side it lands level
+    // with where it was (#204), never ahead of what's already on its lane.
+    const at = this.sideFed(target, fromX, fromY) ? this.sideEntry(target, it, fromX, fromY) : over;
+    it.pos = Math.min(at, last ? last.pos - BELT_SPACING : 1);
     it.lane = lane;
     target.belt.push(it);
     this.movedThisTick.add(it);

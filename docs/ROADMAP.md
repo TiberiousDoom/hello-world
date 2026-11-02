@@ -71,7 +71,8 @@ quality and business work don't get left until the end.
 40. ✅ **Last review fixes** (0.87.3): co-op command limits, rejoin limits and stray engineers, relay status caching, nest edge cases, damaged belt refunds, Settings back to the pause menu, and one save load on the main menu.
 41. ✅ **Performance** (0.87.4): a performance test with a 1,000-building base under attack at night (tick and draw budgets), and faster repair stations, night, zooming, belt arrows, power lines and bugs' searches.
 42. 🚧 **Playtest batch 8** (owner on desktop, 0.87.0, #169 to #181): ✅ in 0.87.6 (D-149): the trebuchet's panel (#175), the Smelting lesson's Collect (#176), the toolbar's Inventory button and scrolling (#177, #178), stocked buildings paying for their load (#180), bugs that keep apart (#181). ✅ in 0.88.1 (D-153): the drop-off counts (#170), the engineer stopping short of a resource (#169), the splitter menu fitting (#191), the dedicated server no longer a player (#184). ⬜ The trebuchet's swing and flying rock (#174).
-42. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
+43. ✅ **Playtest batch 9, bugs** (0.88.8, D-162): merged nests drawn without tunnels (#196), birds staying put when you pan (#205), items fed in from the side landing where they were (#204), an engineer built over stepping out (#206).
+44. ⬜ **Later, when the owner asks:** refresh the art review page for the upgraded art (see ART_LIST.md, Art review 2).
 
 ---
 
