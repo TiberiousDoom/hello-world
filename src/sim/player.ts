@@ -10,7 +10,7 @@
 // Bugs notice the engineer (D-074): it has health, and a knocked-out engineer
 // drops what it carries and gets back up at the hub a little later.
 
-import { BUILDINGS, DX, DY, HUB_SIZE, ItemId, PLAYER } from './data';
+import { BUILDINGS, DX, DY, HAND_MINING, HUB_SIZE, ItemId, PLAYER } from './data';
 import { hypot } from './math';
 import { moundAt } from './nests';
 import type { Building, World } from './world';
@@ -40,6 +40,11 @@ export interface Player {
   pending: PlayerAction | null;
   /** The ore tile this player is mining by hand, taps so far, and the game time of the last tap (#38). */
   mining?: { tile: number; taps: number; at: number } | null;
+  /**
+   * The tile this player keeps mining or chopping after one tap (#209), and the game time of its last tap:
+   * it taps on at HAND_MINING.holdRate until the tile runs out, the inventory is full or it's sent elsewhere.
+   */
+  work?: { x: number; y: number; at: number } | null;
   hp: number;
   /** Game time of the last bite, for health coming back. */
   hurtAt?: number;
@@ -133,7 +138,7 @@ export function sendHome(w: World, p: Player): void {
   const hub = w.hub;
   if (hub) handOver(p, (item) => w.insert(hub, item, hub.x - 1, hub.y));
   const home = newPlayer(w, p.id);
-  Object.assign(p, { x: home.x, y: home.y, slots: emptySlots(), path: [], walk: null, pending: null, mining: null });
+  Object.assign(p, { x: home.x, y: home.y, slots: emptySlots(), path: [], walk: null, pending: null, mining: null, work: null });
 }
 
 /** Whether a player is knocked out (D-074): it can't walk or work until it's back up. */
@@ -153,6 +158,7 @@ export function hurtPlayer(w: World, p: Player, amount: number): void {
   p.pending = null;
   p.walk = null;
   p.mining = null;
+  p.work = null;
   p.downUntil = w.state.time + PLAYER.downFor;
   w.playerEvents.push({
     player: p.id,
@@ -202,6 +208,7 @@ export function moveTo(w: World, p: Player, x: number, y: number): boolean {
   if (isDown(p)) return false;
   p.pending = null;
   p.walk = null;
+  p.work = null;
   const path = findPath(w, p, (tx, ty) => tx === x && ty === y, x, y);
   p.path = path ?? [];
   return !!path;
@@ -211,6 +218,7 @@ export function moveTo(w: World, p: Player, x: number, y: number): boolean {
 export function goAndDo(w: World, p: Player, x: number, y: number, fw: number, fh: number, action: PlayerAction): boolean {
   if (isDown(p)) return false;
   p.walk = null;
+  p.work = null;
   const path = findPath(w, p, (tx, ty) => inReach(tx + 0.5, ty + 0.5, x, y, fw, fh), x + fw / 2, y + fh / 2);
   if (!path) return false;
   p.path = path;
@@ -223,6 +231,7 @@ export function walk(p: Player, dx: number, dy: number): void {
   if (isDown(p)) return;
   p.path = [];
   p.pending = null;
+  if (dx || dy) p.work = null;
   p.walk = dx || dy ? [Math.sign(dx), Math.sign(dy)] : null;
 }
 
@@ -275,6 +284,8 @@ export function tickPlayers(w: World, dt: number, act: (p: Player, a: PlayerActi
       const a = p.pending;
       p.pending = null;
       act(p, a);
+    } else if (p.work && !p.path.length && !p.walk && w.state.time - p.work.at >= 1 / HAND_MINING.holdRate - 1e-9) {
+      act(p, { kind: 'mine', x: p.work.x, y: p.work.y }); // keeps working the tile it was given (#209)
     }
     const hub = w.hub;
     if (hub && p.autoDrop && held(p) && inReach(p.x, p.y, hub.x, hub.y, HUB_SIZE, HUB_SIZE)) {

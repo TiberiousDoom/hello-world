@@ -71,8 +71,6 @@ const TOOLBAR: BuildingType[] = [
   'storage_silo',
   'drone_pad',
   'teleporter',
-  'greenhouse',
-  'tree_nursery',
   'belt',
   'express_belt',
   'splitter',
@@ -95,6 +93,9 @@ const TOOLBAR: BuildingType[] = [
   'powder_mill',
   'assembler',
   'circuit_works',
+  'greenhouse',
+  'tree_nursery',
+  'shipyard',
   'turret',
   'ballista',
   'cannon',
@@ -114,8 +115,32 @@ const TOOLBAR: BuildingType[] = [
   'palisade',
   'spike_pit',
   'trebuchet',
-  'shipyard',
 ];
+
+/**
+ * The toolbar's groups (#195), in its order: once more than GROUPS_FROM buildings are unlocked, each starts
+ * with a labelled divider, and a column of buttons at the strip's left jumps to them.
+ */
+const GROUPS = [
+  { id: 'logistics', name: 'Logistics', first: 'roller' },
+  { id: 'power', name: 'Power', first: 'shaft' },
+  { id: 'production', name: 'Production', first: 'extractor' },
+  { id: 'defence', name: 'Defence', first: 'turret' },
+] as const;
+const GROUPS_FROM = 12;
+/** Screens where the group buttons don't fit stacked, so one button steps through them (#195); as in style.css. */
+const GROUP_CYCLE = '(pointer: coarse), (max-width: 600px)';
+
+/** Where an element starts along the scrolling tool strip, in the strip's own scrolled coordinates. */
+const at = (strip: HTMLElement, el: HTMLElement): number => el.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+
+/** The group a toolbar building belongs to: the last group starting at or before it in TOOLBAR. */
+function groupOf(t: BuildingType): (typeof GROUPS)[number] {
+  const i = TOOLBAR.indexOf(t);
+  let g: (typeof GROUPS)[number] = GROUPS[0];
+  for (const h of GROUPS) if (TOOLBAR.indexOf(h.first) <= i) g = h;
+  return g;
+}
 /** Buildings without a meaningful facing. */
 const NO_ROTATE: BuildingType[] = [
   'well',
@@ -355,7 +380,23 @@ function formatTime(sec: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/** A message showing at the top of the screen, and how many times it has come in a row (#197). */
+interface Toast {
+  el: HTMLElement;
+  count: number;
+  fade: number;
+  gone: number;
+}
+
+/** At most this many messages show at once (#197). */
+const TOAST_MAX = 4;
+
 export class Hud {
+  /** The toolbar group last jumped to (#195). */
+  private jumpedTo: string | null = null;
+  /** Messages showing now, by their text, oldest first. */
+  private toasts = new Map<string, Toast>();
+
   private lastUpdate = 0;
   private toolbarKey = '';
   /** The last toolbar tool tapped, and when (page clock, ms): a quick second tap pins it (#164). */
@@ -502,6 +543,8 @@ export class Hud {
       { passive: false },
     );
     $('toolbar').addEventListener('click', (e) => {
+      const group = (e.target as HTMLElement).closest<HTMLElement>('[data-group]');
+      if (group) return this.jumpToGroup(group.dataset.group!);
       const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-tool]');
       if (!btn) return;
       const tool = btn.dataset.tool as Tool | 'rotate' | 'pack' | 'undo' | 'copy';
@@ -673,13 +716,47 @@ export class Hud {
     this.toast(PLACE_ERRORS[err]);
   }
 
+  /**
+   * A message at the top of the screen for a few seconds. In a fight the same ones come thick and fast
+   * (#197): a message already showing counts up (×2, ×3) and stays a little longer instead of stacking, and
+   * at most TOAST_MAX show at once, the oldest going first.
+   */
   toast(msg: string): void {
+    const box = $('toasts');
+    const same = this.toasts.get(msg);
+    if (same) {
+      same.count++;
+      same.el.textContent = `${msg} ×${same.count}`;
+      same.el.classList.remove('fade');
+      this.timeToast(msg, same);
+      return;
+    }
     const el = document.createElement('div');
     el.className = 'toast';
     el.textContent = msg;
-    $('toasts').appendChild(el);
-    setTimeout(() => el.classList.add('fade'), 2600);
-    setTimeout(() => el.remove(), 3200);
+    box.appendChild(el);
+    const t = { el, count: 1, fade: 0, gone: 0 };
+    this.toasts.set(msg, t);
+    this.timeToast(msg, t);
+    while (this.toasts.size > TOAST_MAX) {
+      const [oldest, o] = this.toasts.entries().next().value!;
+      this.dropToast(oldest, o);
+    }
+  }
+
+  /** (Re)starts a toast's fade and removal. */
+  private timeToast(msg: string, t: Toast): void {
+    clearTimeout(t.fade);
+    clearTimeout(t.gone);
+    t.fade = window.setTimeout(() => t.el.classList.add('fade'), 2600);
+    t.gone = window.setTimeout(() => this.dropToast(msg, t), 3200);
+  }
+
+  private dropToast(msg: string, t: Toast): void {
+    clearTimeout(t.fade);
+    clearTimeout(t.gone);
+    t.el.remove();
+    if (this.toasts.get(msg) === t) this.toasts.delete(msg);
   }
 
   /**
@@ -815,10 +892,16 @@ export class Hud {
     ].join('|');
     if (key === this.toolbarKey) return;
     this.toolbarKey = key;
+    const grouped = tools.length > GROUPS_FROM;
+    let group = '';
     const buttons = tools.map((t, i) => {
       const def = BUILDINGS[t];
+      // A labelled divider where each group starts (#195).
+      const g = groupOf(t);
+      const sep = grouped && g.id !== group ? `<span class="group-sep" data-group-start="${g.id}" aria-hidden="true">${esc(g.name)}</span>` : '';
+      group = g.id;
       const cls = ['tool', this.ui.tool === t ? 'active' : '', this.ui.tool === t && this.ui.pinned ? 'pinned' : '', world.canAfford(def.cost, this.ui.player) ? '' : 'poor'].join(' ');
-      return `<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, toolKey(i)))}">
+      return `${sep}<button class="${cls}" data-tool="${t}" title="${esc(toolTitle(t, toolKey(i)))}">
         ${buildingIcon(t, 'icon')}
         <span class="label">${esc(def.name)}</span>
         <span class="costs">${costHtml(def.cost, inv)}</span></button>`;
@@ -835,8 +918,55 @@ export class Hud {
     // In place, so a tap isn't lost when a count changes under the finger (#86). The tools scroll in a
     // strip of their own, so the Inventory button never covers one (#177).
     const scrolled = $('toolbar').querySelector('.tools')?.scrollLeft ?? 0;
-    setHtml($('toolbar'), `<div class="tools">${buttons.join('')}</div>${pack.join('')}`);
-    $('toolbar').querySelector('.tools')!.scrollLeft = scrolled; // a new strip (a tool unlocked) stays where it was
+    const present = new Set(tools.map((t) => groupOf(t).id));
+    const menu = grouped
+      ? `<div class="groups" role="group" aria-label="Jump to">${GROUPS.filter((g) => present.has(g.id))
+          .map((g) => `<button class="group" data-group="${g.id}">${esc(g.name)}</button>`)
+          .join('')}</div>`
+      : '';
+    setHtml($('toolbar'), `<div class="tools">${menu}${buttons.join('')}</div>${pack.join('')}`);
+    const strip = $('toolbar').querySelector<HTMLElement>('.tools')!;
+    strip.scrollLeft = scrolled; // a new strip (a tool unlocked) stays where it was
+    if (grouped) {
+      strip.onscroll = () => this.markGroup(strip);
+      this.markGroup(strip);
+    }
+  }
+
+  /**
+   * Lights the group whose buildings are at the strip's left (#195). Scrolled as far as it goes, the group
+   * last jumped to stays lit if its divider is in view, as the strip can't bring it to the left.
+   */
+  private markGroup(strip: HTMLElement): void {
+    const menu = strip.querySelector<HTMLElement>('.groups');
+    const left = strip.scrollLeft + (menu?.offsetWidth ?? 0) + 8;
+    const seps = [...strip.querySelectorAll<HTMLElement>('.group-sep')];
+    let current = seps[0]?.dataset.groupStart ?? '';
+    for (const sep of seps) if (at(strip, sep) <= left) current = sep.dataset.groupStart ?? '';
+    const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+    const jumped = seps.find((sep) => sep.dataset.groupStart === this.jumpedTo);
+    if (atEnd && jumped && at(strip, jumped) < strip.scrollLeft + strip.clientWidth) current = this.jumpedTo!;
+    for (const b of strip.querySelectorAll<HTMLElement>('.group')) b.classList.toggle('active', b.dataset.group === current);
+  }
+
+  /**
+   * Scrolls the tool strip to a group's buildings (#195). On a touch screen only the current group's button
+   * shows: tapping it goes on to the next group.
+   */
+  private jumpToGroup(clicked: string): void {
+    const strip = $('toolbar').querySelector<HTMLElement>('.tools');
+    if (!strip) return;
+    let id = clicked;
+    const groups = [...strip.querySelectorAll<HTMLElement>('.group')].map((b) => b.dataset.group!);
+    const active = strip.querySelector<HTMLElement>('.group.active')?.dataset.group;
+    if (matchMedia(GROUP_CYCLE).matches && id === active) id = groups[(groups.indexOf(id) + 1) % groups.length];
+    this.jumpedTo = id;
+    const sep = strip.querySelector<HTMLElement>(`.group-sep[data-group-start="${id}"]`);
+    if (!sep) return;
+    const menu = strip.querySelector<HTMLElement>('.groups');
+    const reduce = document.body.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    strip.scrollTo({ left: at(strip, sep) - (menu?.offsetWidth ?? 0) - 6, behavior: reduce ? 'auto' : 'smooth' });
+    this.markGroup(strip);
   }
 
   /** This player's engineer. */

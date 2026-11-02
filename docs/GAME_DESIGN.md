@@ -89,7 +89,8 @@ or picked, until it's done. Changing the recipe discards inputs it has already r
 **Fuel (D-114):** furnaces and blacksmiths burn **logs** (8 s each) or **charcoal** (24 s each), fed by
 belt, roller or Drop off like any input, into a fuel store of **48 s**. They burn only while working, and
 **stop when it runs out**. A new one arrives with a full store. Fuel never picks a recipe; a furnace making
-charcoal takes logs as its input first and burns what's left over. An orange bar on the building shows the
+charcoal takes logs as its input first and burns what's left over. A furnace making charcoal keeps itself going: when its store
+holds less than one piece's worth, a piece it makes goes into the store instead of out (about one in ten, #190). An orange bar on the building shows the
 store, and a flashing mark shows one that has run out. Other machines take no fuel.
 
 ## Buildings
@@ -306,7 +307,7 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
   building: building over one clears it for good. So a camp can clear land, or keep cutting the same
   woods as they regrow, but only so long: **a tree grows back 10 times**, and when it's cut an eleventh time
   the ground stays clear (D-094). Forests thin out over a long game, so camps move outward.
-- The **Sawmill** (2×2 machine) turns 1 log into 2 planks.
+- The **Sawmill** (2×2 machine) turns 1 log into 5 planks (#188).
 - The **Palisade** is a cheap wooden wall: 2 planks, 160 HP (a stone wall has 400). It's laid in lines
   like walls. Walls and palisades join up with their neighbours, with their own corners and ends.
 - Selecting a camp shows its reach, and how many trees and regrowing stumps it has.
@@ -420,6 +421,8 @@ in `CLOCK` in `src/sim/data.ts`; the clock is `src/sim/clock.ts`.
   and spike pits are flat and cast none.
 - A message marks nightfall, each morning and each new season, and the top bar shows the season, the
   day and a sun or moon (its tooltip says how long until morning or nightfall).
+- **Messages** show at the top of the screen for about 3 seconds. One that comes again while it's showing counts
+  up (×2, ×3) instead of stacking, and at most 4 show at once, the oldest going first (#197).
 - Each new season plays its own short piece of music (see [Music](#music)).
 
 ## Your engineer
@@ -465,8 +468,9 @@ A new game starts with an empty hub, nothing to build and no belts (#38, D-062).
 
 1. **Chop trees by hand.** With no tool in hand, tap or click a tree. The engineer walks over, and every
    **8 taps** in a row fell it for **4 logs**, which it carries; a ring around the tile fills with each
-   tap. Holding the finger or mouse button down taps **4 times a second**. Tapping another tile, or
-   **3 s** without a tap, starts the count over. Dragging from there pans, as usual. With a full
+   tap. One tap is enough: the engineer keeps on tapping by itself, **4 times a second**, until the tree
+   comes down, the ore runs out, its inventory is full, or you send it somewhere else (#209). Tapping
+   another tile, or **3 s** without a tap, starts the count over. Dragging from there pans, as usual. With a full
    inventory, chopping stops and a message says so. Ore and stone are mined by hand the same way, one at
    a time, with sparks and a pickaxe sound.
 2. **Carry it to the hub** and research **Forestry** (15 logs): it unlocks the **Lumber Camp** (8 logs)
@@ -545,7 +549,7 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   - a bred crawler has an **8% chance** (up to 50%) to hatch as its nest's own bug instead (a warren's as a
     runner, D-152); the nest's size stays the same,
   - territories spread **8% sooner** (down to half the usual 4 minutes).
-- **Night raids (D-065, D-073).** At nightfall, from the **second night** on, a raid comes with a
+- **Night raids (D-065, D-073).** At nightfall, from the **sixth night** on (about 35 minutes in; the **second** in Hardcore, #185), a raid comes with a
   **50% chance** (+10% per threat level; **every night in Hardcore**). One calm nest within **40 tiles**
   of any of your buildings, picked at random, sends a party of **2 grown bugs** (+1 per 2 threat levels,
   up to 6). The rest of the nest stays calm. Raiders go for the nearest buildings however far, and
@@ -891,7 +895,11 @@ one research tree, one supply ship.
 - The **top bar** holds only the speed buttons and the menu.
 - The **toolbar** at the bottom lists the unlocked buildings with their costs, plus Undo, Copy, Rotate,
   Demolish and Inventory. The tools scroll sideways by finger, mouse wheel or scrollbar (#178); the Inventory
-  button stays at the right end, beside them (#177).
+  button stays at the right end, beside them (#177). Once more than 12 buildings are unlocked, they're
+  grouped (#195): **Logistics**, **Power**, **Production** (with the greenhouse, tree nursery and shipyard)
+  and **Defence**, each starting with a labelled divider. Buttons pinned at the left of the strip jump to a
+  group and light up for the one in view; on a phone a single button names the group in view and steps on
+  to the next.
 - The **info panel** opens only for a building that's already placed (select it). Picking a tool from the
   toolbar shows no panel.
 - **Rates (#48):** the info panel shows a building's top rate (items a minute in and out, belt
@@ -1055,7 +1063,8 @@ strings and light percussion, with a roomy reverb.
 - **Critters (D-101, D-111):** heard from all over, quietly, now and then: birds in the morning and less
   at midday, crickets and katydids in the evening and early night, cicadas at dusk, frogs at night. Fewest
   in early spring, most in summer, fading through fall to almost none in winter (a few birds). They're
-  quiet while the game is paused. The timing is in `src/audio/critters.ts`.
+  quiet while the game is paused. The timing is in `src/audio/critters.ts`. Each bird call is one of four
+  kinds, varied each time: a trill, a two-note whistle, a sparrow's chips and buzz, or a robin's warble (#159).
 - Nothing plays on the main menu except button clicks. Menu → Sound effects sets the volume (saved per
   device, default 60%); zero mutes it.
 

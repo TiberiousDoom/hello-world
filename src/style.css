@@ -283,6 +283,53 @@ body.in-menu #toasts {
 #toolbar .tools::-webkit-scrollbar {
   display: none;
 }
+/* The toolbar's groups (#195): a column of buttons pinned at the strip's left that jumps to each group,
+   and a labelled divider where each group starts. */
+#toolbar .groups {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding-right: 6px;
+  background: var(--navy-ink);
+  border-right: 1px solid var(--border);
+}
+#toolbar .group {
+  padding: 1px 8px;
+  font: 600 11px/1.4 system-ui, sans-serif;
+  text-align: left;
+  border-radius: 6px;
+}
+#toolbar .group.active {
+  background: var(--sky);
+  color: var(--navy-ink);
+}
+/* Where they don't fit stacked, one button names the current group and steps on to the next. */
+@media (pointer: coarse), (max-width: 600px) {
+  #toolbar .group:not(.active) {
+    display: none;
+  }
+  #toolbar .group.active::after {
+    content: ' ›';
+  }
+}
+#toolbar .group-sep {
+  flex: 0 0 auto;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  align-self: stretch;
+  text-align: center;
+  font: 700 10px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-left: 1px solid var(--border);
+  padding: 0 3px;
+}
 @media (hover: hover) and (pointer: fine) {
   #toolbar .tools {
     scrollbar-width: thin;

@@ -1284,6 +1284,33 @@ describe('Wood in the economy', () => {
     expect(steel.outputs).toEqual(['steel']);
   });
 
+  it('a furnace making charcoal keeps itself fuelled with some of what it makes (#190)', () => {
+    const w = emptyWorld();
+    const hub = w.hub!;
+    const furnace = placed(w.place('furnace', hub.x - 20, hub.y - 4, 0));
+    w.setRecipe(furnace.id, 'charcoal');
+    furnace.ammo = 3; // almost out: under one piece of charcoal's worth
+    for (let i = 0; i < 2; i++) w.insert(furnace, 'log', furnace.x - 1, furnace.y);
+    run(w, 3);
+    expect(furnace.outputs).toEqual([]); // that piece went into its fuel
+    expect(furnace.ammo).toBeGreaterThan(FUEL.burns.charcoal!);
+    furnace.ammo = FUEL.max;
+    for (let i = 0; i < 2; i++) w.insert(furnace, 'log', furnace.x - 1, furnace.y);
+    run(w, 3);
+    expect(furnace.outputs).toEqual(['charcoal']); // with fuel enough, it sends it out
+    // Kept running, it burns about one piece in ten and never runs out.
+    let made = 0;
+    for (let i = 0; i < 40; i++) {
+      furnace.outputs = [];
+      for (let k = 0; k < 2; k++) w.insert(furnace, 'log', furnace.x - 1, furnace.y);
+      run(w, 2.6);
+      made += furnace.outputs.length;
+    }
+    expect(furnace.ammo).toBeGreaterThan(0);
+    expect(made).toBeGreaterThanOrEqual(34);
+    expect(made).toBeLessThan(40);
+  });
+
   it('a ballista reaches further than a turret and reloads with stakes', () => {
     const w = emptyWorld();
     const hub = w.hub!;
@@ -1491,6 +1518,7 @@ describe('Starting from nothing (#38)', () => {
     expect(w.state.inventory.stone).toBeUndefined(); // not in the hub until it's carried there
     expect(w.handMiningAt(x, y)).toBe(0);
     expect(w.taps.length).toBe(HAND_MINING.taps);
+    w.state.players[0].work = null; // or it keeps on tapping (#209)
     run(w, 1.1);
     expect(w.taps.length).toBe(0); // the sparks have faded
   });
@@ -1504,6 +1532,7 @@ describe('Starting from nothing (#38)', () => {
     w.mineByHand(x + 1, y);
     expect(w.handMiningAt(x, y)).toBe(0);
     expect(w.handMiningAt(x + 1, y)).toBe(1);
+    w.state.players[0].work = null; // a pause: no more taps (#209)
     run(w, HAND_MINING.resetAfter + 0.5);
     expect(w.handMiningAt(x + 1, y)).toBe(0);
     w.mineByHand(x + 1, y);
@@ -1520,10 +1549,13 @@ describe('Starting from nothing (#38)', () => {
     const [x, y] = [w.hub!.x - 14, w.hub!.y];
     ore(w, x, y, 3, 1); // one stone tile
     ore(w, x, y + 3, 1, 2); // iron ore
+    // One tap: the character walks over and keeps mining by itself (#209), until it has n more.
     const mine = (tx: number, ty: number, n: number) => {
+      const p = w.state.players[0];
+      const want = held(p) + n;
       expect(w.mineByHand(tx, ty)).toBe('far'); // the character walks over first
-      run(w, 8); // there, and the first tap's count has run out
-      for (let i = 0; i < n * HAND_MINING.taps; i++) w.mineByHand(tx, ty);
+      for (let t = 0; t < 60 && held(p) < want; t += TICK) w.tick();
+      p.work = null;
     };
     mine(x, y, 10);
     mine(x, y + 3, 4);
@@ -1745,6 +1777,29 @@ describe('The player character (#40)', () => {
     run(w, 6);
     expect(held(p)).toBe(0);
     expect(w.state.inventory.iron_ore).toBe(left);
+  });
+
+  it('one tap on a tree keeps the engineer chopping until it falls, and walking away stops it (#209)', () => {
+    const w = emptyWorld();
+    const p = w.state.players[0];
+    const [x, y] = [w.hub!.x - 12, w.hub!.y];
+    w.state.trees[w.idx(x, y)] = TREE;
+    stand(w, x + 1, y);
+    expect(typeof w.mineByHand(x, y)).toBe('object'); // one tap
+    run(w, (HAND_MINING.taps + 2) / HAND_MINING.holdRate);
+    expect(w.treeAt(x, y)).not.toBe(TREE); // it came down
+    expect(heldOf(p, 'log')).toBe(LUMBER.logsPerTree);
+    expect(p.work).toBeNull(); // and the work stopped
+    // On ore it keeps going until sent elsewhere.
+    ore(w, x, y + 3, 1, 1);
+    stand(w, x + 1, y + 3);
+    w.mineByHand(x, y + 3);
+    run(w, 3);
+    const got = heldOf(p, 'iron_ore');
+    expect(got).toBeGreaterThan(0);
+    w.moveTo(x + 4, y + 3);
+    run(w, 3);
+    expect(heldOf(p, 'iron_ore')).toBe(got);
   });
 
   it('an engineer something big is built over steps out to the nearest free tile, and can walk again (#206)', () => {
@@ -2209,6 +2264,27 @@ describe('Night raids (D-065)', () => {
     w.markFlowDirty();
     run(w, 1);
     expect(w.state.enemies.some((e) => e.raid)).toBe(false); // nothing left in reach: they go home
+  });
+
+  it('in Standard, the first raid comes on night 6, not before (#185)', () => {
+    const chance = RAIDS.chance;
+    RAIDS.chance = 1; // a raid whenever one may come
+    try {
+      const w = emptyWorld();
+      addNest(w, 50, 50, 3);
+      placed(w.place('wall', 55 + CLOCK.nightGiveUp + 5, 55, 0));
+      w.state.nextSpread = Infinity;
+      for (const day of [2, 5]) {
+        w.state.time = nightfall(day) - 0.01;
+        w.tick();
+        expect(w.state.enemies.some((e) => e.raid)).toBe(false);
+      }
+      w.state.time = nightfall(RAIDS.firstNight) - 0.01;
+      w.tick();
+      expect(w.state.enemies.some((e) => e.raid)).toBe(true);
+    } finally {
+      RAIDS.chance = chance;
+    }
   });
 
   it('nests far from buildings, or with only young bugs, do not raid', () => {

@@ -112,7 +112,7 @@ export function buildingRates(world: World, b: Building): { max: string; now: st
 function machineStatus(b: Building, r: Recipe): string {
   if (burnsFuel(b.type) && b.ammo <= 0) return 'Out of fuel: feed it logs or charcoal';
   if (b.progress >= 0) return 'Working';
-  if (b.outputs.length + r.count > OUTPUT_BUFFER + 1) return 'Output full: nothing is taking it';
+  if (b.outputs.length + r.count > Math.max(OUTPUT_BUFFER + 1, r.count)) return 'Output full: nothing is taking it';
   const missing = Object.entries(r.inputs)
     .filter(([k, n]) => (b.inputs[k as ItemId] ?? 0) < n!)
     .map(([k]) => name(k as ItemId));

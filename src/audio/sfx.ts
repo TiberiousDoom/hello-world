@@ -160,15 +160,8 @@ function recipe(sound: Sound): Layer[] {
       // Two bright blips, rising: someone points at something.
       return [tone('sine', 1320, 1320, 0.12, 0.22), tone('sine', 1760, 1760, 0.18, 0.22, 0.1), tone('triangle', 880, 880, 0.25, 0.06, 0.1)];
     // Critters (D-101): each call a little different, so the chorus doesn't loop.
-    case 'bird': {
-      // A few quick whistled notes, each swooping up or down.
-      const base = 2200 + Math.random() * 1600;
-      const notes = 2 + Math.floor(Math.random() * 4);
-      return Array.from({ length: notes }, (_, i) => {
-        const f = base * (1 + (Math.random() - 0.5) * 0.3);
-        return tone('sine', f, f * (Math.random() < 0.5 ? 1.25 : 0.8), 0.07 + Math.random() * 0.05, 0.12, i * (0.09 + Math.random() * 0.05), 0.01);
-      });
-    }
+    case 'bird':
+      return birdCall();
     case 'cricket': {
       // Three or four short pulses of one high note.
       const f = 4300 + Math.random() * 500;
@@ -191,6 +184,55 @@ function recipe(sound: Sound): Layer[] {
       const f = 140 + Math.random() * 80;
       const n = Math.random() < 0.4 ? 2 : 1;
       return Array.from({ length: n }, (_, i) => [tone('sawtooth', f, f * 0.85, 0.22, 0.07, i * 0.35, 0.02), noise('bandpass', f * 4, f * 3, 0.2, 0.06, 3, i * 0.35, 0.02)]).flat();
+    }
+  }
+}
+
+/**
+ * A songbird's call (#159), one of four kinds picked at random, each varied: a fast trill, a two-note
+ * "fee-bee" whistle, a sparrow's chips and buzz, or a robin's warble. Real bird notes are quick slides, so
+ * each note is a slide, with a quiet second harmonic so it sounds whistled rather than electronic.
+ */
+function birdCall(): Layer[] {
+  const r = Math.random;
+  const pitch = 0.85 + r() * 0.3; // this bird's voice
+  // One whistled note sliding from `from` to `to` Hz, with its harmonic an octave up.
+  const note = (from: number, to: number, dur: number, at: number, peak = 0.1): Layer[] => [
+    tone('sine', from * pitch, to * pitch, dur, peak, at, Math.min(0.012, dur / 4)),
+    tone('sine', from * pitch * 2, to * pitch * 2, dur, peak * 0.14, at, Math.min(0.012, dur / 4)),
+  ];
+  switch (Math.floor(r() * 4)) {
+    case 0: {
+      // A trill: a run of very short notes, falling a little as it goes.
+      const n = 8 + Math.floor(r() * 7);
+      const rate = 16 + r() * 8;
+      return Array.from({ length: n }, (_, i) => note(4200 - i * 60, 3600 - i * 60, 0.03, i / rate, 0.08)).flat();
+    }
+    case 1: {
+      // "Fee-bee": a held high note, then a lower one, sometimes twice.
+      const twice = r() < 0.4 ? 2 : 1;
+      return Array.from({ length: twice }, (_, k) => [...note(3900, 3850, 0.24, k * 0.75, 0.1), ...note(3250, 3150, 0.3, k * 0.75 + 0.3, 0.09)]).flat();
+    }
+    case 2: {
+      // Sparrow: a few chips sliding down, then a short buzzy trill.
+      const chips = 3 + Math.floor(r() * 3);
+      const layers = Array.from({ length: chips }, (_, i) => note(5200, 3000, 0.045, i * 0.13, 0.09)).flat();
+      const end = chips * 0.13 + 0.05;
+      for (let i = 0; i < 10; i++) layers.push(noise('bandpass', 4600 * pitch, 4400 * pitch, 0.025, 0.05, 12, end + i * 0.035, 0.004));
+      return layers;
+    }
+    default: {
+      // Warble: notes rising and falling in turn, like a robin's phrases.
+      const n = 5 + Math.floor(r() * 4);
+      let at = 0;
+      const layers: Layer[] = [];
+      for (let i = 0; i < n; i++) {
+        const f = 2500 + r() * 1300;
+        const d = 0.08 + r() * 0.06;
+        layers.push(...note(f, f * 1.18, d / 2, at, 0.09), ...note(f * 1.18, f * 0.92, d / 2, at + d / 2, 0.09));
+        at += d + 0.04 + r() * 0.06;
+      }
+      return layers;
     }
   }
 }

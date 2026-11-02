@@ -2254,18 +2254,23 @@ export class World {
    * chopped the same way (D-093): the last tap fells it for LUMBER.logsPerTree logs, leaving a stump.
    */
   mineByHand(x: number, y: number, player = 0): HandTap | MineError {
+    const p = playerOf(this, player);
+    // Anything but a tap ends the work it keeps on with after one tap (#209).
+    const stop = (e: MineError): MineError => {
+      if (p) p.work = null;
+      return e;
+    };
     const tree = this.treeAt(x, y) === TREE;
     const ore = tree ? 'log' : this.resourceAt(x, y);
-    if (!ore) return 'no-ore';
-    if (this.buildingAt(x, y)) return 'occupied';
-    const p = playerOf(this, player);
-    if (!p || isDown(p)) return 'down';
+    if (!ore) return stop('no-ore');
+    if (this.buildingAt(x, y)) return stop('occupied');
+    if (!p || isDown(p)) return stop('down');
     if (!inReach(p.x, p.y, x, y)) {
       goAndDo(this, p, x, y, 1, 1, { kind: 'mine', x, y });
       return 'far';
     }
     const yields = tree ? LUMBER.logsPerTree : 1;
-    if (roomFor(p, ore) < yields) return 'full';
+    if (roomFor(p, ore) < yields) return stop('full');
     const tile = this.idx(x, y);
     const t = this.state.time;
     const m = p.mining && p.mining.tile === tile && t - p.mining.at <= HAND_MINING.resetAfter ? p.mining : { tile, taps: 0, at: t };
@@ -2280,6 +2285,7 @@ export class World {
       else this.takeOre(tile);
     }
     p.mining = m;
+    p.work = { x, y, at: t }; // and keeps on tapping (#209)
     const tap: HandTap = { x, y, ore, item, age: 0 };
     this.taps.push(tap);
     return tap;
@@ -3154,7 +3160,8 @@ export class World {
     const recipe = b.recipe ? RECIPE_BY_ID[b.recipe] : undefined;
     const fuel = burnsFuel(b.type);
     if (recipe && !(fuel && b.ammo <= 0)) {
-      if (b.progress < 0 && b.outputs.length + recipe.count <= OUTPUT_BUFFER + 1) {
+      // Room for the whole batch; one bigger than the buffer (5 planks a log, #188) waits for it to empty.
+      if (b.progress < 0 && b.outputs.length + recipe.count <= Math.max(OUTPUT_BUFFER + 1, recipe.count)) {
         const ready = Object.entries(recipe.inputs).every(([k, n]) => (b.inputs[k as ItemId] ?? 0) >= n!);
         if (ready) {
           for (const [k, n] of Object.entries(recipe.inputs)) b.inputs[k as ItemId]! -= n!;
@@ -3165,7 +3172,12 @@ export class World {
         b.progress += dt * this.speedUp(b);
         if (fuel) b.ammo = Math.max(0, b.ammo - dt);
         if (b.progress >= recipe.time) {
-          for (let i = 0; i < recipe.count; i++) b.outputs.push(recipe.output);
+          // A burner making its own fuel (a furnace making charcoal) keeps itself going (#190): when its fuel
+          // store holds less than one piece's worth, one piece of what it made goes into the store instead.
+          const burn = fuel ? FUEL.burns[recipe.output] : undefined;
+          const own = burn && b.ammo < burn && b.ammo + burn <= FUEL.max ? 1 : 0;
+          if (own) b.ammo += burn!;
+          for (let i = own; i < recipe.count; i++) b.outputs.push(recipe.output);
           this.noteMade(b, recipe.count);
           b.progress = -1;
         }

@@ -21,12 +21,12 @@
 // blueprint moves it, and tapping or clicking it builds it.
 //
 // With nothing in hand, tapping or clicking bare ore mines it by hand (#38), and a tree chops it
-// (D-093); holding the finger or button down keeps mining. Dragging from there pans, as usual.
+// (D-093); the engineer keeps on at it by itself (#209). Dragging from there pans, as usual.
 //
 // The character (#40): with nothing in hand, tapping or clicking empty ground walks there, and the
 // character walks over by itself to mine or fetch things. WASD or the arrow keys walk it directly.
 
-import { BuildingType, DX, DY, Dir, HAND_MINING, TUNNEL_RANGE, footprint, isBelt } from '../sim/data';
+import { BuildingType, DX, DY, Dir, TUNNEL_RANGE, footprint, isBelt } from '../sim/data';
 import { planSteps, tunnelExitSpot } from '../ui/plan';
 import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, TREE, World } from '../sim/world';
@@ -257,7 +257,10 @@ export class Input {
     return (!!world.resourceAt(t.x, t.y) || world.treeAt(t.x, t.y) === TREE) && !world.buildingAt(t.x, t.y);
   }
 
-  /** One tap now, then more at HAND_MINING.holdRate while the press is held. */
+  /**
+   * One tap: the engineer keeps on tapping the tile by itself at HAND_MINING.holdRate (#209), until it runs
+   * out, the inventory is full, or it's given something else to do. Holding the press down changes nothing.
+   */
   private startMining(t: Tile): void {
     this.stopMining();
     const tap = () => {
@@ -275,7 +278,6 @@ export class Input {
       }
     };
     tap();
-    this.mining = { tile: t, timer: setInterval(tap, 1000 / HAND_MINING.holdRate) };
     this.cb.onChange();
   }
 
