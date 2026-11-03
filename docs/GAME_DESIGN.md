@@ -441,7 +441,7 @@ in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
   goes on a stack of its kind first, then into the first empty slot. Mining by hand, **Collect** and
   **Pick up** fill it; when it's full, mining stops with a message and Collect leaves what doesn't fit.
   One of each filled slot trails behind the engineer. The **Inventory** button at the right end of the
-  toolbar (or **I**) opens a small window with the slots, in the place of the building panel.
+  toolbar (on a phone, a small button over the map's lower right corner, #215) (or **I**) opens a small window with the slots, in the place of the building panel.
 - **Pick up:** a selected belt, splitter or underground belt with items on it has **Pick up**: the
   engineer takes the items off it, front first, as many as fit.
 - **Clear line (D-141):** a selected belt, express belt or roller also has **Clear line**: every item on
@@ -806,7 +806,9 @@ one research tree, one supply ship.
   server** takes a name (up to 24 characters) and an optional password, makes a new Standard world on the
   server and joins it. Making one needs the server's password, if it has one; a room made without a
   password of its own has the server's. The server holds 4 made rooms by default; one nobody plays in for
-  30 days is archived by the server.
+  30 days is archived by the server. The browser that made a room shows **⋯** beside it, which opens a form
+  to **Rename** or **Delete** it (D-165): a second press confirms Delete, which needs the room empty and
+  archives it.
 - **Host or join:** below the server, **Host on this device** opens a room with a new game (Standard),
   their own factory, or the last co-op game saved in this browser, and gets a 6-character room code to
   share. The others type the code and press Join. Everyone must be on the same version; a mismatch is
@@ -904,8 +906,9 @@ one research tree, one supply ship.
   button stays at the right end, beside them (#177). Once more than 12 buildings are unlocked, they're
   grouped (#195): **Logistics**, **Power**, **Production** (with the greenhouse, tree nursery and shipyard)
   and **Defence**, each starting with a labelled divider. Buttons pinned at the left of the strip jump to a
-  group and light up for the one in view; on a phone a single button names the group in view and steps on
-  to the next.
+  group and light up for the one in view; on a phone a single narrow button, its name on its side, names the
+  group in view and steps on to the next. On a phone the Inventory button floats over the map's lower right
+  corner, small, with its count, and hides while the building or inventory panel is open (#215).
 - The **info panel** opens only for a building that's already placed (select it). Picking a tool from the
   toolbar shows no panel.
 - **Rates (#48):** the info panel shows a building's top rate (items a minute in and out, belt
@@ -970,7 +973,7 @@ and stumps under a moved or turned building are cleared, as under a new one.
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
 | Move a building (#76, #83) | Select it, Move, then click where it goes | Select it, Move, then tap where it goes |
-| Inventory | I, or the Inventory button | Inventory button (right end of the toolbar) |
+| Inventory | I, or the Inventory button | Inventory button (over the map's lower right corner) |
 | Pick a building | 1–9, 0 (the 10th), Shift+1–9 (the 11th to 19th) | Toolbar |
 | Undo the last building or demolishing | Ctrl+Z or Z, or Undo | Undo button |
 | Copy and paste an area | C (or Copy), drag over it, then click where the copy goes; V pastes again | Copy, drag over it, then tap where it goes |

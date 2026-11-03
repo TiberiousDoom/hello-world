@@ -91,6 +91,11 @@ export class Coop {
    * here, to be answered with `reply`.
    */
   onAsk: ((slot: number, data: string) => void) | null = null;
+  /**
+   * A connection that was in the room ended without this game leaving: its close code and reason (none
+   * when the heartbeat found it dead, D-085) and how long it lasted (ms). The dedicated server logs them.
+   */
+  onDrop: ((code: number | undefined, reason: string, lastedMs: number) => void) | null = null;
 
   private link: RelayLink | null = null;
   /** The host's secret for its room: only it can take the room back after a dropped connection. */
@@ -239,6 +244,7 @@ export class Coop {
   private attach(): void {
     const link = connect(this.relay, this.code, this.role!, this.version, this.key, this.pass);
     this.link = link;
+    const opened = Date.now();
     this.heardAt = Date.now();
     this.beatAt = 0;
     this.beatAnswered = false;
@@ -252,8 +258,9 @@ export class Coop {
       this.message(m);
     };
     if (!this.watchdog) this.watchdog = setInterval(() => this.watch(), Math.min(1000, this.heartbeatMs / 4));
-    link.onClose = () => {
+    link.onClose = (code, reason) => {
       if (this.link !== link) return;
+      if (this.phase !== 'connecting') this.onDrop?.(code, reason ?? '', Date.now() - opened);
       // A game under way tries to get back in (D-079, D-081). A guest carries on from a fresh copy; the
       // host plays on meanwhile, and sends everyone a fresh copy once it's back.
       if (this.staying() && this.reconnecting < RECONNECT_WAITS.length) return this.reconnect();
@@ -472,6 +479,10 @@ export class Coop {
    * host's connection for it. (A turn that can't go leaves a gap guests notice, and they ask for a copy.)
    */
   private toGuest(message: HostMessage, to?: number): boolean {
+    // A turn for every guest, with none in the room, goes nowhere: not sent, so an empty room lets the relay's
+    // room sleep (a message wakes it) instead of keeping it awake all day with a keepalive every few seconds.
+    // A player who comes in later starts from a fresh copy of the game, which carries what they missed.
+    if (to == null && !this.players.some((s) => s !== 0)) return true;
     const text = JSON.stringify({ to, data: JSON.stringify(message) } satisfies HostSend);
     if (text.length > MAX_HOST_MESSAGE) return false;
     this.link?.send(text);

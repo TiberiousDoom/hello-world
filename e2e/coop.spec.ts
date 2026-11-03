@@ -241,10 +241,12 @@ test("the server's made rooms are listed with their own status, and a new one is
     ws.onMessage((m) => {
       const ask = JSON.parse(String(m));
       asked.push({ url, ask });
-      ws.send(JSON.stringify({ t: 'host', data: JSON.stringify({ t: 'made', code: ask.code }) }));
+      ws.send(JSON.stringify({ t: 'host', data: JSON.stringify(ask.t === 'new' ? { t: 'made', code: ask.code } : { t: 'done' }) }));
     });
   });
   await setProfile(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
+  // This browser made the first room (D-165): it keeps the key that lets it change it.
+  await page.addInitScript(() => localStorage.setItem('foundry-front-room-key-CREWAB', 'ab'.repeat(16)));
   await page.goto('/?relay=ws://relay.test&server=CREW42');
   const versionBox = page.locator('.app-version').first();
   await expect(versionBox).not.toBeEmpty();
@@ -265,15 +267,35 @@ test("the server's made rooms are listed with their own status, and a new one is
   await expect(page.locator('#coop-server')).toHaveAttribute('data-state', 'full');
   await expect(list.nth(0)).toHaveAttribute('data-state', 'online');
   await expect(list.nth(0)).toContainText('Day 40 · Fall · 2 of 9 players');
-  await expect(list.nth(0).locator('button')).toBeEnabled();
+  await expect(list.nth(0).locator('button[data-code]')).toBeEnabled();
   // Names are text, never markup.
   await expect(list.nth(1).locator('b')).toHaveText('<b>Busy</b>');
   await expect(list.nth(1)).toHaveAttribute('data-state', 'full');
-  await expect(list.nth(1).locator('button')).toBeDisabled();
+  await expect(list.nth(1).locator('button[data-code]')).toBeDisabled();
   await expect(list.nth(2)).toHaveAttribute('data-state', 'offline');
 
+  // Only the room this browser made has a Manage button. Renaming sends the desk the key, and the new name.
+  await expect(list.nth(0).locator('[data-manage]')).toBeVisible();
+  await expect(list.nth(1).locator('[data-manage]')).toHaveCount(0);
+  await list.nth(0).locator('[data-manage]').click();
+  await expect(page.locator('#coop-manage-title')).toHaveText('Night shift');
+  await page.fill('#coop-manage-name', 'Day shift');
+  await page.click('#coop-manage button[type="submit"]');
+  await expect(page.locator('#coop-status')).toHaveText('Renamed it Day shift.');
+  expect(asked.at(-1)!.ask).toEqual({ t: 'rename', code: 'CREWAB', name: 'Day shift', key: 'ab'.repeat(16) });
+  // Deleting asks twice.
+  await page.click('#coop-manage-delete');
+  await expect(page.locator('#coop-manage-delete')).toHaveText('Delete for good?');
+  expect(asked).toHaveLength(1);
+  await page.click('#coop-manage-delete');
+  await expect(page.locator('#coop-status')).toHaveText('Deleted the room.');
+  expect(asked.at(-1)!.ask).toEqual({ t: 'delete', code: 'CREWAB', key: 'ab'.repeat(16) });
+  await expect(page.locator('#coop-manage')).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('foundry-front-room-key-CREWAB'))).toBeNull();
+  asked.length = 0;
+
   // Join goes to that room's code.
-  await list.nth(0).locator('button').click();
+  await page.locator('#coop-room-list button[data-code="CREWAB"]').click();
   await expect.poll(() => joined.length).toBe(1);
   expect(joined[0]).toContain('/rooms/CREWAB?role=guest');
 
@@ -285,8 +307,10 @@ test("the server's made rooms are listed with their own status, and a new one is
   await expect.poll(() => asked.length).toBe(1);
   expect(asked[0].ask).toMatchObject({ t: 'new', name: 'Weekend crew' });
   expect(asked[0].ask.code).toMatch(/^CREW[A-Z2-9]{2}$/);
-  // Its password goes hashed, never as typed.
+  // Its password goes hashed, never as typed, and so does the key that will let this browser change it.
   expect(asked[0].ask.pass).toMatch(/^[0-9a-f]{64}$/);
+  expect(asked[0].ask.owner).toMatch(/^[0-9a-f]{64}$/);
+  expect(await page.evaluate((code) => localStorage.getItem(`foundry-front-room-key-${code}`), asked[0].ask.code)).toMatch(/^[0-9a-f]{32}$/);
   await expect.poll(() => joined.length).toBe(2);
   expect(joined[1]).toContain(`/rooms/${asked[0].ask.code}?role=guest`);
 

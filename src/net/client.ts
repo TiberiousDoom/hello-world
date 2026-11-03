@@ -74,8 +74,11 @@ export interface RelayLink {
   send(text: string): void;
   close(): void;
   onMessage: (message: RelayMessage) => void;
-  /** The connection is gone (after a refusal or the room closing, too). */
-  onClose: () => void;
+  /**
+   * The connection is gone (after a refusal or the room closing, too), with the WebSocket's close code and
+   * reason when there was one: the dedicated server logs them, to tell why its connection drops.
+   */
+  onClose: (code?: number, reason?: string) => void;
   /** Tests: the connection ends without the leaving code, as a dropped network does. */
   drop?: () => void;
 }
@@ -109,7 +112,7 @@ function socket(relay: string, code: string, role: Role, version: string, key: s
     // Outside the try: an error in the game's own handling shows up (as a page error) instead of vanishing.
     link.onMessage(message);
   };
-  ws.onclose = () => link.onClose();
+  ws.onclose = (e) => link.onClose(e.code, e.reason);
   return link;
 }
 

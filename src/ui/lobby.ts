@@ -3,7 +3,7 @@
 // this browser, or join a friend's with its room code (in the lobby or under way). The room is in net/coop.ts.
 
 import { refusalText, type Coop } from '../net/coop';
-import { CODE_ALPHABET, CODE_LENGTH, DeskAsk, DeskReply, RefuseReason, RoomStatus, ServerRoom, passHash, roomName, serverPrefix } from '../net/protocol';
+import { CODE_ALPHABET, CODE_LENGTH, DeskAsk, DeskReply, RefuseReason, RoomStatus, ServerRoom, passHash, roomName, serverPrefix, sha256 } from '../net/protocol';
 import { PLAYER_COLORS } from './state';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -106,6 +106,8 @@ export class Lobby {
   private desk: string | null = null;
   /** A room is being made: the form waits. */
   private making = false;
+  /** The room whose Manage form is open (D-165), one this browser made. */
+  private managing: string | null = null;
 
   constructor(
     private coop: Coop,
@@ -116,6 +118,8 @@ export class Lobby {
       this.status('Joining the server…');
     });
     $('coop-room-list').addEventListener('click', (e) => {
+      const manage = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-manage]');
+      if (manage) return this.manage(manage.dataset.manage!);
       const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-code]');
       if (!button) return;
       const code = button.dataset.code!;
@@ -126,6 +130,23 @@ export class Lobby {
       e.preventDefault();
       void this.make();
     });
+    $('coop-manage').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = roomName($<HTMLInputElement>('coop-manage-name').value);
+      if (!name) return this.status('Give the room a name.');
+      void this.change('rename', name);
+    });
+    $('coop-manage-delete').addEventListener('click', () => {
+      // A second press confirms.
+      const button = $('coop-manage-delete');
+      if (!button.classList.contains('confirm')) {
+        button.classList.add('confirm');
+        button.textContent = 'Delete for good?';
+        return;
+      }
+      void this.change('delete');
+    });
+    $('coop-manage-close').addEventListener('click', () => this.manage(null));
     $('coop-host-new').addEventListener('click', () => this.host('new'));
     $('coop-host-saved').addEventListener('click', () => this.host('solo'));
     $('coop-host-coop').addEventListener('click', () => this.host('coop'));
@@ -199,7 +220,9 @@ export class Lobby {
       for (let i = 0; i < MAKE_TRIES; i++) {
         const used = new Set([main, desk, ...this.rooms.map((r) => r.code)]);
         const code = drawCode(serverPrefix(main), used);
-        const reply = await this.actions.server.ask(desk, { t: 'new', code, name, pass: own ? await passHash(code, own) : '' }, deskPass);
+        // The maker's key (D-165): kept in this browser, its hash on the server, so this browser can change the room later.
+        const key = randomHex(16);
+        const reply = await this.actions.server.ask(desk, { t: 'new', code, name, pass: own ? await passHash(code, own) : '', owner: await sha256(key) }, deskPass);
         if (reply && 'refused' in reply) {
           if (reply.refused === 'password') {
             $('coop-pass-row').hidden = false;
@@ -210,12 +233,11 @@ export class Lobby {
         }
         if (!reply) return this.status("The server didn't answer. Try again in a minute.");
         if (reply.t === 'made') {
-          if (own) {
-            try {
-              localStorage.setItem(passKey(code), own);
-            } catch {
-              // Typed again when joining next time.
-            }
+          try {
+            if (own) localStorage.setItem(passKey(code), own);
+            localStorage.setItem(ownerKey(code), key);
+          } catch {
+            // The password is typed again when joining next time; without the key, the room can't be changed from here.
           }
           this.rooms = [...this.rooms, { code, name }];
           $<HTMLInputElement>('coop-make-name').value = '';
@@ -223,6 +245,7 @@ export class Lobby {
           this.coop.joinRoom(code, own || serverPass);
           return this.status(`Made ${name}. Joining…`);
         }
+        if (reply.t !== 'no') return;
         if (reply.reason === 'taken') continue;
         return this.status(
           reply.reason === 'full'
@@ -236,6 +259,68 @@ export class Lobby {
     } finally {
       this.making = false;
       this.setMaking(false);
+    }
+  }
+
+  /** Opens the Manage form for a room this browser made (D-165), or closes it (null). */
+  private manage(code: string | null): void {
+    this.managing = code;
+    const room = this.rooms.find((r) => r.code === code);
+    $('coop-manage').hidden = !room;
+    const del = $('coop-manage-delete');
+    del.classList.remove('confirm');
+    del.textContent = 'Delete';
+    if (!room) return;
+    $('coop-manage-title').textContent = room.name;
+    $<HTMLInputElement>('coop-manage-name').value = room.name;
+  }
+
+  /** Asks the server's desk to rename or delete the room being managed, with this browser's key for it. */
+  private async change(what: 'rename' | 'delete', name = ''): Promise<void> {
+    const code = this.managing;
+    const key = code ? storedOwnerKey(code) : null;
+    if (!code || !key || !this.desk || this.making) return;
+    this.making = true;
+    this.status(what === 'rename' ? 'Renaming the room…' : 'Deleting the room…');
+    try {
+      const deskPass = await passHash(this.desk, this.password(this.actions.server.code));
+      const ask: DeskAsk = what === 'rename' ? { t: 'rename', code, name, key } : { t: 'delete', code, key };
+      const reply = await this.actions.server.ask(this.desk, ask, deskPass);
+      if (!reply) return this.status("The server didn't answer. Try again in a minute.");
+      if ('refused' in reply) return this.status(refusalText(reply.refused, undefined, this.actions.version));
+      if (reply.t === 'done') {
+        if (what === 'delete') {
+          this.rooms = this.rooms.filter((r) => r.code !== code);
+          try {
+            localStorage.removeItem(ownerKey(code));
+          } catch {
+            // Nothing kept.
+          }
+          this.manage(null);
+          this.status('Deleted the room.');
+        } else {
+          this.rooms = this.rooms.map((r) => (r.code === code ? { code, name } : r));
+          this.manage(code);
+          this.status(`Renamed it ${name}.`);
+        }
+        void this.checkServer();
+        return;
+      }
+      if (reply.t !== 'no') return;
+      this.status(
+        reply.reason === 'in-use'
+          ? "Players are in that room. It can be deleted once it's empty."
+          : reply.reason === 'gone'
+            ? 'That room is gone already.'
+            : reply.reason === 'denied'
+              ? "The server says this browser didn't make that room."
+              : "The server couldn't change that room.",
+      );
+    } finally {
+      this.making = false;
+      const del = $('coop-manage-delete');
+      del.classList.remove('confirm');
+      del.textContent = 'Delete';
     }
   }
 
@@ -308,6 +393,8 @@ export class Lobby {
 
   /** The made rooms' rows, and the form to make one when the server has a desk. */
   private showRooms(statuses: (RoomStatus | null)[]): void {
+    // A room being managed that's gone from the list closes its form.
+    if (this.managing && !this.rooms.some((r) => r.code === this.managing)) this.manage(null);
     $('coop-rooms').hidden = !this.desk && !this.rooms.length;
     $('coop-make-box').hidden = !this.desk;
     $('coop-room-list').replaceChildren(
@@ -333,7 +420,18 @@ export class Lobby {
         join.dataset.code = room.code;
         join.textContent = 'Join';
         join.disabled = !v.canJoin;
-        li.append(text, join);
+        li.append(text);
+        // One this browser made can be renamed or deleted here (D-165).
+        if (storedOwnerKey(room.code)) {
+          const manage = document.createElement('button');
+          manage.className = 'coop-room-manage';
+          manage.dataset.manage = room.code;
+          manage.title = 'Rename or delete your room';
+          manage.setAttribute('aria-label', `Manage ${room.name}`);
+          manage.textContent = '⋯';
+          li.append(manage);
+        }
+        li.append(join);
         return li;
       }),
     );
@@ -363,6 +461,23 @@ export class Lobby {
   private status(text: string): void {
     $('coop-status').textContent = text;
   }
+}
+
+/** Where the key that proves this browser made a room is kept (D-165). */
+function ownerKey(code: string): string {
+  return `foundry-front-room-key-${code}`;
+}
+
+function storedOwnerKey(code: string): string | null {
+  try {
+    return localStorage.getItem(ownerKey(code));
+  } catch {
+    return null;
+  }
+}
+
+function randomHex(bytes: number): string {
+  return [...crypto.getRandomValues(new Uint8Array(bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Where a room's password is kept in this browser (D-140). */

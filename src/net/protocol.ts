@@ -130,19 +130,21 @@ export const ROOM_NAME_LENGTH = 24;
 export const SERVER_PREFIX_LENGTH = 4;
 
 /**
- * What a player asks the dedicated server's desk (D-164): a new room. The player draws the code (with the
- * server's prefix) so that it can send the room's password already hashed with it, as it does to join:
- * the relay never sees a password. `pass` is empty for the server's own password.
+ * What a player asks the dedicated server's desk (D-164): a new room, or a change to one they made (D-165).
+ * For a new room the player draws the code (with the server's prefix) so that it can send the room's
+ * password already hashed with it, as it does to join: the relay never sees a password. `pass` is empty
+ * for the server's own password. `owner` is the SHA-256 of a random key the maker's browser keeps: giving
+ * that key (`key`) later proves they made the room, to rename it or delete it.
  */
-export interface DeskAsk {
-  t: 'new';
-  code: string;
-  name: string;
-  pass: string;
-}
+export type DeskAsk = { t: 'new'; code: string; name: string; pass: string; owner?: string } | { t: 'rename'; code: string; name: string; key: string } | { t: 'delete'; code: string; key: string };
 
-/** The desk's answer: the room is open, or why not ('taken': draw another code and ask again). */
-export type DeskReply = { t: 'made'; code: string } | { t: 'no'; reason: 'full' | 'taken' | 'bad' | 'busy' };
+/**
+ * The desk's answer: the room is open (`made`), the change is done (`done`), or why not ('taken': draw
+ * another code and ask again; 'denied': not the maker's key; 'in-use': players are in it; 'gone': no such room).
+ */
+export type DeskReply = { t: 'made'; code: string } | { t: 'done' } | { t: 'no'; reason: DeskRefusal };
+export type DeskRefusal = 'full' | 'taken' | 'bad' | 'busy' | 'denied' | 'in-use' | 'gone';
+const DESK_REFUSALS: DeskRefusal[] = ['full', 'taken', 'bad', 'busy', 'denied', 'in-use', 'gone'];
 
 /** A room name as players type it: one line, trimmed, short. Empty if there's nothing left. */
 export function roomName(raw: string): string {
@@ -161,10 +163,17 @@ export function cleanAsk(raw: string): DeskAsk | null {
   }
   if (!a || typeof a !== 'object') return null;
   const o = a as Record<string, unknown>;
-  if (o.t !== 'new' || typeof o.code !== 'string' || !validCode(o.code) || typeof o.name !== 'string' || typeof o.pass !== 'string') return null;
-  const name = roomName(o.name);
-  if (!name || !/^[0-9a-f]{0,64}$/.test(o.pass)) return null;
-  return { t: 'new', code: o.code, name, pass: o.pass };
+  if (typeof o.code !== 'string' || !validCode(o.code)) return null;
+  const hex = (v: unknown, min: number) => typeof v === 'string' && new RegExp(`^[0-9a-f]{${min},64}$`).test(v);
+  const name = typeof o.name === 'string' ? roomName(o.name) : '';
+  if (o.t === 'new') {
+    if (!name || !hex(o.pass, 0) || (o.owner !== undefined && !hex(o.owner, 64))) return null;
+    return { t: 'new', code: o.code, name, pass: o.pass as string, ...(o.owner ? { owner: o.owner as string } : {}) };
+  }
+  if (!hex(o.key, 32)) return null;
+  if (o.t === 'rename') return name ? { t: 'rename', code: o.code, name, key: o.key as string } : null;
+  if (o.t === 'delete') return { t: 'delete', code: o.code, key: o.key as string };
+  return null;
 }
 
 /** The desk's answer, if it's well formed. */
@@ -172,7 +181,8 @@ export function validReply(r: unknown): r is DeskReply {
   if (!r || typeof r !== 'object') return false;
   const o = r as Record<string, unknown>;
   if (o.t === 'made') return typeof o.code === 'string' && validCode(o.code);
-  return o.t === 'no' && ['full', 'taken', 'bad', 'busy'].includes(o.reason as string);
+  if (o.t === 'done') return true;
+  return o.t === 'no' && DESK_REFUSALS.includes(o.reason as DeskRefusal);
 }
 
 /** A room as the relay reports it at /rooms/<code>/status (D-086), for the Play together screen. */

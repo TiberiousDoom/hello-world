@@ -121,6 +121,16 @@
             <div id="coop-rooms" hidden>
               <h4>More rooms on the server</h4>
               <ul id="coop-room-list" class="coop-room-list"></ul>
+              <form id="coop-manage" class="coop-make coop-manage" hidden>
+                <p class="small">Your room <b id="coop-manage-title"></b></p>
+                <input id="coop-manage-name" maxlength="24" placeholder="New name" aria-label="New name" autocomplete="off" />
+                <div class="coop-manage-buttons">
+                  <button type="submit" class="primary">Rename</button>
+                  <button type="button" id="coop-manage-delete">Delete</button>
+                  <button type="button" id="coop-manage-close">Done</button>
+                </div>
+                <p class="muted small">You made this room in this browser, so you can change it here. Deleting needs it empty; the server keeps a copy its owner can bring back.</p>
+              </form>
               <details id="coop-make-box" class="coop-make-box">
                 <summary>Make a room on the server</summary>
                 <form id="coop-make" class="coop-make">

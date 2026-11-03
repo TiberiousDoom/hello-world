@@ -25,7 +25,7 @@ import { chmodSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, readF
 import { join } from 'node:path';
 import { Coop } from '../src/net/coop';
 import { RELAY_URL } from '../src/net/client';
-import { DeskReply, MAX_SERVER_ROOMS, RoomInfo, cleanAsk, makeCode, passHash, serverPrefix, sha256, validCode } from '../src/net/protocol';
+import { DeskAsk, DeskReply, MAX_SERVER_ROOMS, RoomInfo, cleanAsk, makeCode, passHash, serverPrefix, sha256, validCode } from '../src/net/protocol';
 import { clockAt } from '../src/sim/clock';
 import { OldSaveError, TICK, World } from '../src/sim/world';
 
@@ -65,6 +65,16 @@ const ARCHIVE_DIR = join(DATA, 'archive');
 
 function log(text: string): void {
   console.log(`${new Date().toISOString()} ${text}`);
+}
+
+/**
+ * Why a connection to the relay ended, for the log: its WebSocket close code (1006: cut off with no goodbye,
+ * as a network drop is; 1001 or 1012: the relay restarting) and how long it had lasted.
+ */
+function dropText(code: number | undefined, reason: string, ms: number): string {
+  const lasted = ms < 120_000 ? `${Math.round(ms / 1000)} s` : ms < 2 * 3600_000 ? `${Math.round(ms / 60_000)} min` : `${(ms / 3600_000).toFixed(1)} h`;
+  const why = code == null ? 'no answer to its heartbeat' : `close code ${code}${reason ? ` "${reason}"` : ''}`;
+  return `connection to the relay ended after ${lasted} (${why}).`;
 }
 
 /** Writes a file whole or not at all: a crash mid-write leaves the old one. `mode`: its permissions. */
@@ -151,6 +161,8 @@ interface MadeRoom {
   /** When it was made, and when someone last played in it (ms since 1970). */
   made: number;
   usedAt: number;
+  /** The SHA-256 of its maker's key (D-165): whoever gives that key may rename or delete it. None for rooms made before. */
+  owner?: string;
 }
 
 /** One room and its world: the main room, or one players made. */
@@ -212,6 +224,7 @@ class Hosted {
       ready?.();
     };
     coop.onNotice = (text) => log(`Room ${code}: ${text}`);
+    coop.onDrop = (closeCode, reason, ms) => log(`Room ${code}: ${dropText(closeCode, reason, ms)}`);
     coop.onEnd = (why, replaced) => {
       this.save(true);
       if (this.closed) return;
@@ -401,18 +414,49 @@ function archiveIdle(): void {
   const now = Date.now();
   for (const [code, { room, meta }] of made) {
     if (room.guests().length || now - meta.usedAt < ROOM_DAYS * DAY_MS) continue;
-    room.close();
-    made.delete(code);
-    mkdirSync(ARCHIVE_DIR, { recursive: true });
-    const to = join(ARCHIVE_DIR, `${code}-${new Date().toISOString().slice(0, 10)}`);
-    try {
-      renameSync(room.dir, existsSync(to) ? `${to}-${now}` : to);
-      log(`Room ${code} (${meta.name}) had no players for ${ROOM_DAYS} days: archived it in ${to}.`);
-    } catch (err) {
-      log(`Room ${code}: closed, but could not move it to the archive: ${String(err)}`);
-    }
+    archive(code, `had no players for ${ROOM_DAYS} days`);
   }
   relist();
+}
+
+/** Closes a made room and moves it to the archive folder, where the owner can bring it back. */
+function archive(code: string, why: string): void {
+  const entry = made.get(code);
+  if (!entry) return;
+  const { room, meta } = entry;
+  room.close();
+  made.delete(code);
+  mkdirSync(ARCHIVE_DIR, { recursive: true });
+  const to = join(ARCHIVE_DIR, `${code}-${new Date().toISOString().slice(0, 10)}`);
+  try {
+    renameSync(room.dir, existsSync(to) ? `${to}-${Date.now()}` : to);
+    log(`Room ${code} (${meta.name}) ${why}: archived it in ${to}.`);
+  } catch (err) {
+    log(`Room ${code}: closed, but could not move it to the archive: ${String(err)}`);
+  }
+}
+
+/**
+ * A maker's change to their room (D-165): renamed, or deleted (archived, so the server's owner can bring
+ * it back). Only with the key whose hash the room keeps, and a room with players in it isn't deleted.
+ */
+async function change(ask: Extract<DeskAsk, { t: 'rename' | 'delete' }>, slot: number): Promise<DeskReply> {
+  const entry = made.get(ask.code);
+  if (!entry) return { t: 'no', reason: 'gone' };
+  const { room, meta } = entry;
+  if (!meta.owner || (await sha256(ask.key)) !== meta.owner) return { t: 'no', reason: 'denied' };
+  if (ask.t === 'rename') {
+    log(`Player ${slot + 1} at the desk renamed room ${ask.code} from ${meta.name} to ${ask.name}.`);
+    meta.name = ask.name;
+    room.name = ask.name;
+    saveMeta(meta);
+    room.publish();
+  } else {
+    if (room.guests().length) return { t: 'no', reason: 'in-use' };
+    archive(ask.code, `was deleted by its maker (player ${slot + 1} at the desk)`);
+  }
+  relist();
+  return { t: 'done' };
 }
 
 // The desk (D-164): a room that never starts a game. Players with the server's password ask it for new rooms.
@@ -424,13 +468,14 @@ desk.onAsk = (slot, data) => {
   const answer = (reply: DeskReply) => desk.reply(slot, JSON.stringify(reply));
   const ask = cleanAsk(data);
   if (!ask || serverPrefix(ask.code) !== prefix) return answer({ t: 'no', reason: 'bad' });
+  if (ask.t !== 'new') return void change(ask, slot).then(answer);
   if (ask.code === home.code || ask.code === main.desk || made.has(ask.code) || making.has(ask.code)) return answer({ t: 'no', reason: 'taken' });
   if (made.size + making.size >= MAX_ROOMS) return answer({ t: 'no', reason: 'full' });
   making.add(ask.code);
   void (async () => {
     const now = Date.now();
     // No password of the maker's own: the server's, as for its other rooms.
-    const meta: MadeRoom = { code: ask.code, name: ask.name, pass: ask.pass || (await passHash(ask.code, PASSWORD)), made: now, usedAt: now };
+    const meta: MadeRoom = { code: ask.code, name: ask.name, pass: ask.pass || (await passHash(ask.code, PASSWORD)), made: now, usedAt: now, ...(ask.owner ? { owner: ask.owner } : {}) };
     mkdirSync(join(ROOMS_DIR, ask.code), { recursive: true });
     saveMeta(meta);
     const room = host(meta);
@@ -450,6 +495,7 @@ desk.onAsk = (slot, data) => {
   })();
 };
 desk.onNotice = (text) => log(`Desk ${main.desk}: ${text}`);
+desk.onDrop = (code, reason, ms) => log(`Desk ${main.desk}: ${dropText(code, reason, ms)}`);
 desk.onEnd = (why, replaced) => {
   if (replaced) return log(`Desk ${main.desk} taken over: ${why} Stop the other server, then restart this one.`);
   log(`Desk ${main.desk} closed: ${why} Opening it again in ${REOPEN_MS / 1000} s.`);

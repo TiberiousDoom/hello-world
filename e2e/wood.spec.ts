@@ -1,4 +1,4 @@
-import { ALL_LESSONS, build, buildTile, calm, cameraSettled, expect, newGame, settled, stepLabel, test, uncoveredTile } from './helpers';
+import { ALL_LESSONS, buildTile, calm, expect, newGame, settled, stepLabel, test } from './helpers';
 
 test('wood: trees blocking building, a lumber camp cutting trees, and a sawmill', async ({ page }, info) => {
   await newGame(page, { fresh: true });
@@ -38,10 +38,9 @@ test('wood: trees blocking building, a lumber camp cutting trees, and a sawmill'
   // Trees are in the way of building.
   expect(await page.evaluate(([x, y]) => window.game.world.checkPlace('belt', x, y, 0), spot!.tree)).toBe('tree');
 
+  // buildTile, not one tap: a tap while the camera still glides can put the blueprint on another tile.
   await page.click('[data-tool="lumber_camp"]');
-  await cameraSettled(page);
-  await build(page, info, ...(await uncoveredTile(page, spot!.x, spot!.y)));
-  await expect.poll(() => page.evaluate(() => window.game.world.state.buildings.some((b: { type: string }) => b.type === 'lumber_camp'))).toBe(true);
+  await buildTile(page, info, spot!.x, spot!.y);
 
   // The camp cuts a tree into logs, leaving a stump (skipped ahead to just before its first cut).
   const camp = await page.evaluate(() => {
@@ -54,8 +53,7 @@ test('wood: trees blocking building, a lumber camp cutting trees, and a sawmill'
 
   // The sawmill goes at the camp's output.
   await page.click('[data-tool="sawmill"]');
-  await build(page, info, ...(await uncoveredTile(page, camp.x + 2, camp.y)));
-  await expect.poll(() => page.evaluate(() => window.game.world.state.buildings.some((b: { type: string }) => b.type === 'sawmill'))).toBe(true);
+  await buildTile(page, info, camp.x + 2, camp.y);
 
   // The camp's panel shows its trees and stumps.
   await page.click('[data-tool="sawmill"]'); // put the tool down

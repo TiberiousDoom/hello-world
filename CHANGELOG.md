@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.90.0 · 2026-11-03 · Your rooms, your way, and a roomier phone toolbar
+### New
+- **Rename or delete a room you made on the server:** in Play together, a **⋯** button beside it opens a small form. Only the browser that made the room has it. Deleting needs the room empty, and the server keeps a copy its owner can bring back.
+- **On a phone, the toolbar gives its whole width to buildings** (#215): the group button is a narrow strip with its name on its side, and **Inventory** is a small button over the map's corner, with its count.
+
+### Fixed
+- **The server's rooms sleep while nobody is in them.** An empty room kept sending the relay a message every few seconds (20 a second while its game ran), keeping it awake all day; now it sends nothing until someone joins. This may be why the server's connection kept dropping. The server's log now says why each dropped connection ended, to tell for sure.
+
 ## 0.89.1 · 2026-11-03 · The server's desk holds on
 ### Fixed
 - **Making a room on the server no longer fails for a while after a network blip.** The server's desk, which makes the rooms, now gets back in within seconds after its connection drops, as the server's rooms do, instead of closing and waiting 15 seconds to open again.
