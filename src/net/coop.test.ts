@@ -41,11 +41,35 @@ describe("The dedicated server's desk (D-164)", () => {
     expect(asked).toEqual([ask]);
     expect(await askDesk('local', '764DZZ', '1.0.0', '', ask)).toEqual({ refused: 'password' });
     expect(await askDesk('local', '764DZZ', '2.0.0', await passHash('764DZZ', 'hunter2'), ask)).toEqual({ refused: 'version' });
-    // The desk never starts a game, and the player who asked has gone again.
+    // The desk never starts a game, and the player who asked goes again (its leaving arrives after the answer).
     expect(desk.phase).toBe('lobby');
+    for (let i = 0; i < 100 && desk.players.length > 1; i++) await new Promise((r) => setTimeout(r, 10));
     expect(desk.players).toEqual([0]);
     desk.leave();
     // Nobody there: no answer.
     expect(await askDesk('local', '764DZZ', '1.0.0', '', ask, 2000)).toEqual({ refused: 'no-room' });
+  });
+
+  it('gets its room back quietly after its connection drops, and answers again', async () => {
+    const desk = new Coop('local', '1.0.0');
+    const notices: string[] = [];
+    let ended = false;
+    desk.onNotice = (text) => notices.push(text);
+    desk.onEnd = () => (ended = true);
+    desk.onAsk = (slot, data) => desk.reply(slot, JSON.stringify({ t: 'made', code: cleanAsk(data)!.code }));
+    const until = async (ok: () => boolean) => {
+      for (let i = 0; i < 300 && !ok(); i++) await new Promise((r) => setTimeout(r, 10));
+      expect(ok()).toBe(true);
+    };
+    desk.hostRoom('764DYY', 'k');
+    await until(() => desk.phase === 'lobby');
+    (desk as unknown as { link: { drop(): void } }).link.drop();
+    await until(() => notices.includes('Back in the room.'));
+    expect(notices).toEqual(['Connection lost. Getting the room back…', 'Back in the room.']);
+    expect(ended).toBe(false);
+    expect(desk.phase).toBe('lobby');
+    const ask: DeskAsk = { t: 'new', code: '764DAB', name: 'Again', pass: '' };
+    expect(await askDesk('local', '764DYY', '1.0.0', '', ask)).toEqual({ t: 'made', code: '764DAB' });
+    desk.leave();
   });
 });

@@ -256,7 +256,7 @@ export class Coop {
       if (this.link !== link) return;
       // A game under way tries to get back in (D-079, D-081). A guest carries on from a fresh copy; the
       // host plays on meanwhile, and sends everyone a fresh copy once it's back.
-      if (this.phase === 'playing' && this.reconnecting < RECONNECT_WAITS.length) return this.reconnect();
+      if (this.staying() && this.reconnecting < RECONNECT_WAITS.length) return this.reconnect();
       this.end(this.phase === 'connecting' ? "Couldn't reach the game server. Check your connection and try again." : 'Lost the connection to the game.');
     };
   }
@@ -290,12 +290,20 @@ export class Coop {
     }
   }
 
+  /**
+   * Whether a dropped connection is worth getting back: a game under way, or a desk (D-164), which waits in
+   * its lobby for as long as the server runs.
+   */
+  private staying(): boolean {
+    return this.phase === 'playing' || (this.phase === 'lobby' && this.role === 'host' && this.onAsk != null);
+  }
+
   private reconnect(): void {
     this.link = null;
-    if (!this.reconnecting) this.onNotice(this.host ? 'Connection lost. Getting the room back…' : 'Connection lost. Getting back into the game…');
+    if (!this.reconnecting) this.onNotice(this.host || this.onAsk ? 'Connection lost. Getting the room back…' : 'Connection lost. Getting back into the game…');
     this.retry = setTimeout(() => {
       this.retry = null;
-      if (this.phase === 'playing') this.attach();
+      if (this.staying()) this.attach();
     }, RECONNECT_WAITS[this.reconnecting++]);
   }
 
@@ -304,6 +312,11 @@ export class Coop {
       case 'welcome':
         if (this.role === 'host' && this.info) this.link?.send(infoMessage(this.info));
         if (this.host && this.phase === 'playing') return this.hostBack(m.players);
+        // A desk back in its room (D-164).
+        if (this.reconnecting && this.onAsk) {
+          this.reconnecting = 0;
+          this.onNotice('Back in the room.');
+        }
         this.slot = m.slot;
         this.players = m.players;
         // Back in after a dropped connection: the host sends a fresh copy, as to anyone joining.
