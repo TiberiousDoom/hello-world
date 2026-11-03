@@ -41,8 +41,9 @@ describe("The dedicated server's desk (D-164)", () => {
     expect(asked).toEqual([ask]);
     expect(await askDesk('local', '764DZZ', '1.0.0', '', ask)).toEqual({ refused: 'password' });
     expect(await askDesk('local', '764DZZ', '2.0.0', await passHash('764DZZ', 'hunter2'), ask)).toEqual({ refused: 'version' });
-    // The desk never starts a game, and the player who asked has gone again.
+    // The desk never starts a game, and the player who asked goes again (its leaving arrives after the answer).
     expect(desk.phase).toBe('lobby');
+    for (let i = 0; i < 100 && desk.players.length > 1; i++) await new Promise((r) => setTimeout(r, 10));
     expect(desk.players).toEqual([0]);
     desk.leave();
     // Nobody there: no answer.
