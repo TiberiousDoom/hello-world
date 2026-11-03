@@ -259,3 +259,22 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - 🚧 Trademark check on the final name: a first check of Nestfall found no trademark and no store listing (D-167). ⬜ The owner searches tmsearch.uspto.gov
 - ✅ Licences for third-party assets tracked in [CREDITS.md](CREDITS.md) (music; Montserrat is OFL)
 - ⬜ Privacy policy (required by app stores, even with no data collection)
+
+### Business setup (D-168)
+The studio is **Box47 Games LLC**, in Missouri; it publishes Nestfall. In this order, since each step needs the one before.
+None of this is legal or tax advice: a one-hour talk with a Missouri small-business lawyer or accountant can confirm it.
+- ✅ Studio name chosen: Box47 Games (no clash found; the name is free on the Missouri Secretary of State's business search)
+- ✅ Web addresses bought, on Cloudflare: `playnestfall.com` (the game) and `box47games.com` (the studio)
+- ⬜ Check the owner's day-job agreement for rules on side businesses and who owns what they make
+- ⬜ File the Articles of Organization online at sos.mo.gov ($50; Missouri has no annual report or fee for LLCs), as "Box47 Games LLC"
+- ⬜ Choose the registered agent: the owner (free, but the home address becomes public) or a service (about $50–$130 a year, keeps it private)
+- ⬜ Get the EIN at irs.gov (free, about 10 minutes; never pay a website for it)
+- ⬜ Write a one-page operating agreement (not filed; backs up the liability protection, and banks may ask for it)
+- ⬜ Open a business bank account; from then on the LLC pays the game's costs (domains, Cloudflare, store fees) and takes its income
+- ⬜ Check whether the owner's city or county wants a business licence for a home business
+- ⬜ Move the two domains into the LLC's name, and sign the game's copyright over to the LLC (a one-page assignment)
+- ⬜ Point Ko-fi payouts at the business account (D-166)
+- ⬜ Apply for a D-U-N-S number (free, can take a couple of weeks; Apple needs it for an organization account)
+- ⬜ Apple Developer ($99 a year) and Google Play ($25 once) accounts as the organization (M5)
+- ⬜ File the Nestfall trademark in the LLC's name, after the owner's own USPTO search (classes 9 and 41)
+- ⬜ Taxes: a one-person LLC files as the owner by default (Schedule C). Ask an accountant about tips and direct sales once money comes in; the app stores collect sales tax on their own sales

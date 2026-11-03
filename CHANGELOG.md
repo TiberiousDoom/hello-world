@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.91.1 · 2026-11-03 · A studio
+### New
+- **Nestfall has a studio:** Box47 Games. Nothing changes in the game; this is groundwork for the app stores.
+
 ## 0.91.0 · 2026-11-03 · A new name: Nestfall
 ### New
 - **The game is called Nestfall now.** "Foundry Front" was a working title, and FOUNDRY is already a factory game on Steam. Your saves, settings and co-op rooms carry on as they were.
