@@ -163,7 +163,9 @@ CI from master.
 - **The server's desk (D-164):** a room the dedicated server hosts that never starts a game. A guest's
   messages there are requests (`DeskAsk` in `protocol.ts`); the server answers each one (`DeskReply`).
   The main room's info lists the made rooms and the desk's code, at most 12 rooms, kept within the
-  relay's 2 KB per host.
+  relay's 2 KB per host. A maker renames or deletes their room with the key whose hash it was made with (D-165).
+- **Quiet when empty (D-165):** a host with no guests sends no turns, only heartbeats, which Cloudflare
+  answers without waking the room, so an empty room's Durable Object can sleep.
 - **What the host lets in:** only commands a guest may send, with whole numbers and known names
   (`validCommand` in `lockstep.ts`); a fuzz test applies thousands of odd ones without a throw.
 

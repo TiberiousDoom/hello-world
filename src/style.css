@@ -308,10 +308,25 @@ body.in-menu #toasts {
   background: var(--sky);
   color: var(--navy-ink);
 }
-/* Where they don't fit stacked, one button names the current group and steps on to the next. */
+/* Where they don't fit stacked, one button names the current group and steps on to the next: narrow, its
+   name turned on its side like the dividers' (#215). */
 @media (pointer: coarse), (max-width: 600px) {
+  #toolbar .groups {
+    padding-right: 4px;
+  }
   #toolbar .group:not(.active) {
     display: none;
+  }
+  #toolbar .group.active {
+    flex: 1 1 auto;
+    width: 30px;
+    padding: 6px 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: center;
+    font: 700 11px/1 system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
   #toolbar .group.active::after {
     content: ' ›';
@@ -481,6 +496,31 @@ body.in-menu #toasts {
 }
 .tool.pack-btn:not(.active) {
   background: var(--panel);
+}
+/* On a phone it floats over the map's corner instead, small, so the toolbar's whole width goes to the
+   buildings (#215). The inventory and building panels open in that corner, so it steps aside for them
+   (the inventory's own panel closes it). */
+@media (pointer: coarse), (max-width: 600px) {
+  #toolbar .tool.pack-btn {
+    position: fixed;
+    right: 10px;
+    bottom: calc(112px + var(--safe-bottom));
+    min-width: 0;
+    width: 52px;
+    height: 52px;
+    padding: 4px 2px;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  }
+  #toolbar .tool.pack-btn .label {
+    display: none;
+  }
+  body:has(#info:not([hidden])) #toolbar .tool.pack-btn,
+  body:has(#pack:not([hidden])) #toolbar .tool.pack-btn {
+    display: none;
+  }
 }
 #info p {
   margin: 4px 0 6px;
@@ -879,6 +919,29 @@ body.in-menu #toasts {
 .coop-room-list li[data-state='full'] .coop-state,
 .coop-room-list li[data-state='version'] .coop-state {
   color: var(--warn);
+}
+.coop-room-list .coop-room-manage {
+  padding-inline: 8px;
+}
+.coop-manage {
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--navy-deep);
+}
+.coop-manage p {
+  margin: 0;
+}
+.coop-manage-buttons {
+  display: flex;
+  gap: 8px;
+}
+.coop-manage-buttons button {
+  flex: 1;
+  justify-content: center;
+}
+#coop-manage-delete.confirm {
+  background: var(--danger);
+  color: #fff;
 }
 .coop-make-box summary {
   cursor: pointer;

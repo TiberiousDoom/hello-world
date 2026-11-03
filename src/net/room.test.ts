@@ -256,7 +256,23 @@ describe("The dedicated server's desk (D-164)", () => {
   it('takes only well-formed requests for a new room', () => {
     const ok = { t: 'new', code: '764DAB', name: ' Weekend  crew ', pass: 'ab'.repeat(32) };
     expect(cleanAsk(JSON.stringify(ok))).toEqual({ ...ok, name: 'Weekend crew' });
-    expect(cleanAsk(JSON.stringify({ ...ok, pass: '' }))?.pass).toBe('');
+    expect(cleanAsk(JSON.stringify({ ...ok, pass: '' }))).toMatchObject({ pass: '' });
+    // A maker's key, hashed, for changing the room later (D-165); and the changes, with the key itself.
+    const owner = 'cd'.repeat(32);
+    expect(cleanAsk(JSON.stringify({ ...ok, owner }))).toEqual({ ...ok, name: 'Weekend crew', owner });
+    expect(cleanAsk(JSON.stringify({ ...ok, owner: 'short' }))).toBeNull();
+    const key = 'ef'.repeat(16);
+    expect(cleanAsk(JSON.stringify({ t: 'rename', code: '764DAB', name: ' New\tname ', key }))).toEqual({ t: 'rename', code: '764DAB', name: 'New name', key });
+    expect(cleanAsk(JSON.stringify({ t: 'delete', code: '764DAB', key, extra: 1 }))).toEqual({ t: 'delete', code: '764DAB', key });
+    for (const bad of [
+      { t: 'rename', code: '764DAB', name: '', key },
+      { t: 'delete', code: '764DAB', key: 'ab' },
+      { t: 'delete', code: '764DAB' },
+      { t: 'delete', code: 'nope', key },
+    ])
+      expect(cleanAsk(JSON.stringify(bad))).toBeNull();
+    expect(validReply({ t: 'done' })).toBe(true);
+    expect(validReply({ t: 'no', reason: 'in-use' })).toBe(true);
     for (const bad of [
       { ...ok, t: 'delete' },
       { ...ok, code: '764DA0' },

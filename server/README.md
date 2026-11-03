@@ -27,6 +27,9 @@ password. The server opens it with a new world, lists it under its main room, an
   running costs memory even while paused, so keep the number modest on a small PC.
 - A made room nobody plays in for `FOUNDRY_ROOM_DAYS` (30) is saved, closed and moved to `archive/<code>-<date>/`.
   To bring one back, stop the server, move its folder back into `rooms/` (named with its code) and start it.
+- The browser that made a room can rename or delete it from Play together (D-165): it keeps a key whose hash
+  is in the room's `room.json`. Deleting archives the room, like idling, and needs it empty. Rooms made
+  before 0.90.0 have no key.
 - To remove a room yourself, stop the server, delete or move its folder out of `rooms/`, and start it again.
 - Every code the server uses starts with the main room's first 4 characters, so one relay entry reserves them all.
 
@@ -116,6 +119,15 @@ Players must be on the server's version, and the game on GitHub Pages updates wi
 `master`. Every 5 minutes, `update.sh` checks `master`. When there's something new and nobody is
 playing, it updates, rebuilds and restarts the server. Someone opening the newer game meanwhile is told
 that the versions differ. Run `sudo systemctl start foundry-update` to check now.
+
+## When the connection drops
+
+The log says why each connection to the relay ended, for example
+`Room 764D2J: connection to the relay ended after 19 min (close code 1006).` Code 1006 means it was cut
+with no goodbye, which a network drop does; 1001 or 1012 mean the relay restarted (as it does when a new
+version deploys). "No answer to its heartbeat" means the connection died silently and the server noticed.
+The room is back within seconds either way. If drops come every few minutes, check the relay's usage in
+Cloudflare (Workers & Pages → foundry-front-relay → Metrics) for errors or limits being reached.
 
 ## Useful commands
 
