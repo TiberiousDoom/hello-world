@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.94.1 · 2026-11-03 · Measuring the defences
+### New
+- **Behind the scenes: a balance test** pits each age's defences against every kind of nest, so changes to the numbers can be measured before you play them. Nothing changes in the game yet.
+
 ## 0.94.0 · 2026-11-03 · Error reports
 ### New
 - **Error reports, if you agree:** the first time the game hits an error, it asks whether it may tell the developer. If you say yes, each kind of error is sent once a visit, with the version, your browser and screen, and how far into the game you are. Never your save or anything about you. Change your mind in Settings → Error reports.
