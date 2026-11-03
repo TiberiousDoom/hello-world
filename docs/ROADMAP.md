@@ -37,9 +37,10 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
 3. ✅ **Error reports that arrive by themselves** (0.94.0, D-173): with the player's consent, a page error is sent to
    our own relay, not a third party, where the developer reads them (D-175); the privacy page says so.
 4. 🚧 **A first balance pass:** ✅ the balance script (0.94.1, D-174) pits each age's reference outpost against every
-   kind of nest. Its first table: the Wood and Iron outposts hold against every nest, stage 3 included (when kept
-   full); bugs ignore the Steam and Electric outposts, whose steel walls make every path cost more than the bugs'
-   path limit. ⬜ Decide what each age should hold, then the 7 playtesters' notes.
+   kind of nest, and at each threat level. ✅ Bugs no longer ignore steel-walled bases (0.94.3, D-176). Kept full,
+   the Wood outpost holds against warrens, runnels and hives at every threat level, dens to threat 5 and barrows to
+   threat 2 (stage 3 nests); the Iron, Steam and Electric outposts hold against every nest at threat 10. ⬜ Decide
+   what each age should hold, then the 7 playtesters' notes.
 5. ⬜ **Playtest round with the 7 playtesters:** what they hit goes into `playtest` issues through the feedback form.
    Then more playtesters, people the owner doesn't know.
 6. ⬜ **Decide the first paid platform (Q-24) and what the purchase is (Q-25).** Everything in Platform and release

@@ -394,8 +394,13 @@ export type StrikeError = 'not-ready' | 'unexplored' | 'bounds';
 /** A save from before v8: it can't be loaded into the new kind of map. */
 export class OldSaveError extends Error {}
 
-/** Attack paths reach this far from buildings (bugs give up long before; see NESTS.giveUp). */
+/** Attack paths reach this many tiles from buildings, walls chewed through or not (bugs give up long before; see NESTS.giveUp). */
 const FLOW_RANGE = 80;
+/**
+ * The most tiles a bug walks round a building rather than chew through it (D-176). Below it, tougher walls
+ * still turn bugs towards a gap; above it, a wall would make a base cost more than one far away.
+ */
+const WALL_DETOUR = 12;
 /** Attack paths are recomputed at most this often (seconds), while any nest is angry. */
 const FLOW_REFRESH = 0.5;
 /** Extra reach of the shipyard's flow field past its furthest woken nest: detours and chewing through walls. */
@@ -3352,7 +3357,10 @@ export class World {
     if (!id) return this.wet[i] ? 4 : this.state.trees[i] === TREE ? FOREST.bugCost : 1; // bugs wade through ponds, slowly (D-115), and push through trees (D-134)
     const b = this.byId.get(id)!;
     if (!BUILDINGS[b.type].blocking) return 1;
-    return 1 + BUILDINGS[b.type].hp / 25;
+    // Tougher buildings take longer to chew through, so bugs go round them, up to a point: a steel wall
+    // counted as 65 tiles, so a nest beside a steel-walled base chose a building far beyond it, walked away
+    // and gave up (D-176).
+    return 1 + Math.min(BUILDINGS[b.type].hp / 25, WALL_DETOUR);
   }
 
   /** Dijkstra from every building tile outwards, up to FLOW_RANGE: angry bugs follow it downhill. */
@@ -3390,9 +3398,18 @@ export class World {
     return range + NESTS.cell + SHIP_FLOW_MARGIN;
   }
 
+  /**
+   * Tiles walked along each tile's path in the last fillFlow. The search stops `range` tiles out, counted in
+   * tiles walked, not in cost: chewing through a wall costs a lot, so measured in cost a ring of steel walls
+   * (65 a tile) put a base out of reach of any nest more than a few tiles away, and its bugs went home (D-176).
+   */
+  private walked = new Float64Array(0);
+
   private fillFlow(flow: Float64Array, targets: Building[], range: number): void {
     const { width: w, height: h } = this.state;
     flow.fill(Infinity);
+    if (this.walked.length !== flow.length) this.walked = new Float64Array(flow.length);
+    const walked = this.walked;
     const heap = new MinHeap();
     for (const b of targets) {
       const [bw, bh] = this.footprintOf(b);
@@ -3400,12 +3417,13 @@ export class World {
         for (let dx = 0; dx < bw; dx++) {
           const i = this.idx(b.x + dx, b.y + dy);
           flow[i] = 0;
+          walked[i] = 0;
           heap.push(i, 0);
         }
     }
     while (heap.size) {
       const [i, d] = heap.pop();
-      if (d > flow[i] || d > range) continue;
+      if (d > flow[i] || walked[i] >= range) continue;
       const x = i % w;
       const y = (i - x) / w;
       const step = this.enterCost(i);
@@ -3417,6 +3435,7 @@ export class World {
         const nd = d + step;
         if (nd < flow[n]) {
           flow[n] = nd;
+          walked[n] = walked[i] + 1;
           heap.push(n, nd);
         }
       }

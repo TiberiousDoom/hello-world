@@ -519,7 +519,10 @@ Numbers live in `NESTS` in `src/sim/data.ts`; the rules are in `src/sim/nests.ts
   - one of its bugs is shot (by a turret, a cannon or the hub gun), or a bug of a nest next to it is.
 - A provoked nest's bugs go for the **nearest buildings**, following a path field from every building
   outwards. Belts, splitters and tunnels can be walked over; other buildings block, and bugs chew
-  through whatever they reach. There's no fixed leash (D-091): a bug keeps chasing, however far from home,
+  through whatever they reach. A tougher building counts as more tiles of walking (1 + its health ÷ 25),
+  so bugs go round walls to a gap, but never more than **12** extra: past that they chew through, so
+  no wall, steel included, turns a nest away from a base towards one further off (D-176). Paths reach
+  80 tiles from buildings, counted in tiles walked. There's no fixed leash (D-091): a bug keeps chasing, however far from home,
   while a building or an engineer is within **20 tiles** of it in a straight line (28 at night). With
   nothing that close, it gives up and walks home, and sets off again only if something comes within
   reach. Chasing the engineer, bugs follow them until they get 20 tiles away.

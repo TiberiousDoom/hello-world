@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.94.3 · 2026-11-03 · Steel walls don't scare bugs away
+### Fixed
+- **Bugs attack bases walled in steel:** a ring of steel walls used to make a nest's bugs give up and go home instead of attacking, so walled bases were left alone. Now walls slow them down and steer them to gaps, but they always come.
+
 ## 0.94.2 · 2026-11-03 · Error reports stay on the relay
 ### Fixed
 - **The privacy page is up to date:** error reports you agree to send are kept on the game's relay for the developer to read; they aren't emailed.
