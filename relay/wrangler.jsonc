@@ -6,7 +6,15 @@
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
   "durable_objects": {
-    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+    "bindings": [
+      { "name": "ROOMS", "class_name": "Room" },
+      { "name": "REPORTS", "class_name": "Reports" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["Reports"] }
+  ],
+  // Error reports (D-173) mail new kinds of error to REPORT_TO, a secret, from reports@box47games.com.
+  "send_email": [{ "name": "REPORT_MAIL" }]
 }

@@ -924,7 +924,8 @@ one research tree, one supply ship.
   this game's progress (mode, time, seed, buildings, research, nests, supply ship) and the last few page
   errors. **Open on GitHub** opens a new issue with all of it filled in (labelled playtest, plus bug or
   enhancement), for the player to submit; **Copy** puts it on the clipboard for players without a GitHub
-  account; **Download save** saves the current game as a file to attach. The game sends nothing itself.
+  account; **Download save** saves the current game as a file to attach. The form sends nothing itself;
+  only error reports do, if the player agreed (D-173).
 - **Settings** (D-144), from the main menu and the pause menu:
   - **Sound:** music and sound effects volumes.
   - **Screen:** the size of text and buttons (80–140%; it starts from the browser's own text size, so
@@ -936,6 +937,11 @@ one research tree, one supply ship.
     **Import a factory**, from the main menu, loads one back in any browser, replacing the factory there after
     asking. A file that isn't a save, or a run that has ended, is refused. A line says whether the browser has
     agreed to keep the game's storage: the game asks it to when a game starts.
+  - **Error reports** (D-173): "Send error reports to the developer when something goes wrong". The first
+    time the game hits an error it asks, once; the answer is kept and this switch changes it. A report holds
+    the error and where it happened, the version, the browser and screen, and the main menu or the mode and
+    minutes played; never the save. Each kind of error is sent once a visit, 5 at most, to the relay, and
+    only from the game's own address.
   - **Controls:** "Confirm before building on touch screens", and the **keys**: click an action's key,
     then press the new one. A key another action had swaps over. Walking, Enter, Esc, Tab, Delete and the
     number keys can't be taken. Kept in this browser.
