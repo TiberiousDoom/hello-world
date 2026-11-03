@@ -1,5 +1,5 @@
 import { type Page } from '@playwright/test';
-import { buildTile, calm, expect, isTouch, newGame, selectHub, test } from './helpers';
+import { buildTile, calm, expect, isTouch, newGame, selectHub, tap, test, uncoveredTile } from './helpers';
 
 /** Open ground right of the hub, cleared of ore and trees. */
 async function clearing(page: Page): Promise<[number, number]> {
@@ -52,4 +52,37 @@ test('the research menu lists what can start first and what is done last (#154)'
   expect(seq[0]).toMatch(/^open /);
   expect(seq.slice(0, doneAt).every((r) => r.startsWith('open'))).toBe(true);
   expect(seq[doneAt + 1]).toBe('done Forestry'); // researched first
+});
+
+test('a tap that closes a panel, or a finger resting on the ground, does not send the engineer off (#213)', async ({ page }, info) => {
+  await newGame(page);
+  await calm(page);
+  const [x0, y0] = await clearing(page);
+  const walking = () => page.evaluate(() => window.game.world.state.players[0].path.length > 0);
+  const point = (x: number, y: number) => uncoveredTile(page, x, y);
+
+  // The hub's panel is open: tapping the ground closes it, and the engineer stays put.
+  await selectHub(page, info);
+  await tap(page, info, ...(await point(x0 + 2, y0 + 2)));
+  await expect(page.locator('#info')).toBeHidden();
+  expect(await walking()).toBe(false);
+
+  // With nothing selected, a tap walks there.
+  await tap(page, info, ...(await point(x0 + 2, y0 + 2)));
+  await expect.poll(walking).toBe(true);
+  await page.evaluate(() => {
+    const p = window.game.world.state.players[0];
+    window.game.world.moveTo(Math.floor(p.x), Math.floor(p.y)); // stop where it is
+  });
+  await expect.poll(walking).toBe(false);
+
+  // A press held down, instead of a tap, doesn't walk.
+  if (!isTouch(info)) {
+    await page.mouse.move(...(await point(x0 + 5, y0 + 4)));
+    await page.mouse.down();
+    await page.waitForTimeout(700);
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    expect(await walking()).toBe(false);
+  }
 });

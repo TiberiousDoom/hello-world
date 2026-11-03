@@ -431,7 +431,8 @@ You have a character, an engineer (#40, D-067), who starts just below the hub. N
 in `src/sim/data.ts`; the rules are in `src/sim/player.ts`.
 
 - **Walking:** with no tool in hand, tap or click empty ground and the engineer walks there (4 tiles a
-  second), around walls, machines and nest mounds; belts can be walked over. A ring marks where it's
+  second). A tap that only closes a building's panel doesn't walk, and neither does a finger left resting on
+  the ground (a long press), so the engineer isn't sent off by accident (D-171, #213). It walks around walls, machines and nest mounds; belts can be walked over. A ring marks where it's
   going. On a keyboard, **WASD or the arrow keys** walk it directly, and the camera follows. If
   something is built across its way, it stops. If something is built on top of it, it steps out to the
   nearest free tile (#206).
@@ -965,7 +966,7 @@ and stumps under a moved or turned building are cleared, as under a new one.
 |---|---|---|
 | Build | Left click (builds at once) | Tap, then ✓ (or tap the same spot again) |
 | Select | Click a building | Tap a building |
-| Walk (your engineer) | Click empty ground with no tool, or WASD / arrow keys | Tap empty ground with no tool |
+| Walk (your engineer) | Click empty ground with no tool and nothing selected, or WASD / arrow keys | Tap empty ground with no tool and nothing selected |
 | Mine by hand | Click bare ore or stone with no tool (hold to keep mining) | Tap it with no tool (hold to keep mining); the phone ticks on each tap and buzzes when the ore comes loose (#84) |
 | Lay belts, walls or palisades | Drag out a line, then ✓ or Enter | Drag out a line, then ✓ |
 | Drag a building into place | Press and drag, then click it (or ✓ or Enter) | Press and drag, then ✓ |

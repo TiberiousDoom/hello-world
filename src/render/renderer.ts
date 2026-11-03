@@ -154,6 +154,10 @@ function hardened(img: HTMLCanvasElement): HTMLCanvasElement {
 }
 /** Tiles across a nest's art is drawn: a fixed box by kind (D-152), bigger merged (D-132); a destroyed one's crater 2. */
 const nestArtSize = (n: Nest): number => (n.destroyed ? 2 : (n.queen ? NEST_QUEEN_BOX : NEST_BOX) * (n.cells ? 1.3 : 1));
+/** Seconds the shipyard's crane keeps working after something is delivered to it (#212). */
+const SHIP_WORK_FOR = 6;
+/** Working strips that run slower than 8 frames a second: the shipyard's crane is big and slow (#212). */
+const WORK_FPS: Partial<Record<BuildingType, number>> = { shipyard: 2.5 };
 /** The shipyard and its ship are drawn 3 tiles square. */
 const SHIP_SIZE = 5; // the shipyard's footprint (3 before D-109)
 
@@ -388,6 +392,9 @@ export class Renderer {
   /** Research done, ship stage and fallen nests last frame, for their effects (D-160). */
   private researchWas = -1;
   private stageWas = -1;
+  /** What the shipyard had been given last frame, and the game time its crane works until (#212). */
+  private shipLoadWas = '';
+  private shipWorkUntil = 0;
   private nestsDown = new Set<number>();
   /** When each turret last showed its lock-on (ms) (D-160). */
   private lockedAt = new Map<number, number>();
@@ -2477,7 +2484,7 @@ export class Renderer {
       case 'port':
         return b.progress > 0 || b.outputs.length > 0;
       case 'shipyard':
-        return world.state.ship.stage < SHIP.stages.length && !launching(world);
+        return world.state.time < this.shipWorkUntil && !launching(world);
       default:
         return false;
     }
@@ -2572,7 +2579,7 @@ export class Renderer {
       (b.type === 'repair' && world.healed.some((h) => h.by === b.id && h.age < 0.6)) ||
       this.showsWork(world, b);
     const key = this.spriteKey(world, b);
-    const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * 8 + b.id) : undefined;
+    const anim = working && key === `buildings/${b.type}` ? frame(`buildings/${b.type}_working`, world.state.time * (WORK_FPS[b.type] ?? 8) + b.id) : undefined;
     if (!this.drawSpriteRect(key, b.x, b.y, fw, fh, directional ? b.dir : 0, anim ?? sprite(key))) {
       ctx.fillStyle = def.color;
       ctx.fillRect(b.x + 0.08, b.y + 0.08, fw - 0.16, fh - 0.16);
@@ -3240,6 +3247,10 @@ export class Renderer {
     const yard = shipyard(world);
     if (yard && this.stageWas >= 0 && s.ship.stage > this.stageWas) this.spriteFx('effects/fireworks', yard.x + SHIP_SIZE / 2, yard.y + SHIP_SIZE / 2, SHIP_SIZE * 1.1, 1400, now);
     this.stageWas = s.ship.stage;
+    // Something delivered to the shipyard: its crane works for a while, instead of all the time (#212).
+    const load = `${s.ship.stage}:${s.ship.runs}:${Object.values(s.ship.delivered).reduce((a, n) => a + (n ?? 0), 0)}`;
+    if (this.shipLoadWas && load !== this.shipLoadWas) this.shipWorkUntil = s.time + SHIP_WORK_FOR;
+    this.shipLoadWas = load;
     // A nest destroyed: chitin bursts out of it (D-160).
     for (const n of s.nests) {
       if (!n.destroyed || this.nestsDown.has(n.id)) continue;
