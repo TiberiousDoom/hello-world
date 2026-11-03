@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.94.2 · 2026-11-03 · Error reports stay on the relay
+### Fixed
+- **The privacy page is up to date:** error reports you agree to send are kept on the game's relay for the developer to read; they aren't emailed.
+
 ## 0.94.1 · 2026-11-03 · Measuring the defences
 ### New
 - **Behind the scenes: a balance test** pits each age's defences against every kind of nest, so changes to the numbers can be measured before you play them. Nothing changes in the game yet.

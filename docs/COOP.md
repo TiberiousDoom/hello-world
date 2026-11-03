@@ -168,11 +168,12 @@ CI from master.
   the game's own pages (a JSON body of at most 4 KB, sent as text so no preflight is needed, fields checked
   by `validReport` in `src/net/report.ts`). One Durable Object, `Reports`, keeps one row per kind of error
   (the same message from the same version) with a count and its latest report, 300 kinds at most, and takes
-  60 reports a minute at most. The first report of a kind is emailed from `reports@box47games.com` to the
-  `REPORT_TO` secret (a verified Email Routing address), 20 a day at most. `GET /reports` with
-  `Authorization: Bearer <REPORTS_KEY>` (a secret) lists them, newest first. Set both secrets in the Cloudflare
-  dashboard (Workers → foundry-front-relay → Settings → Variables and Secrets) or with `npx wrangler secret put`
-  in `relay/`. Without them, reports are still kept, just not emailed or readable.
+  60 reports a minute at most. `GET /reports` with `Authorization: Bearer <REPORTS_KEY>` (a secret) lists them,
+  newest first: `curl -H "Authorization: Bearer <key>" https://foundry-front-relay.stephen-pederson.workers.dev/reports`.
+  Set the secret in the Cloudflare dashboard (Workers → foundry-front-relay → Settings → Variables and Secrets)
+  or with `npx wrangler secret put REPORTS_KEY` in `relay/`. The relay can also email the first report of each
+  kind (from `reports@box47games.com` to a `REPORT_TO` secret, 20 a day at most), but sending email needs the
+  Workers Paid plan, so `REPORT_TO` is left unset and nothing is emailed (D-175).
 - **Quiet when empty (D-165):** a host with no guests sends no turns, only heartbeats, which Cloudflare
   answers without waking the room, so an empty room's Durable Object can sleep.
 - **What the host lets in:** only commands a guest may send, with whole numbers and known names
