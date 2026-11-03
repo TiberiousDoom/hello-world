@@ -1,6 +1,6 @@
 # Runs update.sh (D-084). Started by foundry-update.timer.
 [Unit]
-Description=Update the Foundry Front server when nobody is playing
+Description=Update the Nestfall server when nobody is playing
 
 [Service]
 Type=oneshot

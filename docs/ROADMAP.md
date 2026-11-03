@@ -206,7 +206,7 @@ In this order:
 ## 4. Art and audio
 See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Art direction: whimsical forest clearing around navy-and-steel machines (D-028)
-- ❓ Name (Q-1)
+- 🚧 Name (Q-1): **Nestfall**, for now (0.91.0, D-167). ⬜ A USPTO search by the owner, and the web addresses
 - ✅ Art pipeline: sprites load from `src/art/`, and a PNG replaces a same-named SVG placeholder (M3a)
 - ✅ Placeholder SVGs for every P1 and P2 sprite, plus UI icons and a logo mark (M3a)
 - ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038). Since 0.43.0 most are sprite strips, with these as the fallback (D-082)
@@ -256,6 +256,6 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 
 ## 8. Business and legal
 - ⬜ Optional purchase plus donations or tips (D-017)
-- ⬜ Trademark check on the final name
+- 🚧 Trademark check on the final name: a first check of Nestfall found no trademark and no store listing (D-167). ⬜ The owner searches tmsearch.uspto.gov
 - ✅ Licences for third-party assets tracked in [CREDITS.md](CREDITS.md) (music; Montserrat is OFL)
 - ⬜ Privacy policy (required by app stores, even with no data collection)

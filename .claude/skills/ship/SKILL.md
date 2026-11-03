@@ -1,6 +1,6 @@
 ---
 name: ship
-description: The release loop for Foundry Front, from a fresh branch to a merged PR. Use for any change that will be merged to master (a feature, a fix, a balance change or a docs-only change), and when asked to "release", "ship", "merge" or "close the issues".
+description: The release loop for Nestfall, from a fresh branch to a merged PR. Use for any change that will be merged to master (a feature, a fix, a balance change or a docs-only change), and when asked to "release", "ship", "merge" or "close the issues".
 ---
 
 # Shipping a change

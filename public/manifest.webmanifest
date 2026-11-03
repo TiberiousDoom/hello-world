@@ -1,6 +1,6 @@
 {
-  "name": "Foundry Front",
-  "short_name": "Foundry Front",
+  "name": "Nestfall",
+  "short_name": "Nestfall",
   "description": "Build a factory, hold off the bugs, and fly home.",
   "start_url": "./",
   "scope": "./",

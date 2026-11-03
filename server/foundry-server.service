@@ -1,7 +1,7 @@
 # The dedicated server as a systemd service (D-084): starts at boot, restarts if it stops.
 # Install: see server/README.md. Paths assume the repo is cloned to /home/foundry/hello-world.
 [Unit]
-Description=Foundry Front dedicated co-op server
+Description=Nestfall dedicated co-op server
 After=network-online.target
 Wants=network-online.target
 
