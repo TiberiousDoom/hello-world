@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.92.2 · 2026-11-03 · No more accidental walks
+### Fixed
+- **Your engineer stays put when you didn't mean to move it:** tapping the map to close a building's panel only closes it, and resting a finger on the ground no longer sends the engineer there. Tap again to walk (#213).
+- **The shipyard's crane works only when something arrives,** for a few seconds and at a calmer pace, instead of all the time (#212).
+
 ## 0.92.1 · 2026-11-03 · A roadmap towards players
 ### New
 - **The roadmap points at players now:** fixes for what new players hit first, saves that can't be lost, error reports that reach us by themselves (if you agree), and a balance pass, before anything new is added. Nothing changes in the game yet.

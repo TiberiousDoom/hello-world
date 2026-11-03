@@ -29,8 +29,8 @@ quality and business work don't get left until the end.
 The game's content is built: four ages, co-op, the server, art and music. What's left before a release is getting it
 in front of players, hearing what they hit, and deciding how it's sold (D-170). In this order:
 
-1. ⬜ **What new players hit first:** it's too easy to send the engineer somewhere by accident (#213); the shipyard's
-   animation runs when it has nothing to do (#212).
+1. ✅ **What new players hit first** (0.92.2, D-171): no more sending the engineer somewhere by accident (#213); the
+   shipyard's crane works only when something arrives (#212).
 2. ⬜ **Saves that can't be lost:** import a downloaded save (the feedback form already downloads one); ask the browser
    to keep the game's storage; tell iPhone players in Safari to add the game to the home screen, since Safari deletes
    a site's storage after about 7 days without a visit. Import also lets the game move to playnestfall.com later.

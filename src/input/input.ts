@@ -71,7 +71,9 @@ const WALK_KEYS: Record<string, [number, number]> = {
   d: [1, 0],
   arrowright: [1, 0],
 };
-const TAP_SLOP = 8; // px a pointer may move and still count as a tap
+const TAP_SLOP = 8; // px a mouse may move and still count as a click
+/** A finger wobbles more than a mouse: it may move this far and still count as a tap (#213). */
+const TOUCH_SLOP = 14;
 const WHEEL_STEP = 60; // wheel delta (px) per quarter turn, so trackpads don't spin wildly
 const LONG_PRESS = 450; // ms a finger rests on a building to pick it
 const LIFT_PX = 70; // how far above the finger a dragged blueprint sits (#157)
@@ -82,6 +84,8 @@ export class Input {
   private pointers = new Map<number, { x: number; y: number }>();
   private mode: Mode = 'none';
   private downAt = { x: 0, y: 0 };
+  /** When the current press started (ms), so a long press on the ground doesn't walk the engineer (#213). */
+  private downSince = 0;
   private lastTile: Tile | null = null;
   /** The belt (or other building) this drag just placed, which the next tile may turn. */
   private lastPlaced: { x: number; y: number; type: BuildingType } | null = null;
@@ -192,6 +196,7 @@ export class Input {
     if (this.pointers.size > 2) return;
 
     this.downAt = { x, y };
+    this.downSince = performance.now();
     this.pointerType = e.pointerType;
     if (e.pointerType !== 'mouse' && !this.ui.clipMode) this.startLongPress(this.ui.hover);
     if (e.pointerType === 'mouse' && e.button === 2) {
@@ -300,7 +305,7 @@ export class Input {
       return;
     }
     this.ui.hover = this.tileAt(x, y);
-    const moved = Math.hypot(x - this.downAt.x, y - this.downAt.y) > TAP_SLOP;
+    const moved = Math.hypot(x - this.downAt.x, y - this.downAt.y) > (e.pointerType === 'mouse' ? TAP_SLOP : TOUCH_SLOP);
     if (moved) this.cancelLongPress();
     if (this.mode === 'mine' && moved) this.stopMining();
     if ((this.mode === 'pending' || this.mode === 'right' || this.mode === 'middle' || this.mode === 'mine' || this.mode === 'stamp') && moved) this.mode = 'pan';
@@ -327,8 +332,10 @@ export class Input {
       this.cb.onChange();
     } else if (completed && (this.mode === 'pending' || this.mode === 'mine')) {
       const t = this.tileAt(x, y);
-      // Empty ground: the character walks there (and any selection is cleared).
-      if (this.mode === 'pending' && !this.ui.tool && !this.cb.getWorld().buildingAt(t.x, t.y)) this.cb.issue({ kind: 'move', x: t.x, y: t.y });
+      // Empty ground: the character walks there. Not when the tap only closes a building's panel, or the
+      // finger rested there instead of tapping: both sent the engineer off by accident (#213).
+      const walk = this.mode === 'pending' && !this.ui.tool && this.ui.selected == null && performance.now() - this.downSince < LONG_PRESS;
+      if (walk && !this.cb.getWorld().buildingAt(t.x, t.y)) this.cb.issue({ kind: 'move', x: t.x, y: t.y });
       this.select(t);
     }
     if (this.mode === 'select') this.endSelect(completed);

@@ -36,13 +36,24 @@ test('build the supply ship, load and launch it, deliver the first run, and keep
   await page.click('.tip-next');
   await expect(page.locator('#tutorial')).toBeHidden();
 
-  // Put the tool down, feed the first stage partly, and check the panel.
+  // Put the tool down, feed the first stage partly, and check the panel. The crane works only while things
+  // arrive, not all the time (#212).
   await putDown(page, 'shipyard');
+  const craneWorks = () =>
+    page.evaluate(() => {
+      const r = window.game.renderer as unknown as { showsWork(w: unknown, b: unknown): boolean };
+      return r.showsWork(
+        window.game.world,
+        window.game.world.state.buildings.find((b: { type: string }) => b.type === 'shipyard'),
+      );
+    });
+  expect(await craneWorks()).toBe(false);
   await page.evaluate(() => {
     const w = window.game.world;
     const b = w.state.buildings.find((b: { type: string }) => b.type === 'shipyard');
     for (let i = 0; i < 10; i++) w.insert(b, 'plank', b.x - 1, b.y);
   });
+  await expect.poll(craneWorks).toBe(true);
   await page.mouse.click(...(await tilePoint(page, spot.x, spot.y)));
   await expect(page.locator('#info')).toContainText('Belt in:');
   await expect(page.locator('#info')).toContainText('10/150');
