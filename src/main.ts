@@ -21,6 +21,7 @@ import { PlanBar } from './ui/plan';
 import { PING_MS, createUIState } from './ui/state';
 import { UndoStack, rebuild } from './ui/undo';
 import { KeyList, UI_SCALE_MAX, UI_SCALE_MIN, applyUiScale, systemReducedMotion } from './ui/settings';
+import { iosSafariTab, readSave, saveFileName, saveSummary } from './ui/saves';
 import { keyName } from './ui/keys';
 import { LESSONS, Tutorial } from './ui/tutorial';
 import { Lobby } from './ui/lobby';
@@ -100,6 +101,7 @@ interface Profile {
   batterySaver: boolean; // draw at normal resolution and 30 frames a second
   uiScale: number; // the size of text and buttons, 0.8–1.4 (D-144)
   reducedMotion: boolean | null; // null: as the system says
+  keepTipSeen: boolean; // the note about Safari deleting saves was dismissed (D-172)
 }
 
 function loadProfile(): Profile {
@@ -115,6 +117,7 @@ function loadProfile(): Profile {
     batterySaver: false,
     uiScale: 1,
     reducedMotion: null,
+    keepTipSeen: false,
   };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
@@ -302,6 +305,29 @@ function play(world: World, shared?: Session): void {
   hud.closeModals();
   hud.refresh();
   music.setMood('game');
+  keepStorage();
+}
+
+/**
+ * Asks the browser to keep the game's storage instead of clearing it when space runs low (D-172). Asked once a
+ * session, when a game starts: browsers grant it to sites the player uses, and some ask the player.
+ */
+let storageAsked = false;
+function keepStorage(): void {
+  if (storageAsked || !navigator.storage?.persist) return;
+  storageAsked = true;
+  void navigator.storage
+    .persisted()
+    .then((kept) => kept || navigator.storage.persist())
+    .then(showStorage)
+    .catch(() => {});
+}
+
+/** Settings says whether the browser has promised to keep the game's storage. */
+function showStorage(kept: boolean): void {
+  document.getElementById('save-where')!.textContent = kept
+    ? 'Your factory is saved in this browser, which has agreed to keep it until you clear its data.'
+    : 'Your factory is saved in this browser, which may clear it to free up space or after a long time without a visit. Export it now and then to keep a copy.';
 }
 
 /** Makes this the game being played: the camera and the rest of the screen stay as they are. */
@@ -563,6 +589,73 @@ const openSettings = (fromPause: boolean) => {
   hud.openModal('settings');
 };
 document.getElementById('mm-settings')!.addEventListener('click', () => openSettings(false));
+
+// Saves to take away and bring back (D-172).
+const saveStatus = document.getElementById('save-status')!;
+void navigator.storage
+  ?.persisted?.()
+  .then(showStorage)
+  .catch(() => {});
+document.getElementById('save-export')!.addEventListener('click', () => {
+  if (game && saveKey === SAVE_KEY) save(true);
+  const world = saveKey === SAVE_KEY && game ? game : hasSave() ? peekWorld() : null;
+  if (!world) {
+    saveStatus.textContent = 'There is no factory to export yet. Start a game first.';
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([world.toJSON()], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = saveFileName(world, new Date());
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveStatus.textContent = `Exported your factory (${saveSummary(world)}). Keep the file somewhere safe; Import brings it back, in any browser.`;
+});
+const saveFile = document.getElementById('save-file') as HTMLInputElement;
+document.getElementById('save-import')!.addEventListener('click', () => {
+  // Importing replaces the factory Continue resumes, so not in the middle of a game.
+  if (!inMenu) {
+    saveStatus.textContent = 'Import a factory from the main menu: open Settings there.';
+    return;
+  }
+  saveFile.value = '';
+  saveFile.click();
+});
+saveFile.addEventListener('change', async () => {
+  const file = saveFile.files?.[0];
+  if (!file) return;
+  const read = readSave(await file.text());
+  if ('error' in read) {
+    saveStatus.textContent = read.error;
+    return;
+  }
+  const current = game ?? (hasSave() ? peekWorld() : null);
+  if (current && !current.state.gameOver && !confirm(`Replace your factory (${saveSummary(current)}) with the imported one (${saveSummary(read.world)})? Export yours first to keep it.`)) {
+    saveStatus.textContent = 'Nothing was imported.';
+    return;
+  }
+  try {
+    localStorage.setItem(SAVE_KEY, read.world.toJSON());
+  } catch {
+    saveStatus.textContent = "This browser is blocking storage, or it's full, so the factory couldn't be imported.";
+    return;
+  }
+  game = null;
+  session = null;
+  peeked = null;
+  refreshMainMenu();
+  saveStatus.textContent = `Imported a factory (${saveSummary(read.world)}). Close Settings and press Continue to play it.`;
+});
+
+// Safari on an iPhone or iPad deletes a site's storage after about 7 days without a visit (D-172).
+const keepNote = document.getElementById('mm-keep')!;
+const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true || matchMedia('(display-mode: standalone)').matches;
+keepNote.hidden = profile.keepTipSeen || !iosSafariTab(navigator.userAgent, navigator.maxTouchPoints, standalone);
+document.getElementById('mm-keep-ok')!.addEventListener('click', () => {
+  profile.keepTipSeen = true;
+  saveProfile();
+  keepNote.hidden = true;
+});
 document.getElementById('btn-settings')!.addEventListener('click', () => openSettings(true));
 // However Settings closes (its ✕ or a click outside it), it goes back to the pause menu it came from,
 // unless something else opened in its place.
@@ -711,7 +804,7 @@ document.getElementById('fb-save')!.addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([game.toJSON()], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `foundry-front-${VERSION}-save.json`;
+  a.download = `nestfall-${VERSION}-save.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   fbStatus.textContent = 'Saved a copy of this game. Attach the file to your report.';

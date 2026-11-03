@@ -157,7 +157,7 @@ test('Send feedback builds a report with diagnostics, opens GitHub, copies it an
 
   const download = page.waitForEvent('download');
   await page.click('#fb-save');
-  expect((await download).suggestedFilename()).toMatch(/^foundry-front-.*-save\.json$/);
+  expect((await download).suggestedFilename()).toMatch(/^nestfall-.*-save\.json$/);
 });
 
 test('a new Standard game can be Easy or Hard; the game keeps the choice (D-138)', async ({ page }) => {

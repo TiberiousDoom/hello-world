@@ -31,9 +31,9 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
 
 1. ✅ **What new players hit first** (0.92.2, D-171): no more sending the engineer somewhere by accident (#213); the
    shipyard's crane works only when something arrives (#212).
-2. ⬜ **Saves that can't be lost:** import a downloaded save (the feedback form already downloads one); ask the browser
-   to keep the game's storage; tell iPhone players in Safari to add the game to the home screen, since Safari deletes
-   a site's storage after about 7 days without a visit. Import also lets the game move to playnestfall.com later.
+2. ✅ **Saves that can't be lost** (0.93.0, D-172): export and import in Settings; the browser asked to keep the game's
+   storage; iPhone players in Safari told to add the game to the Home Screen, since Safari deletes a site's storage
+   after about 7 days without a visit. Import also lets the game move to playnestfall.com later.
 3. ⬜ **Error reports that arrive by themselves** (Q-7): with the player's consent, a page error is sent to our own
    relay, not a third party, and the privacy page says so.
 4. ⬜ **A first balance pass,** led by a headless script that pits nests at each distance against a reference
@@ -215,8 +215,8 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - 🚧 A performance budget: 60 fps on a mid-range phone with 1,000 buildings and 200 enemies. ✅ A test holds the game to a tick and draw budget on such a base (0.87.4, `src/sim/perf.test.ts`, `e2e/perf.spec.ts`). ⬜ Measured on a real phone
 - ✅ Lint and format checks (0.85.0, D-144): ESLint and Prettier, run in CI (`npm run lint`)
 - 🚧 Error reporting (Q-7): the feedback form includes recent page errors when a player sends a report (D-064). ⬜ Reports sent by themselves, with consent, to our own relay (Next up 3)
-- 🚧 Save export and import: the feedback form can download the current game. ⬜ Importing a save, and storage the browser keeps (Next up 2)
-- ⬜ Move the game to `playnestfall.com`, once players can bring their saves (a save made on the old address can't be read from the new one)
+- ✅ Save export and import (0.93.0, D-172): Settings → Saves exports and imports a factory; the browser is asked to keep the game's storage
+- ⬜ Move the game to `playnestfall.com`: players bring their factory with Export and Import (D-172), since a save made on the old address can't be read from the new one
 
 ## 6. Platform and release
 - ✅ Single-file build for sharing (claude.ai artifact)

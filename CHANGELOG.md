@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.93.0 · 2026-11-03 · Keep your factory
+### New
+- **Export and import your factory** in Settings → Saves: keep a copy as a file, or carry it to another device or browser. Import from the main menu; it asks before replacing the factory there.
+- **The game asks your browser to keep its saved data,** and Settings says whether it agreed.
+- **On an iPhone or iPad,** the main menu warns once that Safari deletes a website's data after about 7 days without a visit, and how to keep your factory: add Nestfall to your Home Screen, or export it now and then.
+
 ## 0.92.2 · 2026-11-03 · No more accidental walks
 ### Fixed
 - **Your engineer stays put when you didn't mean to move it:** tapping the map to close a building's panel only closes it, and resting a finger on the ground no longer sends the engineer there. Tap again to walk (#213).
