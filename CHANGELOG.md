@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.89.1 · 2026-11-03 · The server's desk holds on
+### Fixed
+- **Making a room on the server no longer fails for a while after a network blip.** The server's desk, which makes the rooms, now gets back in within seconds after its connection drops, as the server's rooms do, instead of closing and waiting 15 seconds to open again.
+
 ## 0.89.0 · 2026-11-02 · Rooms of your own on the server
 ### New
 - **Make your own room on the dedicated server:** under Play together → **Make a room on the server**, give it a name (and a password if you like) and you're straight into a new world of its own. It stays on the server, always on like the main one, for you and your friends to come back to.
