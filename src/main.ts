@@ -1,4 +1,5 @@
 import { Music } from './audio/music';
+import { PRIVACY_URL, supportUrl } from './ui/links';
 import { Sfx } from './audio/sfx';
 import { Critters } from './audio/critters';
 import { SoundWatcher } from './audio/sounds';
@@ -717,6 +718,13 @@ document.getElementById('fb-save')!.addEventListener('click', () => {
 });
 
 document.getElementById('mm-whatsnew')!.addEventListener('click', openWhatsNew);
+// The privacy page, and a tip jar once there's one to link (D-169).
+document.getElementById('mm-privacy')!.setAttribute('href', PRIVACY_URL);
+const support = supportUrl();
+if (support) {
+  document.getElementById('mm-support')!.setAttribute('href', support);
+  document.getElementById('mm-support-wrap')!.hidden = false;
+}
 document.getElementById('btn-whatsnew')!.addEventListener('click', openWhatsNew);
 showVersion();
 

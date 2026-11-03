@@ -1,7 +1,7 @@
 {
   "name": "foundry-front",
   "private": true,
-  "version": "0.91.1",
+  "version": "0.92.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -28,5 +28,8 @@
     "vite": "^7.3.7",
     "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@fontsource/montserrat": "5.3.0"
   }
 }

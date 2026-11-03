@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.92.0 · 2026-11-03 · Privacy, and a way to say thanks
+### New
+- **A privacy page,** linked from the main menu: the game has no accounts, ads, analytics or tracking, and your saves stay on your device. It says exactly what co-op and the server keep, and for how long.
+- **♥ Support the game:** a link in the main menu to the developer's Ko-fi page, for anyone who wants to leave a tip. The game stays free.
+
+### Fixed
+- **The game's font comes with the game** instead of from Google Fonts, so loading it contacts no other company, and the font works offline in the single-file version too.
+
 ## 0.91.1 · 2026-11-03 · A studio
 ### New
 - **Nestfall has a studio:** Box47 Games. Nothing changes in the game; this is groundwork for the app stores.

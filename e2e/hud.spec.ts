@@ -111,6 +111,16 @@ test("the main menu shows the version, and What's new lists the changes until it
   await expect(page.locator('#mm-whatsnew .new-dot')).toBeHidden(); // remembered
 });
 
+test("the main menu's footer links the privacy page and the developer's Ko-fi page (D-169)", async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#mm-privacy')).toHaveAttribute('href', /\/privacy\.html$/);
+  await expect(page.locator('#mm-support')).toBeVisible();
+  await expect(page.locator('#mm-support')).toHaveAttribute('href', 'https://ko-fi.com/box47games');
+  // The page itself, with a real contact address.
+  await page.goto('/privacy.html');
+  await expect(page.locator('#contact')).toHaveAttribute('href', 'mailto:hello@box47games.com');
+});
+
 test('Send feedback builds a report with diagnostics, opens GitHub, copies it and downloads the save', async ({ page, context }, info) => {
   await newGame(page);
   await page.click('#menu-btn');

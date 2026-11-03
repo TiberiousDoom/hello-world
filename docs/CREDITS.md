@@ -14,7 +14,8 @@ Their licence certificates stay in [`audio/source/`](../audio/source/) as the re
 ## Fonts
 
 [Montserrat](https://fonts.google.com/specimen/Montserrat) by Julieta Ulanovsky and contributors,
-under the SIL Open Font License 1.1, loaded from Google Fonts.
+under the SIL Open Font License 1.1, bundled with the game from the
+[@fontsource/montserrat](https://fontsource.org/fonts/montserrat) package (since 0.92.0; before, loaded from Google Fonts).
 
 ## Reference images
 
