@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.92.1 · 2026-11-03 · A roadmap towards players
+### New
+- **The roadmap points at players now:** fixes for what new players hit first, saves that can't be lost, error reports that reach us by themselves (if you agree), and a balance pass, before anything new is added. Nothing changes in the game yet.
+
 ## 0.92.0 · 2026-11-03 · Privacy, and a way to say thanks
 ### New
 - **A privacy page,** linked from the main menu: the game has no accounts, ads, analytics or tracking, and your saves stay on your device. It says exactly what co-op and the server keep, and for how long.
