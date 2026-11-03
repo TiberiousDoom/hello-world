@@ -1,6 +1,6 @@
 ---
 name: steward
-description: How Foundry Front's PRs are looked after once open - CI, merging and issues. Read when watching or driving a PR in this repository.
+description: How Nestfall's PRs are looked after once open - CI, merging and issues. Read when watching or driving a PR in this repository.
 ---
 
 # Looking after a PR

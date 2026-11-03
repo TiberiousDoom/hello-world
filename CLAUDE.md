@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## The project
 
-**Foundry Front** (working title): a Builderment-inspired factory game with a tower-defense twist,
+**Nestfall** (named in D-167; formerly Foundry Front, a name still in code identifiers): a Builderment-inspired factory game with a tower-defense twist,
 for the browser on desktop and phones. TypeScript, Vite 7, Canvas 2D, no framework.
 `master` deploys to GitHub Pages (https://tiberiousdoom.github.io/hello-world/).
 

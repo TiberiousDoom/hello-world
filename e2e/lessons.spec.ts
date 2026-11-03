@@ -35,17 +35,22 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
     return best;
   });
   const logs = () => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'log' ? s.n : 0), 0));
-  // A tap that lands while the camera glides can miss the tree and send the engineer elsewhere: then try again.
-  for (let attempt = 0; attempt < 3 && (await logs()) === 0; attempt++) {
+  // One tap is enough (#209): the engineer walks over and keeps chopping until the tree falls. Tapping on
+  // would race it: once the tree is down the lesson's spotlight jumps the camera to the next tree, so a
+  // later tap lands somewhere else and walks the engineer off (beside the hub, it drops the logs there).
+  // Only a tap that missed the tree, because the camera was still gliding, is tried again.
+  const onTree = () =>
+    page.evaluate(([x, y]) => {
+      const w = window.game.world;
+      const p = w.state.players[0];
+      const a = p.pending;
+      return w.treeAt(x, y) !== 1 || (a?.kind === 'mine' && a.x === x && a.y === y) || (p.work?.x === x && p.work.y === y);
+    }, tree);
+  for (let attempt = 0; attempt < 3 && !(await onTree()); attempt++) {
     await cameraSettled(page);
     await tap(page, info, ...(await uncoveredTile(page, ...tree)));
-    await expect.poll(() => page.evaluate(() => window.game.world.state.players[0].path.length), { timeout: 30000 }).toBe(0); // arrived
-    await cameraSettled(page);
-    const here = await uncoveredTile(page, ...tree); // the camera may have moved while it walked
-    // On a slow machine a tap can land late, so keep tapping until the tree comes down.
-    for (let i = 0; i < 30 && (await logs()) === 0; i++) await tap(page, info, ...here);
   }
-  expect(await logs()).toBe(4);
+  await expect.poll(logs, { timeout: 30000 }).toBe(4);
   expect(await page.evaluate(([x, y]) => window.game.world.treeAt(x, y), tree)).toBe(2); // a stump
   // The rest of the logs, as if chopped.
   await page.evaluate(() => {

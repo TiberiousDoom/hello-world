@@ -1,6 +1,6 @@
 # Vision
 
-**Working title:** Foundry Front (to be renamed; see [DECISIONS.md](DECISIONS.md#open-questions)).
+**Name:** Nestfall (D-167), formerly the working title Foundry Front.
 
 ## Pitch
 
