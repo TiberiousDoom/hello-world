@@ -1,3 +1,12 @@
+/* Montserrat comes with the game (OFL, docs/CREDITS.md) rather than from Google Fonts, so loading the game
+   sends nothing to Google (see public/privacy.html). Latin, and Latin Extended for accented names. */
+@import '@fontsource/montserrat/latin-600.css';
+@import '@fontsource/montserrat/latin-700.css';
+@import '@fontsource/montserrat/latin-800.css';
+@import '@fontsource/montserrat/latin-ext-600.css';
+@import '@fontsource/montserrat/latin-ext-700.css';
+@import '@fontsource/montserrat/latin-ext-800.css';
+
 /* Theme: navy and sky blue, flat and bold, like industrial signage. */
 :root {
   color-scheme: dark;

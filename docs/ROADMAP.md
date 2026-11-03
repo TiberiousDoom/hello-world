@@ -255,10 +255,10 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Respect reduced-motion (0.85.0, D-144): the system setting or Settings' switch stops CSS animations, fireflies and leaves. ⬜ Calmer battle effects too
 
 ## 8. Business and legal
-- ⬜ Optional purchase plus donations or tips (D-017)
+- 🚧 Optional purchase plus donations or tips (D-017): ✅ tips through a Ko-fi link in the main menu (0.92.0, D-169). ⬜ The purchase, later
 - 🚧 Trademark check on the final name: a first check of Nestfall found no trademark and no store listing (D-167). ⬜ The owner searches tmsearch.uspto.gov
 - ✅ Licences for third-party assets tracked in [CREDITS.md](CREDITS.md) (music; Montserrat is OFL)
-- ⬜ Privacy policy (required by app stores, even with no data collection)
+- ✅ Privacy policy (required by app stores, even with no data collection): `public/privacy.html`, linked from the main menu (0.92.0, D-169); the game's fonts are bundled so it calls no other company
 
 ### Business setup (D-168)
 The studio is **Box47 Games LLC**, in Missouri; it publishes Nestfall. In this order, since each step needs the one before.

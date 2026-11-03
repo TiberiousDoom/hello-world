@@ -1,6 +1,6 @@
 # Checks for a new version every 5 minutes (D-084).
 [Unit]
-Description=Check for Foundry Front updates
+Description=Check for Nestfall updates
 
 [Timer]
 OnBootSec=2min

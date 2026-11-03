@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy · Nestfall</title>
+    <meta name="description" content="What Nestfall does with your data: no accounts, ads, analytics or tracking." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f7f8fb;
+        --ink: #172238;
+        --muted: #55627a;
+        --line: #d9dee8;
+        --link: #1662b8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1a2e;
+          --ink: #e8edf6;
+          --muted: #a3b0c6;
+          --line: #2a3a58;
+          --link: #6fb7ff;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 32px 16px 64px;
+      }
+      h1 {
+        font-size: 28px;
+        line-height: 1.2;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 32px 0 6px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+      p,
+      li {
+        margin: 6px 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .summary {
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      a {
+        color: var(--link);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy</h1>
+      <p class="muted">Nestfall · Last updated 3 November 2026</p>
+
+      <p class="summary">
+        <strong>In short:</strong> the game has no accounts, no ads, no analytics and no tracking. It doesn't collect your name, email or
+        anything else about you. Your games are saved on your own device. Playing together passes game messages between players and
+        keeps nothing once the room closes.
+      </p>
+
+      <h2>Playing on your own</h2>
+      <p>
+        Your saved games, settings and which lessons you've seen are kept in your browser's storage on your device. They are never sent
+        anywhere. Clearing the site's data in your browser deletes them.
+      </p>
+
+      <h2>Where the game comes from</h2>
+      <p>
+        The game is served by GitHub Pages. Like any website, GitHub receives the usual details of each request (such as your IP address
+        and browser) to deliver the page. See
+        <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.
+        Everything the game needs, its fonts included, comes from there; it loads nothing from other companies.
+      </p>
+
+      <h2>Playing together</h2>
+      <p>
+        Co-op games connect through a relay that runs on Cloudflare. While you're in a room, the relay passes the game's messages (your
+        commands, and copies of the game world) between the players in it. It doesn't read or keep them. While a room is open, it keeps
+        the host's secret key, the game version and the room's password in hashed form, so the host can reconnect; these are deleted when
+        the room closes. Cloudflare handles your IP address to provide the connection. See
+        <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>.
+      </p>
+      <ul>
+        <li>Players appear as "Player 2", "Player 3" and so on: there are no names.</li>
+        <li>
+          Room passwords are hashed in your browser before they're sent. Your browser remembers the passwords you type, and a key for
+          each room you made on the server, so you don't have to type them again.
+        </li>
+        <li>Anyone can see an open room's status: how many players are in it, its game's day and season, and its name.</li>
+      </ul>
+
+      <h2>The dedicated server</h2>
+      <p>
+        The always-on server is run by the game's developer. It saves the world of each of its rooms (buildings, research, engineers by
+        player number), and keeps a log of when players come and go, by player number. It connects to the relay like a player does, so it
+        never sees players' IP addresses. A room nobody plays in for a month is archived on the server.
+      </p>
+
+      <h2>Feedback</h2>
+      <p>
+        The feedback form in the game sends nothing by itself. It opens a new GitHub issue for you to post, or gives you the text to copy.
+        If you leave the diagnostics in, they include the game version, your browser and screen size, the frame rate, recent errors and a
+        summary of your game. What you post on GitHub is public and follows GitHub's terms.
+      </p>
+
+      <h2>Supporting the game</h2>
+      <p>
+        If you choose to tip the developer, that happens on Ko-fi's website and follows
+        <a href="https://more.ko-fi.com/privacy">Ko-fi's privacy policy</a>. The game itself gets nothing from it.
+      </p>
+
+      <h2>Children</h2>
+      <p>The game collects no personal information from anyone, children included.</p>
+
+      <h2>Changes</h2>
+      <p>If this changes, this page will say so, with a new date at the top.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about privacy: <a id="contact" href="mailto:hello@box47games.com">hello@box47games.com</a>.</p>
+    </main>
+  </body>
+</html>

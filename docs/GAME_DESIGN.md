@@ -869,7 +869,8 @@ one research tree, one supply ship.
   cannons, a tesla, ballistae and repair stations). Each has a calm bug territory in view, and its name in
   the corner.
   It offers **Continue** (when a save exists, showing its mode and time played),
-  **New game** (choose the mode) and **How to play**.
+  **New game** (choose the mode) and **How to play**. Its footer links **What's new**, the **Privacy** page
+  (`public/privacy.html`) and **♥ Support the game**, which opens the developer's Ko-fi page (D-169).
 
 - **Tutorial lessons** (ten) start by themselves the first time each one is useful:
 

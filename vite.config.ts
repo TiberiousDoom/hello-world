@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
 /** Files from public/ the service worker keeps (not the music). */
-const PUBLIC_KEPT = ['manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
+const PUBLIC_KEPT = ['privacy.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
 /**
  * Writes sw.js (D-144): pwa/sw.js with the build's files to keep for offline play, and a version
