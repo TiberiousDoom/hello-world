@@ -1,12 +1,12 @@
 import { Page } from '@playwright/test';
-import { calm, expect, newGame, test } from './helpers';
+import { calm, expect, isTouch, newGame, test } from './helpers';
 
 // The engineer's inventory (#87, D-090): 12 slots of 10, a toolbar button at the bottom right, a switch
 // for dropping off at the hub, and Pick up on belts.
 
 const stone = (page: Page) => page.evaluate(() => window.game.world.state.players[0].slots.reduce((n: number, s: { item: string; n: number } | null) => n + (s?.item === 'stone' ? s.n : 0), 0));
 
-test('the Inventory button shows the slots, drop-off at the hub can be switched off, and a belt offers Pick up', async ({ page }) => {
+test('the Inventory button shows the slots, drop-off at the hub can be switched off, and a belt offers Pick up', async ({ page }, info) => {
   await newGame(page);
   await calm(page);
   await page.evaluate(() => {
@@ -19,13 +19,20 @@ test('the Inventory button shows the slots, drop-off at the hub can be switched 
     p.slots[1] = { item: 'iron_ore', n: 10 };
   });
 
-  // At the bottom right of the screen, with how full it is.
+  // At the right of the screen, with how full it is: at the toolbar's end, or on a phone small over the
+  // map's corner, just above the toolbar (#215).
   const btn = page.locator('#toolbar [data-tool="pack"]');
   await expect(btn).toContainText('17/120');
   const box = (await btn.boundingBox())!;
   const view = page.viewportSize()!;
-  expect(box.x + box.width).toBeGreaterThan(view.width - 12);
-  expect(box.y + box.height).toBeGreaterThan(view.height - 40);
+  expect(box.x + box.width).toBeGreaterThan(view.width - 16);
+  if (isTouch(info)) {
+    const bar = (await page.locator('#toolbar').boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(bar.y);
+    expect(box.y + box.height).toBeGreaterThan(bar.y - 40);
+    expect(box.width).toBeLessThan(60);
+    expect(box.width).toBeGreaterThanOrEqual(44);
+  } else expect(box.y + box.height).toBeGreaterThan(view.height - 40);
 
   await btn.click();
   await expect(page.locator('#pack')).toBeVisible();
