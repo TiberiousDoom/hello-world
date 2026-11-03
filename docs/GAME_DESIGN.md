@@ -932,11 +932,18 @@ one research tree, one supply ship.
     fireflies, no CSS animations; on by default when the system asks for less motion), and **Battery
     saver**: normal resolution and 30 frames a second. Otherwise the game draws at most 60 frames a
     second, and 30 while paused or on the main menu (#46).
+  - **Saves** (D-172): **Export your factory** downloads it as a file (`nestfall-standard-125min-2026-11-03.json`);
+    **Import a factory**, from the main menu, loads one back in any browser, replacing the factory there after
+    asking. A file that isn't a save, or a run that has ended, is refused. A line says whether the browser has
+    agreed to keep the game's storage: the game asks it to when a game starts.
   - **Controls:** "Confirm before building on touch screens", and the **keys**: click an action's key,
     then press the new one. A key another action had swaps over. Walking, Enter, Esc, Tab, Delete and the
     number keys can't be taken. Kept in this browser.
   - Closing Settings opened from the pause menu goes back to it.
 - **Touch targets:** on touch screens every button is at least 44 px high (and the small ones as wide).
+- **Saves that last (D-172):** the game saves to this browser every 20 seconds and when you leave. On an
+  iPhone or iPad in a Safari tab, the main menu warns once that Safari deletes a site's data after about 7
+  days without a visit, and suggests adding the game to the Home Screen, or exporting now and then.
 - **Install and play offline (D-144):** the game is a web app. Browsers offer to install it to the home
   screen, and once opened it plays offline (without music, which is too large to keep). The single-file
   build has neither.

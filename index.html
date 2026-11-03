@@ -58,6 +58,7 @@
           <button id="mm-settings"><i data-icon="settings"></i><span>Settings</span></button>
         </div>
         <p class="mm-note" id="mm-note" hidden></p>
+        <p class="mm-note" id="mm-keep" hidden>On an iPhone or iPad, Safari deletes a website's saved data after about 7 days without a visit, and your factory with it. To keep it, add Nestfall to your Home Screen (Share, then Add to Home Screen), or export it from Settings now and then. <button id="mm-keep-ok" class="link-btn">Got it</button></p>
         <p class="mm-foot"><button id="mm-whatsnew" class="link-btn">v<span class="app-version"></span> · What's new<span class="new-dot" hidden></span></button> · <a id="mm-privacy" class="link-btn" target="_blank" rel="noopener">Privacy</a><span id="mm-support-wrap" hidden> · <a id="mm-support" class="link-btn" target="_blank" rel="noopener">♥ Support the game</a></span> · Prototype, placeholder art</p>
       </div>
       <p id="demo-caption" aria-hidden="true"></p>
@@ -195,6 +196,14 @@
         <label class="toggle volume scale">Text and buttons <input type="range" id="ui-scale" min="80" max="140" step="10" /><span id="ui-scale-value" class="muted"></span></label>
         <label class="toggle"><input type="checkbox" id="motion-toggle" /> Reduce motion (no drifting leaves, fireflies or bouncing)</label>
         <label class="toggle"><input type="checkbox" id="saver-toggle" /> Battery saver (lower resolution, 30 frames a second)</label>
+        <h3>Saves</h3>
+        <p class="muted small" id="save-where">Your factory is saved in this browser.</p>
+        <div class="row">
+          <button id="save-export">Export your factory</button>
+          <button id="save-import">Import a factory</button>
+          <input type="file" id="save-file" accept=".json,application/json" hidden />
+        </div>
+        <p id="save-status" class="muted small" aria-live="polite"></p>
         <h3>Controls</h3>
         <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
         <p class="muted small">Keys: 1–9, 0 and Shift+1–9 pick tools. WASD or the arrows walk; Enter builds a blueprint; Esc puts things down; Ctrl+Z undoes. Click a key below to change it.</p>

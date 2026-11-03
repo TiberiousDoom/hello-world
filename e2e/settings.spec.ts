@@ -140,3 +140,39 @@ test.describe('offline', () => {
     await context.setOffline(false);
   });
 });
+
+test('a factory exports to a file and imports back from the main menu, replacing the one there (D-172)', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  await page.evaluate(() => (window.game.world.state.time = 125 * 60)); // 125 min played
+
+  // Export from the game: Menu → Settings → Saves.
+  await page.click('#menu-btn');
+  await page.click('#btn-settings');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#save-export')]);
+  expect(download.suggestedFilename()).toMatch(/^nestfall-standard-125min-\d{4}-\d\d-\d\d\.json$/);
+  const file = await download.path();
+  await expect(page.locator('#save-status')).toContainText('Standard · 125 min played');
+  // Importing waits for the main menu.
+  await page.click('#save-import');
+  await expect(page.locator('#save-status')).toContainText('from the main menu');
+  await page.click('#settings [data-close]');
+
+  // A different factory now, 3 minutes in; back on the main menu, import the exported one over it.
+  await page.evaluate(() => (window.game.world.state.time = 180));
+  await page.click('#btn-mainmenu');
+  await expect(page.locator('#mm-continue-sub')).toContainText('3 min played');
+  await page.click('#mm-settings');
+  page.once('dialog', (d) => d.accept());
+  await page.locator('#save-file').setInputFiles(file!);
+  await expect(page.locator('#save-status')).toContainText('Imported a factory (Standard · 125 min played)');
+  await page.click('#settings [data-close]');
+  await expect(page.locator('#mm-continue-sub')).toContainText('125 min played');
+
+  // A file that isn't a save is refused, and nothing changes.
+  await page.click('#mm-settings');
+  await page.locator('#save-file').setInputFiles({ name: 'notes.json', mimeType: 'application/json', buffer: Buffer.from('{"hello":1}') });
+  await expect(page.locator('#save-status')).toContainText("isn't a Nestfall save");
+  await page.click('#settings [data-close]');
+  await expect(page.locator('#mm-continue-sub')).toContainText('125 min played');
+});
