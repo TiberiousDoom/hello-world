@@ -70,13 +70,14 @@
       <p class="summary">
         <strong>In short:</strong> the game has no accounts, no ads, no analytics and no tracking. It doesn't collect your name, email or
         anything else about you. Your games are saved on your own device. Playing together passes game messages between players and
-        keeps nothing once the room closes.
+        keeps nothing once the room closes. Error reports are sent only if you agree.
       </p>
 
       <h2>Playing on your own</h2>
       <p>
         Your saved games, settings and which lessons you've seen are kept in your browser's storage on your device. They are never sent
-        anywhere. Clearing the site's data in your browser deletes them.
+        anywhere. Clearing the site's data in your browser deletes them. Export in Settings saves a copy to a file you keep; the game
+        never sees where you put it.
       </p>
 
       <h2>Where the game comes from</h2>
@@ -116,6 +117,16 @@
         The feedback form in the game sends nothing by itself. It opens a new GitHub issue for you to post, or gives you the text to copy.
         If you leave the diagnostics in, they include the game version, your browser and screen size, the frame rate, recent errors and a
         summary of your game. What you post on GitHub is public and follows GitHub's terms.
+      </p>
+
+      <h2>Error reports</h2>
+      <p>
+        The first time the game hits an error, it asks whether it may send error reports. Only if you say yes, and only from then on, it
+        sends each kind of error once a visit (a few at most) to the game's own relay on Cloudflare. A report holds the error message and
+        where in the game's code it happened, the game version, your browser and screen size, and whether you were on the main menu or how
+        many minutes into a game. Never your save, your room or anything about you. The relay keeps the latest report of each kind (300
+        kinds at most, older ones are deleted) and emails the developer about new kinds. You can stop the reports in Settings → Error
+        reports at any time.
       </p>
 
       <h2>Supporting the game</h2>

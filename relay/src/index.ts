@@ -7,11 +7,19 @@
 import { DurableObject } from 'cloudflare:workers';
 import { HEARTBEAT, HEARTBEAT_REPLY, HOST_GRACE_MS, RelayMessage, Role, RoomHost, RoomInfo, reservedHash, sha256, validCode } from '../../src/net/protocol';
 import { Allowance, CLOSE_POLICY, Peer, admit, expire, leave, retire, route, status, welcome } from '../../src/net/room';
+import { REPORT_MAX_BYTES, type ErrorReport, reportKind, validReport } from '../../src/net/report';
 
 export interface Env {
   ROOMS: DurableObjectNamespace<Room>;
   /** Reserved rooms (D-140), a secret: "CODE:sha256-of-host-key", comma separated. */
   RESERVED_ROOMS?: string;
+  /** Error reports (D-173): one Durable Object keeps them. */
+  REPORTS: DurableObjectNamespace<Reports>;
+  /** Mail about new kinds of error goes to REPORT_TO (a secret: a verified Email Routing address). */
+  REPORT_MAIL?: SendEmail;
+  REPORT_TO?: string;
+  /** A secret that reads the reports: GET /reports with "Authorization: Bearer <it>". */
+  REPORTS_KEY?: string;
 }
 
 /** Pages that may connect: the game on GitHub Pages, and local development. */
@@ -42,10 +50,39 @@ async function roomStatus(code: string, request: Request, env: Env): Promise<Res
   return new Response(hit.body, { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'no-store' } });
 }
 
+/**
+ * Error reports (D-173). POST: a page sends one (as text, so the browser needs no preflight), only from the
+ * game's own pages. GET: the developer reads them, with the REPORTS_KEY secret.
+ */
+async function reports(request: Request, env: Env): Promise<Response> {
+  const store = env.REPORTS.getByName('all');
+  if (request.method === 'GET') {
+    const auth = request.headers.get('Authorization') ?? '';
+    if (!env.REPORTS_KEY || auth !== `Bearer ${env.REPORTS_KEY}`) return new Response('Forbidden', { status: 403 });
+    return store.list();
+  }
+  if (request.method !== 'POST') return new Response('Use POST', { status: 405 });
+  const origin = request.headers.get('Origin');
+  if (!allowedOrigin(origin)) return new Response('Forbidden', { status: 403 });
+  const cors = { 'access-control-allow-origin': origin! };
+  const body = await request.text();
+  if (body.length > REPORT_MAX_BYTES) return new Response('Too large', { status: 413, headers: cors });
+  let report: ErrorReport | null = null;
+  try {
+    report = validReport(JSON.parse(body));
+  } catch {
+    // not JSON
+  }
+  if (!report) return new Response('Not a report', { status: 400, headers: cors });
+  await store.add(report);
+  return new Response(null, { status: 204, headers: cors });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/health') return new Response('ok', { headers: { 'access-control-allow-origin': '*' } });
+    if (url.pathname === '/reports') return reports(request, env);
     const m = url.pathname.match(/^\/rooms\/([A-Z0-9]+)(\/status)?$/);
     if (!m || !validCode(m[1])) return new Response('Not found', { status: 404 });
     // A room's status, for the Play together screen (D-086): public, read by any page.
@@ -79,7 +116,10 @@ export class Room extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.endsWith('/status')) {
-      const host = this.ctx.getWebSockets().map((ws) => ws.deserializeAttachment() as Attachment | null).find((a) => a?.role === 'host');
+      const host = this.ctx
+        .getWebSockets()
+        .map((ws) => ws.deserializeAttachment() as Attachment | null)
+        .find((a) => a?.role === 'host');
       const room = (await this.ctx.storage.get<RoomHost>('host')) ?? null;
       return Response.json(status(this.peers(), room, host?.info ?? null), {
         headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' },
@@ -206,5 +246,84 @@ export class Room extends DurableObject<Env> {
         }
       },
     };
+  }
+}
+
+/** Kinds of error kept (each with a count and its latest report), and new kinds mailed a day at most. */
+const REPORT_KINDS = 300;
+const MAILS_PER_DAY = 20;
+/** Reports taken a minute at most, so a page gone wrong can't flood the store. */
+const REPORTS_PER_MINUTE = 60;
+
+/**
+ * Error reports (D-173), in one Durable Object's SQLite storage: one row per kind of error (the same message
+ * from the same version), counted. The first report of a kind is mailed to the developer, a few a day at most.
+ */
+export class Reports extends DurableObject<Env> {
+  private minute = 0;
+  private taken = 0;
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    ctx.storage.sql.exec(
+      'CREATE TABLE IF NOT EXISTS kinds (kind TEXT PRIMARY KEY, count INTEGER, first INTEGER, last INTEGER, report TEXT); CREATE TABLE IF NOT EXISTS mails (day TEXT PRIMARY KEY, sent INTEGER)',
+    );
+  }
+
+  async add(report: ErrorReport): Promise<void> {
+    const now = Date.now();
+    const minute = Math.floor(now / 60_000);
+    if (minute !== this.minute) [this.minute, this.taken] = [minute, 0];
+    if (++this.taken > REPORTS_PER_MINUTE) return;
+    const sql = this.ctx.storage.sql;
+    const kind = reportKind(report);
+    const known = sql.exec('SELECT count FROM kinds WHERE kind = ?', kind).toArray().length > 0;
+    if (known) sql.exec('UPDATE kinds SET count = count + 1, last = ?, report = ? WHERE kind = ?', now, JSON.stringify(report), kind);
+    else {
+      sql.exec('INSERT INTO kinds VALUES (?, 1, ?, ?, ?)', kind, now, now, JSON.stringify(report));
+      sql.exec('DELETE FROM kinds WHERE kind NOT IN (SELECT kind FROM kinds ORDER BY last DESC LIMIT ?)', REPORT_KINDS);
+      await this.mail(report);
+    }
+  }
+
+  /** The kinds of error, newest first. */
+  list(): Response {
+    const rows = this.ctx.storage.sql.exec('SELECT kind, count, first, last, report FROM kinds ORDER BY last DESC').toArray();
+    const out = rows.map((r) => ({ count: r.count, first: new Date(Number(r.first)).toISOString(), last: new Date(Number(r.last)).toISOString(), report: JSON.parse(String(r.report)) }));
+    return Response.json(out);
+  }
+
+  /** Mails a new kind of error to the developer, if mail is set up and today's few aren't used up. */
+  private async mail(r: ErrorReport): Promise<void> {
+    if (!this.env.REPORT_MAIL || !this.env.REPORT_TO) return;
+    const sql = this.ctx.storage.sql;
+    const day = new Date().toISOString().slice(0, 10);
+    const sent = Number(sql.exec('SELECT sent FROM mails WHERE day = ?', day).toArray()[0]?.sent ?? 0);
+    if (sent >= MAILS_PER_DAY) return;
+    sql.exec('INSERT INTO mails VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET sent = sent + 1', day);
+    sql.exec('DELETE FROM mails WHERE day < ?', day);
+    try {
+      await this.env.REPORT_MAIL.send({
+        from: { email: 'reports@box47games.com', name: 'Nestfall error reports' },
+        to: this.env.REPORT_TO,
+        subject: `Nestfall ${r.v}: ${r.message.slice(0, 80)}`,
+        text: [
+          `A new kind of error in Nestfall ${r.v}.`,
+          '',
+          `Error: ${r.message}`,
+          `Where: ${r.where}`,
+          `Game: ${r.game}`,
+          `Browser: ${r.ua}`,
+          `Screen: ${r.screen}`,
+          '',
+          'Stack:',
+          r.stack || '(none)',
+          '',
+          'All reports: GET /reports on the relay, with the REPORTS_KEY secret.',
+        ].join('\n'),
+      });
+    } catch (err) {
+      console.error('Could not mail an error report.', err);
+    }
   }
 }

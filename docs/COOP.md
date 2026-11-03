@@ -164,6 +164,15 @@ CI from master.
   messages there are requests (`DeskAsk` in `protocol.ts`); the server answers each one (`DeskReply`).
   The main room's info lists the made rooms and the desk's code, at most 12 rooms, kept within the
   relay's 2 KB per host. A maker renames or deletes their room with the key whose hash it was made with (D-165).
+- **Error reports (D-173):** the relay also takes error reports, which aren't co-op: `POST /reports` from
+  the game's own pages (a JSON body of at most 4 KB, sent as text so no preflight is needed, fields checked
+  by `validReport` in `src/net/report.ts`). One Durable Object, `Reports`, keeps one row per kind of error
+  (the same message from the same version) with a count and its latest report, 300 kinds at most, and takes
+  60 reports a minute at most. The first report of a kind is emailed from `reports@box47games.com` to the
+  `REPORT_TO` secret (a verified Email Routing address), 20 a day at most. `GET /reports` with
+  `Authorization: Bearer <REPORTS_KEY>` (a secret) lists them, newest first. Set both secrets in the Cloudflare
+  dashboard (Workers → foundry-front-relay → Settings → Variables and Secrets) or with `npx wrangler secret put`
+  in `relay/`. Without them, reports are still kept, just not emailed or readable.
 - **Quiet when empty (D-165):** a host with no guests sends no turns, only heartbeats, which Cloudflare
   answers without waking the room, so an empty room's Durable Object can sleep.
 - **What the host lets in:** only commands a guest may send, with whole numbers and known names

@@ -22,6 +22,7 @@ import { PING_MS, createUIState } from './ui/state';
 import { UndoStack, rebuild } from './ui/undo';
 import { KeyList, UI_SCALE_MAX, UI_SCALE_MIN, applyUiScale, systemReducedMotion } from './ui/settings';
 import { iosSafariTab, readSave, saveFileName, saveSummary } from './ui/saves';
+import { REPORT_HOSTS, Reporter } from './ui/reports';
 import { keyName } from './ui/keys';
 import { LESSONS, Tutorial } from './ui/tutorial';
 import { Lobby } from './ui/lobby';
@@ -39,8 +40,17 @@ const MAX_TICKS_PER_FRAME = 20;
 
 // For the feedback form's diagnostics: the last few errors, and the recent frame rate.
 const errorLog = new ErrorLog();
-window.addEventListener('error', (e) => errorLog.push(`${e.message} (${e.filename?.split('/').pop() ?? '?'}:${e.lineno})`));
-window.addEventListener('unhandledrejection', (e) => errorLog.push(`Unhandled: ${String(e.reason)}`));
+window.addEventListener('error', (e) => {
+  const where = `${e.filename?.split('/').pop() ?? '?'}:${e.lineno}`;
+  errorLog.push(`${e.message} (${where})`);
+  reportError(String(e.message), where, e.error instanceof Error ? (e.error.stack ?? '') : '');
+});
+window.addEventListener('unhandledrejection', (e) => {
+  errorLog.push(`Unhandled: ${String(e.reason)}`);
+  reportError(`Unhandled: ${String(e.reason)}`, '?', e.reason instanceof Error ? (e.reason.stack ?? '') : '');
+});
+/** Errors sent to our own relay, if the player agrees (D-173). Set up once the page has loaded. */
+let reportError: (message: string, where: string, stack: string) => void = () => {};
 const frameRate = new FrameRate();
 
 /** The saved game, or null. A save from before the new map (v8) can't be loaded, so it's cleared. */
@@ -102,6 +112,7 @@ interface Profile {
   uiScale: number; // the size of text and buttons, 0.8–1.4 (D-144)
   reducedMotion: boolean | null; // null: as the system says
   keepTipSeen: boolean; // the note about Safari deleting saves was dismissed (D-172)
+  errorReports: boolean | null; // send error reports (D-173); null: not asked yet
 }
 
 function loadProfile(): Profile {
@@ -118,6 +129,7 @@ function loadProfile(): Profile {
     uiScale: 1,
     reducedMotion: null,
     keepTipSeen: false,
+    errorReports: null,
   };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
@@ -647,6 +659,43 @@ saveFile.addEventListener('change', async () => {
   saveStatus.textContent = `Imported a factory (${saveSummary(read.world)}). Close Settings and press Continue to play it.`;
 });
 
+// Error reports (D-173): asked the first time there's one to send; Settings changes the answer.
+const reportsToggle = document.getElementById('reports-toggle') as HTMLInputElement;
+reportsToggle.checked = profile.errorReports === true;
+const reportUrl = `${RELAY_URL.replace(/^wss:/, 'https:')}/reports`;
+const reporter = new Reporter(
+  () => profile.errorReports,
+  () => {
+    if (document.getElementById('report-ask')!.hidden) hud.openModal('report-ask');
+  },
+  (r) => REPORT_HOSTS.includes(location.hostname) && navigator.sendBeacon?.(reportUrl, JSON.stringify(r)) === true,
+);
+const answerReports = (yes: boolean) => {
+  profile.errorReports = yes;
+  reportsToggle.checked = yes;
+  saveProfile();
+  reporter.flush();
+};
+document.getElementById('report-yes')!.addEventListener('click', () => {
+  answerReports(true);
+  hud.closeModals();
+});
+document.getElementById('report-no')!.addEventListener('click', () => {
+  answerReports(false);
+  hud.closeModals();
+});
+reportsToggle.addEventListener('change', () => answerReports(reportsToggle.checked));
+reportError = (message, where, stack) =>
+  reporter.error({
+    v: VERSION,
+    message: message || 'Unknown error',
+    where,
+    stack: stack.split('\n').slice(0, 8).join('\n'),
+    ua: navigator.userAgent,
+    screen: `${window.innerWidth}×${window.innerHeight} at ${Math.round((window.devicePixelRatio || 1) * 100) / 100}× (${navigator.maxTouchPoints > 0 ? 'touch' : 'mouse'})`,
+    game: inMenu || !game ? 'main menu' : `${game.state.mode}, ${Math.floor(game.state.time / 60)} min`,
+  });
+
 // Safari on an iPhone or iPad deletes a site's storage after about 7 days without a visit (D-172).
 const keepNote = document.getElementById('mm-keep')!;
 const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true || matchMedia('(display-mode: standalone)').matches;
@@ -950,6 +999,8 @@ requestAnimationFrame(frame);
   runScenario,
   /** Plays the performance budget's big base under attack (the performance test). */
   playBench: () => play(benchWorld()),
+  /** Error reports built this visit, and whether each was sent (D-173). */
+  reports: reporter,
   /** The colony's blueprints, so a test can add a stand-in while the pool is empty (D-126). */
   blueprints: { list: BLUEPRINTS, byId: BLUEPRINT_BY_ID },
 };

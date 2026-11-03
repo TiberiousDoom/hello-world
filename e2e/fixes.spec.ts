@@ -100,3 +100,32 @@ test("a trebuchet's panel shows its stone, and doesn't say it fires on electrici
   await expect(page.locator('#info')).toContainText('Ammo 12 / 12');
   await expect(page.locator('#info')).not.toContainText('electricity');
 });
+
+test('an error asks once whether to send reports; the answer is kept, and Settings changes it (D-173)', async ({ page }) => {
+  await newGame(page);
+  await calm(page);
+  const profile = () => page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).errorReports);
+  const fail = (message: string) => page.evaluate((m) => window.dispatchEvent(new ErrorEvent('error', { message: m, filename: 'https://x/index.js', lineno: 7 })), message);
+
+  await fail('something broke at tile 3,4');
+  await expect(page.locator('#report-ask')).toBeVisible();
+  await page.click('#report-yes');
+  await expect(page.locator('#report-ask')).toBeHidden();
+  expect(await profile()).toBe(true);
+  const log = await page.evaluate(() => window.game.reports.log);
+  expect(log).toHaveLength(1);
+  expect(log[0].report).toMatchObject({ message: 'something broke at tile 3,4', where: 'index.js:7', game: 'standard, 0 min' });
+  expect(log[0].sent).toBe(false); // never sent from a test: only from the game's own address
+
+  // Another error doesn't ask again.
+  await fail('another thing');
+  await expect(page.locator('#report-ask')).toBeHidden();
+  expect(await page.evaluate(() => window.game.reports.log.length)).toBe(2);
+
+  // Settings switches it off.
+  await page.click('#menu-btn');
+  await page.click('#btn-settings');
+  await expect(page.locator('#reports-toggle')).toBeChecked();
+  await page.locator('#reports-toggle').uncheck();
+  expect(await profile()).toBe(false);
+});

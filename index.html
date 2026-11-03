@@ -204,6 +204,9 @@
           <input type="file" id="save-file" accept=".json,application/json" hidden />
         </div>
         <p id="save-status" class="muted small" aria-live="polite"></p>
+        <h3>Error reports</h3>
+        <label class="toggle"><input type="checkbox" id="reports-toggle" /> Send error reports to the developer when something goes wrong</label>
+        <p class="muted small">A report holds the error, the game's version, your browser and screen, and how far into the game you are. Never your save or anything about you. See the Privacy page.</p>
         <h3>Controls</h3>
         <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
         <p class="muted small">Keys: 1–9, 0 and Shift+1–9 pick tools. WASD or the arrows walk; Enter builds a blueprint; Esc puts things down; Ctrl+Z undoes. Click a key below to change it.</p>
@@ -231,6 +234,18 @@
         </div>
         <p id="fb-status" class="muted small" aria-live="polite"></p>
         <p class="muted small">Open on GitHub needs a GitHub account, and you press Submit there. Without one, press Copy and paste the report into a message. Download save keeps a copy of this game to attach.</p>
+      </div>
+    </div>
+
+    <div id="report-ask" class="modal" hidden>
+      <div class="card">
+        <h2>Something went wrong</h2>
+        <p>Nestfall hit an error. May it send error reports to the developer, now and when it happens again? A report holds the error, the game's version, your browser and screen, and how far into the game you are. Never your save or anything about you.</p>
+        <p class="muted small">You can change this in Settings → Error reports.</p>
+        <div class="row">
+          <button id="report-yes" class="primary">Send reports</button>
+          <button id="report-no">Don't send</button>
+        </div>
       </div>
     </div>
 

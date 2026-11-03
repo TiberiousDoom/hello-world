@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.94.0 · 2026-11-03 · Error reports
+### New
+- **Error reports, if you agree:** the first time the game hits an error, it asks whether it may tell the developer. If you say yes, each kind of error is sent once a visit, with the version, your browser and screen, and how far into the game you are. Never your save or anything about you. Change your mind in Settings → Error reports.
+
 ## 0.93.0 · 2026-11-03 · Keep your factory
 ### New
 - **Export and import your factory** in Settings → Saves: keep a copy as a file, or carry it to another device or browser. Import from the main menu; it asks before replacing the factory there.
