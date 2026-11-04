@@ -23,6 +23,16 @@ describe('The balance script (D-174)', () => {
     expect(rows.filter((r) => r.outcome === 'ignored')).toEqual([]);
   }, 600_000);
 
+  it('keeps the balance the owner chose (D-177): near nests stay easy, far dens and barrows push the Wood Age on', () => {
+    // Kept full, the Wood outpost holds against grown warrens, runnels and hives at the top threat level...
+    for (const [kind, distance] of BANDS.slice(0, 3)) expect(fight('wood', kind, distance, 3, 5, NESTS.threatMax).outcome).toBe('held');
+    // ...but not against grown dens or barrows once the threat is up: that's the push to the Iron Age.
+    expect(fight('wood', 'den', 110, 3, 5, 6).outcome).toBe('fell');
+    expect(fight('wood', 'barrow', 130, 3, 5, 4).outcome).toBe('fell');
+    // The Iron outpost holds against everything, even at the top threat level.
+    expect(fight('iron', 'barrow', 130, 3, 5, NESTS.threatMax).outcome).toBe('held');
+  }, 120_000);
+
   // About 200 fights, so it runs on demand (`npm run balance`) rather than with every test run.
   it.runIf(process.env.BALANCE)(
     'prints the highest threat level each age holds against each kind of nest at stage 3',

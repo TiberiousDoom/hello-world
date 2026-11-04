@@ -39,8 +39,8 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
 4. 🚧 **A first balance pass:** ✅ the balance script (0.94.1, D-174) pits each age's reference outpost against every
    kind of nest, and at each threat level. ✅ Bugs no longer ignore steel-walled bases (0.94.3, D-176). Kept full,
    the Wood outpost holds against warrens, runnels and hives at every threat level, dens to threat 5 and barrows to
-   threat 2 (stage 3 nests); the Iron, Steam and Electric outposts hold against every nest at threat 10. ⬜ Decide
-   what each age should hold, then the 7 playtesters' notes.
+   threat 2 (stage 3 nests); the Iron, Steam and Electric outposts hold against every nest at threat 10. ✅ The owner
+   keeps these as the targets (0.94.4, D-177), and a test checks them. ⬜ The 7 playtesters' notes.
 5. ⬜ **Playtest round with the 7 playtesters:** what they hit goes into `playtest` issues through the feedback form.
    Then more playtesters, people the owner doesn't know.
 6. ⬜ **Decide the first paid platform (Q-24) and what the purchase is (Q-25).** Everything in Platform and release
@@ -149,7 +149,7 @@ In this order:
 - ✅ Playtests by the project owner, batches 1 to 9. Notes go in issues labelled `playtest`
 - 🚧 Playtesters: 7 people the owner knows play now (D-170); the in-game feedback form sends their notes (D-064). ⬜ More, from outside the owner's circle
 - ✅ A headless balance script that pits nests of each kind against each age's reference outpost, run in CI (0.94.1, D-174); `npm run balance` also prints the highest threat level each age holds (0.94.3)
-- ⬜ A balance pass on nest density and toughness, research costs and starting stock, from the script and the playtesters
+- 🚧 A balance pass on nest density and toughness, research costs and starting stock: ✅ what each age's defence should hold (D-177). ⬜ The playtesters' notes
 - ⬜ Balance for more players in co-op
 
 ## 3. UX and onboarding
