@@ -116,13 +116,6 @@ export function fight(age: string, kind: NestKind, distance: number, stage: numb
   return { age, threat, kind, distance, stage, bugs, outcome, seconds: Math.round(t), lost };
 }
 
-/** Every age against every kind of nest, at stages 1 and 3. */
-export function balanceTable(): Fight[] {
-  const out: Fight[] = [];
-  for (const age of Object.keys(OUTPOSTS)) for (const [kind, distance] of BANDS) for (const stage of [1, 3]) out.push(fight(age, kind, distance, stage));
-  return out;
-}
-
 /** The table as text: one row per nest, one column per age ("held 34s, 2 lost", "FELL 80s", "ignored" or "stalemate"). */
 export function formatTable(rows: Fight[]): string {
   const ages = Object.keys(OUTPOSTS);
@@ -135,21 +128,4 @@ export function formatTable(rows: Fight[]): string {
     }
   }
   return lines.join('\n');
-}
-
-/**
- * The highest threat level (0 to NESTS.threatMax) at which an age's outpost holds against each kind of nest,
- * grown to stage 3; -1 if it doesn't hold even at threat 0.
- */
-export function threatHeld(age: string): Record<NestKind, number> {
-  const out = {} as Record<NestKind, number>;
-  for (const [kind, distance] of BANDS) {
-    let best = -1;
-    for (let t = 0; t <= NESTS.threatMax; t++) {
-      if (fight(age, kind, distance, 3, 5, t).outcome !== 'held') break;
-      best = t;
-    }
-    out[kind] = best;
-  }
-  return out;
 }

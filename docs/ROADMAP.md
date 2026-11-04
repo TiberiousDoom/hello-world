@@ -148,7 +148,7 @@ In this order:
 ## 2. Balance and playtesting
 - ✅ Playtests by the project owner, batches 1 to 9. Notes go in issues labelled `playtest`
 - 🚧 Playtesters: 7 people the owner knows play now (D-170); the in-game feedback form sends their notes (D-064). ⬜ More, from outside the owner's circle
-- ✅ A headless balance script that pits nests of each kind against each age's reference outpost, run in CI (0.94.1, D-174; `npx vitest run src/sim/balance.test.ts` prints the table)
+- ✅ A headless balance script that pits nests of each kind against each age's reference outpost, run in CI (0.94.1, D-174); `npm run balance` also prints the highest threat level each age holds (0.94.3)
 - ⬜ A balance pass on nest density and toughness, research costs and starting stock, from the script and the playtesters
 - ⬜ Balance for more players in co-op
 
