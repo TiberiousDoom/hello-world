@@ -28,6 +28,7 @@ node audio/compose/render.mjs [track...]       # re-render the music (all genera
 node art/working.mjs                           # rebuild the machines' working animations from their sprites
 node art/nests.mjs                             # redraw the nests (every kind and stage), queen nests and queens
 cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)
+npm run balance                                # the balance script's tables: each age's outpost against every nest, and threat levels (D-174)
 npm run server                                 # the dedicated server (build:server bundles it into dist-server/); see server/README.md
 ```
 

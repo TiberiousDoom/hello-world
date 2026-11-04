@@ -1,7 +1,7 @@
 // The balance script (D-174): each age's reference outpost against one nest of each kind and stage. It
 // measures what a defence can hold off, with logistics out of the way: turrets are kept full, power is free,
 // no threat level, Normal difficulty. Run by balance.test.ts, which prints the table.
-import { BLUEPRINTS, ITEM_IDS, NESTS, RESEARCH, TURRETS, stageSize, type BuildingType, type NestKind } from './data';
+import { BLUEPRINTS, ITEM_IDS, NESTS, NEST_BUG, RESEARCH, TURRETS, stageSize, type BuildingType, type NestKind } from './data';
 import { indexNests, newNest, populate, provoke } from './nests';
 import { TICK, World } from './world';
 
@@ -37,6 +37,7 @@ export const BANDS: [NestKind, number][] = [
 
 export interface Fight {
   age: string;
+  threat: number;
   kind: NestKind;
   distance: number;
   stage: number;
@@ -55,8 +56,12 @@ export interface Fight {
 
 const LIMIT = 240; // seconds a fight may last
 
-/** One outpost against one nest. Deterministic: the same seed gives the same fight in every browser. */
-export function fight(age: string, kind: NestKind, distance: number, stage: number, seed = 5): Fight {
+/**
+ * One outpost against one nest. `threat` (0 to NESTS.threatMax) gives the nest's bugs what that threat level
+ * gives bred bugs: NESTS.threatHp more health a level, and NESTS.threatSwap of its crawlers a level hatched as
+ * the nest's own bug. Deterministic: the same seed gives the same fight in every browser.
+ */
+export function fight(age: string, kind: NestKind, distance: number, stage: number, seed = 5, threat = 0): Fight {
   const w = World.create(seed);
   w.freePower = true;
   w.clearWater();
@@ -84,9 +89,16 @@ export function fight(age: string, kind: NestKind, distance: number, stage: numb
   for (const t of Object.keys(n.brood) as (keyof typeof n.brood)[]) n.brood[t] = Math.round(n.brood[t] * k);
   n.hp = n.maxHp = Math.round(n.hp * k);
   n.stage = stage;
+  // Threat: some crawlers hatch as the nest's own bug instead (none for a warren, whose bug is the crawler).
+  const own = NEST_BUG[kind];
+  if (own !== 'crawler') {
+    const swap = Math.round(n.brood.crawler * Math.min(NESTS.threatSwapMax, NESTS.threatSwap * threat));
+    n.brood.crawler -= swap;
+    n.brood[own] += swap;
+  }
   s.nests.push(n);
   indexNests(w);
-  populate(w, n, distance);
+  populate(w, n, distance, 1 + NESTS.threatHp * threat);
   const bugs = s.enemies.length;
   provoke(w, n);
   let t = 0;
@@ -101,14 +113,7 @@ export function fight(age: string, kind: NestKind, distance: number, stage: numb
   const lost = [...ids].filter((id) => !w.byId.has(id)).length;
   const hurt = lost > 0 || s.buildings.some((b) => ids.has(b.id) && b.hp < w.maxHp(b));
   const outcome = !w.byId.has(storage.id) ? 'fell' : !s.enemies.length ? 'held' : hurt ? 'stalemate' : 'ignored';
-  return { age, kind, distance, stage, bugs, outcome, seconds: Math.round(t), lost };
-}
-
-/** Every age against every kind of nest, at stages 1 and 3. */
-export function balanceTable(): Fight[] {
-  const out: Fight[] = [];
-  for (const age of Object.keys(OUTPOSTS)) for (const [kind, distance] of BANDS) for (const stage of [1, 3]) out.push(fight(age, kind, distance, stage));
-  return out;
+  return { age, threat, kind, distance, stage, bugs, outcome, seconds: Math.round(t), lost };
 }
 
 /** The table as text: one row per nest, one column per age ("held 34s, 2 lost", "FELL 80s", "ignored" or "stalemate"). */

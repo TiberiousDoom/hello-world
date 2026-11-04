@@ -1,7 +1,7 @@
 {
   "name": "foundry-front",
   "private": true,
-  "version": "0.94.2",
+  "version": "0.94.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "eslint . && prettier --check \"src/**/*.ts\" \"server/**/*.ts\" \"e2e/**/*.ts\" \"*.ts\"",
-    "format": "prettier --write \"src/**/*.ts\" \"server/**/*.ts\" \"e2e/**/*.ts\" \"*.ts\""
+    "format": "prettier --write \"src/**/*.ts\" \"server/**/*.ts\" \"e2e/**/*.ts\" \"*.ts\"",
+    "balance": "BALANCE=1 vitest run src/sim/balance.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
