@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.94.5 · 2026-11-05 · A boss in waiting
+### New
+- **Behind the scenes:** art for the Broodmother, a boss planned for Hardcore: a ten-legged crab-like bug with a long raised skull and red spider eyes, with idle and running animations. She isn't in the game yet; her art is saved for when she is built.
+
 ## 0.94.4 · 2026-11-04 · Balance targets
 ### New
 - **Behind the scenes:** the balance test now checks the targets: nests near the hub stay as they are all game, and the far brute dens and beetle barrows are what the Wood Age can't hold for long. Nothing in the game changes.

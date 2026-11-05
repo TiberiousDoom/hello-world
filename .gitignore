@@ -10,3 +10,6 @@ test-results/
 playwright-report/
 dist-server
 server-data
+
+# The Broodmother concept script writes single frames here
+art/concepts/broodmother/frames/
