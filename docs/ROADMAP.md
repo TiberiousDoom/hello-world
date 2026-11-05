@@ -130,6 +130,7 @@ In this order:
 - ✅ More defence, by research rather than colony blueprints: the Mortar (0.65.0, D-124), Floodlights (0.67.0, D-126), the Shield Pylon (0.70.0, D-129)
 - ✅ Better ammo as optional upgrades (0.78.0, D-136): AP bullets for the Turret Mk.2, explosive shells for mortars and artillery
 - ⬜ More recipes and research to extend the mid- and late game
+- ⬜ **The Broodmother, a Hardcore-only boss** (D-178): her art is done and saved in `art/concepts/broodmother/` (pixel art, a 4-frame idle and an 8-frame run). Left: her rules (where she lives, numbers, brood), drawing a bug bigger than 2.2 tiles, and an idle animation for bugs
 - ✅ Research draws its items from hub stock over time, stalls when stock runs out, and can be switched or paused (D-018, D-026)
 - ✅ Win condition: escape (D-019, D-034). Replaced by repeat colony supply runs (D-046)
 - ✅ Enemy targeting (0.79.0, D-137): bugs go for the nearest building; brutes and beetles switch to the turret that shoots them (D-020)
