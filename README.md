@@ -10,7 +10,7 @@ art; final sprites drop into `src/art/` (see [docs/ART_LIST.md](docs/ART_LIST.md
 ## Play
 
 - **Locally:** `npm install`, then `npm run dev` and open the printed URL.
-- **Online:** every push to `master` deploys to GitHub Pages (see below).
+- **Online:** [playnestfall.com](https://playnestfall.com). Every push to `master` deploys to GitHub Pages (see below).
 
 ### How to play
 
@@ -60,6 +60,9 @@ map seed. It knows nothing about rendering, so a 3D front end can reuse it as is
 `.github/workflows/deploy.yml` tests and builds every push and PR, and
 deploys `master` to Pages. To turn deployment on, go to
 **Settings → Pages → Build and deployment → Source** and select **GitHub Actions**.
+The custom domain, `playnestfall.com`, is set under **Settings → Pages → Custom domain** (D-181); its DNS is on
+Cloudflare, not proxied: A and AAAA records for the apex pointing at GitHub Pages, and `www` a CNAME to
+`tiberiousdoom.github.io`.
 
 ## Docs
 

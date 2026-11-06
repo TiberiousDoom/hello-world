@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.95.0 · 2026-11-06 · A new address
+### New
+- **Nestfall lives at [playnestfall.com](https://playnestfall.com).** The old address forwards there. Your browser keeps each address's saves apart, so bring your factory along: Import the file you exported (Settings → Saves) from the main menu. Didn't export? Open the old address once with no connection (airplane mode): the copy kept for offline play still opens, with your saves, so you can export there. If you added the game to your Home Screen, add it again from the new address.
+
 ## 0.94.5 · 2026-11-05 · A boss in waiting
 ### New
 - **Behind the scenes:** art for the Broodmother, a boss planned for Hardcore: a ten-legged crab-like bug with a long raised skull and red spider eyes, with idle and running animations. She isn't in the game yet; her art is saved for when she is built.

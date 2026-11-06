@@ -11,7 +11,7 @@
 //   FOUNDRY_DATA        where the rooms, the saves and their backups live (default: server-data/)
 //   FOUNDRY_ROOM        the main room's code (6 letters and digits); without it one is made on first start and kept
 //   FOUNDRY_RELAY       the relay (default: the one on Cloudflare; ws://localhost:8787 for `wrangler dev`)
-//   FOUNDRY_ORIGIN      the page origin the relay lets in (default: the game on GitHub Pages)
+//   FOUNDRY_ORIGIN      the page origin the relay lets in (default: the game at playnestfall.com)
 //   FOUNDRY_PAUSE_EMPTY "0" keeps the games running with nobody in them (default: each paused until someone joins)
 //   FOUNDRY_NAME        the main room's name on the Play together screen (default: none, shown as "Dedicated server")
 //   FOUNDRY_PASSWORD    a password players must type to join, or to make a room (default: none) (D-140)
@@ -32,7 +32,7 @@ import { OldSaveError, TICK, World } from '../src/sim/world';
 const env = process.env;
 const DATA = env.FOUNDRY_DATA ?? 'server-data';
 const RELAY = env.FOUNDRY_RELAY ?? RELAY_URL;
-const ORIGIN = env.FOUNDRY_ORIGIN ?? 'https://tiberiousdoom.github.io';
+const ORIGIN = env.FOUNDRY_ORIGIN ?? 'https://playnestfall.com';
 const PAUSE_EMPTY = env.FOUNDRY_PAUSE_EMPTY !== '0';
 const NAME = env.FOUNDRY_NAME?.trim() || undefined;
 const PASSWORD = env.FOUNDRY_PASSWORD ?? '';
