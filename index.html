@@ -51,29 +51,44 @@
           </div>
         </div>
         <div class="mm-buttons">
-          <button id="mm-continue" class="primary" hidden><i data-icon="play"></i><span>Continue<small id="mm-continue-sub"></small></span></button>
+          <button id="mm-continue" class="primary" hidden>
+            <i data-icon="play"></i><span>Continue<small id="mm-continue-sub"></small></span>
+          </button>
           <button id="mm-new"><i data-icon="new"></i><span>New game</span></button>
           <button id="mm-coop"><i data-icon="coop"></i><span>Play together</span></button>
           <button id="mm-help"><i data-icon="help"></i><span>How to play</span></button>
           <button id="mm-settings"><i data-icon="settings"></i><span>Settings</span></button>
         </div>
         <p class="mm-note" id="mm-note" hidden></p>
-        <p class="mm-note" id="mm-keep" hidden>On an iPhone or iPad, Safari deletes a website's saved data after about 7 days without a visit, and your factory with it. To keep it, add Nestfall to your Home Screen (Share, then Add to Home Screen), or export it from Settings now and then. <button id="mm-keep-ok" class="link-btn">Got it</button></p>
-        <p class="mm-foot"><button id="mm-whatsnew" class="link-btn">v<span class="app-version"></span> · What's new<span class="new-dot" hidden></span></button> · <a id="mm-privacy" class="link-btn" target="_blank" rel="noopener">Privacy</a><span id="mm-support-wrap" hidden> · <a id="mm-support" class="link-btn" target="_blank" rel="noopener">♥ Support the game</a></span> · Prototype, placeholder art</p>
+        <p class="mm-note" id="mm-keep" hidden>
+          On an iPhone or iPad, Safari deletes a website's saved data after about 7 days without a visit, and your factory with it. To keep it, add Nestfall to your Home Screen (Share, then Add to
+          Home Screen), or export it from Settings now and then. <button id="mm-keep-ok" class="link-btn">Got it</button>
+        </p>
+        <p class="mm-foot">
+          <button id="mm-whatsnew" class="link-btn">v<span class="app-version"></span> · What's new<span class="new-dot" hidden></span></button> ·
+          <a id="mm-privacy" class="link-btn" target="_blank" rel="noopener">Privacy</a
+          ><span id="mm-support-wrap" hidden> · <a id="mm-support" class="link-btn" target="_blank" rel="noopener">♥ Support the game</a></span> · Prototype, placeholder art
+        </p>
       </div>
       <p id="demo-caption" aria-hidden="true"></p>
     </section>
 
     <div id="ship-view" class="modal" hidden>
       <div class="card">
-        <div class="card-head"><h2>The ship</h2><button data-close aria-label="Close the ship" title="Close"><i data-icon="close"></i></button></div>
+        <div class="card-head">
+          <h2>The ship</h2>
+          <button data-close aria-label="Close the ship" title="Close"><i data-icon="close"></i></button>
+        </div>
         <div id="ship-view-body"></div>
       </div>
     </div>
 
     <div id="research" class="modal" hidden>
       <div class="card">
-        <div class="card-head"><h2>Research</h2><button data-close aria-label="Close research" title="Close"><i data-icon="close"></i></button></div>
+        <div class="card-head">
+          <h2>Research</h2>
+          <button data-close aria-label="Close research" title="Close"><i data-icon="close"></i></button>
+        </div>
         <div id="research-body"></div>
       </div>
     </div>
@@ -83,8 +98,12 @@
         <h2>New game</h2>
         <p class="muted" id="newgame-warning">Your current factory will be lost.</p>
         <div class="modes">
-          <button data-mode="standard"><i data-icon="factory"></i><span><b>Standard</b><small id="standard-note"></small></span></button>
-          <button data-mode="hardcore" id="btn-hardcore"><i data-icon="skull"></i><span><b>Hardcore</b><small id="hardcore-note"></small></span></button>
+          <button data-mode="standard">
+            <i data-icon="factory"></i><span><b>Standard</b><small id="standard-note"></small></span>
+          </button>
+          <button data-mode="hardcore" id="btn-hardcore">
+            <i data-icon="skull"></i><span><b>Hardcore</b><small id="hardcore-note"></small></span>
+          </button>
         </div>
         <div class="difficulty" role="group" aria-labelledby="difficulty-label">
           <span id="difficulty-label">Bugs in Standard</span>
@@ -100,7 +119,10 @@
 
     <div id="coop" class="modal" hidden>
       <div class="card">
-        <div class="card-head"><h2>Play together</h2><button data-close aria-label="Close" title="Close"><i data-icon="close"></i></button></div>
+        <div class="card-head">
+          <h2>Play together</h2>
+          <button data-close aria-label="Close" title="Close"><i data-icon="close"></i></button>
+        </div>
         <div id="coop-choose">
           <p class="muted">Build one factory together, with up to 10 players.</p>
           <section id="coop-server" class="coop-server" data-state="checking">
@@ -143,9 +165,15 @@
           <h3>Host on this device</h3>
           <p class="muted small">Your browser runs the game. Share the room code with friends; the game ends when you leave.</p>
           <div class="modes">
-            <button id="coop-host-new"><i data-icon="new"></i><span><b>Host a new game</b><small id="coop-new-note">Standard mode.</small></span></button>
-            <button id="coop-host-coop" hidden><i data-icon="coop"></i><span><b>Host your co-op game</b><small id="coop-coop-note"></small></span></button>
-            <button id="coop-host-saved" hidden><i data-icon="play"></i><span><b>Host your factory</b><small id="coop-saved-note"></small></span></button>
+            <button id="coop-host-new">
+              <i data-icon="new"></i><span><b>Host a new game</b><small id="coop-new-note">Standard mode.</small></span>
+            </button>
+            <button id="coop-host-coop" hidden>
+              <i data-icon="coop"></i><span><b>Host your co-op game</b><small id="coop-coop-note"></small></span>
+            </button>
+            <button id="coop-host-saved" hidden>
+              <i data-icon="play"></i><span><b>Host your factory</b><small id="coop-saved-note"></small></span>
+            </button>
           </div>
           <h3>Join a friend</h3>
           <p class="muted small">Type the room code your friend shares.</p>
@@ -188,7 +216,10 @@
 
     <div id="settings" class="modal" hidden>
       <div class="card">
-        <div class="card-head"><h2>Settings</h2><button data-close aria-label="Close settings" title="Close"><i data-icon="close"></i></button></div>
+        <div class="card-head">
+          <h2>Settings</h2>
+          <button data-close aria-label="Close settings" title="Close"><i data-icon="close"></i></button>
+        </div>
         <h3>Sound</h3>
         <label class="toggle volume">Music <input type="range" id="music-volume" min="0" max="100" step="5" /></label>
         <label class="toggle volume">Sound effects <input type="range" id="sfx-volume" min="0" max="100" step="5" /></label>
@@ -196,6 +227,7 @@
         <label class="toggle volume scale">Text and buttons <input type="range" id="ui-scale" min="80" max="140" step="10" /><span id="ui-scale-value" class="muted"></span></label>
         <label class="toggle"><input type="checkbox" id="motion-toggle" /> Reduce motion (no drifting leaves, fireflies or bouncing)</label>
         <label class="toggle"><input type="checkbox" id="saver-toggle" /> Battery saver (lower resolution, 30 frames a second)</label>
+        <label class="toggle"><input type="checkbox" id="pixel-toggle" /> Pixel art test (pixel bugs, sharp pixels, zoom in steps)</label>
         <h3>Saves</h3>
         <p class="muted small" id="save-where">Your factory is saved in this browser.</p>
         <div class="row">
@@ -206,7 +238,9 @@
         <p id="save-status" class="muted small" aria-live="polite"></p>
         <h3>Error reports</h3>
         <label class="toggle"><input type="checkbox" id="reports-toggle" /> Send error reports to the developer when something goes wrong</label>
-        <p class="muted small">A report holds the error, the game's version, your browser and screen, and how far into the game you are. Never your save or anything about you. See the Privacy page.</p>
+        <p class="muted small">
+          A report holds the error, the game's version, your browser and screen, and how far into the game you are. Never your save or anything about you. See the Privacy page.
+        </p>
         <h3>Controls</h3>
         <label class="toggle"><input type="checkbox" id="confirm-toggle" /> Confirm before building on touch screens</label>
         <p class="muted small">Keys: 1–9, 0 and Shift+1–9 pick tools. WASD or the arrows walk; Enter builds a blueprint; Esc puts things down; Ctrl+Z undoes. Click a key below to change it.</p>
@@ -217,7 +251,10 @@
 
     <div id="feedback" class="modal" hidden>
       <div class="card">
-        <div class="card-head"><h2>Send feedback</h2><button data-close aria-label="Close feedback" title="Close"><i data-icon="close"></i></button></div>
+        <div class="card-head">
+          <h2>Send feedback</h2>
+          <button data-close aria-label="Close feedback" title="Close"><i data-icon="close"></i></button>
+        </div>
         <p class="muted">Found a bug, or have an idea? Nothing is sent until you pick how to send it below.</p>
         <div class="fb-kinds" role="radiogroup" aria-label="Kind of feedback">
           <label><input type="radio" name="fb-kind" value="bug" checked /> Bug</label>
@@ -226,21 +263,29 @@
         </div>
         <textarea id="fb-text" rows="5" maxlength="4000" placeholder="What happened, and what did you expect? Or what would you like?"></textarea>
         <label class="toggle"><input type="checkbox" id="fb-diag" checked /> Include diagnostics (game version, device, frame rate, this game's progress, recent errors)</label>
-        <details id="fb-details"><summary>See what's included</summary><pre id="fb-diag-text"></pre></details>
+        <details id="fb-details">
+          <summary>See what's included</summary>
+          <pre id="fb-diag-text"></pre>
+        </details>
         <div class="row">
           <button id="fb-github" class="primary">Open on GitHub</button>
           <button id="fb-copy">Copy</button>
           <button id="fb-save">Download save</button>
         </div>
         <p id="fb-status" class="muted small" aria-live="polite"></p>
-        <p class="muted small">Open on GitHub needs a GitHub account, and you press Submit there. Without one, press Copy and paste the report into a message. Download save keeps a copy of this game to attach.</p>
+        <p class="muted small">
+          Open on GitHub needs a GitHub account, and you press Submit there. Without one, press Copy and paste the report into a message. Download save keeps a copy of this game to attach.
+        </p>
       </div>
     </div>
 
     <div id="report-ask" class="modal" hidden>
       <div class="card">
         <h2>Something went wrong</h2>
-        <p>Nestfall hit an error. May it send error reports to the developer, now and when it happens again? A report holds the error, the game's version, your browser and screen, and how far into the game you are. Never your save or anything about you.</p>
+        <p>
+          Nestfall hit an error. May it send error reports to the developer, now and when it happens again? A report holds the error, the game's version, your browser and screen, and how far into the
+          game you are. Never your save or anything about you.
+        </p>
         <p class="muted small">You can change this in Settings → Error reports.</p>
         <div class="row">
           <button id="report-yes" class="primary">Send reports</button>
@@ -251,7 +296,10 @@
 
     <div id="changelog" class="modal" hidden>
       <div class="card">
-        <div class="card-head"><h2>What's new</h2><button data-close aria-label="Close what's new" title="Close"><i data-icon="close"></i></button></div>
+        <div class="card-head">
+          <h2>What's new</h2>
+          <button data-close aria-label="Close what's new" title="Close"><i data-icon="close"></i></button>
+        </div>
         <div id="changelog-body"></div>
       </div>
     </div>
@@ -271,19 +319,35 @@
       <div class="card">
         <h2>How to play</h2>
         <ul>
-          <li>Start with wood: with no tool in hand, tap a <b>tree</b> to chop it, or <b>ore</b> and <b>stone</b> to mine them, and carry them to the hub. Research <b>Forestry</b> for lumber camps and sawmills.</li>
+          <li>
+            Start with wood: with no tool in hand, tap a <b>tree</b> to chop it, or <b>ore</b> and <b>stone</b> to mine them, and carry them to the hub. Research <b>Forestry</b> for lumber camps and
+            sawmills.
+          </li>
           <li><b>Industry</b> brings <b>extractors</b> over ore and <b>furnaces</b> to smelt it; then run <b>belts</b> to <b>workshops</b> and the <b>hub</b>.</li>
           <li>Machines take input from any side and output from the middle of the side their arrow marks.</li>
           <li>Buildings and research are paid for from the hub's stock, so keep it supplied. <b>Select the hub</b> to open Research.</li>
-          <li><b>Splitters</b> take items from behind and send them out the other three sides in turn. <b>Underground belts</b> pass items under anything: place an entrance, then an exit ahead of it.</li>
-          <li><b>Bugs</b> live in territories away from the hub, marked by a nest mound. They leave you alone unless provoked: by building in or next to their territory, by a building coming close to one of them, or by shooting them. Then they attack your nearest buildings until things calm down.</li>
+          <li>
+            <b>Splitters</b> take items from behind and send them out the other three sides in turn. <b>Underground belts</b> pass items under anything: place an entrance, then an exit ahead of it.
+          </li>
+          <li>
+            <b>Bugs</b> live in territories away from the hub, marked by a nest mound. They leave you alone unless provoked: by building in or next to their territory, by a building coming close to
+            one of them, or by shooting them. Then they attack your nearest buildings until things calm down.
+          </li>
           <li><b>Turrets</b> fire iron plates and <b>cannons</b> fire gears. Feed them by belt, from the hub with a <b>hub port</b>, or place them touching the hub.</li>
           <li>Research the <b>Shipyard</b>, build the ship stage by stage, and launch it to escape. The engines wake every nest nearby.</li>
         </ul>
         <h3>Controls</h3>
         <ul>
-          <li class="only-mouse"><b>Desktop:</b> click to build or select. Drag out a line of belts or walls, then press ✓ or Enter to build it (⟳ or R reverses or rotates it, ✕ or Esc cancels). Right-click to put down the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9, 0 and Shift+1–9 pick buildings, Space pauses, Esc cancels and Ctrl+Z undoes. C copies an area (drag over it, then click where the copy goes) and V pastes it again. Settings changes these keys.</li>
-          <li class="only-touch"><b>Touch:</b> tap to place a blueprint, then ✓ to build it (or tap the same spot again). After a building goes up the tool is put down; double-tap a tool to keep it for several (📌). While you drag a building, its blueprint sits above your finger. Drag with a tool to lay a line, drag with no tool to pan, pinch to zoom. Menu → Settings → "Confirm before building" switches blueprints off. Undo and Copy are on the toolbar.</li>
+          <li class="only-mouse">
+            <b>Desktop:</b> click to build or select. Drag out a line of belts or walls, then press ✓ or Enter to build it (⟳ or R reverses or rotates it, ✕ or Esc cancels). Right-click to put down
+            the tool, right-drag or WASD to pan. The wheel rotates while you're placing a building and zooms otherwise (Ctrl+wheel always zooms). R also rotates, X demolishes, 1–9, 0 and Shift+1–9
+            pick buildings, Space pauses, Esc cancels and Ctrl+Z undoes. C copies an area (drag over it, then click where the copy goes) and V pastes it again. Settings changes these keys.
+          </li>
+          <li class="only-touch">
+            <b>Touch:</b> tap to place a blueprint, then ✓ to build it (or tap the same spot again). After a building goes up the tool is put down; double-tap a tool to keep it for several (📌). While
+            you drag a building, its blueprint sits above your finger. Drag with a tool to lay a line, drag with no tool to pan, pinch to zoom. Menu → Settings → "Confirm before building" switches
+            blueprints off. Undo and Copy are on the toolbar.
+          </li>
           <li><b>Playing together:</b> press P (or hold a finger still on empty ground) to point at a spot for the others. Only the host pauses or changes the speed.</li>
         </ul>
         <h3>Credits</h3>
@@ -308,8 +372,12 @@
         <p class="muted">Your first supply run is on its way to the colony. The ship will come back for the next one.</p>
         <dl id="victory-stats" class="stats-list"></dl>
         <div class="modes">
-          <button id="btn-keep-playing" class="primary"><i data-icon="play"></i><span><b>Keep building</b><small>Load the next run when the ship is back.</small></span></button>
-          <button id="btn-victory-menu"><i data-icon="home"></i><span><b>Main menu</b></span></button>
+          <button id="btn-keep-playing" class="primary">
+            <i data-icon="play"></i><span><b>Keep building</b><small>Load the next run when the ship is back.</small></span>
+          </button>
+          <button id="btn-victory-menu">
+            <i data-icon="home"></i><span><b>Main menu</b></span>
+          </button>
         </div>
       </div>
     </div>
@@ -329,9 +397,14 @@
     <div id="tutorial" hidden>
       <div class="spot"></div>
       <div class="tip" role="dialog" aria-live="polite">
-        <div class="tip-head"><span class="step"></span><button class="tip-close" title="Close tutorial" aria-label="Close tutorial"><i data-icon="close"></i></button></div>
+        <div class="tip-head">
+          <span class="step"></span><button class="tip-close" title="Close tutorial" aria-label="Close tutorial"><i data-icon="close"></i></button>
+        </div>
         <p class="tip-text"></p>
-        <div class="tip-nav"><button class="tip-back">← Back</button><button class="tip-hide quiet" title="Stop lessons from appearing (turn them back on in Menu → Tutorials)">Hide tips</button><button class="tip-next">Next →</button></div>
+        <div class="tip-nav">
+          <button class="tip-back">← Back</button><button class="tip-hide quiet" title="Stop lessons from appearing (turn them back on in Menu → Tutorials)">Hide tips</button
+          ><button class="tip-next">Next →</button>
+        </div>
       </div>
     </div>
 

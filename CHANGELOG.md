@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.96.0 · 2026-11-06 · A pixel art preview
+### New
+- **Try the pixel art:** turn on Settings → Pixel art test to see crawlers, Brutes, wasps and beetles redrawn as pixel art, the look the game is moving to. Pixels stay sharp, and zoom moves in steps so every pixel stays square. Runners, queens and the rest of the world keep today's art for now. Tell us how it looks on your screen.
+
 ## 0.95.0 · 2026-11-06 · A new address
 ### New
 - **Nestfall lives at [playnestfall.com](https://playnestfall.com).** The old address forwards there. Your browser keeps each address's saves apart, so bring your factory along: Import the file you exported (Settings → Saves) from the main menu. Didn't export? Open the old address once with no connection (airplane mode): the copy kept for offline play still opens, with your saves, so you can export there. If you added the game to your Home Screen, add it again from the new address.

@@ -139,6 +139,43 @@ export function frame(key: string, i: number): HTMLCanvasElement | undefined {
   return frames[((Math.floor(i) % n) + n) % n];
 }
 
+/**
+ * Pixel art (D-182): sheets under `pixel/` are kept at their own size, never stretched or smoothed. A sheet is a
+ * grid of square cells, one row per direction (facing east, then a turn clockwise each row) and one column per
+ * frame; the cell size is the sheet's width over 4.
+ */
+const PIXEL_FRAMES = 4;
+const pixelSheets = new Map<string, HTMLCanvasElement[][]>();
+
+/** Cuts a pixel sheet into its directions and frames. */
+function cutPixelSheet(img: HTMLImageElement): HTMLCanvasElement[][] {
+  const size = Math.floor(img.naturalWidth / PIXEL_FRAMES);
+  const rows: HTMLCanvasElement[][] = [];
+  for (let d = 0; d * size < img.naturalHeight; d++) {
+    const row: HTMLCanvasElement[] = [];
+    for (let i = 0; i < PIXEL_FRAMES; i++) {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      c.getContext('2d')!.drawImage(img, i * size, d * size, size, size, 0, 0, size, size);
+      row.push(c);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * A pixel-art frame turned the nearest way to `angle` (radians, clockwise on screen from east), if the sheet has
+ * loaded: frame `i` counts round, like frame().
+ */
+export function pixelFrame(key: string, angle: number, i: number): HTMLCanvasElement | undefined {
+  const rows = pixelSheets.get(key);
+  if (!rows?.length) return undefined;
+  const n = rows.length;
+  const d = ((Math.round((angle / (Math.PI * 2)) * n) % n) + n) % n;
+  return rows[d][((Math.floor(i) % PIXEL_FRAMES) + PIXEL_FRAMES) % PIXEL_FRAMES];
+}
+
 /** How many frames a strip has (0 if it isn't loaded). */
 export function frameCount(key: string): number {
   return strips.get(key)?.length ?? 0;
@@ -156,6 +193,11 @@ export async function loadArt(): Promise<void> {
         new Promise<void>((resolve) => {
           const img = new Image();
           img.onload = () => {
+            if (key.startsWith('pixel/')) {
+              pixelSheets.set(key, cutPixelSheet(img));
+              resolve();
+              return;
+            }
             const unit = key.startsWith('items/') ? PX_PER_TILE / 2 : PX_PER_TILE;
             const n = stripFrames(key);
             const name = n ? key.replace(/_\d+f$/, '') : key;

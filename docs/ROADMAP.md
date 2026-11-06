@@ -186,6 +186,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Art direction: whimsical forest clearing around navy-and-steel machines (D-028)
 - ✅ Name: **Nestfall** (0.91.0, D-167); web addresses `playnestfall.com` (the game's address since 0.95.0, D-181) and `box47games.com` (the studio, with email). ⬜ A USPTO search by the owner
 - ✅ Art direction: pixel art (D-179); the sprites are redrawn as pixel art. ⬜ Who draws it, and the pixel size of a tile
+- 🚧 **The pixel art test** (0.96.0, D-182): a setting with pixel crawlers, Brutes, wasps and beetles at 16 art pixels a tile, hard-edged, with zoom in whole steps, to try pixel art in play before the rest is redrawn. Left: try it on phones and decide the tile size, then the other sprites
 - ✅ Art pipeline: sprites load from `src/art/`, and a PNG replaces a same-named SVG placeholder (M3a)
 - ✅ Placeholder SVGs for every P1 and P2 sprite, plus UI icons and a logo mark (M3a)
 - ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038). Since 0.43.0 most are sprite strips, with these as the fallback (D-082)
