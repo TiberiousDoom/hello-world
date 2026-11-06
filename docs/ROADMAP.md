@@ -226,6 +226,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 ## 6. Platform and release
 - ✅ Single-file build for sharing (claude.ai artifact)
 - ✅ GitHub Pages deployment from `master` (D-010)
+- 🚧 Hosting on Cloudflare (D-188): the game's Worker (`site/`) deploys from master beside GitHub Pages. ⬜ Try it on its workers.dev address, then point `playnestfall.com` and `www` at it in the Cloudflare dashboard, and check the old github.io address still forwards
 - ✅ PWA (0.85.0, D-144): offline play after the first visit (without music), install to home screen, app icons from the logo
 - ✅ The first paid platform: Google Play (D-180). Steam and the App Store later
 - ⬜ Capacitor wrapper for Android first (M5, D-180), iOS later
@@ -270,7 +271,7 @@ None of this is legal or tax advice: a one-hour talk with a Missouri small-busin
 Wishlists, followers and word of mouth are built months before a release, so this starts now (D-170).
 - ⬜ A place for players to talk and report (a Discord server or a subreddit), linked from the main menu
 - ⬜ A short devlog: what's new, with a GIF, every few releases
-- ⬜ A press kit on `box47games.com`: description, screenshots, GIFs, the logo, contact
+- 🚧 The studio's site, `box47games.com` (D-188): ✅ a one-page site in `studio/` with the touched-up logo (`art/brand/`), Nestfall and the contact address, deployed from master. ⬜ Point the domain at it. ⬜ A press kit there: description, screenshots, GIFs, the logo, contact
 - ⬜ A trailer (about a minute of the factory and a raid)
 - ⬜ Google Play pre-registration as soon as the account exists (D-180), so sign-ups build up before release
 - ⬜ An itch.io page for the web build, as a second place to be found

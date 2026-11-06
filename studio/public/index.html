@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Box47 Games</title>
+    <meta name="description" content="Box47 Games is an independent game studio. Our first game is Nestfall, a factory game with a tower-defense twist." />
+    <meta property="og:title" content="Box47 Games" />
+    <meta property="og:description" content="An independent game studio. Our first game is Nestfall." />
+    <meta property="og:image" content="https://box47games.com/img/og.png" />
+    <meta property="og:url" content="https://box47games.com/" />
+    <meta name="theme-color" content="#fef2e0" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="img/favicon-32.png" type="image/png" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <style>
+      :root {
+        --bg: #fef2e0;
+        --card: #fff9f0;
+        --ink: #4c303e;
+        --muted: #7a5d63;
+        --line: #ead7bd;
+        --box: #da9962;
+        --box-dark: #9d6747;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          17px/1.6 system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 40px 16px 56px;
+      }
+      .pixel {
+        image-rendering: pixelated;
+      }
+      header img {
+        width: 435px; /* the lockup is 145×64: three screen pixels per art pixel */
+        max-width: 100%;
+        height: auto;
+      }
+      @media (max-width: 480px) {
+        header img {
+          width: 290px; /* two screen pixels per art pixel */
+        }
+      }
+      .lead {
+        font-size: 20px;
+        margin: 20px 0 36px;
+      }
+      h2 {
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 40px 0 12px;
+      }
+      .game {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .game img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-bottom: 2px solid var(--line);
+      }
+      .game > div {
+        padding: 18px 20px 22px;
+      }
+      .game h3 {
+        margin: 0 0 6px;
+        font-size: 24px;
+      }
+      .game p {
+        margin: 0 0 16px;
+      }
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .button {
+        display: inline-block;
+        padding: 10px 18px;
+        border-radius: 8px;
+        background: var(--box);
+        border-bottom: 4px solid var(--box-dark);
+        color: #3a2230;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .button:hover {
+        filter: brightness(1.05);
+      }
+      .soon {
+        color: var(--muted);
+        font-size: 15px;
+      }
+      a {
+        color: var(--ink);
+      }
+      footer {
+        margin-top: 48px;
+        padding-top: 16px;
+        border-top: 2px solid var(--line);
+        color: var(--muted);
+        font-size: 15px;
+      }
+      footer p {
+        margin: 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1 style="margin: 0"><img class="pixel" src="img/box47-lockup.png" width="435" height="192" alt="Box47 Games" /></h1>
+      </header>
+      <p class="lead">Box47 Games is an independent game studio. We make small games you can play anywhere, starting in your browser.</p>
+
+      <h2>Our games</h2>
+      <article class="game">
+        <img src="img/nestfall.webp" width="1280" height="720" alt="Nestfall's main menu over a working factory in a forest clearing" />
+        <div>
+          <h3>Nestfall</h3>
+          <p>
+            A factory game with a tower-defense twist. Build belts and machines in a wide, generated wilderness, and defend them from the bug nests around you: your turrets only fire what your belts
+            deliver. Play alone or together, on a computer or a phone.
+          </p>
+          <div class="buttons">
+            <a class="button" href="https://playnestfall.com">Play in your browser</a>
+            <span class="soon">On Google Play soon</span>
+          </div>
+        </div>
+      </article>
+
+      <h2>Contact</h2>
+      <p>Questions, press or business: <a href="mailto:hello@box47games.com">hello@box47games.com</a></p>
+
+      <h2>Privacy</h2>
+      <p>
+        This site has no cookies, no analytics and no tracking. Nestfall's own privacy policy is at
+        <a href="https://playnestfall.com/privacy.html">playnestfall.com/privacy.html</a>.
+      </p>
+
+      <footer>
+        <p>© 2026 Box47 Games LLC</p>
+      </footer>
+    </main>
+  </body>
+</html>

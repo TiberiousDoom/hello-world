@@ -1,0 +1,9 @@
+# Intermediate files the scripts write
+__pycache__/
+clean_native.png
+clean_1024.png
+word_options.png
+wordmark*.png
+*_x8.png
+*_x4.png
+mark_45*.png
