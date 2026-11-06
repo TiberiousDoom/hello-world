@@ -250,8 +250,8 @@ const HOT_ITEMS: ItemId[] = ['iron_ingot', 'copper_ingot', 'steel'];
 const HOT_MS = 2500;
 /** How long a lost building's ruin smoulders (ms) (D-159). */
 const RUIN_MS = 60000;
-/** Seconds before lift-off that the ship starts to climb (D-159). */
-const LIFT = 4;
+/** Seconds before lift-off that the ship starts to climb (D-159; 10 since #214, so the launch takes its time). */
+const LIFT = SHIP.liftShow;
 /** The filter that turns the engineer's orange overalls (hue 28°) to a player's colour (D-161); a grey one goes pale. */
 function overalls(color: string): string {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
@@ -2916,6 +2916,8 @@ export class Renderer {
       // drifting off its pad, its shadow left behind. The pad and scaffolding stay.
       const rise = firing && st.id !== 'pad' && st.id !== 'scaffold' ? this.liftOf(world) : 0;
       if (rise > 0) {
+        // At the top of its climb the ship fades into the sky instead of vanishing.
+        if (rise > 0.85) ctx.globalAlpha = alpha * Math.max(0, (1 - rise) / 0.15);
         const k = 1 + 0.9 * rise * rise;
         const cx = b.x + SHIP_SIZE / 2;
         const cy = b.y + SHIP_SIZE / 2;

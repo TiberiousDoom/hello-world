@@ -751,7 +751,9 @@ You keep a far-off colony supplied (D-046). There's no final win: the game carri
   arrive, and the rest as dashed outlines, with each stage's progress listed below. During the launch
   countdown the engines glow round the ship's foot and smoke rolls out over the pad.
 - **Launch** (a button on the selected shipyard, once the cargo is loaded) starts a **90 s countdown**; in its
-  last seconds the ship climbs off its pad (D-159).
+  last **10 seconds** the ship climbs off its pad, growing as it rises toward the camera, and fades into the sky
+  (D-159; 4 seconds until 0.95.3, D-184). The engines light with a rumble when Launch is pressed, and roar
+  through the climb.
   The engines wake **every nest within 48 tiles** of the shipyard on the first run, **8 tiles further for
   each run delivered** (up to 96), because a loaded ship is heavier and needs more thrust (D-049). They
   also wake **at least the 3 nearest** live
@@ -1083,17 +1085,20 @@ strings and light percussion, with a roomy reverb.
   board (`npm run soundboard`). Now: enhanced for placing (belts, small and big buildings), demolishing, a blocked
   placement, chopping, mining by hand and the ore coming loose, a co-op ping, a provoked nest, a breach, research
   finished and the ballista; realistic for the Mk.2, the hub gun, the trebuchet, the cannon, the mortar, the
-  artillery, a bug dying and a building lost (D-183); classic for clicks, a ship stage, the Hydraulic Turret, the
-  tesla, the railgun, the hub being hit and the launch, until round 3 picks theirs. The machine hum is enhanced: a
+  artillery, a bug dying and a building lost (D-183), and for the Hydraulic Turret (a spring snap and the plate
+  whirring off), the tesla (a lightning crack and a short roll of thunder), the hub being hit (a thud and a low
+  two-note warning) and the launch (D-184); classic for clicks, a ship stage and the railgun, until round 4 picks
+  its own. The machine hum is enhanced: a
   second drone a fifth above the first, slightly out of tune, and a grittier whirr. Reworked sounds vary a little in pitch each time they play (a busy one
   more), and get a short, quiet room echo; a compressor keeps busy fights from clipping. Each version is set to
   about the same loudness as the classic one.
 - Each gun has its own sound (D-182): the Hydraulic Turret, the Mk.2, the hub gun, the ballista, the trebuchet,
   the cannon, the mortar, the artillery, the tesla and the railgun. The railgun still shares the tesla's classic
-  sound until round 3 picks its own.
+  sound until round 4 picks its own.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
   blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, a ballista's twang, the hub gun, bugs dying, a building destroyed, the hub
-  being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry
+  being hit, a breach, research finished, a ship stage finished, the engines lighting at Launch and their roar
+  through the ship's climb (about 13 s, drifting away after lift-off), a supply run delivered, and an angry
   chitter when a nest is provoked.
 - **The machine hum:** a soft, continuous loop (a low drone and a whirr with a gentle chug) that grows
   with the number of machines working on screen (extractors, lumber camps, furnaces, workshops,

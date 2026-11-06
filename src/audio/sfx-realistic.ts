@@ -10,6 +10,7 @@
 //   the cannon, the mortar, the artillery, the tesla and the railgun.
 
 import { Layer, noise, Sound, tone } from './sfx';
+import { pulse } from './sfx-enhanced';
 
 /** A struck metal plate or bar: inharmonic partials, the higher ones dying sooner. */
 export function ring(f: number, dur: number, peak: number, at = 0): Layer[] {
@@ -57,28 +58,33 @@ export function boom(size: number, peak: number): Layer[] {
  * artillery, left 3 dB louder: it's the biggest gun.
  */
 export const REAL_LEVEL: Partial<Record<Sound, number>> = {
-  shot: 0.42,
+  shot: 0.38,
   gun: 0.2,
   hub_shot: 0.18,
   twang: 0.76,
   treb: 0.36,
   cannon: 0.8,
   mortar: 1.23,
-  zap: 1.95,
+  zap: 0.45,
   rail: 0.33,
   death: 0.69,
   destroyed: 0.83,
-  hub_hit: 0.61,
-  launch: 0.38,
+  hub_hit: 0.37,
+  ignite: 0.3,
+  launch: 0.32,
 };
 
 /** The realistic recipe for a sound, or null where there's none (the enhanced one plays instead). */
 export function realisticRecipe(sound: Sound): Layer[] | null {
   switch (sound) {
     case 'shot':
-      // The Hydraulic Turret: a piston slams (a clack and a thump), the plate leaves with a whoosh, and
-      // the hydraulics hiss as they reset.
-      return [...ring(1450, 0.09, 0.12), tone('sine', 150, 60, 0.08, 0.45, 0, 0.002), noise('bandpass', 1300, 600, 0.12, 0.25, 1.5, 0.01), noise('highpass', 6500, 3500, 0.16, 0.1, 0.7, 0.05, 0.03)];
+      // The Hydraulic Turret (round 3, "Plate flung"): a spring-loaded snap, and the plate whirring off as it spins.
+      return [
+        noise('bandpass', 1800, 1400, 0.02, 0.4, 2, 0, 0.001),
+        tone('triangle', 900, 700, 0.04, 0.2, 0, 0.001),
+        ...Array.from({ length: 6 }, (_, i) => noise('bandpass', 1500 - i * 120, 1400 - i * 120, 0.025, 0.14 * (1 - i / 7), 4, 0.03 + i * 0.03, 0.003)),
+        tone('sine', 160, 90, 0.05, 0.3, 0, 0.002),
+      ];
     case 'gun':
       // Turret Mk.2: a real gunshot and the action cycling.
       return [...gunshot(1, 0.55), tone('triangle', 3100, 3000, 0.012, 0.06, 0.07), tone('triangle', 2300, 2250, 0.012, 0.05, 0.1)];
@@ -119,12 +125,12 @@ export function realisticRecipe(sound: Sound): Layer[] | null {
       // A big gun: a deep boom with a long rumble, and its echo coming back off the land.
       return [...boom(1.6, 0.65), noise('lowpass', 700, 90, 0.8, 0.14, 0.7, 0.42, 0.05), tone('sine', 50, 28, 0.6, 0.18, 0.42, 0.02)];
     case 'zap':
-      // The tesla: irregular snaps of an arc over a mains buzz, and a sizzle as it dies.
+      // The tesla (round 3, "Lightning crack"): a lightning strike in small, a whip-crack and a short roll of thunder.
       return [
-        ...crackle(14, 0.22, 4200, 0.4, 0, 1.2),
-        tone('sawtooth', 100, 100, 0.25, 0.06, 0, 0.005),
-        tone('sawtooth', 200, 200, 0.22, 0.03, 0, 0.005),
-        noise('bandpass', 3200, 2000, 0.3, 0.1, 3, 0.05, 0.02),
+        noise('highpass', 7000, 3500, 0.015, 0.7, 0.7, 0, 0.001),
+        ...crackle(6, 0.04, 5000, 0.45, 0, 1),
+        noise('lowpass', 900, 90, 0.5, 0.25, 0.7, 0.03, 0.03),
+        tone('sine', 70, 35, 0.4, 0.2, 0.03, 0.02),
       ];
     case 'rail':
       // The railgun: a supersonic crack, the rails ringing, a thump and the coils humming down.
@@ -142,16 +148,25 @@ export function realisticRecipe(sound: Sound): Layer[] | null {
       // A building collapses: a crash, a thud, and debris clattering down for a while.
       return [noise('lowpass', 3200, 180, 0.55, 0.55, 0.8, 0, 0.002), tone('sine', 62, 24, 0.5, 0.65, 0, 0.003), ...ring(620, 0.25, 0.08, 0.03), ...crackle(12, 0.75, 1600, 0.2, 0.12, 2.5)];
     case 'hub_hit':
-      // Bugs bite the hub (or the engineer): mandibles scrape and the metal rings.
-      return [...ring(310, 0.45, 0.16), noise('bandpass', 2400, 1400, 0.06, 0.25, 2, 0, 0.002), ...crackle(3, 0.05, 2800, 0.15)];
-    case 'launch':
-      // The supply ship: ignition, then a roar that builds, with the crackle of a rocket and a deep rumble.
+      // Bugs bite the hub or the engineer (round 3, "Warning hit"): a thud and a short, low warning beep.
+      return [tone('sine', 110, 55, 0.14, 0.5, 0, 0.002), noise('lowpass', 1100, 200, 0.1, 0.3, 0.8, 0, 0.002), pulse(0.25, 330, 330, 0.1, 0.07, 0.08), pulse(0.25, 262, 262, 0.14, 0.07, 0.19)];
+    case 'ignite':
+      // Launch pressed: the engines light with a crack and a deep rumble that swells, then settles to wait.
       return [
         noise('highpass', 3000, 1500, 0.05, 0.4, 0.7, 0, 0.002),
-        noise('lowpass', 200, 2600, 3.5, 0.85, 0.8, 0.05, 1.6),
-        tone('sine', 38, 55, 3.5, 0.35, 0.05, 1.2),
-        ...crackle(40, 3.2, 1800, 0.18, 0.3, 1.5),
-        noise('highpass', 2000, 6000, 3.2, 0.12, 0.7, 0.3, 2),
+        noise('lowpass', 100, 600, 2.5, 0.6, 0.7, 0.02, 0.3),
+        tone('sine', 36, 48, 2.5, 0.4, 0.02, 0.3),
+        ...crackle(10, 1.5, 900, 0.1, 0.1, 1),
+      ];
+    case 'launch':
+      // Lift-off (round 3, "Big rocket", made longer): a deep roar you feel more than hear, building through the
+      // ship's climb (SHIP.liftShow), then drifting away into the sky.
+      return [
+        noise('lowpass', 110, 1300, 9, 0.9, 0.7, 0, 6),
+        tone('sine', 30, 50, 9, 0.5, 0, 5),
+        ...crackle(70, 9.5, 900, 0.12, 0.6, 1),
+        noise('lowpass', 1300, 150, 4.5, 0.6, 0.7, 8.6, 0.4),
+        tone('sine', 50, 32, 4, 0.25, 8.6, 0.4),
       ];
     default:
       return null;
