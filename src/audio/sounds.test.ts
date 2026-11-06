@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from '../render/camera';
-import { HUB_SIZE, LUMBER, NESTS, RESEARCH } from '../sim/data';
+import { HUB_SIZE, LUMBER, NESTS, RESEARCH, SHIP } from '../sim/data';
 import { Nest, cellKey, newNest } from '../sim/nests';
 import { Building, TICK, TREE, World } from '../sim/world';
 import { GAME_SOUNDS, PlayOptions, recipe, Sfx, Sound } from './sfx';
@@ -183,6 +183,23 @@ describe('Sound effects', () => {
     w.state.ship.runs++; // a supply run delivered
     watcher.update(w);
     expect(sfx.names()).toEqual(['research']);
+  });
+
+  it('the engines light at Launch, and roar only as the ship climbs (#214)', () => {
+    const { w, sfx, watcher } = setup();
+    w.state.ship.launchAt = w.state.time + SHIP.launchTime;
+    watcher.update(w);
+    expect(sfx.names()).toEqual(['ignite']);
+
+    sfx.played = [];
+    w.state.time = w.state.ship.launchAt - SHIP.liftShow - 1;
+    watcher.update(w);
+    expect(sfx.names()).toEqual([]);
+    w.state.time = w.state.ship.launchAt - SHIP.liftShow + 0.05;
+    watcher.update(w);
+    w.state.time += 1;
+    watcher.update(w);
+    expect(sfx.names()).toEqual(['launch']);
   });
 
   it('fights far off screen are silent', () => {

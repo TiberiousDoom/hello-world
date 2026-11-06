@@ -1,6 +1,6 @@
 // The sound board (#214): sound effects in each version, side by side, with a pick and a note for each.
-// Round 3: the five sounds no version has won get three new takes each (sfx-candidates.ts), beside the
-// classic, enhanced and realistic versions. Every sound already picked plays as the game has it. Built
+// Round 4: the railgun, the one sound no version has won, gets takes on a suction charge (sfx-candidates.ts),
+// beside its classic and realistic versions. Every sound already picked plays as the game has it. Built
 // into one HTML file by `npm run soundboard` (audio/soundboard.mjs); the game doesn't load it.
 
 import { GAME_HUM, GAME_SOUNDS, Sfx, Sound, Variant } from './sfx';
@@ -16,13 +16,7 @@ interface Entry {
   fresh?: boolean;
 }
 
-const OPEN: Entry[] = [
-  { sound: 'shot', name: 'Hydraulic Turret', what: 'A turret driven by a shaft, firing iron plates, three a second', burst: true },
-  { sound: 'zap', name: 'Tesla', what: 'Lightning that jumps from bug to bug', burst: true },
-  { sound: 'rail', name: 'Railgun', what: 'A slug fired by magnets, through every bug in a line', fresh: true },
-  { sound: 'hub_hit', name: 'Hub hit', what: 'Bugs bite the hub, or the engineer' },
-  { sound: 'launch', name: 'Launch', what: 'The supply ship takes off' },
-];
+const OPEN: Entry[] = [{ sound: 'rail', name: 'Railgun', what: 'A slug fired by magnets, through every bug in a line', fresh: true }];
 
 /** Every sound picked so far, as the game plays them. */
 const PICKED: { sound: Sound; name: string }[] = [
@@ -49,12 +43,17 @@ const PICKED: { sound: Sound; name: string }[] = [
   { sound: 'artillery', name: 'Artillery' },
   { sound: 'death', name: 'Bug dies' },
   { sound: 'destroyed', name: 'Building lost' },
+  { sound: 'shot', name: 'Hydraulic Turret' },
+  { sound: 'zap', name: 'Tesla' },
+  { sound: 'hub_hit', name: 'Hub hit' },
+  { sound: 'ignite', name: 'Launch pressed' },
+  { sound: 'launch', name: 'Lift-off (13 s)' },
 ];
 
 /** A version to play: one of the three made so far, or a round 3 take (its index). */
 type Version = Variant | number;
 
-const STORE_KEY = 'nestfall-soundboard-3';
+const STORE_KEY = 'nestfall-soundboard-4';
 const LETTER: Record<Variant, string> = { classic: 'A', enhanced: 'B', realistic: 'C' };
 const LABEL: Record<Variant, string> = { classic: 'Classic', enhanced: 'Enhanced', realistic: 'Realistic' };
 
@@ -190,7 +189,7 @@ function summary(): void {
     const note = (saved.notes[e.sound] ?? '').trim();
     return `${e.name}: ${pickText(e)}${note ? `\n  Note: ${note.replace(/\s+/g, ' ')}` : ''}`;
   });
-  (document.getElementById('picks-text') as HTMLTextAreaElement).value = `Sound board picks, round 3 (#214)\n${lines.join('\n')}`;
+  (document.getElementById('picks-text') as HTMLTextAreaElement).value = `Sound board picks, round 4 (#214)\n${lines.join('\n')}`;
 }
 
 function build(): void {

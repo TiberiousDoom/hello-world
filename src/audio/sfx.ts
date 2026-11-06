@@ -33,6 +33,7 @@ export type Sound =
   | 'research'
   | 'stage'
   | 'provoked'
+  | 'ignite'
   | 'launch'
   | 'ping'
   | 'bird'
@@ -100,6 +101,12 @@ export const GAME_SOUNDS: Partial<Record<Sound, Variant>> = {
   artillery: 'realistic',
   death: 'realistic',
   destroyed: 'realistic',
+  // Round 3.
+  shot: 'realistic',
+  zap: 'realistic',
+  hub_hit: 'realistic',
+  ignite: 'realistic',
+  launch: 'realistic',
 };
 /** The machine hum the game plays (round 2). */
 export const GAME_HUM: 'classic' | 'enhanced' = 'enhanced';
@@ -215,6 +222,7 @@ export function recipe(sound: Sound): Layer[] {
       const chirps = [0, 1, 2, 3, 4, 5].map((i) => tone('sawtooth', 380 + ((i * 53) % 140), 260, 0.07, 0.18, i * 0.07, 0.003));
       return [...chirps, tone('sawtooth', 70, 95, 0.6, 0.2, 0, 0.1)];
     }
+    case 'ignite':
     case 'launch':
       return [noise('lowpass', 150, 1800, 3.5, 1, 0.8, 0, 2), tone('sawtooth', 45, 180, 3.5, 0.3, 0, 2)];
     case 'ping':
