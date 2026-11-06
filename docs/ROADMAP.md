@@ -48,7 +48,7 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
 7. ⬜ **Start the community and the store page early** (see Launch and community): wishlists and followers take months.
 
 Open playtest issues not yet placed: the trebuchet's aim and flying rock (#174, #211, in progress elsewhere), and
-reworking the sound effects while keeping their retro style (#214).
+reworking the sound effects while keeping their retro style (#214: rounds 1 and 2 in 0.95.1 and 0.95.2, round 3 on the sound board).
 
 The old "Next up" list, with everything built so far in order, is at the end: [History](#history-the-old-next-up-list).
 
@@ -186,7 +186,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Art direction: whimsical forest clearing around navy-and-steel machines (D-028)
 - ✅ Name: **Nestfall** (0.91.0, D-167); web addresses `playnestfall.com` (the game's address since 0.95.0, D-181) and `box47games.com` (the studio, with email). ⬜ A USPTO search by the owner
 - ✅ Art direction: pixel art (D-179); the sprites are redrawn as pixel art. ⬜ Who draws it, and the pixel size of a tile
-- 🚧 **The pixel art test** (0.96.0, D-182): a setting with pixel crawlers, Brutes, wasps and beetles at 16 art pixels a tile, hard-edged, with zoom in whole steps, to try pixel art in play before the rest is redrawn. Left: try it on phones and decide the tile size, then the other sprites
+- 🚧 **The pixel art test** (0.96.0, D-184): a setting with pixel crawlers, Brutes, wasps and beetles at 16 art pixels a tile, hard-edged, with zoom in whole steps, to try pixel art in play before the rest is redrawn. Left: try it on phones and decide the tile size, then the other sprites
 - ✅ Art pipeline: sprites load from `src/art/`, and a PNG replaces a same-named SVG placeholder (M3a)
 - ✅ Placeholder SVGs for every P1 and P2 sprite, plus UI icons and a logo mark (M3a)
 - ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038). Since 0.43.0 most are sprite strips, with these as the fallback (D-082)
@@ -210,7 +210,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
 - ✅ Animation: belts (chevrons, corners) and turret aim in code; enemy, engineer and machine animations from strips (0.43.0, D-082). ⬜ A hub idle loop and young-bug art
-- ⬜ Sound effects reworked, keeping the retro style (#214)
+- 🚧 Sound effects reworked, keeping the retro style (#214, D-182): ✅ the sound board, and round 1's picks in the game (0.95.1). ✅ Round 2: realistic guns and hits, each gun with its own sound, the enhanced hum (0.95.2, D-183). ⬜ Round 3: the Hydraulic Turret, tesla, railgun, hub hit and launch
 - ⬜ Refresh the art review page for the upgraded art, when the owner asks (see ART_LIST.md, Art review 2)
 
 ## 5. Tech and quality

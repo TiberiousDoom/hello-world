@@ -935,7 +935,7 @@ one research tree, one supply ship.
     players who set bigger text get a bigger interface), **Reduce motion** (no drifting leaves or
     fireflies, no CSS animations; on by default when the system asks for less motion), and **Battery
     saver**: normal resolution and 30 frames a second. Otherwise the game draws at most 60 frames a
-    second, and 30 while paused or on the main menu (#46). **Pixel art test** (D-182), off by default: a
+    second, and 30 while paused or on the main menu (#46). **Pixel art test** (D-184), off by default: a
     preview of the pixel art to come (D-179). Crawlers, Brutes, wasps and beetles are drawn as pixel art at 16 art
     pixels a tile, pre-turned to 16 directions, with hard edges; zoom moves in whole steps of 16 screen pixels a
     tile, so each art pixel covers 1×1, 2×2, 3×3… screen pixels; the world is drawn at the screen's own density
@@ -1080,6 +1080,21 @@ strings and light percussion, with a roomy reverb.
 ## Sound effects
 
 - Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
+- **Three versions of each sound (#214, D-182):** classic (as first made), enhanced (`sfx-enhanced.ts`: still retro, with
+  narrow pulse waves, coarse "chip" noise, a punch under impacts and arpeggios for milestones) and, for the guns and
+  hits, realistic (`sfx-realistic.ts`: a gunshot's crack, body, thump and echo; explosions that rumble and crackle;
+  metal that rings). `GAME_SOUNDS` in `sfx.ts` holds which one the game plays, from the owner's picks on the sound
+  board (`npm run soundboard`). Now: enhanced for placing (belts, small and big buildings), demolishing, a blocked
+  placement, chopping, mining by hand and the ore coming loose, a co-op ping, a provoked nest, a breach, research
+  finished and the ballista; realistic for the Mk.2, the hub gun, the trebuchet, the cannon, the mortar, the
+  artillery, a bug dying and a building lost (D-183); classic for clicks, a ship stage, the Hydraulic Turret, the
+  tesla, the railgun, the hub being hit and the launch, until round 3 picks theirs. The machine hum is enhanced: a
+  second drone a fifth above the first, slightly out of tune, and a grittier whirr. Reworked sounds vary a little in pitch each time they play (a busy one
+  more), and get a short, quiet room echo; a compressor keeps busy fights from clipping. Each version is set to
+  about the same loudness as the classic one.
+- Each gun has its own sound (D-182): the Hydraulic Turret, the Mk.2, the hub gun, the ballista, the trebuchet,
+  the cannon, the mortar, the artillery, the tesla and the railgun. The railgun still shares the tesla's classic
+  sound until round 3 picks its own.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
   blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, a ballista's twang, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry

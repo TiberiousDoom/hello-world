@@ -84,7 +84,7 @@ const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
-/** Art pixels per tile in the pixel art test (D-182). */
+/** Art pixels per tile in the pixel art test (D-184). */
 export const PIXEL_TILE = 16;
 /** Bugs drawn from pixel sheets in the pixel art test; runners are drawn in code, and queens keep their art. */
 const PIXEL_BUGS = new Set(['crawler', 'brute', 'wasp', 'beetle']);
@@ -371,7 +371,7 @@ export class Renderer {
   /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
   maxDpr = 2;
   /**
-   * The pixel art test (D-182): zoom in whole steps, the world's art-pixel grid on whole screen pixels, and the
+   * The pixel art test (D-184): zoom in whole steps, the world's art-pixel grid on whole screen pixels, and the
    * bugs that have pixel art drawn from it, hard-edged. Set it with setPixelArt().
    */
   pixelArt = false;
@@ -476,7 +476,7 @@ export class Renderer {
   }
 
   /**
-   * The device-pixel ratio to draw at. The pixel art test (D-182) draws at the screen's own density (up to 3×) so
+   * The device-pixel ratio to draw at. The pixel art test (D-184) draws at the screen's own density (up to 3×) so
    * each art pixel is a whole number of the screen's pixels; otherwise at most maxDpr.
    */
   private densityCap(): number {
@@ -898,7 +898,7 @@ export class Renderer {
 
   /**
    * Draws a pixel-art frame centred on (cx, cy) at its own size (PIXEL_TILE art pixels a tile) times `k`,
-   * hard-edged, its corner on the art-pixel grid so each art pixel lands on whole screen pixels (D-182).
+   * hard-edged, its corner on the art-pixel grid so each art pixel lands on whole screen pixels (D-184).
    */
   private drawPixel(img: HTMLCanvasElement, cx: number, cy: number, k = 1): boolean {
     const ctx = this.ctx;

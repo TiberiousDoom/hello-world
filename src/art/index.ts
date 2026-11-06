@@ -140,7 +140,7 @@ export function frame(key: string, i: number): HTMLCanvasElement | undefined {
 }
 
 /**
- * Pixel art (D-182): sheets under `pixel/` are kept at their own size, never stretched or smoothed. A sheet is a
+ * Pixel art (D-184): sheets under `pixel/` are kept at their own size, never stretched or smoothed. A sheet is a
  * grid of square cells, one row per direction (facing east, then a turn clockwise each row) and one column per
  * frame; the cell size is the sheet's width over 4.
  */

@@ -30,6 +30,7 @@ node art/working.mjs                           # rebuild the machines' working a
 node art/nests.mjs                             # redraw the nests (every kind and stage), queen nests and queens
 cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)
 npm run balance                                # the balance script's tables: each age's outpost against every nest, and threat levels (D-174)
+npm run soundboard                             # the sound board (#214, D-182): every sound effect in each version, in dist-soundboard/index.html
 npm run server                                 # the dedicated server (build:server bundles it into dist-server/); see server/README.md
 ```
 
@@ -58,7 +59,8 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
     `Math.hypot`, and keep other `Math` functions whose last bit can vary (`sin`, `cos`, `exp`, `pow`, ...)
     out of the rules (map generation is the one exception: only the host runs it).
 - `src/render/`: Canvas 2D renderer and camera. Visual effects come from diffing world state each frame.
-- `src/audio/`: music (crossfading tracks), synthesized sound effects (`sfx.ts`) and `sounds.ts`, which
+- `src/audio/`: music (crossfading tracks), synthesized sound effects (`sfx.ts`, with enhanced and realistic
+  versions in `sfx-enhanced.ts` and `sfx-realistic.ts`; `GAME_SOUNDS` picks one per sound) and `sounds.ts`, which
   turns each frame's world changes into sounds (like the renderer's effects).
 - `src/ui/`: the HTML overlay (HUD, toolbar, dialogs, tutorial lessons, blueprint bar).
 - `src/input/`: mouse, touch and keyboard.

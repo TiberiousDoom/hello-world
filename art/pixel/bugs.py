@@ -1,4 +1,4 @@
-# Pixel-art bugs for the pixel art test (D-182), the first step towards the pixel art of D-179.
+# Pixel-art bugs for the pixel art test (D-184), the first step towards the pixel art of D-179.
 # Each bug is modelled once in 3D, top-down, and drawn by one ray per pixel into its own palette, with a navy
 # outline like the game's bugs. It is drawn at its size in a world of 16 art pixels per tile (a Brute is 22 px,
 # a crawler 15), with thin legs and feelers widened as a pixel artist would, and pre-turned to 16 directions,

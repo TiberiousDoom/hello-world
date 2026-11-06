@@ -1,0 +1,112 @@
+<title>Nestfall Sound Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap">
+<style>
+  /* Layout: one column of sound rows grouped like the game's toolbar, a sticky bar with volume and the count of picks. */
+  /* Single deliberate look: the game's own navy menu, so the board reads as part of Nestfall. */
+  :root {
+    --night: #0b0e14;
+    --navy: #142b52;
+    --panel: #172338;
+    --line: #2a3a58;
+    --ink: #e8eef8;
+    --mute: #9fb0c9;
+    --sky: #6cc3ff;
+    --brass: #f2b84b;
+    --head: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+    --body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color-scheme: dark;
+  }
+  html { background: var(--night); }
+  body {
+    background: var(--night);
+    color: var(--ink);
+    font: 15px/1.45 var(--body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0 48px;
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--navy); }
+  .wrap { max-width: 860px; margin: 0 auto; display: grid; gap: 24px; }
+  header { padding-top: 28px; display: grid; gap: 8px; }
+  h1 { font: 800 clamp(26px, 6vw, 38px)/1.1 var(--head); margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+  h1 span { color: var(--sky); }
+  .lede { color: var(--mute); margin: 0; max-width: 62ch; }
+  .bar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+    background: var(--navy); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+  }
+  .bar label { display: flex; align-items: center; gap: 10px; font: 700 12px var(--head); text-transform: uppercase; letter-spacing: 0.08em; color: var(--mute); }
+  .bar input[type=range] { width: 140px; accent-color: var(--sky); }
+  #count { margin-left: auto; font: 700 13px var(--head); color: var(--brass); font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--mute); }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .group { display: grid; gap: 2px; }
+  h2 { font: 700 13px var(--head); text-transform: uppercase; letter-spacing: 0.1em; color: var(--sky); margin: 0 0 6px; }
+  .row {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start;
+    padding: 12px 0; border-top: 1px solid var(--line);
+  }
+  .label { min-width: 0; }
+  .name { font: 700 15px var(--head); }
+  .what { color: var(--mute); font-size: 13px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .pick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: 600 13px var(--body); color: var(--ink); cursor: pointer; border-radius: 8px; min-height: 40px; padding: 0 12px; }
+  button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .play { background: var(--panel); border: 1px solid var(--line); }
+  .play.classic::before { content: "A "; color: var(--mute); }
+  .play.enhanced::before { content: "B "; color: var(--sky); }
+  .play.enhanced { border-color: #2f5f8f; }
+  .play.realistic::before { content: "C "; color: var(--brass); }
+  .play.realistic { border-color: #7a5f2a; }
+  .picked-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .play.game { display: inline-flex; align-items: center; gap: 8px; }
+  .takes { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .take { display: grid; gap: 4px; align-content: start; }
+  .take .play { justify-self: start; }
+  .take-what { color: var(--mute); font-size: 12.5px; }
+  .play.new { border-color: #3d6b4a; }
+  .play.new::before { content: "▸ "; color: #7fd49a; }
+  .row > .btns { justify-content: flex-start; }
+  .note { grid-column: 1 / -1; min-height: 44px; }
+  .tag { font-size: 11px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.06em; }
+  .play:active { transform: translateY(1px); }
+  .play[aria-pressed=true] { background: var(--sky); color: var(--night); }
+  .play[aria-pressed=true]::before { color: var(--night); }
+  .chip { min-height: 32px; padding: 0 10px; background: transparent; border: 1px dashed var(--line); color: var(--mute); font-size: 12px; }
+  .chip[aria-checked=true] { border-style: solid; border-color: var(--brass); color: var(--brass); background: rgba(242, 184, 75, 0.08); }
+  .out { display: grid; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .out h2 { margin: 0; }
+  .out p { margin: 0; color: var(--mute); font-size: 13px; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 150px; background: var(--night); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
+  #copy { justify-self: start; background: var(--sky); color: var(--night); border: 0; font-weight: 700; }
+  #copied { color: var(--brass); font-size: 13px; min-height: 1em; }
+  @media (max-width: 560px) {
+    .row { grid-template-columns: minmax(0, 1fr); }
+    .btns { justify-content: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) { .play:active { transform: none; } }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Nestfall <span>Sound Board</span></h1>
+    <p class="lede">Round 3: five sounds are still open. Each has three new takes (1, 2, 3), each going a different way, beside the versions you've heard (A classic, B enhanced, C realistic). Pick one, or say what's off in the note: what you hear in your head helps most. Everything you picked so far is at the end, as the game plays it.</p>
+    <div class="legend"><span><b>All in turn</b> plays every version in order</span><span><b>Bursts ×6</b> plays each six times quickly, as in a fight</span></div>
+  </header>
+  <div class="bar">
+    <label for="volume">Volume <input id="volume" type="range" min="0" max="100" value="70"></label>
+    <span id="count">0 picked</span>
+  </div>
+  <main id="board" class="wrap" style="gap: 28px"></main>
+  <section class="out">
+    <h2>Your picks</h2>
+    <p>Copy these and paste them into the chat. This page remembers your picks in this browser.</p>
+    <textarea id="picks-text" readonly aria-label="Your picks as text"></textarea>
+    <button id="copy" type="button">Copy picks</button>
+    <div id="copied" aria-live="polite"></div>
+  </section>
+</div>
+<script>/*BOARD*/</script>

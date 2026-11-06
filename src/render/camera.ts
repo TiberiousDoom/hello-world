@@ -8,7 +8,7 @@ export class Camera {
   minZoom = 8;
   maxZoom = 96;
   /**
-   * The pixel art test (D-182): zoom moves in whole steps of this many CSS pixels per tile, so every art pixel
+   * The pixel art test (D-184): zoom moves in whole steps of this many CSS pixels per tile, so every art pixel
    * covers a whole number of screen pixels. 0: zoom is free.
    */
   private step = 0;
