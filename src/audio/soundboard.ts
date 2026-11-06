@@ -1,6 +1,6 @@
 // The sound board (#214): sound effects in each version, side by side, with a pick and a note for each.
-// Round 4: the railgun, the one sound no version has won, gets takes on a suction charge (sfx-candidates.ts),
-// beside its classic and realistic versions. Every sound already picked plays as the game has it. Built
+// Every sound has been picked (rounds 1 to 4, D-182 to D-185), so the board plays them as the game does; adding
+// an entry to OPEN, with takes in sfx-candidates.ts, brings back the side-by-side picking. Every sound already picked plays as the game has it. Built
 // into one HTML file by `npm run soundboard` (audio/soundboard.mjs); the game doesn't load it.
 
 import { GAME_HUM, GAME_SOUNDS, Sfx, Sound, Variant } from './sfx';
@@ -16,7 +16,8 @@ interface Entry {
   fresh?: boolean;
 }
 
-const OPEN: Entry[] = [{ sound: 'rail', name: 'Railgun', what: 'A slug fired by magnets, through every bug in a line', fresh: true }];
+/** Sounds still to pick: none since round 4 (D-185). Add an entry, with takes in sfx-candidates.ts, to try new ones. */
+const OPEN: Entry[] = [];
 
 /** Every sound picked so far, as the game plays them. */
 const PICKED: { sound: Sound; name: string }[] = [
@@ -48,6 +49,7 @@ const PICKED: { sound: Sound; name: string }[] = [
   { sound: 'hub_hit', name: 'Hub hit' },
   { sound: 'ignite', name: 'Launch pressed' },
   { sound: 'launch', name: 'Lift-off (13 s)' },
+  { sound: 'rail', name: 'Railgun' },
 ];
 
 /** A version to play: one of the three made so far, or a round 3 take (its index). */
@@ -183,6 +185,7 @@ function pickText(e: Entry): string {
 }
 
 function summary(): void {
+  if (!OPEN.length) return;
   const done = OPEN.filter((e) => saved.picks[e.sound]).length;
   document.getElementById('count')!.textContent = `${done} of ${OPEN.length} picked`;
   const lines = OPEN.map((e) => {
@@ -194,13 +197,19 @@ function summary(): void {
 
 function build(): void {
   const board = document.getElementById('board')!;
-  const sec = el('section', 'group');
-  sec.append(el('h2', undefined, 'Still open'));
-  for (const e of OPEN) sec.append(row(e));
-  board.append(sec);
+  if (OPEN.length) {
+    const sec = el('section', 'group');
+    sec.append(el('h2', undefined, 'Still open'));
+    for (const e of OPEN) sec.append(row(e));
+    board.append(sec);
+  } else {
+    // Nothing left to pick: the board is a listening reference, and the picks box goes.
+    document.querySelector<HTMLElement>('.out')!.hidden = true;
+    document.querySelector<HTMLElement>('.bar #count')!.textContent = 'All picked';
+  }
 
   const done = el('section', 'group picked');
-  done.append(el('h2', undefined, 'Picked, as the game plays them'));
+  done.append(el('h2', undefined, 'Every sound, as the game plays it'));
   const grid = el('div', 'picked-grid');
   for (const p of PICKED) {
     const v = GAME_SOUNDS[p.sound] ?? 'classic';

@@ -66,7 +66,7 @@ export const REAL_LEVEL: Partial<Record<Sound, number>> = {
   cannon: 0.8,
   mortar: 1.23,
   zap: 0.45,
-  rail: 0.33,
+  rail: 0.23,
   death: 0.69,
   destroyed: 0.83,
   hub_hit: 0.37,
@@ -133,13 +133,15 @@ export function realisticRecipe(sound: Sound): Layer[] | null {
         tone('sine', 70, 35, 0.4, 0.2, 0.03, 0.02),
       ];
     case 'rail':
-      // The railgun: a supersonic crack, the rails ringing, a thump and the coils humming down.
+      // The railgun (round 4, "Vacuum pull"): the coils drain the air in a heavy, growling pull, then the crack.
       return [
-        noise('highpass', 6000, 3000, 0.02, 0.6, 0.7, 0, 0.001),
-        ...ring(1180, 0.5, 0.1, 0.005),
-        tone('sine', 95, 38, 0.18, 0.55, 0, 0.002),
-        tone('sawtooth', 240, 120, 0.4, 0.05, 0, 0.005),
-        noise('highpass', 4500, 1500, 0.4, 0.08, 0.7, 0.02, 0.01),
+        noise('bandpass', 180, 1400, 0.42, 0.45, 3, 0, 0.4),
+        tone('sawtooth', 45, 90, 0.42, 0.08, 0, 0.4),
+        tone('sawtooth', 46, 92, 0.42, 0.06, 0, 0.4),
+        tone('sine', 30, 80, 0.42, 0.3, 0, 0.4),
+        noise('highpass', 6000, 3000, 0.02, 0.6, 0.7, 0.42, 0.001),
+        tone('sine', 100, 40, 0.18, 0.5, 0.42, 0.002),
+        noise('lowpass', 1200, 150, 0.4, 0.15, 0.7, 0.44, 0.02),
       ];
     case 'death':
       // A bug dies: its shell cracks, then a wet squish.

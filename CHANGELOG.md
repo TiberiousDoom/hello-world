@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.95.4 · 2026-11-06 · Better sounds, the last one
+### New
+- **The railgun** draws in the air with a deep, growling pull as its coils charge, then fires with a crack. With it, every sound in the game has been reworked.
+
 ## 0.95.3 · 2026-11-06 · Better sounds, part 3
 ### New
 - **A bigger launch:** the supply ship now climbs off its pad over the last 10 seconds of the countdown, not 4, and fades into the sky. The engines rumble to life when you press Launch, and a deep rocket roar builds through the climb and drifts away after lift-off.
