@@ -3,8 +3,10 @@ import { Camera } from '../render/camera';
 import { HUB_SIZE, LUMBER, NESTS, RESEARCH } from '../sim/data';
 import { Nest, cellKey, newNest } from '../sim/nests';
 import { Building, TICK, TREE, World } from '../sim/world';
-import { PlayOptions, Sfx, Sound } from './sfx';
-import { SoundWatcher } from './sounds';
+import { GAME_SOUNDS, PlayOptions, recipe, Sfx, Sound } from './sfx';
+import { enhancedRecipe } from './sfx-enhanced';
+import { realisticRecipe } from './sfx-realistic';
+import { shotSound, SoundWatcher } from './sounds';
 
 /** Records what would be played, and how loud. */
 class FakeSfx {
@@ -188,5 +190,30 @@ describe('Sound effects', () => {
     placed(w.place('turret', 10, 10, 0));
     watcher.update(w);
     expect(sfx.played).toEqual([{ sound: 'place', gain: 0 }]);
+  });
+});
+
+describe('sound versions (#214)', () => {
+  const shot = { x1: 0, y1: 0, x2: 1, y2: 1, splash: 0, age: 0 };
+
+  it('gives each gun its own sound', () => {
+    const guns = ['hub', 'ballista', 'trebuchet', 'turret', 'turret2', 'cannon', 'mortar', 'artillery', 'tesla', 'railgun'] as const;
+    const sounds = guns.map((g) => shotSound(g, shot));
+    expect(new Set(sounds).size).toBe(guns.length);
+    // Anything else sounds by what it fires.
+    expect(shotSound(undefined, { ...shot, splash: 1 })).toBe('cannon');
+    expect(shotSound(undefined, { ...shot, arc: true })).toBe('zap');
+    expect(shotSound(undefined, shot)).toBe('shot');
+  });
+
+  it('has every version the game picks, and a realistic one for every weapon', () => {
+    for (const [sound, v] of Object.entries(GAME_SOUNDS) as [Sound, string][]) {
+      const layers = v === 'realistic' ? realisticRecipe(sound) : v === 'enhanced' ? enhancedRecipe(sound) : recipe(sound);
+      expect(layers?.length, sound).toBeGreaterThan(0);
+    }
+    for (const s of ['shot', 'gun', 'hub_shot', 'twang', 'treb', 'cannon', 'mortar', 'artillery', 'zap', 'rail'] as Sound[]) {
+      expect(realisticRecipe(s)?.length, s).toBeGreaterThan(0);
+      expect(recipe(s).length, s).toBeGreaterThan(0);
+    }
   });
 });

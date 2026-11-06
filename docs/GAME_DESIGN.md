@@ -1076,6 +1076,19 @@ strings and light percussion, with a roomy reverb.
 ## Sound effects
 
 - Synthesized in the browser with Web Audio (D-043), so there are no sound files and the single-file build has them too. The recipes are in `src/audio/sfx.ts`; `src/audio/sounds.ts` decides when they play.
+- **Three versions of each sound (#214, D-182):** classic (as first made), enhanced (`sfx-enhanced.ts`: still retro, with
+  narrow pulse waves, coarse "chip" noise, a punch under impacts and arpeggios for milestones) and, for the guns and
+  hits, realistic (`sfx-realistic.ts`: a gunshot's crack, body, thump and echo; explosions that rumble and crackle;
+  metal that rings). `GAME_SOUNDS` in `sfx.ts` holds which one the game plays, from the owner's picks on the sound
+  board (`npm run soundboard`). Now: enhanced for placing (belts, small and big buildings), demolishing, a blocked
+  placement, chopping, mining by hand and the ore coming loose, a co-op ping, a provoked nest, a breach and research
+  finished; classic for everything else. Reworked sounds vary a little in pitch each time they play (a busy one
+  more), and get a short, quiet room echo; a compressor keeps busy fights from clipping. Each version is set to
+  about the same loudness as the classic one.
+- Each gun has its own sound (D-182): the Hydraulic Turret, the Mk.2, the hub gun, the ballista, the trebuchet,
+  the cannon, the mortar, the artillery, the tesla and the railgun. Until their versions are picked, the ones split
+  off share their old sound (the Mk.2 the turret's, the trebuchet the ballista's, the mortar and artillery the
+  cannon's, the railgun the tesla's).
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
   blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, a ballista's twang, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry

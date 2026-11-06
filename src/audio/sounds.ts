@@ -3,7 +3,7 @@
 // full volume and fade out beyond its edges, so a fight across the map stays quiet.
 
 import { Camera } from '../render/camera';
-import { BUILDINGS, HUB_SIZE, isBelt, isMachine } from '../sim/data';
+import { BUILDINGS, BuildingType, HUB_SIZE, isBelt, isMachine } from '../sim/data';
 import { isAngry, nestCentre } from '../sim/nests';
 import { Blast, Shot, World, outOfFuel } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
@@ -78,7 +78,7 @@ export class SoundWatcher {
       this.seenShots.add(sh);
       if (sh.jump) continue; // part of a tesla's arc, already heard
       const from = world.buildingAt(Math.floor(sh.x1), Math.floor(sh.y1));
-      this.play(from?.type === 'hub' ? 'hub_shot' : from?.type === 'ballista' || from?.type === 'trebuchet' ? 'twang' : sh.arc || sh.beam ? 'zap' : sh.splash ? 'cannon' : 'shot', sh.x1, sh.y1);
+      this.play(shotSound(from?.type, sh), sh.x1, sh.y1);
     }
 
     // Orbital strikes (D-131): heard wherever they land.
@@ -202,4 +202,24 @@ export class SoundWatcher {
     const gain = d <= 1 ? 1 : Math.max(0, 1 - (d - 1) / FADE_BEYOND);
     return { gain, pan: Math.max(-1, Math.min(1, dx)) * 0.6 };
   }
+}
+
+/** Each gun's own sound (#214); a shot from anything else sounds by what it is. */
+const GUN_SOUNDS: Partial<Record<BuildingType, Sound>> = {
+  hub: 'hub_shot',
+  ballista: 'twang',
+  trebuchet: 'treb',
+  turret: 'shot',
+  turret2: 'gun',
+  cannon: 'cannon',
+  mortar: 'mortar',
+  artillery: 'artillery',
+  tesla: 'zap',
+  railgun: 'rail',
+};
+
+export function shotSound(from: BuildingType | undefined, sh: Shot): Sound {
+  const own = from && GUN_SOUNDS[from];
+  if (own) return own;
+  return sh.arc || sh.beam ? 'zap' : sh.splash ? 'cannon' : 'shot';
 }

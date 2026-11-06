@@ -3,6 +3,11 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.95.1 · 2026-11-06 · Better sounds, part 1
+### New
+- **Reworked sound effects:** placing belts and buildings, demolishing, the "can't build here" buzz, chopping, mining by hand, ore coming loose, the co-op ping, an angry nest, a breach and research finished all sound richer, still in the game's retro style. Repeated sounds vary a little each time, so a busy factory doesn't sound like one sound on a loop.
+- **Behind the scenes:** each gun now has a sound of its own, ready for more realistic gun sounds next. They sound as before for now.
+
 ## 0.95.0 · 2026-11-06 · A new address
 ### New
 - **Nestfall lives at [playnestfall.com](https://playnestfall.com).** The old address forwards there. Your browser keeps each address's saves apart, so bring your factory along: Import the file you exported (Settings → Saves) from the main menu. Didn't export? Open the old address once with no connection (airplane mode): the copy kept for offline play still opens, with your saves, so you can export there. If you added the game to your Home Screen, add it again from the new address.
