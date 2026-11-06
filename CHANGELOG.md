@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.95.5 · 2026-11-06 · Paperwork
+### New
+- **Behind the scenes:** the roadmap's business steps are up to date: the name check is done, and the next steps toward selling the game on Google Play are listed in order. Nothing in the game changes.
+
 ## 0.95.4 · 2026-11-06 · Better sounds, the last one
 ### New
 - **The railgun** draws in the air with a deep, growling pull as its coils charge, then fires with a crack. With it, every sound in the game has been reworked.
