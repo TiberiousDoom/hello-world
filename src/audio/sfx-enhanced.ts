@@ -63,21 +63,21 @@ export const LEVEL: Partial<Record<Sound, number>> = {
 };
 
 /** A pulse-wave note. */
-const pulse = (duty: 0.25 | 0.125, from: number, to: number, dur: number, peak: number, at = 0, attack?: number): Layer => ({
+export const pulse = (duty: 0.25 | 0.125, from: number, to: number, dur: number, peak: number, at = 0, attack?: number): Layer => ({
   ...tone('square', from, to, dur, peak, at, attack),
   pulse: duty,
 });
 /** A note with a second voice `cents` sharp. */
-const fat = (l: Layer, cents: number): Layer => ({ ...l, detune: cents });
+export const fat = (l: Layer, cents: number): Layer => ({ ...l, detune: cents });
 /** Coarse noise. */
-const grit = (filter: BiquadFilterType, from: number, to: number, dur: number, peak: number, q = 0.8, at = 0, attack?: number): Layer => ({
+export const grit = (filter: BiquadFilterType, from: number, to: number, dur: number, peak: number, q = 0.8, at = 0, attack?: number): Layer => ({
   ...noise(filter, from, to, dur, peak, q, at, attack),
   grit: true,
 });
 /** A short pitch drop under an impact, felt more than heard. */
-const punch = (from: number, to: number, dur: number, peak: number, at = 0): Layer => tone('sine', from, to, dur, peak, at, 0.002);
+export const punch = (from: number, to: number, dur: number, peak: number, at = 0): Layer => tone('sine', from, to, dur, peak, at, 0.002);
 /** Notes one after another, `step` seconds apart. */
-const arp = (duty: 0.25 | 0.125, freqs: number[], step: number, dur: number, peak: number, at = 0): Layer[] => freqs.map((f, i) => pulse(duty, f, f, dur, peak, at + i * step));
+export const arp = (duty: 0.25 | 0.125, freqs: number[], step: number, dur: number, peak: number, at = 0): Layer[] => freqs.map((f, i) => pulse(duty, f, f, dur, peak, at + i * step));
 
 export function enhancedRecipe(sound: Sound): Layer[] {
   switch (sound) {

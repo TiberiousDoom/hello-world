@@ -1081,14 +1081,16 @@ strings and light percussion, with a roomy reverb.
   hits, realistic (`sfx-realistic.ts`: a gunshot's crack, body, thump and echo; explosions that rumble and crackle;
   metal that rings). `GAME_SOUNDS` in `sfx.ts` holds which one the game plays, from the owner's picks on the sound
   board (`npm run soundboard`). Now: enhanced for placing (belts, small and big buildings), demolishing, a blocked
-  placement, chopping, mining by hand and the ore coming loose, a co-op ping, a provoked nest, a breach and research
-  finished; classic for everything else. Reworked sounds vary a little in pitch each time they play (a busy one
+  placement, chopping, mining by hand and the ore coming loose, a co-op ping, a provoked nest, a breach, research
+  finished and the ballista; realistic for the Mk.2, the hub gun, the trebuchet, the cannon, the mortar, the
+  artillery, a bug dying and a building lost (D-183); classic for clicks, a ship stage, the Hydraulic Turret, the
+  tesla, the railgun, the hub being hit and the launch, until round 3 picks theirs. The machine hum is enhanced: a
+  second drone a fifth above the first, slightly out of tune, and a grittier whirr. Reworked sounds vary a little in pitch each time they play (a busy one
   more), and get a short, quiet room echo; a compressor keeps busy fights from clipping. Each version is set to
   about the same loudness as the classic one.
 - Each gun has its own sound (D-182): the Hydraulic Turret, the Mk.2, the hub gun, the ballista, the trebuchet,
-  the cannon, the mortar, the artillery, the tesla and the railgun. Until their versions are picked, the ones split
-  off share their old sound (the Mk.2 the turret's, the trebuchet the ballista's, the mortar and artillery the
-  cannon's, the railgun the tesla's).
+  the cannon, the mortar, the artillery, the tesla and the railgun. The railgun still shares the tesla's classic
+  sound until round 3 picks its own.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
   blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, a ballista's twang, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the launch rumble, a supply run delivered, and an angry

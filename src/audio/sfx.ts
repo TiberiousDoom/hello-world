@@ -90,7 +90,19 @@ export const GAME_SOUNDS: Partial<Record<Sound, Variant>> = {
   provoked: 'enhanced',
   breach: 'enhanced',
   research: 'enhanced',
+  // Round 2: realistic guns and hits, and the ballista's enhanced twang.
+  gun: 'realistic',
+  hub_shot: 'realistic',
+  twang: 'enhanced',
+  treb: 'realistic',
+  cannon: 'realistic',
+  mortar: 'realistic',
+  artillery: 'realistic',
+  death: 'realistic',
+  destroyed: 'realistic',
 };
+/** The machine hum the game plays (round 2). */
+export const GAME_HUM: 'classic' | 'enhanced' = 'enhanced';
 
 /** At most this many sounds at once. */
 const MAX_VOICES = 24;
@@ -102,6 +114,8 @@ export interface PlayOptions {
   gain?: number;
   /** -1 (left) to 1 (right). */
   pan?: number;
+  /** The sound board only: play these layers instead of the sound's recipe (a candidate being tried). */
+  layers?: Layer[];
 }
 
 /** One envelope-shaped layer of a sound. */
@@ -342,9 +356,11 @@ export class Sfx {
     this.log.push(sound);
     if (this.log.length > 50) this.log.shift();
 
-    const variant = this.variant(sound);
+    // A candidate from the sound board plays as a reworked sound, at the level the board gives it.
+    const variant = opts.layers ? 'realistic' : this.variant(sound);
     const out = ctx.createGain();
-    out.gain.value = gain * (variant === 'enhanced' ? (LEVEL[sound] ?? 1) : variant === 'realistic' ? (REAL_LEVEL[sound] ?? 1) : 1);
+    const level = opts.layers ? 1 : variant === 'enhanced' ? (LEVEL[sound] ?? 1) : variant === 'realistic' ? (REAL_LEVEL[sound] ?? 1) : 1;
+    out.gain.value = gain * level;
     let node: AudioNode = out;
     if (opts.pan && ctx.createStereoPanner) {
       const panner = ctx.createStereoPanner();
@@ -356,7 +372,7 @@ export class Sfx {
     if (variant !== 'classic' && this.roomIn) node.connect(this.roomIn);
 
     let end = 0;
-    const layers = variant === 'realistic' ? realisticRecipe(sound)! : variant === 'enhanced' ? enhancedRecipe(sound) : recipe(sound);
+    const layers = opts.layers ?? (variant === 'realistic' ? realisticRecipe(sound)! : variant === 'enhanced' ? enhancedRecipe(sound) : recipe(sound));
     // Reworked: a repeated sound varies a little in pitch each time, so a fight isn't one sample on a loop.
     const v = variant !== 'classic' ? (VARY[sound] ?? 0) : 0;
     const pitch = v ? 1 + (Math.random() * 2 - 1) * v : 1;
@@ -403,7 +419,8 @@ export class Sfx {
     droneGain.gain.value = 0.5;
     drone.connect(droneGain).connect(out);
     drone.start();
-    if (this.style === 'enhanced') {
+    const enhancedHum = this.style === 'enhanced' || (this.style === 'game' && GAME_HUM === 'enhanced');
+    if (enhancedHum) {
       // A second drone a fifth up and a little out of tune, so the hum beats slowly like real motors.
       const fifth = ctx.createOscillator();
       fifth.type = 'triangle';
@@ -414,7 +431,7 @@ export class Sfx {
       fifth.start();
     }
     const whirr = ctx.createBufferSource();
-    whirr.buffer = this.style === 'enhanced' ? this.gritBuf : this.noiseBuf;
+    whirr.buffer = enhancedHum ? this.gritBuf : this.noiseBuf;
     whirr.loop = true;
     const band = ctx.createBiquadFilter();
     band.type = 'bandpass';
