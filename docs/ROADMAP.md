@@ -275,6 +275,8 @@ Wishlists, followers and word of mouth are built months before a release, so thi
 - ⬜ A trailer (about a minute of the factory and a raid)
 - ⬜ Google Play pre-registration as soon as the account exists (D-180), so sign-ups build up before release
 - ⬜ An itch.io page for the web build, as a second place to be found
+- ⬜ Short TikTok clips of the game (a raid on a working factory, a belt feeding a turret), free, to learn which moment hooks people
+- ⬜ A playable ad for TikTok's app-install campaigns: a 15–30 second scene from the single-file build (drag a belt to a turret, the bugs come, it fires), ending on Install. Built from the clip that worked best. Needs, first: the Google Play listing; a choice on install tracking, since attribution usually means an SDK and the privacy page says no tracking; and what the purchase is (Q-25), so ads can pay for themselves. Check the ad network's current size limit (often 2–5 MB; the single-file build is 3.6 MB, about 0.8 MB compressed)
 
 ---
 
