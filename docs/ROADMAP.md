@@ -47,8 +47,8 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
    is (Q-25). Everything in Platform and release depends on these.
 7. ⬜ **Start the community and the store page early** (see Launch and community): wishlists and followers take months.
 
-Open playtest issues not yet placed: the trebuchet's aim and flying rock (#174, #211, in progress elsewhere), and
-reworking the sound effects while keeping their retro style (#214: rounds 1 to 3 in 0.95.1 to 0.95.3, round 4 on the sound board).
+Open playtest issues not yet placed: the trebuchet's aim and flying rock (#174, #211, in progress elsewhere). The
+sound effects rework (#214) is done (0.95.1 to 0.95.4).
 
 The old "Next up" list, with everything built so far in order, is at the end: [History](#history-the-old-next-up-list).
 
@@ -209,7 +209,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
 - ✅ Animation: belts (chevrons, corners) and turret aim in code; enemy, engineer and machine animations from strips (0.43.0, D-082). ⬜ A hub idle loop and young-bug art
-- 🚧 Sound effects reworked, keeping the retro style (#214, D-182): ✅ the sound board, and round 1's picks in the game (0.95.1). ✅ Round 2: realistic guns and hits, each gun with its own sound, the enhanced hum (0.95.2, D-183). ✅ Round 3: the Hydraulic Turret, tesla, hub hit, and a longer launch with its own roar (0.95.3, D-184). ⬜ Round 4: the railgun's suction charge
+- ✅ Sound effects reworked, keeping the retro style (#214, D-182): ✅ the sound board, and round 1's picks in the game (0.95.1). ✅ Round 2: realistic guns and hits, each gun with its own sound, the enhanced hum (0.95.2, D-183). ✅ Round 3: the Hydraulic Turret, tesla, hub hit, and a longer launch with its own roar (0.95.3, D-184). ✅ Round 4: the railgun's suction charge (0.95.4, D-185). The board (`npm run soundboard`) now plays every sound as the game does
 - ⬜ Refresh the art review page for the upgraded art, when the owner asks (see ART_LIST.md, Art review 2)
 
 ## 5. Tech and quality

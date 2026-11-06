@@ -1087,14 +1087,13 @@ strings and light percussion, with a roomy reverb.
   finished and the ballista; realistic for the Mk.2, the hub gun, the trebuchet, the cannon, the mortar, the
   artillery, a bug dying and a building lost (D-183), and for the Hydraulic Turret (a spring snap and the plate
   whirring off), the tesla (a lightning crack and a short roll of thunder), the hub being hit (a thud and a low
-  two-note warning) and the launch (D-184); classic for clicks, a ship stage and the railgun, until round 4 picks
-  its own. The machine hum is enhanced: a
+  two-note warning) and the launch (D-184), and the railgun (a heavy, growling pull as the coils drain the air,
+  then the crack, D-185); classic for clicks and a ship stage. The machine hum is enhanced: a
   second drone a fifth above the first, slightly out of tune, and a grittier whirr. Reworked sounds vary a little in pitch each time they play (a busy one
   more), and get a short, quiet room echo; a compressor keeps busy fights from clipping. Each version is set to
   about the same loudness as the classic one.
 - Each gun has its own sound (D-182): the Hydraulic Turret, the Mk.2, the hub gun, the ballista, the trebuchet,
-  the cannon, the mortar, the artillery, the tesla and the railgun. The railgun still shares the tesla's classic
-  sound until round 4 picks its own.
+  the cannon, the mortar, the artillery, the tesla and the railgun.
 - Sounds: button clicks, placing a belt, placing a building (deeper for big ones), demolishing, a
   blocked placement, a tree being chopped, turret and cannon shots, a tesla's zap, a ballista's twang, the hub gun, bugs dying, a building destroyed, the hub
   being hit, a breach, research finished, a ship stage finished, the engines lighting at Launch and their roar

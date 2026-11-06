@@ -107,6 +107,8 @@ export const GAME_SOUNDS: Partial<Record<Sound, Variant>> = {
   hub_hit: 'realistic',
   ignite: 'realistic',
   launch: 'realistic',
+  // Round 4.
+  rail: 'realistic',
 };
 /** The machine hum the game plays (round 2). */
 export const GAME_HUM: 'classic' | 'enhanced' = 'enhanced';
