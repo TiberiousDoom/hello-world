@@ -254,7 +254,7 @@ None of this is legal or tax advice: a one-hour talk with a Missouri small-busin
 - ✅ Web addresses bought, on Cloudflare: `playnestfall.com` (the game) and `box47games.com` (the studio)
 - 🚧 Check the owner's day-job rules: ✅ the employee handbook allows outside work ("Moonlighting") that doesn't compete or conflict with the employer, uses none of its tools, equipment, time or confidential information, and that the owner tells a supervisor about. ⬜ Tell the supervisor in writing; check whether a separate confidentiality or invention agreement was signed at hiring
 - ✅ Registered agent chosen: Northwest Registered Agent (D-187). Its Missouri street address is the registered office, so the owner's home address stays off the public record
-- ⬜ Form the LLC through Northwest as "Box47 Games LLC" (D-187); Missouri has no annual report or fee for LLCs
+- 🚧 Form the LLC through Northwest as "Box47 Games LLC" (D-187): submitted 2026-11-06, expected to be formed by 2026-11-17. Missouri has no annual report or fee for LLCs
 - ⬜ Get the EIN at irs.gov (free, about 10 minutes; never pay a website for it)
 - 🚧 Write a one-page operating agreement (not filed; backs up the liability protection, and banks may ask for it). ✅ Drafted, to fill in and have checked
 - ⬜ Open a business bank account; from then on the LLC pays the game's costs (domains, Cloudflare, store fees) and takes its income
