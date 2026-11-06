@@ -113,6 +113,7 @@ interface Profile {
   reducedMotion: boolean | null; // null: as the system says
   keepTipSeen: boolean; // the note about Safari deleting saves was dismissed (D-172)
   errorReports: boolean | null; // send error reports (D-173); null: not asked yet
+  pixelArt: boolean; // the pixel art test (D-186)
 }
 
 function loadProfile(): Profile {
@@ -130,6 +131,7 @@ function loadProfile(): Profile {
     reducedMotion: null,
     keepTipSeen: false,
     errorReports: null,
+    pixelArt: false,
   };
   try {
     const stored = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}');
@@ -290,13 +292,14 @@ const camera = new Camera();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const renderer = new Renderer(canvas, camera);
 renderer.maxDpr = profile.batterySaver ? 1 : 2;
-camera.zoom = window.innerWidth < 600 ? 22 : 30; // the main menu's view of its example factory
+renderer.pixelArt = profile.pixelArt;
+camera.setZoom(window.innerWidth < 600 ? 22 : 30); // the main menu's view of its example factory
 
 function centreOnHub(world: World): void {
   const hub = world.hub;
   camera.x = hub ? hub.x + HUB_SIZE / 2 : world.state.width / 2;
   camera.y = hub ? hub.y + HUB_SIZE / 2 : world.state.height / 2;
-  camera.zoom = window.innerWidth < 600 ? 26 : 34;
+  camera.setZoom(window.innerWidth < 600 ? 26 : 34);
 }
 
 /** Plays a game: alone, or the shared game of a co-op room (its session made there). */
@@ -371,7 +374,7 @@ function showMainMenu(): void {
   demo = createDemoWorld(demoScene);
   demoSince = performance.now();
   showDemoCaption();
-  camera.zoom = window.innerWidth < 600 ? 22 : 30;
+  camera.setZoom(window.innerWidth < 600 ? 22 : 30);
   if (tutorial.active) tutorial.abort();
   hud.closeModals();
   refreshMainMenu();
@@ -553,6 +556,15 @@ saverToggle.addEventListener('change', () => {
   profile.batterySaver = saverToggle.checked;
   renderer.maxDpr = profile.batterySaver ? 1 : 2;
   renderer.resize();
+  saveProfile();
+});
+
+// The pixel art test (D-186): the bugs that have pixel art, hard-edged pixels, and zoom in whole steps.
+const pixelToggle = document.getElementById('pixel-toggle') as HTMLInputElement;
+pixelToggle.checked = profile.pixelArt;
+pixelToggle.addEventListener('change', () => {
+  profile.pixelArt = pixelToggle.checked;
+  renderer.setPixelArt(profile.pixelArt);
   saveProfile();
 });
 
@@ -813,6 +825,7 @@ function currentDiagnostics(): string {
     screen: { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
     touch: matchMedia('(pointer: coarse)').matches,
     batterySaver: profile.batterySaver,
+    pixelArt: profile.pixelArt,
     fps: frameRate.fps,
     errors: errorLog.entries,
     world: game,

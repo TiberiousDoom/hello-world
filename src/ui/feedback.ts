@@ -50,6 +50,8 @@ export interface DiagnosticsInput {
   screen: { width: number; height: number; dpr: number };
   touch: boolean;
   batterySaver: boolean;
+  /** The pixel art test (D-186) is on. */
+  pixelArt?: boolean;
   fps: number;
   errors: readonly string[];
   /** The game being played, or null on the main menu. */
@@ -63,7 +65,7 @@ export function diagnostics(d: DiagnosticsInput): string {
     `- Version: ${d.version}`,
     `- Browser: ${d.userAgent}`,
     `- Screen: ${d.screen.width}×${d.screen.height} at ${round(d.screen.dpr, 2)}× (${d.touch ? 'touch' : 'mouse'})`,
-    `- Frame rate: ${d.fps ? `${Math.round(d.fps)} a second` : 'not measured yet'}${d.batterySaver ? ', battery saver on' : ''}`,
+    `- Frame rate: ${d.fps ? `${Math.round(d.fps)} a second` : 'not measured yet'}${d.batterySaver ? ', battery saver on' : ''}${d.pixelArt ? ', pixel art test on' : ''}`,
   ];
   const w = d.world;
   if (!w) lines.push('- Game: on the main menu');

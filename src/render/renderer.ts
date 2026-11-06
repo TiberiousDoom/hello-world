@@ -2,7 +2,7 @@
 // shapes if one is missing) and only reads the simulation, so a 3D renderer
 // can replace it later behind the same draw() call.
 
-import { frame, frameCount, sprite, spritesLoaded } from '../art';
+import { frame, frameCount, pixelFrame, sprite, spritesLoaded } from '../art';
 import {
   BELT_LANE,
   BUILDINGS,
@@ -84,6 +84,10 @@ const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
+/** Art pixels per tile in the pixel art test (D-186). */
+export const PIXEL_TILE = 16;
+/** Bugs drawn from pixel sheets in the pixel art test; runners are drawn in code, and queens keep their art. */
+const PIXEL_BUGS = new Set(['crawler', 'brute', 'wasp', 'beetle']);
 /** Pixels per tile past which the eyes, rabbits and deer keep out of sight (#208): they're shy close up. */
 const SHY_ZOOM = 48;
 /** How many times rarer than at first (D-160) the eyes, rabbits, deer and bird flights are (#203, #208). */
@@ -366,6 +370,11 @@ export class Renderer {
   private dpr = 1;
   /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
   maxDpr = 2;
+  /**
+   * The pixel art test (D-186): zoom in whole steps, the world's art-pixel grid on whole screen pixels, and the
+   * bugs that have pixel art drawn from it, hard-edged. Set it with setPixelArt().
+   */
+  pixelArt = false;
   /** No drifting fireflies or leaves: the player or their system asked for less motion (D-144). */
   reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private ground = newLayer();
@@ -453,13 +462,31 @@ export class Renderer {
   }
 
   resize(): void {
-    this.dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
+    this.dpr = this.densityCap();
+    // Pixel art stays sharp even when the canvas is stretched to the screen (battery saver draws at 1×).
+    this.canvas.style.imageRendering = this.pixelArt ? 'pixelated' : '';
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
     this.canvas.width = Math.round(w * this.dpr);
     this.canvas.height = Math.round(h * this.dpr);
     this.camera.width = w;
     this.camera.height = h;
+    // A step of PIXEL_TILE screen pixels a tile: each art pixel covers 1, 2, 3… whole screen pixels.
+    this.camera.setStep(this.pixelArt ? PIXEL_TILE / this.dpr : 0);
+  }
+
+  /**
+   * The device-pixel ratio to draw at. The pixel art test (D-186) draws at the screen's own density (up to 3×) so
+   * each art pixel is a whole number of the screen's pixels; otherwise at most maxDpr.
+   */
+  private densityCap(): number {
+    const device = window.devicePixelRatio || 1;
+    return Math.min(device, this.pixelArt && this.maxDpr > 1 ? 3 : this.maxDpr);
+  }
+
+  setPixelArt(on: boolean): void {
+    this.pixelArt = on;
+    this.resize();
   }
 
   /** `alpha`: how far the game is towards its next tick (0–1); moving things are drawn that far along. */
@@ -467,7 +494,7 @@ export class Renderer {
     this.viewer = ui?.player;
     // iOS Safari can change the visible area (toolbars, opening from another app)
     // without a resize event, which left the picture stretched. Check every frame.
-    const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
+    const dpr = this.densityCap();
     if (this.canvas.clientWidth !== this.camera.width || this.canvas.clientHeight !== this.camera.height || dpr !== this.dpr) {
       this.resize();
     }
@@ -502,7 +529,9 @@ export class Renderer {
 
     // World transform: 1 unit = 1 tile.
     const [ox, oy] = camera.toScreen(0, 0);
-    ctx.setTransform(this.dpr * z, 0, 0, this.dpr * z, this.dpr * ox, this.dpr * oy);
+    // In the pixel art test the world starts on a whole screen pixel, so its art-pixel grid lines up with the screen's.
+    const snap = (v: number) => (this.pixelArt ? Math.round(v) : v);
+    ctx.setTransform(this.dpr * z, 0, 0, this.dpr * z, snap(this.dpr * ox), snap(this.dpr * oy));
 
     const s = world.state;
     const [x0f, y0f] = camera.toWorld(0, 0);
@@ -624,14 +653,17 @@ export class Renderer {
       const queenNest = e.queen ? s.nests.find((q) => q.id === e.nest) : undefined;
       const still = !track || s.time - track.movedAt > 0.15;
       const queenStrip = biting ? 'attack' : still && queenNest && isAngry(world, queenNest) ? 'summon' : 'walk';
-      const drawn = e.queen
-        ? this.drawFrame(`enemies/${e.type}_queen_${queenStrip}`, queenStrip === 'walk' ? (track?.walked ?? 0) / 0.3 + e.id : s.time * (queenStrip === 'attack' ? 8 : 5), x, y, size, angle) ||
-          this.drawSprite(`enemies/${e.type}_queen`, x, y, size, angle + 0.06 * Math.sin((track?.walked ?? 0) * 3))
-        : e.type === 'runner' && track
-          ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
-          : biting
-            ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
-            : this.drawFrame(`enemies/${e.type}_walk`, step, x, y, size, angle);
+      const pixel = this.pixelArt && !e.queen && PIXEL_BUGS.has(e.type) ? pixelFrame(`pixel/enemies/${e.type}_walk`, angle, biting ? s.time * 8 + e.id : step) : undefined;
+      const drawn = pixel
+        ? this.drawPixel(pixel, ex, ey, 0.4 + 0.6 * grown)
+        : e.queen
+          ? this.drawFrame(`enemies/${e.type}_queen_${queenStrip}`, queenStrip === 'walk' ? (track?.walked ?? 0) / 0.3 + e.id : s.time * (queenStrip === 'attack' ? 8 : 5), x, y, size, angle) ||
+            this.drawSprite(`enemies/${e.type}_queen`, x, y, size, angle + 0.06 * Math.sin((track?.walked ?? 0) * 3))
+          : e.type === 'runner' && track
+            ? this.drawRunner(track, ex, ey, size, e.id, now, biting)
+            : biting
+              ? this.drawFrame(`enemies/${e.type}_attack`, s.time * 8 + e.id, x, y, size, angle)
+              : this.drawFrame(`enemies/${e.type}_walk`, step, x, y, size, angle);
       if (!drawn && !this.drawSprite(`enemies/${e.type}${frame}`, x, y, size, angle)) {
         ctx.fillStyle = def.color;
         dot(ctx, ex, ey, def.radius * (0.4 + 0.6 * grown));
@@ -861,6 +893,23 @@ export class Renderer {
     const img = frame(key, i);
     if (!img) return false;
     this.drawCanvas(img, x, y, size, angle);
+    return true;
+  }
+
+  /**
+   * Draws a pixel-art frame centred on (cx, cy) at its own size (PIXEL_TILE art pixels a tile) times `k`,
+   * hard-edged, its corner on the art-pixel grid so each art pixel lands on whole screen pixels (D-186).
+   */
+  private drawPixel(img: HTMLCanvasElement, cx: number, cy: number, k = 1): boolean {
+    const ctx = this.ctx;
+    if (this.hardLook) img = hardened(img);
+    const size = (img.width / PIXEL_TILE) * k;
+    const x = Math.round((cx - size / 2) * PIXEL_TILE) / PIXEL_TILE;
+    const y = Math.round((cy - size / 2) * PIXEL_TILE) / PIXEL_TILE;
+    const smooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, x, y, size, size);
+    ctx.imageSmoothingEnabled = smooth;
     return true;
   }
 

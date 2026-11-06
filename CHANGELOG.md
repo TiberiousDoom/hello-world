@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.96.0 · 2026-11-06 · A pixel art preview
+### New
+- **Try the pixel art:** turn on Settings → Pixel art test to see crawlers, Brutes, wasps and beetles redrawn as pixel art, the look the game is moving to. Pixels stay sharp, and zoom moves in steps so every pixel stays square. Runners, queens and the rest of the world keep today's art for now. Tell us how it looks on your screen.
+
 ## 0.95.5 · 2026-11-06 · Paperwork
 ### New
 - **Behind the scenes:** the roadmap's business steps are up to date: the name check is done, and the next steps toward selling the game on Google Play are listed in order. Nothing in the game changes.

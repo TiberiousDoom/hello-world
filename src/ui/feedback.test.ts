@@ -26,6 +26,7 @@ describe('Feedback form', () => {
     expect(text).toContain('  - Boom (main.js:1)');
     expect(diagnostics({ ...base, world: null })).toContain('on the main menu');
     expect(diagnostics({ ...base, world: null, fps: 0 })).toContain('Frame rate: not measured yet');
+    expect(diagnostics({ ...base, world: null, pixelArt: true })).toContain('pixel art test on');
   });
 
   it('turns a report into a GitHub issue link, labelled by kind and cut short when too long', () => {

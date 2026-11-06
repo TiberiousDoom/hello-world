@@ -937,7 +937,11 @@ one research tree, one supply ship.
     players who set bigger text get a bigger interface), **Reduce motion** (no drifting leaves or
     fireflies, no CSS animations; on by default when the system asks for less motion), and **Battery
     saver**: normal resolution and 30 frames a second. Otherwise the game draws at most 60 frames a
-    second, and 30 while paused or on the main menu (#46).
+    second, and 30 while paused or on the main menu (#46). **Pixel art test** (D-186), off by default: a
+    preview of the pixel art to come (D-179). Crawlers, Brutes, wasps and beetles are drawn as pixel art at 16 art
+    pixels a tile, pre-turned to 16 directions, with hard edges; zoom moves in whole steps of 16 screen pixels a
+    tile, so each art pixel covers 1×1, 2×2, 3×3… screen pixels; the world is drawn at the screen's own density
+    (up to 3×, 1× in battery saver). Runners (drawn in code), queens and everything else keep today's art.
   - **Saves** (D-172): **Export your factory** downloads it as a file (`nestfall-standard-125min-2026-11-03.json`);
     **Import a factory**, from the main menu, loads one back in any browser, replacing the factory there after
     asking. A file that isn't a save, or a run that has ended, is refused. A line says whether the browser has
