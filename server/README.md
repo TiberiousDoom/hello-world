@@ -53,7 +53,7 @@ All optional, as environment variables:
 | `FOUNDRY_DATA` | Folder for the room, the save and backups | `server-data/` |
 | `FOUNDRY_ROOM` | The room code: 6 letters and digits, without 0, O, 1, I or L | Made on first start, then kept |
 | `FOUNDRY_RELAY` | The relay | The one on Cloudflare |
-| `FOUNDRY_ORIGIN` | The page origin the relay lets in | The game on GitHub Pages |
+| `FOUNDRY_ORIGIN` | The page origin the relay lets in | The game, `https://playnestfall.com` |
 | `FOUNDRY_PAUSE_EMPTY` | `0` keeps the game running with nobody in | Paused when empty |
 | `FOUNDRY_NAME` | The main room's name on the Play together screen | "Dedicated server" |
 | `FOUNDRY_PASSWORD` | A password players type once to join (their browser keeps it), also needed to make a room. The relay only sees it hashed | None: anyone with the code |

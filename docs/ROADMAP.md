@@ -21,7 +21,7 @@ quality and business work don't get left until the end.
 | M4w: Wood | Trees in the simulation, Lumber Camp, planks, palisades, stake turret, charcoal and steel (D-044) | ✅ Phases 1 and 2, the Wood Age (0.47.0 to 0.51.0) built on them, and phase 3, forests and bugs (0.76.0, D-134) |
 | M4c: Co-op | 2–10 players in one shared world (10 since 0.44.0, D-083) (D-056, [COOP.md](COOP.md)) | ✅ Phases 0–3 (0.42.0, D-078 to D-081), the dedicated server (0.44.0) and player-made rooms (0.89.0). Balance for more players after playtesting |
 | **M4p: Playtest-ready** | **Friends and family can play for weeks without losing saves, and every problem they hit reaches us (D-170)** | 🚧 7 playtesters, all people the owner knows. See Next up |
-| M5: Release | A paid release on the first platform (Q-24), with the purchase decided (Q-25) | ⬜ |
+| M5: Release | A paid release on Google Play (D-180), with the purchase decided (Q-25) | ⬜ |
 | M6: 3D | Low-poly 3D renderer | ⏸ Not planned for now (D-170). The rules stay apart from drawing, so it stays possible |
 
 ## Next up (in order)
@@ -33,7 +33,7 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
    shipyard's crane works only when something arrives (#212).
 2. ✅ **Saves that can't be lost** (0.93.0, D-172): export and import in Settings; the browser asked to keep the game's
    storage; iPhone players in Safari told to add the game to the Home Screen, since Safari deletes a site's storage
-   after about 7 days without a visit. Import also lets the game move to playnestfall.com later.
+   after about 7 days without a visit. Import also let the game move to playnestfall.com (0.95.0, D-181).
 3. ✅ **Error reports that arrive by themselves** (0.94.0, D-173): with the player's consent, a page error is sent to
    our own relay, not a third party, where the developer reads them (D-175); the privacy page says so.
 4. 🚧 **A first balance pass:** ✅ the balance script (0.94.1, D-174) pits each age's reference outpost against every
@@ -43,8 +43,8 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
    keeps these as the targets (0.94.4, D-177), and a test checks them. ⬜ The 7 playtesters' notes.
 5. ⬜ **Playtest round with the 7 playtesters:** what they hit goes into `playtest` issues through the feedback form.
    Then more playtesters, people the owner doesn't know.
-6. ⬜ **Decide the first paid platform (Q-24) and what the purchase is (Q-25).** Everything in Platform and release
-   depends on these.
+6. 🚧 **Decide the first paid platform and what the purchase is.** ✅ Google Play first (D-180). ❓ What the purchase
+   is (Q-25). Everything in Platform and release depends on these.
 7. ⬜ **Start the community and the store page early** (see Launch and community): wishlists and followers take months.
 
 Open playtest issues not yet placed: the trebuchet's aim and flying rock (#174, #211, in progress elsewhere), and
@@ -184,13 +184,13 @@ In this order:
 ## 4. Art and audio
 See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Art direction: whimsical forest clearing around navy-and-steel machines (D-028)
-- ✅ Name: **Nestfall** (0.91.0, D-167); web addresses `playnestfall.com` (forwards to the game for now) and `box47games.com` (the studio, with email). ⬜ A USPTO search by the owner
-- ❓ Art direction (Q-1): does the upgraded art (D-075) ship as it is, or is it redrawn, by the owner or a commissioned artist?
+- ✅ Name: **Nestfall** (0.91.0, D-167); web addresses `playnestfall.com` (the game's address since 0.95.0, D-181) and `box47games.com` (the studio, with email). ⬜ A USPTO search by the owner
+- ✅ Art direction: pixel art (D-179); the sprites are redrawn as pixel art. ⬜ Who draws it, and the pixel size of a tile
 - ✅ Art pipeline: sprites load from `src/art/`, and a PNG replaces a same-named SVG placeholder (M3a)
 - ✅ Placeholder SVGs for every P1 and P2 sprite, plus UI icons and a logo mark (M3a)
 - ✅ Effects drawn in code: muzzle flash, cannon blast, death puff, breach shockwave, nest mounds and territory outlines (M3a, D-038). Since 0.43.0 most are sprite strips, with these as the fallback (D-082)
 - ✅ Menu style: navy and sky blue, flat icons, Montserrat headings (M3a, D-011)
-- ⬜ Final P1 sprites, once Q-1 is decided: items, resource nodes, belt, extractor, furnace, hub, turret, crawler
+- ⬜ Final P1 sprites, in pixel art (D-179): items, resource nodes, belt, extractor, furnace, hub, turret, crawler
 - ✅ Art upgrade (0.40.0, D-075): every sprite redrawn; wall and palisade sets that join up; burrow nests; damage overlays; damaged hub
 - ⬜ Final P2 sprites: remaining buildings and enemies
 - ⬜ Final P3: effects and UI icons (the app icon came in 0.88.5)
@@ -220,16 +220,16 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Lint and format checks (0.85.0, D-144): ESLint and Prettier, run in CI (`npm run lint`)
 - ✅ Error reporting: the feedback form includes recent page errors (D-064); error reports sent by themselves, with the player's consent, to our own relay, read with the `REPORTS_KEY` secret (D-175; emailing them needs the Workers Paid plan) (0.94.0, D-173)
 - ✅ Save export and import (0.93.0, D-172): Settings → Saves exports and imports a factory; the browser is asked to keep the game's storage
-- ⬜ Move the game to `playnestfall.com`: players bring their factory with Export and Import (D-172), since a save made on the old address can't be read from the new one
+- ✅ The game moved to `playnestfall.com` (0.95.0, D-181): GitHub Pages with a custom domain, so the old address forwards; players bring their factory with Export and Import (D-172), since a save made on the old address can't be read from the new one
 
 ## 6. Platform and release
 - ✅ Single-file build for sharing (claude.ai artifact)
 - ✅ GitHub Pages deployment from `master` (D-010)
 - ✅ PWA (0.85.0, D-144): offline play after the first visit (without music), install to home screen, app icons from the logo
-- ❓ The first paid platform (Q-24): Steam (a desktop wrapper such as Electron or Tauri, $100 a game), the phone stores, or both
-- ⬜ Capacitor wrapper for iOS and Android (M5)
-- ⬜ A desktop wrapper for Steam, if Steam is chosen (Q-24)
-- ⬜ Store accounts (Apple Developer, Google Play, Steamworks) in the LLC's name, signing, and a build pipeline
+- ✅ The first paid platform: Google Play (D-180). Steam and the App Store later
+- ⬜ Capacitor wrapper for Android first (M5, D-180), iOS later
+- ⬜ A desktop wrapper for Steam, later (D-180)
+- ⬜ Store accounts in the LLC's name, Google Play first (an organization account, which needs the D-U-N-S number, D-180), signing, and a build pipeline
 - ⬜ Store listings: screenshots, description, trailer, age rating (IARC for Google Play, Apple's own questions), privacy policy (✅ written, 0.92.0)
 - ⬜ Store rules: tips through the Ko-fi link may not be allowed inside store apps; hide it there or offer a tip as an in-app purchase. Check the rules of the day before submitting
 - ⬜ Declare AI use on store pages if any AI-made art, sound or text ships (none does now)
