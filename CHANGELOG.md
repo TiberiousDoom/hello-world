@@ -7,6 +7,15 @@ what's **New** and what's **Fixed**.
 ### New
 - **Try the pixel art:** turn on Settings → Pixel art test to see crawlers, Brutes, wasps and beetles redrawn as pixel art, the look the game is moving to. Pixels stay sharp, and zoom moves in steps so every pixel stays square. Runners, queens and the rest of the world keep today's art for now. Tell us how it looks on your screen.
 
+## 0.95.4 · 2026-11-06 · Better sounds, the last one
+### New
+- **The railgun** draws in the air with a deep, growling pull as its coils charge, then fires with a crack. With it, every sound in the game has been reworked.
+
+## 0.95.3 · 2026-11-06 · Better sounds, part 3
+### New
+- **A bigger launch:** the supply ship now climbs off its pad over the last 10 seconds of the countdown, not 4, and fades into the sky. The engines rumble to life when you press Launch, and a deep rocket roar builds through the climb and drifts away after lift-off.
+- **New sounds:** the Hydraulic Turret flings its plates with a spring snap and a whirr, the tesla cracks like lightning with a short roll of thunder, and bugs biting the hub (or you) thud with a low two-note warning, so you notice.
+
 ## 0.95.2 · 2026-11-06 · Better sounds, part 2
 ### New
 - **Guns that sound like guns:** the Turret Mk.2 and the hub's gun crack and echo, the cannon, mortar and artillery each boom their own way (the mortar thunks, the artillery rumbles and echoes off the land), and the trebuchet creaks, swings and slams. The ballista's twang is richer.

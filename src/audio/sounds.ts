@@ -3,7 +3,7 @@
 // full volume and fade out beyond its edges, so a fight across the map stays quiet.
 
 import { Camera } from '../render/camera';
-import { BUILDINGS, BuildingType, HUB_SIZE, isBelt, isMachine } from '../sim/data';
+import { BUILDINGS, BuildingType, HUB_SIZE, isBelt, isMachine, SHIP } from '../sim/data';
 import { isAngry, nestCentre } from '../sim/nests';
 import { Blast, Shot, World, outOfFuel } from '../sim/world';
 import { PlayOptions, Sfx, Sound } from './sfx';
@@ -31,6 +31,7 @@ export class SoundWatcher {
   private stage = 0;
   private runs = 0;
   private launching = false;
+  private lifting = false;
   private gameOver = false;
 
   constructor(
@@ -162,9 +163,13 @@ export class SoundWatcher {
     this.stage = s.ship.stage;
     if (s.ship.runs > this.runs) this.sfx.play('research');
     this.runs = s.ship.runs;
+    // The engines light when Launch is pressed, and roar as the ship climbs, over its last seconds on the pad.
     const launching = s.ship.launchAt != null;
-    if (launching && !this.launching) this.sfx.play('launch');
+    if (launching && !this.launching) this.sfx.play('ignite');
     this.launching = launching;
+    const lifting = s.ship.launchAt != null && s.ship.launchAt - s.time <= SHIP.liftShow;
+    if (lifting && !this.lifting) this.sfx.play('launch');
+    this.lifting = lifting;
   }
 
   /** Takes in a world's current state without playing anything (a new or loaded game). */
@@ -184,6 +189,7 @@ export class SoundWatcher {
     this.stage = s.ship.stage;
     this.runs = s.ship.runs;
     this.launching = s.ship.launchAt != null;
+    this.lifting = s.ship.launchAt != null && s.ship.launchAt - s.time <= SHIP.liftShow;
     this.gameOver = s.gameOver;
   }
 

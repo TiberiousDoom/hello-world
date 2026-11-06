@@ -740,6 +740,7 @@ export const SHIP = {
     { id: 'nav', name: 'Navigation', items: { circuit: 100, coil: 40, motor: 20 }, research: 'ship_systems' },
   ] as ShipStage[],
   launchTime: 90, // seconds from pressing Launch to lift-off; the shipyard must survive them
+  liftShow: 10, // the last seconds before lift-off, when the ship is seen climbing and roars (drawing and sound only, #214)
   wakeRadius: 48, // the engines provoke every bug territory within this many tiles on the first run
   wakeGrowth: 8, // and this much further for each run delivered: a loaded ship is heavier (D-049)
   wakeMax: 96,

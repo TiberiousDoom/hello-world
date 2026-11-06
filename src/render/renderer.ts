@@ -84,7 +84,7 @@ const PATCH_COLORS = ['', 'rgba(70,48,34,0.8)', 'rgba(26,74,62,0.75)', 'rgba(80,
 /** Enemy sprites are drawn larger than their hit radius so legs show. */
 const ENEMY_SPRITE_SCALE = 4.2;
 const ENEMY_SPRITE_MAX = 1.35; // tiles
-/** Art pixels per tile in the pixel art test (D-184). */
+/** Art pixels per tile in the pixel art test (D-186). */
 export const PIXEL_TILE = 16;
 /** Bugs drawn from pixel sheets in the pixel art test; runners are drawn in code, and queens keep their art. */
 const PIXEL_BUGS = new Set(['crawler', 'brute', 'wasp', 'beetle']);
@@ -254,8 +254,8 @@ const HOT_ITEMS: ItemId[] = ['iron_ingot', 'copper_ingot', 'steel'];
 const HOT_MS = 2500;
 /** How long a lost building's ruin smoulders (ms) (D-159). */
 const RUIN_MS = 60000;
-/** Seconds before lift-off that the ship starts to climb (D-159). */
-const LIFT = 4;
+/** Seconds before lift-off that the ship starts to climb (D-159; 10 since #214, so the launch takes its time). */
+const LIFT = SHIP.liftShow;
 /** The filter that turns the engineer's orange overalls (hue 28°) to a player's colour (D-161); a grey one goes pale. */
 function overalls(color: string): string {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16) / 255);
@@ -371,7 +371,7 @@ export class Renderer {
   /** Highest device-pixel ratio to draw at: 2, or 1 in battery saver. */
   maxDpr = 2;
   /**
-   * The pixel art test (D-184): zoom in whole steps, the world's art-pixel grid on whole screen pixels, and the
+   * The pixel art test (D-186): zoom in whole steps, the world's art-pixel grid on whole screen pixels, and the
    * bugs that have pixel art drawn from it, hard-edged. Set it with setPixelArt().
    */
   pixelArt = false;
@@ -476,7 +476,7 @@ export class Renderer {
   }
 
   /**
-   * The device-pixel ratio to draw at. The pixel art test (D-184) draws at the screen's own density (up to 3×) so
+   * The device-pixel ratio to draw at. The pixel art test (D-186) draws at the screen's own density (up to 3×) so
    * each art pixel is a whole number of the screen's pixels; otherwise at most maxDpr.
    */
   private densityCap(): number {
@@ -898,7 +898,7 @@ export class Renderer {
 
   /**
    * Draws a pixel-art frame centred on (cx, cy) at its own size (PIXEL_TILE art pixels a tile) times `k`,
-   * hard-edged, its corner on the art-pixel grid so each art pixel lands on whole screen pixels (D-184).
+   * hard-edged, its corner on the art-pixel grid so each art pixel lands on whole screen pixels (D-186).
    */
   private drawPixel(img: HTMLCanvasElement, cx: number, cy: number, k = 1): boolean {
     const ctx = this.ctx;
@@ -2965,6 +2965,8 @@ export class Renderer {
       // drifting off its pad, its shadow left behind. The pad and scaffolding stay.
       const rise = firing && st.id !== 'pad' && st.id !== 'scaffold' ? this.liftOf(world) : 0;
       if (rise > 0) {
+        // At the top of its climb the ship fades into the sky instead of vanishing.
+        if (rise > 0.85) ctx.globalAlpha = alpha * Math.max(0, (1 - rise) / 0.15);
         const k = 1 + 0.9 * rise * rise;
         const cx = b.x + SHIP_SIZE / 2;
         const cy = b.y + SHIP_SIZE / 2;

@@ -143,6 +143,7 @@ export function enhancedRecipe(sound: Sound): Layer[] {
       const chirps = [0, 1, 2, 3, 4, 5, 6].map((i) => pulse(0.125, 380 + ((i * 53) % 140), 250, 0.06, 0.12, i * 0.065, 0.003));
       return [...chirps, fat(tone('sawtooth', 70, 95, 0.6, 0.12, 0, 0.1), 18)];
     }
+    case 'ignite':
     case 'launch':
       return [grit('lowpass', 150, 1800, 3.5, 0.9, 0.8, 0, 2), fat(tone('sawtooth', 45, 180, 3.5, 0.18, 0, 2), 10), ...arp(0.25, [392, 523, 659, 784], 0.12, 0.2, 0.05, 2.6)];
     case 'ping':

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from './camera';
 
-describe('Zoom in whole steps for the pixel art test (D-184)', () => {
+describe('Zoom in whole steps for the pixel art test (D-186)', () => {
   it('is free without a step', () => {
     const c = new Camera();
     c.zoomAt(0, 0, 1.1);

@@ -50,7 +50,7 @@ export interface DiagnosticsInput {
   screen: { width: number; height: number; dpr: number };
   touch: boolean;
   batterySaver: boolean;
-  /** The pixel art test (D-184) is on. */
+  /** The pixel art test (D-186) is on. */
   pixelArt?: boolean;
   fps: number;
   errors: readonly string[];

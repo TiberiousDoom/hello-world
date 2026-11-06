@@ -1,6 +1,6 @@
 import { ALL_LESSONS, expect, isTouch, setProfile, test } from './helpers';
 
-// The pixel art test (D-184): a setting that draws the bugs with pixel art, keeps pixels sharp and zooms in steps.
+// The pixel art test (D-186): a setting that draws the bugs with pixel art, keeps pixels sharp and zooms in steps.
 test('the pixel art test draws pixel bugs and zooms in whole steps', async ({ page }, info) => {
   await setProfile(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
   await page.goto('/');

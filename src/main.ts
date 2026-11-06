@@ -113,7 +113,7 @@ interface Profile {
   reducedMotion: boolean | null; // null: as the system says
   keepTipSeen: boolean; // the note about Safari deleting saves was dismissed (D-172)
   errorReports: boolean | null; // send error reports (D-173); null: not asked yet
-  pixelArt: boolean; // the pixel art test (D-184)
+  pixelArt: boolean; // the pixel art test (D-186)
 }
 
 function loadProfile(): Profile {
@@ -559,7 +559,7 @@ saverToggle.addEventListener('change', () => {
   saveProfile();
 });
 
-// The pixel art test (D-184): the bugs that have pixel art, hard-edged pixels, and zoom in whole steps.
+// The pixel art test (D-186): the bugs that have pixel art, hard-edged pixels, and zoom in whole steps.
 const pixelToggle = document.getElementById('pixel-toggle') as HTMLInputElement;
 pixelToggle.checked = profile.pixelArt;
 pixelToggle.addEventListener('change', () => {
