@@ -124,7 +124,9 @@ export async function uncoveredTile(page: Page, tx: number, ty: number): Promise
     // A lesson's card glides after its target when the camera moves: let it arrive before looking.
     const tip = page.locator('#tutorial .tip');
     if (await tip.isVisible()) await settled(tip);
-    if ((await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.id, pt)) === 'game') return pt;
+    // Well inside the screen too: a tap on its very edge (the tile half off screen) makes no blueprint.
+    const inside = await page.evaluate(([x, y]) => x >= 24 && y >= 24 && x <= innerWidth - 24 && y <= innerHeight - 24, pt);
+    if (inside && (await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.id, pt)) === 'game') return pt;
   }
   throw new Error(`tile ${tx},${ty} is covered wherever the camera puts it`);
 }
