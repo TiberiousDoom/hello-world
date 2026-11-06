@@ -48,7 +48,7 @@ in front of players, hearing what they hit, and deciding how it's sold (D-170). 
 7. ⬜ **Start the community and the store page early** (see Launch and community): wishlists and followers take months.
 
 Open playtest issues not yet placed: the trebuchet's aim and flying rock (#174, #211, in progress elsewhere), and
-reworking the sound effects while keeping their retro style (#214: round 1 in 0.95.1, round 2 on the sound board).
+reworking the sound effects while keeping their retro style (#214: rounds 1 and 2 in 0.95.1 and 0.95.2, round 3 on the sound board).
 
 The old "Next up" list, with everything built so far in order, is at the end: [History](#history-the-old-next-up-list).
 
@@ -209,7 +209,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
 - ✅ Animation: belts (chevrons, corners) and turret aim in code; enemy, engineer and machine animations from strips (0.43.0, D-082). ⬜ A hub idle loop and young-bug art
-- 🚧 Sound effects reworked, keeping the retro style (#214, D-182): ✅ the sound board, and round 1's picks in the game (0.95.1). ⬜ Round 2: realistic guns, hits and the launch, each gun with its own sound
+- 🚧 Sound effects reworked, keeping the retro style (#214, D-182): ✅ the sound board, and round 1's picks in the game (0.95.1). ✅ Round 2: realistic guns and hits, each gun with its own sound, the enhanced hum (0.95.2, D-183). ⬜ Round 3: the Hydraulic Turret, tesla, railgun, hub hit and launch
 - ⬜ Refresh the art review page for the upgraded art, when the owner asks (see ART_LIST.md, Art review 2)
 
 ## 5. Tech and quality

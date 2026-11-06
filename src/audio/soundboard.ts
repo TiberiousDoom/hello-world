@@ -1,51 +1,30 @@
-// The sound board (#214): sound effects in each version, side by side, with a pick for each. Round 2: the
-// sounds the owner didn't pick in round 1 get a realistic version, and each gun has its own sound. The
-// sounds already picked play as the game has them. Built into one HTML file by `npm run soundboard`
-// (audio/soundboard.mjs); the game doesn't load it.
+// The sound board (#214): sound effects in each version, side by side, with a pick and a note for each.
+// Round 3: the five sounds no version has won get three new takes each (sfx-candidates.ts), beside the
+// classic, enhanced and realistic versions. Every sound already picked plays as the game has it. Built
+// into one HTML file by `npm run soundboard` (audio/soundboard.mjs); the game doesn't load it.
 
-import { GAME_SOUNDS, Sfx, Sound, Variant } from './sfx';
+import { GAME_HUM, GAME_SOUNDS, Sfx, Sound, Variant } from './sfx';
+import { CANDIDATES } from './sfx-candidates';
 
 interface Entry {
   sound: Sound;
   name: string;
   what: string;
-  /** Busy sounds: a burst plays it several times quickly, to hear how the repeats vary. */
+  /** Busy sounds: a burst plays it several times quickly, as in a fight. */
   burst?: boolean;
-  /** Split from a shared sound in round 2: there is no enhanced version to compare. */
+  /** No enhanced version to compare (split from a shared sound). */
   fresh?: boolean;
 }
 
-const ROUND2: { title: string; entries: Entry[] }[] = [
-  {
-    title: 'Guns',
-    entries: [
-      { sound: 'shot', name: 'Hydraulic Turret', what: 'A piston fires iron plates', burst: true },
-      { sound: 'gun', name: 'Turret Mk.2', what: 'Bullets, fast. A was the Hydraulic Turret’s sound', burst: true, fresh: true },
-      { sound: 'hub_shot', name: 'Hub gun', what: "The hub's own gun", burst: true },
-      { sound: 'twang', name: 'Ballista', what: 'A bowstring and a bolt', burst: true },
-      { sound: 'treb', name: 'Trebuchet', what: 'The arm swings and slams. A was the ballista’s sound', fresh: true },
-      { sound: 'cannon', name: 'Hydraulic Cannon', what: 'Fires gears; they burst', burst: true },
-      { sound: 'mortar', name: 'Mortar', what: 'A shell lobbed from a tube. A was the cannon’s sound', fresh: true, burst: true },
-      { sound: 'artillery', name: 'Artillery', what: 'A big gun, far away. A was the cannon’s sound', fresh: true },
-      { sound: 'zap', name: 'Tesla', what: 'Lightning that jumps between bugs', burst: true },
-      { sound: 'rail', name: 'Railgun', what: 'A slug through everything. A was the tesla’s sound', fresh: true },
-    ],
-  },
-  {
-    title: 'Hits and losses',
-    entries: [
-      { sound: 'death', name: 'Bug dies', what: 'Its shell cracks', burst: true },
-      { sound: 'destroyed', name: 'Building lost', what: 'Bugs break a building, or a strike lands', burst: true },
-      { sound: 'hub_hit', name: 'Hub hit', what: 'Bugs bite the hub, or the engineer' },
-    ],
-  },
-  {
-    title: 'The ship',
-    entries: [{ sound: 'launch', name: 'Launch', what: 'The supply ship takes off' }],
-  },
+const OPEN: Entry[] = [
+  { sound: 'shot', name: 'Hydraulic Turret', what: 'A turret driven by a shaft, firing iron plates, three a second', burst: true },
+  { sound: 'zap', name: 'Tesla', what: 'Lightning that jumps from bug to bug', burst: true },
+  { sound: 'rail', name: 'Railgun', what: 'A slug fired by magnets, through every bug in a line', fresh: true },
+  { sound: 'hub_hit', name: 'Hub hit', what: 'Bugs bite the hub, or the engineer' },
+  { sound: 'launch', name: 'Launch', what: 'The supply ship takes off' },
 ];
 
-/** Round 1's sounds, as the game plays them now. */
+/** Every sound picked so far, as the game plays them. */
 const PICKED: { sound: Sound; name: string }[] = [
   { sound: 'click', name: 'Click' },
   { sound: 'belt', name: 'Belt' },
@@ -61,23 +40,39 @@ const PICKED: { sound: Sound; name: string }[] = [
   { sound: 'breach', name: 'Breach' },
   { sound: 'research', name: 'Research done' },
   { sound: 'stage', name: 'Ship stage' },
+  { sound: 'gun', name: 'Turret Mk.2' },
+  { sound: 'hub_shot', name: 'Hub gun' },
+  { sound: 'twang', name: 'Ballista' },
+  { sound: 'treb', name: 'Trebuchet' },
+  { sound: 'cannon', name: 'Hydraulic Cannon' },
+  { sound: 'mortar', name: 'Mortar' },
+  { sound: 'artillery', name: 'Artillery' },
+  { sound: 'death', name: 'Bug dies' },
+  { sound: 'destroyed', name: 'Building lost' },
 ];
 
-type Pick = Variant | 'either';
-const PICKS_KEY = 'nestfall-soundboard-picks-2';
+/** A version to play: one of the three made so far, or a round 3 take (its index). */
+type Version = Variant | number;
+
+const STORE_KEY = 'nestfall-soundboard-3';
 const LETTER: Record<Variant, string> = { classic: 'A', enhanced: 'B', realistic: 'C' };
 const LABEL: Record<Variant, string> = { classic: 'Classic', enhanced: 'Enhanced', realistic: 'Realistic' };
 
-function loadPicks(): Record<string, Pick> {
+interface Saved {
+  picks: Record<string, string>;
+  notes: Record<string, string>;
+}
+function load(): Saved {
   try {
-    return JSON.parse(localStorage.getItem(PICKS_KEY) ?? '{}') as Record<string, Pick>;
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}') as Partial<Saved>;
+    return { picks: s.picks ?? {}, notes: s.notes ?? {} };
   } catch {
-    return {};
+    return { picks: {}, notes: {} };
   }
 }
-function savePicks(p: Record<string, Pick>): void {
+function save(): void {
   try {
-    localStorage.setItem(PICKS_KEY, JSON.stringify(p));
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved));
   } catch {
     // Picks just aren't remembered.
   }
@@ -89,8 +84,8 @@ const sfx: Record<Variant | 'game', Sfx> = {
   realistic: new Sfx(0.7, 'realistic'),
   game: new Sfx(0.7, 'game'),
 };
-const picks = loadPicks();
-let humOn: Variant | null = null;
+const saved = load();
+let humOn: Variant | 'game' | null = null;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -107,112 +102,121 @@ function button(cls: string, text: string, onclick: () => void, title?: string):
   return b;
 }
 
-function play(style: Variant | 'game', sound: Sound, burst = false): void {
-  const s = sfx[style];
-  if (!burst) {
-    s.play(sound, { gain: 1 });
-    return;
-  }
-  for (let i = 0; i < 6; i++) setTimeout(() => s.play(sound, { gain: 0.8 + Math.random() * 0.2, pan: (Math.random() * 2 - 1) * 0.5 }), i * 170);
+function playOnce(sound: Sound, v: Version, gain = 1, pan = 0): void {
+  if (typeof v === 'number') {
+    const c = CANDIDATES[sound]![v];
+    sfx.realistic.play(sound, { gain: gain * (c.level ?? 1), pan, layers: c.layers() });
+  } else sfx[v].play(sound, { gain, pan });
 }
 
-/** How long one play lasts, so the next in a run starts after it. */
+function play(sound: Sound, v: Version, burst = false): void {
+  if (!burst) return playOnce(sound, v);
+  for (let i = 0; i < 6; i++) setTimeout(() => playOnce(sound, v, 0.8 + Math.random() * 0.2, (Math.random() * 2 - 1) * 0.5), i * 170);
+}
+
 function length(sound: Sound): number {
-  return sound === 'launch' ? 4000 : sound === 'artillery' || sound === 'treb' ? 1500 : sound === 'destroyed' ? 1100 : 800;
+  return sound === 'launch' ? 4200 : 900;
+}
+
+function versionName(v: Version, sound: Sound): string {
+  return typeof v === 'number' ? `${v + 1} ${CANDIDATES[sound]![v].name}` : `${LETTER[v]} ${LABEL[v]}`;
 }
 
 function row(e: Entry): HTMLElement {
-  const versions: Variant[] = e.fresh ? ['classic', 'realistic'] : ['classic', 'enhanced', 'realistic'];
+  const takes = CANDIDATES[e.sound] ?? [];
+  const versions: Version[] = [...((e.fresh ? ['classic', 'realistic'] : ['classic', 'enhanced', 'realistic']) as Variant[]), ...takes.map((_, i) => i)];
   const r = el('div', 'row');
   const label = el('div', 'label');
   label.append(el('div', 'name', e.name), el('div', 'what', e.what));
-  const btns = el('div', 'btns');
-  for (const v of versions) btns.append(button(`play ${v}`, LABEL[v], () => play(v, e.sound)));
-  btns.append(button('play run', 'All in turn', () => versions.forEach((v, i) => setTimeout(() => play(v, e.sound), i * length(e.sound))), versions.map((v) => LETTER[v]).join(', then ')));
+
+  const old = el('div', 'btns');
+  for (const v of versions.filter((x) => typeof x !== 'number')) old.append(button(`play ${v}`, LABEL[v as Variant], () => play(e.sound, v)));
+  const fresh = el('div', 'takes');
+  takes.forEach((c, i) => {
+    const t = el('div', 'take');
+    t.append(
+      button('play new', `${i + 1} ${c.name}`, () => play(e.sound, i)),
+      el('div', 'take-what', c.what),
+    );
+    fresh.append(t);
+  });
+  const extra = el('div', 'btns');
+  extra.append(button('play run', 'All in turn', () => versions.forEach((v, i) => setTimeout(() => play(e.sound, v), i * length(e.sound)))));
   if (e.burst) {
-    btns.append(button('play burst', 'Burst ×6', () => versions.forEach((v, i) => setTimeout(() => play(v, e.sound, true), i * 1500)), 'Six quick plays of each version, as in a fight'));
+    extra.append(button('play burst', 'Bursts ×6', () => versions.forEach((v, i) => setTimeout(() => play(e.sound, v, true), i * 1500)), 'Six quick plays of each version, as in a fight'));
   }
+
   const pick = el('div', 'pick');
   pick.setAttribute('role', 'radiogroup');
   pick.setAttribute('aria-label', `Your pick for ${e.name}`);
-  for (const v of [...versions, 'either'] as Pick[]) {
-    const chip = button('chip', v === 'either' ? 'Either' : `${LETTER[v]} ${LABEL[v]}`, () => {
-      picks[e.sound] = v;
-      savePicks(picks);
+  const choices: [string, string][] = [...versions.map((v): [string, string] => [String(v), versionName(v, e.sound)]), ['none', 'None yet']];
+  for (const [value, text] of choices) {
+    const chip = button('chip', text, () => {
+      saved.picks[e.sound] = value;
+      save();
       pick.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c === chip)));
       summary();
     });
     chip.setAttribute('role', 'radio');
-    chip.setAttribute('aria-checked', String(picks[e.sound] === v));
+    chip.setAttribute('aria-checked', String(saved.picks[e.sound] === value));
     pick.append(chip);
   }
-  r.append(label, btns, pick);
+  const note = el('textarea', 'note');
+  note.id = `note-${e.sound}`;
+  note.placeholder = 'What’s off, or what you hear in your head (optional)';
+  note.setAttribute('aria-label', `Notes on ${e.name}`);
+  note.value = saved.notes[e.sound] ?? '';
+  note.oninput = () => {
+    saved.notes[e.sound] = note.value;
+    save();
+    summary();
+  };
+  r.append(label, old, fresh, extra, pick, note);
   return r;
+}
+
+function pickText(e: Entry): string {
+  const p = saved.picks[e.sound];
+  if (!p) return '—';
+  if (p === 'none') return 'none yet';
+  const n = Number(p);
+  return Number.isInteger(n) ? versionName(n, e.sound) : versionName(p as Variant, e.sound);
 }
 
 function summary(): void {
-  const all = ROUND2.flatMap((g) => g.entries);
-  const hum = picks.hum ? 1 : 0;
-  const done = all.filter((e) => picks[e.sound]).length + hum;
-  document.getElementById('count')!.textContent = `${done} of ${all.length + 1} picked`;
-  const lines = all.map((e) => `${e.name}: ${picks[e.sound] ?? '—'}`);
-  lines.push(`Factory hum: ${picks.hum ?? '—'}`);
-  (document.getElementById('picks-text') as HTMLTextAreaElement).value = `Sound board picks, round 2 (#214)\n${lines.join('\n')}`;
-}
-
-function humRow(): HTMLElement {
-  const r = el('div', 'row');
-  const label = el('div', 'label');
-  label.append(el('div', 'name', 'Factory hum'), el('div', 'what', 'The loop under a busy factory. Tap again to stop'));
-  const btns = el('div', 'btns');
-  for (const v of ['classic', 'enhanced'] as Variant[]) {
-    const b = button(`play ${v}`, `${LABEL[v]} hum`, () => {
-      humOn = humOn === v ? null : v;
-      sfx.classic.setHum(humOn === 'classic' ? 1 : 0);
-      sfx.enhanced.setHum(humOn === 'enhanced' ? 1 : 0);
-      btns.querySelectorAll('[data-hum]').forEach((x) => x.setAttribute('aria-pressed', String(x.getAttribute('data-hum') === humOn)));
-    });
-    b.dataset.hum = v;
-    b.setAttribute('aria-pressed', 'false');
-    btns.append(b);
-  }
-  const pick = el('div', 'pick');
-  for (const v of ['classic', 'enhanced', 'either'] as Pick[]) {
-    const chip = button('chip', v === 'either' ? 'Either' : `${LETTER[v]} ${LABEL[v]}`, () => {
-      picks.hum = v;
-      savePicks(picks);
-      pick.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-checked', String(c === chip)));
-      summary();
-    });
-    chip.setAttribute('role', 'radio');
-    chip.setAttribute('aria-checked', String(picks.hum === v));
-    pick.append(chip);
-  }
-  r.append(label, btns, pick);
-  return r;
+  const done = OPEN.filter((e) => saved.picks[e.sound]).length;
+  document.getElementById('count')!.textContent = `${done} of ${OPEN.length} picked`;
+  const lines = OPEN.map((e) => {
+    const note = (saved.notes[e.sound] ?? '').trim();
+    return `${e.name}: ${pickText(e)}${note ? `\n  Note: ${note.replace(/\s+/g, ' ')}` : ''}`;
+  });
+  (document.getElementById('picks-text') as HTMLTextAreaElement).value = `Sound board picks, round 3 (#214)\n${lines.join('\n')}`;
 }
 
 function build(): void {
   const board = document.getElementById('board')!;
-  for (const g of ROUND2) {
-    const sec = el('section', 'group');
-    sec.append(el('h2', undefined, g.title));
-    for (const e of g.entries) sec.append(row(e));
-    board.append(sec);
-  }
-  const hum = el('section', 'group');
-  hum.append(el('h2', undefined, 'Machine hum'), humRow());
-  board.append(hum);
+  const sec = el('section', 'group');
+  sec.append(el('h2', undefined, 'Still open'));
+  for (const e of OPEN) sec.append(row(e));
+  board.append(sec);
 
   const done = el('section', 'group picked');
-  done.append(el('h2', undefined, 'Picked in round 1, as the game plays them'));
+  done.append(el('h2', undefined, 'Picked, as the game plays them'));
   const grid = el('div', 'picked-grid');
   for (const p of PICKED) {
     const v = GAME_SOUNDS[p.sound] ?? 'classic';
-    const b = button('play game', `${p.name}`, () => play('game', p.sound));
+    const b = button('play game', p.name, () => sfx.game.play(p.sound, { gain: 1 }));
     b.append(el('span', 'tag', LABEL[v]));
     grid.append(b);
   }
+  const hum = button('play game', 'Factory hum', () => {
+    humOn = humOn ? null : 'game';
+    sfx.game.setHum(humOn ? 1 : 0);
+    hum.setAttribute('aria-pressed', String(!!humOn));
+  });
+  hum.setAttribute('aria-pressed', 'false');
+  hum.append(el('span', 'tag', `${LABEL[GAME_HUM]}, tap to stop`));
+  grid.append(hum);
   done.append(grid);
   board.append(done);
 
@@ -223,13 +227,13 @@ function build(): void {
   };
   document.getElementById('copy')!.onclick = async () => {
     const t = document.getElementById('picks-text') as HTMLTextAreaElement;
-    const note = document.getElementById('copied')!;
+    const msg = document.getElementById('copied')!;
     try {
       await navigator.clipboard.writeText(t.value);
-      note.textContent = 'Copied. Paste it into the chat.';
+      msg.textContent = 'Copied. Paste it into the chat.';
     } catch {
       t.select();
-      note.textContent = 'Selected. Copy it, then paste it into the chat.';
+      msg.textContent = 'Selected. Copy it, then paste it into the chat.';
     }
   };
   summary();

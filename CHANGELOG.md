@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.95.2 · 2026-11-06 · Better sounds, part 2
+### New
+- **Guns that sound like guns:** the Turret Mk.2 and the hub's gun crack and echo, the cannon, mortar and artillery each boom their own way (the mortar thunks, the artillery rumbles and echoes off the land), and the trebuchet creaks, swings and slams. The ballista's twang is richer.
+- **Bugs and buildings:** a dying bug's shell cracks before the squish, and a lost building crashes and its debris clatters down.
+- **The factory hum** is warmer, with a second, slightly out-of-tune drone that beats slowly like real motors.
+
 ## 0.95.1 · 2026-11-06 · Better sounds, part 1
 ### New
 - **Reworked sound effects:** placing belts and buildings, demolishing, the "can't build here" buzz, chopping, mining by hand, ore coming loose, the co-op ping, an angry nest, a breach and research finished all sound richer, still in the game's retro style. Repeated sounds vary a little each time, so a busy factory doesn't sound like one sound on a loop.

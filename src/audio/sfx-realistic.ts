@@ -12,7 +12,7 @@
 import { Layer, noise, Sound, tone } from './sfx';
 
 /** A struck metal plate or bar: inharmonic partials, the higher ones dying sooner. */
-function ring(f: number, dur: number, peak: number, at = 0): Layer[] {
+export function ring(f: number, dur: number, peak: number, at = 0): Layer[] {
   return [
     [1, 1, 1],
     [2.76, 0.55, 0.6],
@@ -22,7 +22,7 @@ function ring(f: number, dur: number, peak: number, at = 0): Layer[] {
 }
 
 /** Snaps or crackles: `n` very short noise bursts at random times over `span` seconds, fading. */
-function crackle(n: number, span: number, from: number, peak: number, at = 0, q = 2): Layer[] {
+export function crackle(n: number, span: number, from: number, peak: number, at = 0, q = 2): Layer[] {
   return Array.from({ length: n }, (_, i) => {
     const t = at + Math.random() * span;
     const f = from * (0.7 + Math.random() * 0.6);
@@ -32,7 +32,7 @@ function crackle(n: number, span: number, from: number, peak: number, at = 0, q 
 }
 
 /** A shot's crack, body, thump and tail, scaled by `size` (1 for a rifle-sized gun). */
-function gunshot(size: number, peak: number): Layer[] {
+export function gunshot(size: number, peak: number): Layer[] {
   return [
     noise('highpass', 5000, 2500, 0.025, peak * 0.9, 0.7, 0, 0.001),
     noise('lowpass', 3200 / size, 350 / size, 0.12 * size, peak, 0.9, 0, 0.001),
@@ -42,7 +42,7 @@ function gunshot(size: number, peak: number): Layer[] {
 }
 
 /** An explosion's boom, `size` 1 for a cannon. */
-function boom(size: number, peak: number): Layer[] {
+export function boom(size: number, peak: number): Layer[] {
   return [
     noise('highpass', 3500, 1500, 0.03, peak * 0.5, 0.7, 0, 0.001),
     noise('lowpass', 2400, 140, 0.55 * size, peak, 0.8, 0, 0.003),
