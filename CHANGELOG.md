@@ -7,6 +7,10 @@ what's **New** and what's **Fixed**.
 ### New
 - **Try the pixel art:** turn on Settings → Pixel art test to see crawlers, Brutes, wasps and beetles redrawn as pixel art, the look the game is moving to. Pixels stay sharp, and zoom moves in steps so every pixel stays square. Runners, queens and the rest of the world keep today's art for now. Tell us how it looks on your screen.
 
+## 0.95.5 · 2026-11-06 · Paperwork
+### New
+- **Behind the scenes:** the roadmap's business steps are up to date: the name check is done, and the next steps toward selling the game on Google Play are listed in order. Nothing in the game changes.
+
 ## 0.95.4 · 2026-11-06 · Better sounds, the last one
 ### New
 - **The railgun** draws in the air with a deep, growling pull as its coils charge, then fires with a crack. With it, every sound in the game has been reworked.

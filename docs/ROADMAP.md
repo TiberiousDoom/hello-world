@@ -243,7 +243,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 
 ## 8. Business and legal
 - 🚧 Optional purchase plus donations or tips (D-017): ✅ tips through a Ko-fi link in the main menu (0.92.0, D-169). ❓ What the purchase is (Q-25): for example the full game after a free part, or a supporter pack
-- 🚧 Trademark check on the final name: a first check of Nestfall found no trademark and no store listing (D-167). ⬜ The owner searches tmsearch.uspto.gov
+- ✅ Trademark check on the final name: no trademark and no store listing for Nestfall (D-167), and the owner's own search at tmsearch.uspto.gov found nothing (2026-11-06)
 - ✅ Licences for third-party assets tracked in [CREDITS.md](CREDITS.md) (music; Montserrat is OFL)
 - ✅ Privacy policy (required by app stores, even with no data collection): `public/privacy.html`, linked from the main menu (0.92.0, D-169); the game's fonts are bundled so it calls no other company
 
@@ -252,17 +252,17 @@ The studio is **Box47 Games LLC**, in Missouri; it publishes Nestfall. In this o
 None of this is legal or tax advice: a one-hour talk with a Missouri small-business lawyer or accountant can confirm it.
 - ✅ Studio name chosen: Box47 Games (no clash found; the name is free on the Missouri Secretary of State's business search)
 - ✅ Web addresses bought, on Cloudflare: `playnestfall.com` (the game) and `box47games.com` (the studio)
-- ⬜ Check the owner's day-job agreement for rules on side businesses and who owns what they make
+- 🚧 Check the owner's day-job rules: ✅ the employee handbook allows outside work ("Moonlighting") that doesn't compete or conflict with the employer, uses none of its tools, equipment, time or confidential information, and that the owner tells a supervisor about. ⬜ Tell the supervisor in writing; check whether a separate confidentiality or invention agreement was signed at hiring
 - ⬜ File the Articles of Organization online at sos.mo.gov ($50; Missouri has no annual report or fee for LLCs), as "Box47 Games LLC"
-- ⬜ Choose the registered agent: the owner (free, but the home address becomes public) or a service (about $50–$130 a year, keeps it private)
+- ⬜ Choose the registered agent: the owner (free, but the home address becomes public) or a service (about $50–$130 a year, keeps it private). The registered office must be a Missouri street address; a P.O. box or a mailbox store doesn't count, though the form may take one as a mailing address beside the street address
 - ⬜ Get the EIN at irs.gov (free, about 10 minutes; never pay a website for it)
-- ⬜ Write a one-page operating agreement (not filed; backs up the liability protection, and banks may ask for it)
+- 🚧 Write a one-page operating agreement (not filed; backs up the liability protection, and banks may ask for it). ✅ Drafted, to fill in and have checked
 - ⬜ Open a business bank account; from then on the LLC pays the game's costs (domains, Cloudflare, store fees) and takes its income
-- ⬜ Check whether the owner's city or county wants a business licence for a home business
-- ⬜ Move the two domains into the LLC's name, and sign the game's copyright over to the LLC (a one-page assignment)
+- ⬜ Local licences: Boone County's Merchant's License ($25 a year from the County Collector, in and outside city limits; check its exemptions for a business selling only online), and in Columbia a city business license with a home occupation form (a floor plan; the business may use under 20% of the home). Call both to confirm
+- ⬜ Move the two domains into the LLC's name, and sign the game's copyright over to the LLC (a one-page assignment, ✅ drafted)
 - ⬜ Point Ko-fi payouts at the business account (D-169)
-- ⬜ Apply for a D-U-N-S number (free, can take a couple of weeks; Apple needs it for an organization account)
-- ⬜ Apple Developer ($99 a year) and Google Play ($25 once) accounts as the organization (M5)
+- ⬜ Apply for a D-U-N-S number as soon as the LLC exists (free, can take a couple of weeks; Google Play and Apple both need it for an organization account)
+- ⬜ Google Play Console as the organization ($25 once, M5, D-180); it also asks for a website and contact email, which box47games.com covers. Apple Developer ($99 a year) when iOS comes
 - ⬜ File the Nestfall trademark in the LLC's name, after the owner's own USPTO search (classes 9 and 41)
 - ⬜ Taxes: a one-person LLC files as the owner by default (Schedule C). Ask an accountant about tips and direct sales once money comes in; the app stores collect sales tax on their own sales
 
@@ -272,7 +272,7 @@ Wishlists, followers and word of mouth are built months before a release, so thi
 - ⬜ A short devlog: what's new, with a GIF, every few releases
 - ⬜ A press kit on `box47games.com`: description, screenshots, GIFs, the logo, contact
 - ⬜ A trailer (about a minute of the factory and a raid)
-- ⬜ A store page early (Steam, if chosen, Q-24), so wishlists build up before release
+- ⬜ Google Play pre-registration as soon as the account exists (D-180), so sign-ups build up before release
 - ⬜ An itch.io page for the web build, as a second place to be found
 
 ---
