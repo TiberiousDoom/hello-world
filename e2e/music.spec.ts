@@ -68,7 +68,7 @@ test('a new season plays its interlude, then the game tracks carry on', async ({
   await page.evaluate(() => (window.game.world.state.time = 4 * 540 - 0.01));
   await expect.poll(async () => (await music()).track, { timeout: 10_000 }).toBe('season-summer');
   await expect(page.locator('#clock')).toContainText('Summer · Day 5');
-  await expect.poll(() => page.evaluate(() => Number.isFinite(window.game.music.current.el.duration))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Number.isFinite(window.game.music.current?.el.duration))).toBe(true);
   await page.evaluate(() => {
     const el = window.game.music.current.el;
     el.currentTime = el.duration - 3;
@@ -80,7 +80,8 @@ test('music stopped from outside (a phone call, the lock screen) starts again (#
   await setProfile(page, { lessonsSeen: ['essentials'], tipsOff: true });
   await page.goto('/');
   await page.mouse.click(900, 600);
-  const paused = () => page.evaluate(() => window.game.music.current.el.paused as boolean);
+  // Until the first track starts there's no current track: count that as paused, so the poll waits for it.
+  const paused = () => page.evaluate(() => (window.game.music.current?.el.paused ?? true) as boolean);
   await expect.poll(paused, { timeout: 10_000 }).toBe(false);
   // The system pauses the track, as iOS does: the next touch, or a moment later, it plays on.
   await page.evaluate(() => window.game.music.current.el.pause());

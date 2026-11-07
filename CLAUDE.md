@@ -26,7 +26,7 @@ npm run test:e2e     # Playwright, desktop and phone viewports; builds and serve
 npx vitest run src/sim/ship.test.ts            # one unit test file (add -t "name" for one test)
 npx playwright test e2e/lessons.spec.ts        # one browser suite
 npx playwright test --project=desktop          # one project (desktop, phone; firefox and webkit run only the determinism test)
-node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/
+node audio/compose/render.mjs [track...]       # re-render the music (all generated in code) into public/music/ as MP3 (needs ffmpeg)
 node art/working.mjs                           # rebuild the machines' working animations from their sprites
 node art/nests.mjs                             # redraw the nests (every kind and stage), queen nests and queens
 cd relay && npm ci && npm run dev              # the co-op relay locally on :8787 (`npm run check`: typecheck and bundle)

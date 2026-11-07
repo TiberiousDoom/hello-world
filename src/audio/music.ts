@@ -152,7 +152,7 @@ export class Music {
       );
     }
     const name = this.nextName();
-    const el = new Audio(`music/${name}.wav`);
+    const el = new Audio(`music/${name}.mp3`);
     el.preload = 'auto';
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, ctx.currentTime);
@@ -165,7 +165,10 @@ export class Music {
       this.current = null;
       this.missing = true; // e.g. the single-page build has no music
     });
-    void el.play().catch(() => {
+    void el.play().catch((err: unknown) => {
+      // A pause while the track is still loading (the system's, e.g. a call) cancels this start with an
+      // AbortError: keep the track, so it resumes where it was. Anything else (sound not allowed yet): forget it.
+      if ((err as Error | undefined)?.name === 'AbortError') return;
       if (this.current === playing) this.current = null;
     });
   }
