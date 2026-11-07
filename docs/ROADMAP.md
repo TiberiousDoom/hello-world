@@ -209,7 +209,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
 - ✅ Music as MP3 (0.96.1, D-190): 32 MB of WAV down to 5.8 MB; the whole game is about 9 MB
 - ✅ Feedback by email to the studio instead of a GitHub issue (0.96.3, D-193)
-- 🚧 The old name gone from the code (0.96.3, D-194): storage keys (moved on loading), the relay Worker (`nestfall-relay`), the server's settings and units. ⬜ Attach `relay.playnestfall.com` to `nestfall-relay`, point the game at it, then delete the old `foundry-front-relay` Worker
+- ✅ The old name gone from the code (0.96.3, D-194): storage keys (moved on loading), the server's settings and units, and the relay, now the `nestfall-relay` Worker at `relay.playnestfall.com` (0.96.4, D-195)
 - ✅ A quicker start (0.96.2, D-191): sprites prepared on first use or when idle; page load 3.8 s → 1.4 s on a desktop, 23 s → 7.8 s with a 4× slower CPU
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
