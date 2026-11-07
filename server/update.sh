@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Keeps the dedicated server on master's newest version (D-084). Players must be on the server's version,
-# and the game on GitHub Pages updates with every merge, so the server follows. It waits until nobody is
+# and the game at playnestfall.com updates with every merge, so the server follows. It waits until nobody is
 # playing, so no one is sent away mid-game. Run as root by foundry-update.timer every 5 minutes.
 set -euo pipefail
 REPO=/home/foundry/hello-world

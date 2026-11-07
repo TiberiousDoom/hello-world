@@ -15,7 +15,7 @@ how it plays is in [GAME_DESIGN.md](GAME_DESIGN.md) under Playing together.
   rules in `src/sim/` are already deterministic: a fixed 1/20 s tick and a seeded RNG kept in
   the save.
 - **A small relay server** passes actions between players and stamps each with the tick it
-  applies on. GitHub Pages only serves static files, so the relay is the one new piece of
+  applies on. The game's host only serves static files, so the relay is the one new piece of
   hosting.
 - **Build it in four phases.** Phase 0 changes no gameplay and is useful on its own (replays,
   undo, testing), so it can be done first and safely, even before the player character. The
@@ -44,7 +44,7 @@ allowed (no stock, blocked tile, research not unlocked) and return an error inst
 game runs the same rules on the same state, a command that can't happen fails the same way
 everywhere. The relay never needs to understand the game.
 
-**Everyone on the same version.** A deploy to GitHub Pages during a session would put a new
+**Everyone on the same version.** A deploy of the game during a session would put a new
 joiner on newer rules than the host, and they would desync at once. Each game sends its build
 version when it joins, and a mismatch is refused with "Reload to update".
 
@@ -124,7 +124,7 @@ holds. To do:
 
 ## Hosting the relay
 
-The game stays on GitHub Pages. The relay is a small separate service that keeps a room per
+The game stays a static site (GitHub Pages, then Cloudflare, D-188). The relay is a small separate service that keeps a room per
 game (room code, the players in it, the command stream). Options:
 
 | Option | Good | Less good |
@@ -151,7 +151,7 @@ CI from master.
   the host to come back with the secret key it opened the room with (D-081); only that key and the
   host's version are stored, and only while the room is open. Rooms sleep between messages
   (hibernation), so idle rooms cost nothing.
-- **Limits:** only the game's own pages (GitHub Pages, and localhost for development) may connect;
+- **Limits:** only the game's own pages (playnestfall.com, the old github.io address, and localhost for development) may connect;
   guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
   The host takes at most 5 commands a second that send a guest's engineer walking (move, mine,
   collect, drop, pick up; bursts of 10), since each finds a path in every game (D-139).

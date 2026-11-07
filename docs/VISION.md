@@ -29,7 +29,7 @@ kids' game. The default mode is forgiving, and hardcore mode is for players who 
 
 ## Platforms
 
-1. **Web** first: playable from a link (GitHub Pages).
+1. **Web** first: playable from a link (playnestfall.com).
 2. **Phones**: installable iOS and Android apps built from the same code with Capacitor.
 3. **Desktop**: the web build. A packaged desktop app is optional later.
 

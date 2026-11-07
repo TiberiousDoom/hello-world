@@ -10,7 +10,7 @@ art; final sprites drop into `src/art/` (see [docs/ART_LIST.md](docs/ART_LIST.md
 ## Play
 
 - **Locally:** `npm install`, then `npm run dev` and open the printed URL.
-- **Online:** [playnestfall.com](https://playnestfall.com). Every push to `master` deploys to GitHub Pages (see below).
+- **Online:** [playnestfall.com](https://playnestfall.com). Every push to `master` deploys it (see below).
 
 ### How to play
 
@@ -55,14 +55,18 @@ audio/source/  licences for music used in earlier versions
 The simulation runs at a fixed 20 ticks per second and is deterministic per
 map seed. It knows nothing about rendering, so a 3D front end can reuse it as is.
 
-### Deploying to GitHub Pages
+### Deploying
 
-`.github/workflows/deploy.yml` tests and builds every push and PR, and
-deploys `master` to Pages. To turn deployment on, go to
-**Settings → Pages → Build and deployment → Source** and select **GitHub Actions**.
-The custom domain, `playnestfall.com`, is set under **Settings → Pages → Custom domain** (D-181); its DNS is on
-Cloudflare, not proxied: A and AAAA records for the apex pointing at GitHub Pages, and `www` a CNAME to
-`tiberiousdoom.github.io`.
+`.github/workflows/deploy.yml` tests and builds every push and PR, and deploys `master` to two hosts:
+
+- **Cloudflare** (D-188): the `sites` job deploys the game (`site/`, a Worker that only serves `dist/`) and the
+  studio's page (`studio/`, for box47games.com) with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
+  The game moves here once `playnestfall.com` is a custom domain of the `nestfall` Worker (in the Cloudflare
+  dashboard: Workers & Pages → nestfall → Settings → Domains & Routes), with the GitHub records below deleted.
+- **GitHub Pages:** the `deploy` job. It is turned on under **Settings → Pages → Build and deployment → Source:
+  GitHub Actions**, with the custom domain `playnestfall.com` (D-181), so the old address,
+  `tiberiousdoom.github.io/hello-world/`, forwards to it. Until the switch above, the domain's DNS points here:
+  A and AAAA records for the apex pointing at GitHub Pages, not proxied, and `www` a CNAME to `tiberiousdoom.github.io`.
 
 ## Docs
 

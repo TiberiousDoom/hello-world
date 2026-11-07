@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Nestfall** (named in D-167; formerly Foundry Front, a name still in code identifiers): a Builderment-inspired factory game with a tower-defense twist,
 for the browser on desktop and phones. TypeScript, Vite 7, Canvas 2D, no framework.
-`master` deploys to GitHub Pages, served at https://playnestfall.com (D-181; the old address,
-https://tiberiousdoom.github.io/hello-world/, forwards there).
+`master` deploys to Cloudflare and GitHub Pages; the game is at https://playnestfall.com (D-181, D-188; the old
+address, https://tiberiousdoom.github.io/hello-world/, forwards there). The domain moves from GitHub Pages to
+Cloudflare when the owner switches it in the Cloudflare dashboard (README, Deploying).
 
 Start with [docs/README.md](docs/README.md); [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) describes the
 game as it is on `master`.
