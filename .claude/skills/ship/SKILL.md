@@ -5,7 +5,7 @@ description: The release loop for Nestfall, from a fresh branch to a merged PR. 
 
 # Shipping a change
 
-Every merge to `master` is a release: it gets a version, a CHANGELOG entry and deploys to GitHub Pages.
+Every merge to `master` is a release: it gets a version, a CHANGELOG entry and deploys the game (GitHub Pages and Cloudflare, D-188).
 CLAUDE.md holds the rules. This is the order to do them in, with the commands that work.
 
 ## 1. Start from the latest master

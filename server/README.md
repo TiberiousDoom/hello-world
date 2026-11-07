@@ -115,7 +115,7 @@ match. To try a test server, open the game with `?server=CODE`.
 
 ## Updates
 
-Players must be on the server's version, and the game on GitHub Pages updates with every merge to
+Players must be on the server's version, and the game at playnestfall.com updates with every merge to
 `master`. Every 5 minutes, `update.sh` checks `master`. When there's something new and nobody is
 playing, it updates, rebuilds and restarts the server. Someone opening the newer game meanwhile is told
 that the versions differ. Run `sudo systemctl start foundry-update` to check now.
