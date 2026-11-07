@@ -44,7 +44,7 @@ test('music: silent until a click, the menu theme flows into the game tracks and
   await page.locator('#music-volume').dispatchEvent('change');
   await page.click('#settings [data-close]'); // back to the pause menu
   expect((await music()).volume).toBe(0.2);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).musicVolume)).toBe(0.2);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!).musicVolume)).toBe(0.2);
 
   // Back on the main menu, the game track finishes, then the menu theme returns.
   const playing = (await music()).track;

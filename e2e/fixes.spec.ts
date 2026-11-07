@@ -104,7 +104,7 @@ test("a trebuchet's panel shows its stone, and doesn't say it fires on electrici
 test('an error asks once whether to send reports; the answer is kept, and Settings changes it (D-173)', async ({ page }) => {
   await newGame(page);
   await calm(page);
-  const profile = () => page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).errorReports);
+  const profile = () => page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!).errorReports);
   const fail = (message: string) => page.evaluate((m) => window.dispatchEvent(new ErrorEvent('error', { message: m, filename: 'https://x/index.js', lineno: 7 })), message);
 
   await fail('something broke at tile 3,4');

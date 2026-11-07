@@ -27,7 +27,7 @@ export async function setProfile(page: Page, profile: Record<string, unknown>): 
     // Only on the first load, so a test can reload and see what the game saved.
     if (sessionStorage.getItem('e2e-profile')) return;
     sessionStorage.setItem('e2e-profile', '1');
-    localStorage.setItem('foundry-front-profile', JSON.stringify(p));
+    localStorage.setItem('nestfall-profile', JSON.stringify(p));
   }, profile);
 }
 

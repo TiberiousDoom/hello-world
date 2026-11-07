@@ -1,17 +1,17 @@
 # The dedicated server as a systemd service (D-084): starts at boot, restarts if it stops.
-# Install: see server/README.md. Paths assume the repo is cloned to /home/foundry/hello-world.
+# Install: see server/README.md. Paths assume the repo is cloned to /home/nestfall/hello-world.
 [Unit]
 Description=Nestfall dedicated co-op server
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-User=foundry
-WorkingDirectory=/home/foundry/hello-world
-Environment=FOUNDRY_DATA=/home/foundry/server-data
-# Environment=FOUNDRY_ROOM=CREW42
-# Environment="FOUNDRY_NAME=Stephen's server"
-# Environment=FOUNDRY_MAX_ROOMS=4
+User=nestfall
+WorkingDirectory=/home/nestfall/hello-world
+Environment=NESTFALL_DATA=/home/nestfall/server-data
+# Environment=NESTFALL_ROOM=CREW42
+# Environment="NESTFALL_NAME=Stephen's server"
+# Environment=NESTFALL_MAX_ROOMS=4
 ExecStart=/usr/bin/node dist-server/server.mjs
 Restart=always
 RestartSec=5
@@ -23,7 +23,7 @@ TimeoutStopSec=20
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/foundry/server-data
+ReadWritePaths=/home/nestfall/server-data
 PrivateTmp=true
 PrivateDevices=true
 ProtectKernelTunables=true

@@ -22,11 +22,8 @@ export interface Env {
   REPORTS_KEY?: string;
 }
 
-/**
- * Pages that may connect: the game at playnestfall.com (D-181), its old address on GitHub Pages (which now
- * forwards there, and which a dedicated server on an older build still names), and local development.
- */
-const ORIGINS = ['https://playnestfall.com', 'https://www.playnestfall.com', 'https://tiberiousdoom.github.io'];
+/** Pages that may connect: the game at playnestfall.com (D-181; GitHub Pages is gone, D-194) and local development. */
+const ORIGINS = ['https://playnestfall.com', 'https://www.playnestfall.com'];
 
 function allowedOrigin(origin: string | null): boolean {
   if (!origin) return false;

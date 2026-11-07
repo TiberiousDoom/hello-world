@@ -32,7 +32,7 @@ test('sound effects: buttons click, building and research sound, the slider mute
   await page.locator('#sfx-volume').fill('0');
   await page.locator('#sfx-volume').dispatchEvent('change');
   await page.click('#settings [data-close]'); // back to the pause menu
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).sfxVolume)).toBe(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!).sfxVolume)).toBe(0);
   await clear();
   await page.click('#btn-resume');
   await page.evaluate(() => window.game.world.state.researched.push('defense'));

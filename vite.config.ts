@@ -13,7 +13,7 @@ const PUBLIC_KEPT = ['privacy.html', 'manifest.webmanifest', 'icon-192.png', 'ic
  */
 function serviceWorker(): Plugin {
   return {
-    name: 'foundry-service-worker',
+    name: 'nestfall-service-worker',
     apply: 'build',
     generateBundle(_, bundle) {
       const files = ['./', ...Object.keys(bundle).filter((f) => !f.endsWith('.map') && f !== 'index.html'), ...PUBLIC_KEPT];
@@ -29,7 +29,7 @@ function serviceWorker(): Plugin {
 /** The single page links to no manifest or home-screen icon: it has no public/ folder to find them in. */
 function noInstall(): Plugin {
   return {
-    name: 'foundry-no-install',
+    name: 'nestfall-no-install',
     transformIndexHtml: (html) => html.replace(/\s*<link rel="(manifest|apple-touch-icon)"[^>]*>/g, ''),
   };
 }

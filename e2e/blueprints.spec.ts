@@ -219,6 +219,6 @@ test.describe('touch', () => {
     await page.click('#btn-resume');
     await page.touchscreen.tap(...(await tilePoint(page, x0, y0 + 2)));
     await expect.poll(async () => (await at(page, x0, y0 + 2))?.type).toBe('belt');
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).confirmTouch)).toBe(false);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!).confirmTouch)).toBe(false);
   });
 });

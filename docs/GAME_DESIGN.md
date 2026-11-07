@@ -927,9 +927,9 @@ one research tree, one supply ship.
 - **Send feedback** (pause menu, D-064): pick Bug, Idea or Other and describe it. "Include
   diagnostics" (on by default, and shown before sending) adds the version, browser, screen, frame rate,
   this game's progress (mode, time, seed, buildings, research, nests, supply ship) and the last few page
-  errors. **Open on GitHub** opens a new issue with all of it filled in (labelled playtest, plus bug or
-  enhancement), for the player to submit; **Copy** puts it on the clipboard for players without a GitHub
-  account; **Download save** saves the current game as a file to attach. The form sends nothing itself;
+  errors. **Send by email** starts an email to `hello@box47games.com` in the player's email app with all of it
+  filled in (cut short past about 1,900 characters, with a note to use Copy; D-193); **Copy** puts the full
+  report on the clipboard; **Download save** saves the current game as a file to attach. The form sends nothing itself;
   only error reports do, if the player agreed (D-173).
 - **Settings** (D-144), from the main menu and the pause menu:
   - **Sound:** music and sound effects volumes.

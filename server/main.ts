@@ -5,18 +5,18 @@
 //
 // Players can make more rooms on it (D-164), each with its own world: they ask its desk, a room that never
 // starts a game, and its main room lists them for the Play together screen. Rooms nobody plays in for
-// FOUNDRY_ROOM_DAYS are put away in the archive folder.
+// NESTFALL_ROOM_DAYS are put away in the archive folder.
 //
-// Settings come from the environment (all optional):
-//   FOUNDRY_DATA        where the rooms, the saves and their backups live (default: server-data/)
-//   FOUNDRY_ROOM        the main room's code (6 letters and digits); without it one is made on first start and kept
-//   FOUNDRY_RELAY       the relay (default: the one on Cloudflare; ws://localhost:8787 for `wrangler dev`)
-//   FOUNDRY_ORIGIN      the page origin the relay lets in (default: the game at playnestfall.com)
-//   FOUNDRY_PAUSE_EMPTY "0" keeps the games running with nobody in them (default: each paused until someone joins)
-//   FOUNDRY_NAME        the main room's name on the Play together screen (default: none, shown as "Dedicated server")
-//   FOUNDRY_PASSWORD    a password players must type to join, or to make a room (default: none) (D-140)
-//   FOUNDRY_MAX_ROOMS   how many rooms players may make (default: 4; 0 turns it off)
-//   FOUNDRY_ROOM_DAYS   days a made room may go unplayed before it's archived (default: 30)
+// Settings come from the environment (all optional; the older FOUNDRY_ names still work, D-194):
+//   NESTFALL_DATA        where the rooms, the saves and their backups live (default: server-data/)
+//   NESTFALL_ROOM        the main room's code (6 letters and digits); without it one is made on first start and kept
+//   NESTFALL_RELAY       the relay (default: the one on Cloudflare; ws://localhost:8787 for `wrangler dev`)
+//   NESTFALL_ORIGIN      the page origin the relay lets in (default: the game at playnestfall.com)
+//   NESTFALL_PAUSE_EMPTY "0" keeps the games running with nobody in them (default: each paused until someone joins)
+//   NESTFALL_NAME        the main room's name on the Play together screen (default: none, shown as "Dedicated server")
+//   NESTFALL_PASSWORD    a password players must type to join, or to make a room (default: none) (D-140)
+//   NESTFALL_MAX_ROOMS   how many rooms players may make (default: 4; 0 turns it off)
+//   NESTFALL_ROOM_DAYS   days a made room may go unplayed before it's archived (default: 30)
 //
 // A connection that dies without closing (a router restarting, a new IP address) is noticed by the
 // heartbeat in Coop (D-085): the server reconnects and the relay hands it the room.
@@ -30,16 +30,20 @@ import { clockAt } from '../src/sim/clock';
 import { OldSaveError, TICK, World } from '../src/sim/world';
 
 const env = process.env;
-const DATA = env.FOUNDRY_DATA ?? 'server-data';
-const RELAY = env.FOUNDRY_RELAY ?? RELAY_URL;
-const ORIGIN = env.FOUNDRY_ORIGIN ?? 'https://playnestfall.com';
-const PAUSE_EMPTY = env.FOUNDRY_PAUSE_EMPTY !== '0';
-const NAME = env.FOUNDRY_NAME?.trim() || undefined;
-const PASSWORD = env.FOUNDRY_PASSWORD ?? '';
+/** A setting: NESTFALL_<name>, or FOUNDRY_<name>, which servers set up before the rename (D-194) still use. */
+function setting(name: string): string | undefined {
+  return env[`NESTFALL_${name}`] ?? env[`FOUNDRY_${name}`];
+}
+const DATA = setting('DATA') ?? 'server-data';
+const RELAY = setting('RELAY') ?? RELAY_URL;
+const ORIGIN = setting('ORIGIN') ?? 'https://playnestfall.com';
+const PAUSE_EMPTY = setting('PAUSE_EMPTY') !== '0';
+const NAME = setting('NAME')?.trim() || undefined;
+const PASSWORD = setting('PASSWORD') ?? '';
 /** Rooms players may make, at most (the main room's list holds MAX_SERVER_ROOMS). */
-const MAX_ROOMS = Math.max(0, Math.min(MAX_SERVER_ROOMS, Number(env.FOUNDRY_MAX_ROOMS ?? 4) || 0));
+const MAX_ROOMS = Math.max(0, Math.min(MAX_SERVER_ROOMS, Number(setting('MAX_ROOMS') ?? 4) || 0));
 /** Days a made room may go without players before it's archived. */
-const ROOM_DAYS = Math.max(1, Number(env.FOUNDRY_ROOM_DAYS ?? 30) || 30);
+const ROOM_DAYS = Math.max(1, Number(setting('ROOM_DAYS') ?? 30) || 30);
 /** The game's version, which every player must match: package.json's, kept equal to the changelog's by a test. */
 const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -122,8 +126,8 @@ function loadMain(): { code: string; key: string; desk: string } {
   } catch {
     // First start.
   }
-  const code = (env.FOUNDRY_ROOM ?? room?.code ?? makeCode(crypto.getRandomValues(new Uint8Array(6)))).toUpperCase();
-  if (!validCode(code)) throw new Error(`FOUNDRY_ROOM must be 6 letters and digits, without 0, O, 1, I or L (got "${code}").`);
+  const code = (setting('ROOM') ?? room?.code ?? makeCode(crypto.getRandomValues(new Uint8Array(6)))).toUpperCase();
+  if (!validCode(code)) throw new Error(`NESTFALL_ROOM must be 6 letters and digits, without 0, O, 1, I or L (got "${code}").`);
   const key = room?.key ?? [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
   // The desk shares the main room's prefix, so the same reservation covers it.
   const desk = room?.desk && serverPrefix(room.desk) === serverPrefix(code) && room.desk !== code ? room.desk : prefixedCode(serverPrefix(code), new Set([code]));
@@ -296,7 +300,7 @@ class Hosted {
     return this.coop.players.filter((s) => s !== 0);
   }
 
-  /** Whether the game stands still: with nobody in, unless FOUNDRY_PAUSE_EMPTY=0. */
+  /** Whether the game stands still: with nobody in, unless NESTFALL_PAUSE_EMPTY=0. */
   paused(): boolean {
     return PAUSE_EMPTY && !this.guests().length;
   }

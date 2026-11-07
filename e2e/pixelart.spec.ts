@@ -40,7 +40,7 @@ test('the pixel art test draws pixel bugs and zooms in whole steps', async ({ pa
 
   // The setting is kept.
   await page.reload();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).pixelArt)).toBe(true);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!).pixelArt)).toBe(true);
   expect(await page.evaluate(() => window.game.renderer.pixelArt)).toBe(true);
   await expect(page.locator('#pixel-toggle')).toBeChecked();
 });

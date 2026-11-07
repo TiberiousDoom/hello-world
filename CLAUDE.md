@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## The project
 
-**Nestfall** (named in D-167; formerly Foundry Front, a name still in code identifiers): a Builderment-inspired factory game with a tower-defense twist,
+**Nestfall** (named in D-167; formerly Foundry Front, a name gone from the code since D-194): a Builderment-inspired factory game with a tower-defense twist,
 for the browser on desktop and phones. TypeScript, Vite 7, Canvas 2D, no framework.
-`master` deploys to Cloudflare, which serves the game at https://playnestfall.com (D-188, D-192), and to GitHub
-Pages, whose old address, https://tiberiousdoom.github.io/hello-world/, forwards there (D-181).
+`master` deploys to Cloudflare, which serves the game at https://playnestfall.com (D-188, D-192; GitHub Pages
+and its old github.io address are gone, D-194).
 
 Start with [docs/README.md](docs/README.md); [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) describes the
 game as it is on `master`.
