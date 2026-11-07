@@ -1,0 +1,8 @@
+# Response headers on Cloudflare (D-188); GitHub Pages ignores this file.
+# The build names everything under assets/ by its contents, so a browser can keep it for a year.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

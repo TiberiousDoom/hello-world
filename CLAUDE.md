@@ -73,6 +73,9 @@ load, so run the full suite twice after touching input, the HUD or the tutorial.
   `npm run typecheck` checks it too (`server/tsconfig.json`, Node types). Setup, systemd units and the update script are there.
 - `relay/`: the co-op relay, a Cloudflare Worker with a Durable Object per room (D-077), its own `package.json`.
   CI deploys it from master using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
+- `site/` and `studio/`: Cloudflare Workers that only serve files (D-188): `site/` the built game (`dist/`), `studio/` the
+  studio's page for box47games.com (`studio/public/`, plain HTML). CI's `sites` job deploys both from master with the same
+  secrets. `public/_headers` sets their response headers on Cloudflare. `art/brand/` holds the studio's logo and its scripts.
 - `src/art/`: SVG placeholders; a same-named PNG overrides one. Sizes are in `TILES` in `art/index.ts`. Animations
   are strips of square frames named with their count (`_4f`), cut into frames by the loader (`frame(key, i)`, D-082).
 - `main.ts`: wiring, the game loop, save/load and the player profile (localStorage).

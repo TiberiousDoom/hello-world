@@ -36,6 +36,12 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run build:server # the dedicated server bundles (D-084)
+      # The built game, for the sites job (Cloudflare, D-188).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+          retention-days: 1
       # Browser tests on desktop and phone viewports (e2e/, Playwright).
       - name: Check the Playwright image matches the installed version
         run: |
@@ -88,3 +94,42 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: relay
+
+  # The game and the studio's site on Cloudflare (D-188): Workers that only serve files (site/, studio/).
+  # Pull requests check both configurations without deploying; master deploys them. A failure here doesn't
+  # hold up GitHub Pages, which deploys from its own job.
+  sites:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the configurations
+        if: github.event_name == 'pull_request'
+        run: |
+          npx --yes wrangler@4.149.0 deploy --dry-run --config site/wrangler.jsonc
+          npx --yes wrangler@4.149.0 deploy --dry-run --config studio/wrangler.jsonc
+      - name: Deploy the game's site
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: 4.149.0
+          workingDirectory: site
+          command: deploy
+      - name: Deploy the studio's site
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: 4.149.0
+          workingDirectory: studio
+          command: deploy

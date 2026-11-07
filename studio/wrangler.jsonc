@@ -1,0 +1,11 @@
+// The studio's site, box47games.com (D-188): a Worker that only serves studio/public/. CI deploys it from master.
+{
+  "$schema": "../relay/node_modules/wrangler/config-schema.json",
+  "name": "box47games",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+  },
+}
