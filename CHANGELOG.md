@@ -6,7 +6,7 @@ what's **New** and what's **Fixed**.
 ## 0.96.2 · 2026-11-07 · A quicker start
 ### New
 - **The game starts about two and a half times sooner:** pictures are now prepared as they're first needed instead of all at once, so the main menu is ready in about a second and a half on a computer, and far sooner on phones.
-- **The privacy page** now names Cloudflare, which serves the game alongside GitHub, and links its privacy policy.
+- **The game is now served by Cloudflare** at the same address, playnestfall.com. The privacy page says so and links Cloudflare's privacy policy; its address is now playnestfall.com/privacy (the old one still works).
 
 ### Fixed
 - **Offline play** could fail to start on some hosts: the game now always finds the copy it kept.

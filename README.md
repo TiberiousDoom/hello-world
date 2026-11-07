@@ -61,12 +61,12 @@ map seed. It knows nothing about rendering, so a 3D front end can reuse it as is
 
 - **Cloudflare** (D-188): the `sites` job deploys the game (`site/`, a Worker that only serves `dist/`) and the
   studio's page (`studio/`, for box47games.com) with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
-  The game moves here once `playnestfall.com` is a custom domain of the `nestfall` Worker (in the Cloudflare
-  dashboard: Workers & Pages → nestfall → Settings → Domains & Routes), with the GitHub records below deleted.
+  `playnestfall.com` and `www` are custom domains of the `nestfall` Worker, and `box47games.com` and `www` of
+  `box47games` (D-192), set in the Cloudflare dashboard (Workers & Pages → the Worker → Settings → Domains & Routes).
 - **GitHub Pages:** the `deploy` job. It is turned on under **Settings → Pages → Build and deployment → Source:
   GitHub Actions**, with the custom domain `playnestfall.com` (D-181), so the old address,
-  `tiberiousdoom.github.io/hello-world/`, forwards to it. Until the switch above, the domain's DNS points here:
-  A and AAAA records for the apex pointing at GitHub Pages, not proxied, and `www` a CNAME to `tiberiousdoom.github.io`.
+  `tiberiousdoom.github.io/hello-world/`, forwards to it. Its DNS records were deleted when the domain moved to
+  Cloudflare (D-192); keep the custom domain set here, or the forwarding stops.
 
 ## Docs
 

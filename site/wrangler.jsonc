@@ -1,10 +1,13 @@
 // The game's site on Cloudflare (D-188): a Worker that only serves the built game (dist/), with no code of its own.
-// CI deploys it from master (.github/workflows/deploy.yml). Until playnestfall.com points here, it is only on its
-// workers.dev address; GitHub Pages keeps serving playnestfall.com.
+// CI deploys it from master (.github/workflows/deploy.yml). It serves playnestfall.com and www.playnestfall.com,
+// its custom domains (set in the Cloudflare dashboard, D-192).
 {
   "$schema": "../relay/node_modules/wrangler/config-schema.json",
   "name": "nestfall",
   "compatibility_date": "2026-10-01",
+  // Served only at its own domain since the switch (D-192): no second copy at a workers.dev address.
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "../dist",
     "html_handling": "auto-trailing-slash",
