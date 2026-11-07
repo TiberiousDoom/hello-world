@@ -22,7 +22,7 @@ jobs:
     # them on each run took up to an hour when the Ubuntu package mirror was slow. Its version must match
     # @playwright/test in package-lock.json (the step below checks).
     container:
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
     env:
       HOME: /root # Firefox refuses to start under a home folder owned by another user
     steps:
@@ -46,7 +46,7 @@ jobs:
       - name: Check the Playwright image matches the installed version
         run: |
           v=$(node -p "require('@playwright/test/package.json').version")
-          [ "$v" = "1.56.1" ] || { echo "Update the container image to v$v in deploy.yml"; exit 1; }
+          [ "$v" = "1.63.0" ] || { echo "Update the container image to v$v in deploy.yml"; exit 1; }
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
