@@ -62,7 +62,7 @@ import { byDevice } from './device';
 import { researchOrder } from './researchOrder';
 import { dialogOpen, isKey, keyHtml, keysVersion, toolIndex, toolKey } from './keys';
 import { shipSideView } from './shipview';
-import { Tool, UIState, turnTool } from './state';
+import { Tool, UIState, planOn, turnTool } from './state';
 
 const TOOLBAR: BuildingType[] = [
   'roller',
@@ -626,17 +626,20 @@ export class Hud {
           this.openResearch();
           break;
         case 'move': {
-          // Moving a building (#76, #83): it becomes the tool in hand, facing as it does; the next tap puts it down.
+          // Moving a building (#76, #83): it becomes the tool in hand, facing as it does, and its panel closes.
+          // Its ghost starts on it, to drag or tap somewhere else; it only moves once confirmed (#258).
           const b = id != null ? this.actions.getWorld().byId.get(id) : undefined;
           if (!b) break;
           this.setTool(b.type);
           this.ui.moving = b.id;
           this.ui.dir = b.dir;
           this.ui.dirSet = true;
+          this.ui.plan = planOn(b);
+          const name = BUILDINGS[b.type].name.toLowerCase();
           this.toast(
             byDevice(
-              `Tap where the ${BUILDINGS[b.type].name.toLowerCase()} goes. Rotate turns it; tap its tool to cancel.`,
-              `Click where the ${BUILDINGS[b.type].name.toLowerCase()} goes. R or Rotate turns it; right-click cancels.`,
+              `Drag the ${name} or tap where it goes, then tap it again or ✓ to move it. ✕ cancels.`,
+              `Drag the ${name} or click where it goes, then click it again, ✓ or Enter to move it. R turns it; right-click cancels.`,
             ),
           );
           break;

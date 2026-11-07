@@ -1,5 +1,5 @@
 import { BuildingType, DX, DY, Dir, footprint, isBelt } from '../sim/data';
-import type { World } from '../sim/world';
+import type { Building, World } from '../sim/world';
 import type { Clip } from './clipboard';
 
 export type Tool = BuildingType | 'demolish' | null;
@@ -33,7 +33,10 @@ export interface UIState {
   coop: 'host' | 'guest' | null;
   /** Spots co-op players pointed at (D-080), newest last; `at` is the page clock (ms). */
   pings: Ping[];
-  /** A building being moved (#76, #83): the tool in hand is its type, and the next tap puts it there. */
+  /**
+   * A building being moved (#76, #83): the tool in hand is its type. Its blueprint is a ghost to drag or tap
+   * into place, and it moves only when confirmed (#258).
+   */
   moving: number | null;
   /** A charged strike beacon whose target the next tap on the map picks (D-131). */
   aiming: number | null;
@@ -228,6 +231,18 @@ export interface Spot {
  * belt running in); `replaceBelt` marks a single placement, not a drag. Once the player has turned the
  * building (`keepDir`), it keeps their facing and only slides to line up (#85).
  */
+/** The building being moved (#76, #83), while the tool in hand is still its type. */
+export function movingBuilding(world: World, ui: UIState): Building | undefined {
+  const b = ui.moving != null ? world.byId.get(ui.moving) : undefined;
+  return b && b.type === ui.tool ? b : undefined;
+}
+
+/** The blueprint that stands where `b` is now: the tile that `anchorAt` turns back into its top-left. */
+export function planOn(b: Building): Plan {
+  const [w, h] = footprint(b.type, b.dir);
+  return { tool: b.type, tiles: [{ x: b.x + Math.floor((w - 1) / 2), y: b.y + Math.floor((h - 1) / 2) }] };
+}
+
 export function placementAt(world: World, type: BuildingType, t: Spot, dir: Dir, replaceBelt: boolean, keepDir = false): { x: number; y: number; dir: Dir } {
   // The shipyard has one place: its staked-out site (D-109), wherever the pointer is.
   const site = world.state.shipSite;

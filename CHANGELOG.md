@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.97.0 · 2026-11-07 · Moving with care
+### New
+- **Moving a building waits for you to confirm (#258):** Move closes the building's panel and shows a ghost of it. Drag the ghost, or tap or click where it should go, then tap or click it again (or ✓, or Enter) to move it. ✕ or right-click cancels and leaves it where it was. Once it's moved, its panel stays closed.
+
+### Fixed
+- **A lumber camp can be moved onto trees (#257),** just as one can be built there. It cuts them at once, and their logs go into its output.
+
 ## 0.96.4 · 2026-11-07 · Co-op at home
 ### New
 - **Behind the scenes:** Play together now connects through relay.playnestfall.com, the game's own address. Nothing changes in how you play.

@@ -844,9 +844,19 @@ describe('Wood', () => {
     w.state.inventory.log = BUILDINGS.lumber_camp.cost.log! - LUMBER.logsPerTree;
     expect(placed(w.place('lumber_camp', x2, y, 0)).outputs).toEqual([]);
     expect(w.state.inventory.log).toBe(0);
-    // A camp being moved doesn't go over trees.
+    // A camp being moved goes over trees too (#257, D-196): it cuts them, and their logs fill its output.
+    camp.outputs = ['log', 'log'];
     w.state.trees[w.idx(x - 5, y)] = TREE;
-    expect(w.relocate(camp.id, x - 5, y, 0)).toBe('tree');
+    w.state.trees[w.idx(x - 4, y)] = TREE;
+    expect(w.relocate(camp.id, x - 5, y, 0)).toBe(camp);
+    expect(w.treeAt(x - 5, y)).toBe(NO_TREE);
+    expect(w.treeAt(x - 4, y)).toBe(NO_TREE);
+    expect(camp.outputs).toHaveLength(LUMBER.buffer); // two kept, six of the eight new logs fit
+    // Trees aren't let under other buildings being moved.
+    Object.assign(w.state.inventory, BUILDINGS.furnace.cost);
+    const f = placed(w.place('furnace', x + 6, y, 0));
+    w.state.trees[w.idx(x + 10, y)] = TREE;
+    expect(w.relocate(f.id, x + 10, y, 0)).toBe('tree');
   });
 
   it('building is paid from hub stock first, then from the engineer’s inventory, wherever it is (D-147)', () => {

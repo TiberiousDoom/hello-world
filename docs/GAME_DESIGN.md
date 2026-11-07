@@ -301,7 +301,8 @@ Wood runs out for a while (D-044), and for good after a while (D-094). The ship'
   nothing in reach is grown.
 - **A camp built over trees (D-147)** cuts them at once, 4 logs each, and the ground under it stays clear.
   Those logs pay for the camp first; what's left starts in its output. Over all four tiles of trees it's
-  free and starts with 8 logs. A camp being moved can't go over trees.
+  free and starts with 8 logs. A camp moved over trees cuts them too (#257, D-196); their logs go into
+  its output, up to its 8, since a move is free.
 - A cut tree leaves a **stump**, which grows back into a tree after **2 to 4 minutes** (3 on average,
   at random, so a grove grows back gradually and a camp's logs come steadily, #50). Stumps don't block
   building: building over one clears it for good. So a camp can clear land, or keep cutting the same
@@ -977,10 +978,13 @@ one research tree, one supply ship.
 
 ## Controls
 
-**Moving a building (#76, #83, D-110):** a selected building's panel has **Move**. The building becomes the
-tool in hand, facing as it does (Rotate turns it); the next click or tap puts it there, with everything it
-holds (inputs, outputs, ammo, items on a belt), for free. It can go anywhere a new one could, its own tiles
-included. Right-click, or tapping its tool, cancels. The hub, the shipyard (it has its site) and
+**Moving a building (#76, #83, D-110, D-196):** a selected building's panel has **Move**. The panel closes
+and the building becomes the tool in hand, facing as it does (Rotate turns it), with a ghost of it standing
+on it. Dragging the ghost, or clicking or tapping somewhere else, puts the ghost there; nothing moves until
+the ghost is clicked or tapped again, ✓ is pressed, or Enter (#258). Then the building moves there with
+everything it holds (inputs, outputs, ammo, items on a belt), for free, and its panel stays closed. It can go
+anywhere a new one could, its own tiles included (a lumber camp over trees too), but never over a belt.
+✕, right-click, Esc or tapping its tool cancels, and it stays where it was. The hub, the shipyard (it has its site) and
 underground belts (they'd lose their pair) can't be moved. A moved hub port turns to face away from the hub,
 and stumps under a moved or turned building are cleared, as under a new one.
 
@@ -996,7 +1000,7 @@ and stumps under a moved or turned building are cleared, as under a new one.
 | Zoom | Mouse wheel (with no building selected), or Ctrl+wheel | Pinch |
 | Rotate | Mouse wheel while placing, or R | Rotate button |
 | Demolish | X | Demolish button |
-| Move a building (#76, #83) | Select it, Move, then click where it goes | Select it, Move, then tap where it goes |
+| Move a building (#76, #83, #258) | Select it, Move, drag or click where it goes, then click it again, ✓ or Enter | Select it, Move, drag or tap where it goes, then tap it again or ✓ |
 | Inventory | I, or the Inventory button | Inventory button (over the map's lower right corner) |
 | Pick a building | 1–9, 0 (the 10th), Shift+1–9 (the 11th to 19th) | Toolbar |
 | Undo the last building or demolishing | Ctrl+Z or Z, or Undo | Undo button |
