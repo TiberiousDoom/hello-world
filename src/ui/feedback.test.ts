@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { World } from '../sim/world';
-import { ErrorLog, FrameRate, ISSUES_URL, diagnostics, issueUrl, report } from './feedback';
+import { ErrorLog, FEEDBACK_EMAIL, FrameRate, diagnostics, mailUrl, report } from './feedback';
 
 const base = {
   version: '9.9.9',
@@ -29,17 +29,17 @@ describe('Feedback form', () => {
     expect(diagnostics({ ...base, world: null, pixelArt: true })).toContain('pixel art test on');
   });
 
-  it('turns a report into a GitHub issue link, labelled by kind and cut short when too long', () => {
+  it('turns a report into an email to the studio, cut short when too long', () => {
     const { title, body } = report('bug', 'Bugs twitch\nat the leash edge', '- Version: 9.9.9');
     expect(title).toBe('Bug: Bugs twitch');
-    expect(body).toContain('### Diagnostics');
-    const url = new URL(issueUrl(title, body, 'bug'));
-    expect(url.origin + url.pathname).toBe(ISSUES_URL);
-    expect(url.searchParams.get('title')).toBe(title);
-    expect(url.searchParams.get('labels')).toBe('playtest,bug');
-    expect(new URL(issueUrl('Idea: x', 'y', 'idea')).searchParams.get('labels')).toBe('playtest,enhancement');
-    const long = issueUrl(title, 'x'.repeat(20000), 'other', 3000);
-    expect(long.length).toBeLessThanOrEqual(3000);
+    expect(body).toContain('Diagnostics:');
+    const url = new URL(mailUrl(title, body));
+    expect(url.protocol).toBe('mailto:');
+    expect(url.pathname).toBe(FEEDBACK_EMAIL);
+    expect(url.searchParams.get('subject')).toBe('Nestfall Bug: Bugs twitch');
+    expect(url.searchParams.get('body')).toContain('at the leash edge');
+    const long = mailUrl(title, 'x'.repeat(20000), 1500);
+    expect(long.length).toBeLessThanOrEqual(1500);
     expect(new URL(long).searchParams.get('body')).toContain('Cut short');
     expect(report('other', '  ', null).title).toBe('Feedback: (no description)');
   });

@@ -15,7 +15,7 @@ import { LoggedCommand, Session } from './sim/session';
 import { OldSaveError, PlaceError, TICK, World } from './sim/world';
 import { VERSION, changelogHtml } from './ui/changelog';
 import { clockAt } from './sim/clock';
-import { ErrorLog, FeedbackKind, FrameRate, diagnostics, issueUrl, report } from './ui/feedback';
+import { ErrorLog, FEEDBACK_EMAIL, FeedbackKind, FrameRate, diagnostics, mailUrl, report } from './ui/feedback';
 import { Hud, hydrateIcons } from './ui/hud';
 import { PlanBar } from './ui/plan';
 import { PING_MS, createUIState } from './ui/state';
@@ -842,10 +842,13 @@ function openFeedback(): void {
   fbText.focus();
 }
 document.getElementById('btn-feedback')!.addEventListener('click', openFeedback);
-document.getElementById('fb-github')!.addEventListener('click', () => {
+document.getElementById('fb-email')!.addEventListener('click', () => {
   const { title, body } = currentReport();
-  window.open(issueUrl(title, body, fbKind()), '_blank', 'noopener');
-  fbStatus.textContent = 'Opened GitHub in a new tab. Check the report there and press Submit new issue.';
+  // A link click hands the address to the email app without leaving the game.
+  const a = document.createElement('a');
+  a.href = mailUrl(title, body);
+  a.click();
+  fbStatus.textContent = `Your email app should open with the report filled in. If it doesn't, press Copy and send it to ${FEEDBACK_EMAIL}.`;
 });
 document.getElementById('fb-copy')!.addEventListener('click', async () => {
   const { title, body } = currentReport();
@@ -853,7 +856,7 @@ document.getElementById('fb-copy')!.addEventListener('click', async () => {
     await navigator.clipboard.writeText(`${title}
 
 ${body}`);
-    fbStatus.textContent = 'Copied. Paste it into a message to the developer.';
+    fbStatus.textContent = `Copied. Paste it into an email to ${FEEDBACK_EMAIL}.`;
   } catch {
     fbStatus.textContent = "This browser didn't allow copying. Select the text in the box and copy it by hand.";
   }
@@ -869,7 +872,7 @@ document.getElementById('fb-save')!.addEventListener('click', () => {
   a.download = `nestfall-${VERSION}-save.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  fbStatus.textContent = 'Saved a copy of this game. Attach the file to your report.';
+  fbStatus.textContent = 'Saved a copy of this game. Attach the file to your email.';
 });
 
 document.getElementById('mm-whatsnew')!.addEventListener('click', openWhatsNew);

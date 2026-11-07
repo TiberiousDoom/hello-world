@@ -1,18 +1,18 @@
 // The in-game feedback form: a player's report, with optional diagnostics,
-// turned into a GitHub issue link or plain text to copy. Nothing is sent from
-// the game itself; the player picks how to send it (see D-064).
+// turned into an email to the studio or plain text to copy. Nothing is sent from
+// the game itself; the player sends it from their own email (D-064, D-193).
 
 import { BUILDINGS, BuildingType } from '../sim/data';
 import { nestAlive } from '../sim/nests';
 import type { World } from '../sim/world';
 
-export const ISSUES_URL = 'https://github.com/TiberiousDoom/hello-world/issues/new';
-/** Links longer than this can be refused by browsers or GitHub; reports are cut to fit. */
-export const MAX_URL = 7500;
+/** Where feedback goes: the studio's address, which reaches the developer (D-193). */
+export const FEEDBACK_EMAIL = 'hello@box47games.com';
+/** Some email apps (and Windows) refuse mailto links longer than about 2,000 characters; reports are cut to fit. */
+export const MAX_MAILTO = 1900;
 
 export type FeedbackKind = 'bug' | 'idea' | 'other';
 const KIND_LABEL: Record<FeedbackKind, string> = { bug: 'Bug', idea: 'Idea', other: 'Feedback' };
-const KIND_LABELS: Record<FeedbackKind, string> = { bug: 'playtest,bug', idea: 'playtest,enhancement', other: 'playtest' };
 
 /** The last few errors the page hit, newest last, without repeats in a row. */
 export class ErrorLog {
@@ -92,17 +92,17 @@ export function report(kind: FeedbackKind, message: string, diag: string | null)
   const first = text.split('\n')[0].slice(0, 70);
   const title = `${KIND_LABEL[kind]}: ${first || '(no description)'}`;
   let body = `${text || '(no description)'}\n`;
-  if (diag) body += `\n### Diagnostics\n${diag}\n`;
-  body += '\n_Sent from the in-game feedback form._';
+  if (diag) body += `\nDiagnostics:\n${diag}\n`;
+  body += "\nSent from Nestfall's feedback form.";
   return { title, body };
 }
 
-/** A link that opens a new issue with the report filled in, cut short if it would be too long. */
-export function issueUrl(title: string, body: string, kind: FeedbackKind, max = MAX_URL): string {
-  const make = (b: string) => `${ISSUES_URL}?${new URLSearchParams({ title, body: b, labels: KIND_LABELS[kind] })}`;
+/** A mailto link that starts an email to the studio with the report filled in, cut short if it would be too long. */
+export function mailUrl(title: string, body: string, max = MAX_MAILTO): string {
+  const make = (b: string) => `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(`Nestfall ${title}`)}&body=${encodeURIComponent(b)}`;
   let url = make(body);
   if (url.length <= max) return url;
-  const note = '\n\n_(Cut short to fit in a link. Use Copy in the game for the full report.)_';
+  const note = '\n\n(Cut short to fit. Use Copy in the game for the full report.)';
   let keep = body.length;
   while (keep > 0 && url.length > max) {
     keep = Math.floor(keep * 0.9);

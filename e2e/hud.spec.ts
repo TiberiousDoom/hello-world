@@ -121,7 +121,7 @@ test("the main menu's footer links the privacy page and the developer's Ko-fi pa
   await expect(page.locator('#contact')).toHaveAttribute('href', 'mailto:hello@box47games.com');
 });
 
-test('Send feedback builds a report with diagnostics, opens GitHub, copies it and downloads the save', async ({ page, context }, info) => {
+test('Send feedback builds a report with diagnostics, starts an email, copies it and downloads the save', async ({ page, context }, info) => {
   await newGame(page);
   await page.click('#menu-btn');
   await page.click('#btn-feedback');
@@ -133,20 +133,23 @@ test('Send feedback builds a report with diagnostics, opens GitHub, copies it an
   await page.click('#fb-details summary');
   await expect(page.locator('#fb-diag-text')).toContainText(`Version: ${await page.evaluate(() => window.game.version)}`);
 
+  // Catch the mailto link instead of handing it to an email app.
   await page.evaluate(() => {
     (window as unknown as { opened: string[] }).opened = [];
-    window.open = (url?: string | URL) => {
-      (window as unknown as { opened: string[] }).opened.push(String(url));
-      return null;
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+      if (this.href.startsWith('mailto:')) (window as unknown as { opened: string[] }).opened.push(this.href);
+      else click.call(this); // the save's download still goes through
     };
   });
-  await page.click('#fb-github');
+  await page.click('#fb-email');
   const opened = await page.evaluate(() => (window as unknown as { opened: string[] }).opened);
   expect(opened).toHaveLength(1);
   const url = new URL(opened[0]);
-  expect(url.searchParams.get('title')).toBe('Bug: The splitter ate my plates');
-  expect(url.searchParams.get('body')).toContain('### Diagnostics');
-  await expect(page.locator('#fb-status')).toContainText('Submit');
+  expect(url.pathname).toBe('hello@box47games.com');
+  expect(url.searchParams.get('subject')).toBe('Nestfall Bug: The splitter ate my plates');
+  expect(url.searchParams.get('body')).toContain('Diagnostics:');
+  await expect(page.locator('#fb-status')).toContainText('email app');
 
   if (info.project.name !== 'phone') {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
