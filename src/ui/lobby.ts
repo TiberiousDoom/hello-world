@@ -465,7 +465,7 @@ export class Lobby {
 
 /** Where the key that proves this browser made a room is kept (D-165). */
 function ownerKey(code: string): string {
-  return `foundry-front-room-key-${code}`;
+  return `nestfall-room-key-${code}`;
 }
 
 function storedOwnerKey(code: string): string | null {
@@ -482,7 +482,7 @@ function randomHex(bytes: number): string {
 
 /** Where a room's password is kept in this browser (D-140). */
 function passKey(code: string): string {
-  return `foundry-front-pass-${code}`;
+  return `nestfall-pass-${code}`;
 }
 
 /** A new room code starting with `prefix` (the server's, D-164) that isn't one of `used`. */

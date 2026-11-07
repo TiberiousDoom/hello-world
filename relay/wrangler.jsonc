@@ -1,7 +1,9 @@
 // The co-op relay (D-077). CI deploys it from master; see .github/workflows/deploy.yml.
+// Named nestfall-relay since D-194 (it was foundry-front-relay, whose rooms and reports didn't carry over).
+// It's meant to answer at relay.playnestfall.com, a custom domain set in the Cloudflare dashboard.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "foundry-front-relay",
+  "name": "nestfall-relay",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },

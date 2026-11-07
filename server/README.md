@@ -23,9 +23,9 @@ password. The server opens it with a new world, lists it under its main room, an
 
 - Players ask the server's **desk**, a room that never starts a game. It has the server's password, so
   only people who can join the server can make rooms. A room made without its own password gets the server's.
-- At most `FOUNDRY_MAX_ROOMS` made rooms (4 by default, up to 12; `0` turns making rooms off). Each one
+- At most `NESTFALL_MAX_ROOMS` made rooms (4 by default, up to 12; `0` turns making rooms off). Each one
   running costs memory even while paused, so keep the number modest on a small PC.
-- A made room nobody plays in for `FOUNDRY_ROOM_DAYS` (30) is saved, closed and moved to `archive/<code>-<date>/`.
+- A made room nobody plays in for `NESTFALL_ROOM_DAYS` (30) is saved, closed and moved to `archive/<code>-<date>/`.
   To bring one back, stop the server, move its folder back into `rooms/` (named with its code) and start it.
 - The browser that made a room can rename or delete it from Play together (D-165): it keeps a key whose hash
   is in the room's `room.json`. Deleting archives the room, like idling, and needs it empty. Rooms made
@@ -42,7 +42,7 @@ npm run server
 
 It prints the room code. Open the game, choose **Play together**, and join with that code. Stop it with
 Ctrl+C. To test against a local relay, run `cd relay && npm ci && npm run dev` and start the server with
-`FOUNDRY_RELAY=ws://localhost:8787`, then open the game with `?relay=ws://localhost:8787`.
+`NESTFALL_RELAY=ws://localhost:8787`, then open the game with `?relay=ws://localhost:8787`.
 
 ## Settings
 
@@ -50,15 +50,15 @@ All optional, as environment variables:
 
 | Variable | What it does | Default |
 | --- | --- | --- |
-| `FOUNDRY_DATA` | Folder for the room, the save and backups | `server-data/` |
-| `FOUNDRY_ROOM` | The room code: 6 letters and digits, without 0, O, 1, I or L | Made on first start, then kept |
-| `FOUNDRY_RELAY` | The relay | The one on Cloudflare |
-| `FOUNDRY_ORIGIN` | The page origin the relay lets in | The game, `https://playnestfall.com` |
-| `FOUNDRY_PAUSE_EMPTY` | `0` keeps the game running with nobody in | Paused when empty |
-| `FOUNDRY_NAME` | The main room's name on the Play together screen | "Dedicated server" |
-| `FOUNDRY_PASSWORD` | A password players type once to join (their browser keeps it), also needed to make a room. The relay only sees it hashed | None: anyone with the code |
-| `FOUNDRY_MAX_ROOMS` | How many rooms players may make (`0`: none) | 4 |
-| `FOUNDRY_ROOM_DAYS` | Days a made room may go unplayed before it's archived | 30 |
+| `NESTFALL_DATA` | Folder for the room, the save and backups | `server-data/` |
+| `NESTFALL_ROOM` | The room code: 6 letters and digits, without 0, O, 1, I or L | Made on first start, then kept |
+| `NESTFALL_RELAY` | The relay | The one on Cloudflare |
+| `NESTFALL_ORIGIN` | The page origin the relay lets in | The game, `https://playnestfall.com` |
+| `NESTFALL_PAUSE_EMPTY` | `0` keeps the game running with nobody in | Paused when empty |
+| `NESTFALL_NAME` | The main room's name on the Play together screen | "Dedicated server" |
+| `NESTFALL_PASSWORD` | A password players type once to join (their browser keeps it), also needed to make a room. The relay only sees it hashed | None: anyone with the code |
+| `NESTFALL_MAX_ROOMS` | How many rooms players may make (`0`: none) | 4 |
+| `NESTFALL_ROOM_DAYS` | Days a made room may go unplayed before it's archived | 30 |
 
 ## Keep the room yours (D-140)
 
@@ -87,38 +87,52 @@ match. To try a test server, open the game with `?server=CODE`.
 
 1. Make a user for it and install Node 22 and git:
    ```bash
-   sudo adduser --disabled-password --gecos "" foundry
+   sudo adduser --disabled-password --gecos "" nestfall
    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
    sudo apt install -y nodejs git
    ```
 2. Get the game and build the server:
    ```bash
-   sudo -u foundry git clone https://github.com/TiberiousDoom/hello-world /home/foundry/hello-world
-   cd /home/foundry/hello-world
-   sudo -u foundry npm ci
-   sudo -u foundry npm run build:server
-   sudo -u foundry mkdir -p /home/foundry/server-data
+   sudo -u nestfall git clone https://github.com/TiberiousDoom/hello-world /home/nestfall/hello-world
+   cd /home/nestfall/hello-world
+   sudo -u nestfall npm ci
+   sudo -u nestfall npm run build:server
+   sudo -u nestfall mkdir -p /home/nestfall/server-data
    ```
    The data folder must exist before the service starts: the service may write only there.
 3. Install the service, and the timer that keeps it up to date:
    ```bash
-   sudo cp server/foundry-server.service server/foundry-update.service server/foundry-update.timer /etc/systemd/system/
+   sudo cp server/nestfall-server.service server/nestfall-update.service server/nestfall-update.timer /etc/systemd/system/
    sudo systemctl daemon-reload
-   sudo systemctl enable --now foundry-server foundry-update.timer
+   sudo systemctl enable --now nestfall-server nestfall-update.timer
    ```
 4. Find the room code:
    ```bash
-   journalctl -u foundry-server -n 20
+   journalctl -u nestfall-server -n 20
    ```
-   To choose your own code, uncomment the `FOUNDRY_ROOM` line in the service file, then
-   `sudo systemctl daemon-reload && sudo systemctl restart foundry-server`.
+   To choose your own code, uncomment the `NESTFALL_ROOM` line in the service file, then
+   `sudo systemctl daemon-reload && sudo systemctl restart nestfall-server`.
+
+## Servers set up before the rename
+
+Servers set up before 0.96.3 run as the user `foundry`, with `foundry-server`, `foundry-update` and its timer.
+They keep working: `update.sh` finds the repo, its owner, the data folder and the server unit itself, and the
+server still reads the older `FOUNDRY_*` settings (D-194). To switch one to the new names when convenient:
+
+```bash
+sudo systemctl disable --now foundry-server foundry-update.timer
+sudo rm /etc/systemd/system/foundry-server.service /etc/systemd/system/foundry-update.service /etc/systemd/system/foundry-update.timer
+```
+
+then follow the setup above from step 1 with the new names (or keep the `foundry` user and folders: copy the
+`nestfall-*` units, change `nestfall` back to `foundry` in their paths and `User=`, and enable them).
 
 ## Updates
 
 Players must be on the server's version, and the game at playnestfall.com updates with every merge to
 `master`. Every 5 minutes, `update.sh` checks `master`. When there's something new and nobody is
 playing, it updates, rebuilds and restarts the server. Someone opening the newer game meanwhile is told
-that the versions differ. Run `sudo systemctl start foundry-update` to check now.
+that the versions differ. Run `sudo systemctl start nestfall-update` to check now.
 
 ## When the connection drops
 
@@ -127,14 +141,14 @@ The log says why each connection to the relay ended, for example
 with no goodbye, which a network drop does; 1001 or 1012 mean the relay restarted (as it does when a new
 version deploys). "No answer to its heartbeat" means the connection died silently and the server noticed.
 The room is back within seconds either way. If drops come every few minutes, check the relay's usage in
-Cloudflare (Workers & Pages → foundry-front-relay → Metrics) for errors or limits being reached.
+Cloudflare (Workers & Pages → nestfall-relay → Metrics) for errors or limits being reached.
 
 ## Useful commands
 
 ```bash
-journalctl -u foundry-server -f            # watch the log
-cat /home/foundry/server-data/status.json  # who is in
-sudo systemctl restart foundry-server      # restart (players get back in on their own)
+journalctl -u nestfall-server -f            # watch the log
+cat /home/nestfall/server-data/status.json  # who is in
+sudo systemctl restart nestfall-server      # restart (players get back in on their own)
 ```
 
 To start a fresh world, stop the server, move `world.json` out of the data folder (or a made room's

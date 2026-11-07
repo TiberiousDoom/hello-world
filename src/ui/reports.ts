@@ -2,7 +2,7 @@
 import { REPORTS_PER_VISIT, clipReport, reportKind, type ErrorReport } from '../net/report';
 
 /** Where the game is served for players: reports are sent only from there, never from tests or development. */
-export const REPORT_HOSTS = ['tiberiousdoom.github.io', 'playnestfall.com', 'www.playnestfall.com'];
+export const REPORT_HOSTS = ['playnestfall.com', 'www.playnestfall.com'];
 
 /** Builds reports from errors and sends each kind once a visit, a few at most, once the player has agreed. */
 export class Reporter {

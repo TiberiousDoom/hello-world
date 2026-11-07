@@ -19,7 +19,7 @@ export const KEY_ACTIONS: { id: KeyAction; label: string; key: string }[] = [
 /** Keys that can't be bound: walking, and the keys plans and menus use. */
 export const RESERVED_KEYS: readonly string[] = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', 'enter', 'tab', 'delete', ...'0123456789'];
 
-const STORE = 'foundry-front-keys';
+const STORE = 'nestfall-keys';
 
 function load(): Record<KeyAction, string> {
   const keys = Object.fromEntries(KEY_ACTIONS.map((a) => [a.id, a.key])) as Record<KeyAction, string>;

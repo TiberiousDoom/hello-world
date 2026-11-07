@@ -300,7 +300,7 @@ test('the Essentials, Smelting and Bugs lessons run, then can be replayed and sw
   await expect(step).toHaveText(/^Essentials/);
   await page.click('.tip-hide');
   await expect(page.locator('#tutorial')).toBeHidden();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!).tipsOff)).toBe(true);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!).tipsOff)).toBe(true);
 });
 
 test('New game can bring the Essentials tutorial back for a returning player', async ({ page }) => {
@@ -323,7 +323,7 @@ test('Reset tutorials marks every lesson unseen and switches lessons back on', a
   await page.click('#btn-reset-lessons');
   await expect(page.locator('#lessons-list .lesson-seen')).toHaveCount(0);
   await expect(page.locator('#tips-toggle')).toBeChecked();
-  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!));
+  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!));
   expect(profile.lessonsSeen).toEqual([]);
   expect(profile.tipsOff).toBe(false);
 });

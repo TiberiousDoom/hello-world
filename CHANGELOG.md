@@ -3,6 +3,12 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.96.3 · 2026-11-07 · Feedback by email
+### New
+- **Send feedback by email:** the feedback form now opens your email app with your report filled in, addressed to hello@box47games.com. No GitHub account needed. Copy and Download save are still there.
+- **Behind the scenes:** the game's old working title is gone from its code. Your settings and saves move over by themselves the first time you open this version.
+- **The old github.io address is retired:** play at playnestfall.com.
+
 ## 0.96.2 · 2026-11-07 · A quicker start
 ### New
 - **The game starts about two and a half times sooner:** pictures are now prepared as they're first needed instead of all at once, so the main menu is ready in about a second and a half on a computer, and far sooner on phones.

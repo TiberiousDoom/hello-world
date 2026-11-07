@@ -103,7 +103,7 @@ test('settings: size, motion and keys', async ({ page }, info) => {
   await expect(page.locator('#toasts')).toContainText("can't be changed");
   await page.keyboard.press('t');
   await expect(page.locator('[data-key="rotate"]')).toHaveText('T');
-  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('foundry-front-profile')!));
+  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('nestfall-profile')!));
   expect(profile).toMatchObject({ uiScale: 1.2, reducedMotion: true });
   await page.click('#settings [data-close]');
 

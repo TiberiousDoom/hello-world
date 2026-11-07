@@ -6,7 +6,7 @@ import { CLOSE_LEAVING, DeskAsk, DeskReply, HOST_GRACE_MS, RefuseReason, RelayMe
 import { Peer, admit, expire, leave, retire, route, status, welcome } from './room';
 
 /** The relay on Cloudflare. `?relay=ws://localhost:8787` picks a local one, `?relay=local` two tabs. */
-export const RELAY_URL = 'wss://foundry-front-relay.stephen-pederson.workers.dev';
+export const RELAY_URL = 'wss://nestfall-relay.stephen-pederson.workers.dev';
 /**
  * The dedicated server's room (D-084, D-086): the code it opened, kept in its room.json. The Play together
  * screen joins it with one button and shows its status. `?server=CODE` picks another, for testing.
@@ -156,7 +156,7 @@ function localRoom(code: string, role: Role, version: string, key: string, pass:
   };
   if (role === 'host') return localHost(code, version, key, pass, link, end, () => closed);
 
-  const channel = new BroadcastChannel(`foundry-front-room-${code}`);
+  const channel = new BroadcastChannel(`nestfall-room-${code}`);
   const post = (m: ChannelMessage) => channel.postMessage(m);
   const endGuest = end;
   const close = () => {
@@ -237,7 +237,7 @@ function localHost(code: string, version: string, key: string, pass: string, lin
 }
 
 function openLocalRoom(code: string, host: RoomHost): LocalRoom {
-  const channel = new BroadcastChannel(`foundry-front-room-${code}`);
+  const channel = new BroadcastChannel(`nestfall-room-${code}`);
   const post = (m: ChannelMessage) => channel.postMessage(m);
   const room: LocalRoom = { channel, peers: [], host, link: null, timer: null, info: null };
   const guests = new Map<string, Peer>();

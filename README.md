@@ -57,16 +57,16 @@ map seed. It knows nothing about rendering, so a 3D front end can reuse it as is
 
 ### Deploying
 
-`.github/workflows/deploy.yml` tests and builds every push and PR, and deploys `master` to two hosts:
+`.github/workflows/deploy.yml` tests and builds every push and PR, and deploys `master` to Cloudflare (D-188)
+with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets:
 
-- **Cloudflare** (D-188): the `sites` job deploys the game (`site/`, a Worker that only serves `dist/`) and the
-  studio's page (`studio/`, for box47games.com) with the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
-  `playnestfall.com` and `www` are custom domains of the `nestfall` Worker, and `box47games.com` and `www` of
-  `box47games` (D-192), set in the Cloudflare dashboard (Workers & Pages → the Worker → Settings → Domains & Routes).
-- **GitHub Pages:** the `deploy` job. It is turned on under **Settings → Pages → Build and deployment → Source:
-  GitHub Actions**, with the custom domain `playnestfall.com` (D-181), so the old address,
-  `tiberiousdoom.github.io/hello-world/`, forwards to it. Its DNS records were deleted when the domain moved to
-  Cloudflare (D-192); keep the custom domain set here, or the forwarding stops.
+- the `sites` job deploys the game (`site/`, a Worker that only serves `dist/`) and the studio's page (`studio/`,
+  for box47games.com). `playnestfall.com` and `www` are custom domains of the `nestfall` Worker, and
+  `box47games.com` and `www` of `box47games` (D-192), set in the Cloudflare dashboard (Workers & Pages → the
+  Worker → Settings → Domains & Routes);
+- the `relay` job deploys the co-op relay (`relay/`, the `nestfall-relay` Worker).
+
+The game was on GitHub Pages until 0.96.3 (D-194); its old address, `tiberiousdoom.github.io/hello-world/`, is gone.
 
 ## Docs
 

@@ -124,7 +124,7 @@ holds. To do:
 
 ## Hosting the relay
 
-The game stays a static site (GitHub Pages, then Cloudflare, D-188). The relay is a small separate service that keeps a room per
+The game stays a static site (on Cloudflare since D-188). The relay is a small separate service that keeps a room per
 game (room code, the players in it, the command stream). Options:
 
 | Option | Good | Less good |
@@ -151,7 +151,7 @@ CI from master.
   the host to come back with the secret key it opened the room with (D-081); only that key and the
   host's version are stored, and only while the room is open. Rooms sleep between messages
   (hibernation), so idle rooms cost nothing.
-- **Limits:** only the game's own pages (playnestfall.com, the old github.io address, and localhost for development) may connect;
+- **Limits:** only the game's own pages (playnestfall.com, and localhost for development) may connect;
   guests may send 4 KB per message and about 30 messages a second; the host up to 1 MB (a snapshot).
   The host takes at most 5 commands a second that send a guest's engineer walking (move, mine,
   collect, drop, pick up; bursts of 10), since each finds a path in every game (D-139).

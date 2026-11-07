@@ -108,7 +108,7 @@ test('two players host and join with a code, and play one game', async ({ page: 
   await expect(guest.locator('#mainmenu')).toBeVisible();
   // Every player keeps the shared game, to host it later (D-079).
   await expect(guest.locator('#coop-host-coop')).toBeVisible();
-  expect(await guest.evaluate(() => localStorage.getItem('foundry-front-coop-save') != null)).toBe(true);
+  expect(await guest.evaluate(() => localStorage.getItem('nestfall-coop-save') != null)).toBe(true);
   expect(guestErrors).toEqual([]);
 });
 
@@ -246,7 +246,7 @@ test("the server's made rooms are listed with their own status, and a new one is
   });
   await setProfile(page, { lessonsSeen: ALL_LESSONS, tipsOff: true });
   // This browser made the first room (D-165): it keeps the key that lets it change it.
-  await page.addInitScript(() => localStorage.setItem('foundry-front-room-key-CREWAB', 'ab'.repeat(16)));
+  await page.addInitScript(() => localStorage.setItem('nestfall-room-key-CREWAB', 'ab'.repeat(16)));
   await page.goto('/?relay=ws://relay.test&server=CREW42');
   const versionBox = page.locator('.app-version').first();
   await expect(versionBox).not.toBeEmpty();
@@ -291,7 +291,7 @@ test("the server's made rooms are listed with their own status, and a new one is
   await expect(page.locator('#coop-status')).toHaveText('Deleted the room.');
   expect(asked.at(-1)!.ask).toEqual({ t: 'delete', code: 'CREWAB', key: 'ab'.repeat(16) });
   await expect(page.locator('#coop-manage')).toBeHidden();
-  expect(await page.evaluate(() => localStorage.getItem('foundry-front-room-key-CREWAB'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('nestfall-room-key-CREWAB'))).toBeNull();
   asked.length = 0;
 
   // Join goes to that room's code.
@@ -310,7 +310,7 @@ test("the server's made rooms are listed with their own status, and a new one is
   // Its password goes hashed, never as typed, and so does the key that will let this browser change it.
   expect(asked[0].ask.pass).toMatch(/^[0-9a-f]{64}$/);
   expect(asked[0].ask.owner).toMatch(/^[0-9a-f]{64}$/);
-  expect(await page.evaluate((code) => localStorage.getItem(`foundry-front-room-key-${code}`), asked[0].ask.code)).toMatch(/^[0-9a-f]{32}$/);
+  expect(await page.evaluate((code) => localStorage.getItem(`nestfall-room-key-${code}`), asked[0].ask.code)).toMatch(/^[0-9a-f]{32}$/);
   await expect.poll(() => joined.length).toBe(2);
   expect(joined[1]).toContain(`/rooms/${asked[0].ask.code}?role=guest`);
 

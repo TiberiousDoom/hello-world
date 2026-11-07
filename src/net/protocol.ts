@@ -231,7 +231,7 @@ export async function sha256(text: string): Promise<string> {
  * password itself and the same password gives a different hash in another room. Empty for none.
  */
 export async function passHash(code: string, password: string): Promise<string> {
-  return password ? sha256(`foundry-front:${code}:${password}`) : '';
+  return password ? sha256(`nestfall:${code}:${password}`) : '';
 }
 
 /**

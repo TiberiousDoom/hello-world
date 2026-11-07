@@ -1,3 +1,5 @@
+// First, before anything reads storage: keys under the game's old name move to the new one (D-194).
+import './storage-move';
 import { Music } from './audio/music';
 import { PRIVACY_URL, supportUrl } from './ui/links';
 import { Sfx } from './audio/sfx';
@@ -30,11 +32,11 @@ import { RELAY_URL, SERVER_ROOM, askDesk, roomStatus } from './net/client';
 import { Coop } from './net/coop';
 import { CATCH_UP } from './net/lockstep';
 
-const SAVE_KEY = 'foundry-front-save';
+const SAVE_KEY = 'nestfall-save';
 /** The last co-op game, kept by every player apart from their own factory (D-079). */
-const COOP_SAVE_KEY = 'foundry-front-coop-save';
+const COOP_SAVE_KEY = 'nestfall-coop-save';
 /** Progress that outlives a single game: lessons seen, tips on or off, hardcore unlocked. */
-const PROFILE_KEY = 'foundry-front-profile';
+const PROFILE_KEY = 'nestfall-profile';
 const AUTOSAVE_MS = 20_000;
 const MAX_TICKS_PER_FRAME = 20;
 

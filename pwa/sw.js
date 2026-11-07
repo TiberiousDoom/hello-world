@@ -1,7 +1,7 @@
 // Nestfall's service worker (D-144): the game plays offline once it has been opened.
 // Built by vite.config.ts, which fills in the version and the files to keep. Music isn't kept
 // (it's large, and plays in a streaming <audio> element); offline, the game is silent.
-const CACHE = 'foundry-front-__VERSION__';
+const CACHE = 'nestfall-__VERSION__';
 const FILES = __FILES__;
 
 self.addEventListener('install', (event) => {
@@ -17,7 +17,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('foundry-front-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => (k.startsWith('nestfall-') || k.startsWith('foundry-front-')) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });

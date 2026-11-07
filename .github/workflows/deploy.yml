@@ -8,11 +8,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -54,21 +52,6 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name != 'pull_request'
-        with:
-          path: dist
-
-  deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
 
   # The co-op relay (relay/, D-077): a Cloudflare Worker. Pull requests check that it typechecks and
   # bundles; master deploys it, once the game's tests have passed.
@@ -96,8 +79,7 @@ jobs:
           workingDirectory: relay
 
   # The game and the studio's site on Cloudflare (D-188): Workers that only serve files (site/, studio/).
-  # Pull requests check both configurations without deploying; master deploys them. A failure here doesn't
-  # hold up GitHub Pages, which deploys from its own job.
+  # Pull requests check both configurations without deploying; master deploys them.
   sites:
     needs: build
     runs-on: ubuntu-latest
