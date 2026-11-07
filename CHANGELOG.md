@@ -3,6 +3,13 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.96.1 · 2026-11-07 · A lighter download
+### New
+- **The music downloads five times faster:** the tracks are now MP3 instead of WAV, so the whole game is about 9 MB instead of 35 MB. The music sounds the same.
+
+### Fixed
+- **Music that was paused while still loading** (by a phone call or another app) now carries on where it was, instead of being dropped.
+
 ## 0.96.0 · 2026-11-06 · A pixel art preview
 ### New
 - **Try the pixel art:** turn on Settings → Pixel art test to see crawlers, Brutes, wasps and beetles redrawn as pixel art, the look the game is moving to. Pixels stay sharp, and zoom moves in steps so every pixel stays square. Runners, queens and the rest of the world keep today's art for now. Tell us how it looks on your screen.

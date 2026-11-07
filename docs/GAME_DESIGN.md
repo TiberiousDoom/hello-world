@@ -1076,7 +1076,7 @@ strings and light percussion, with a roomy reverb.
 - Settings → Music sets the volume (saved per device). Zero mutes it. The slider follows the ear: its low end is
   very quiet, and even at full the music sits under the sound effects (#97). Sound effects have their own slider ([Sound effects](#sound-effects)).
 - The tunes live in `audio/compose/` (`menu-theme.mjs`, `tracks.mjs`, and the instruments in `lib.mjs`).
-  `node audio/compose/render.mjs` renders every track to `public/music/` (22 kHz, 16-bit mono WAV);
+  `node audio/compose/render.mjs` renders every track to `public/music/` (22 kHz mono MP3 at 64 kbit/s, encoded with ffmpeg; until 0.96.1, WAV);
   name tracks to render only those. The single-file build has no music.
 
 ## Sound effects

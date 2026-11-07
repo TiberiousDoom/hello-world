@@ -207,6 +207,7 @@ See [ART_LIST.md](ART_LIST.md) for the full list.
 - ✅ **Belts and the hub's corners (#78, 0.45.3):** a belt running into a cut corner of the hub carries on under its wall
 - ✅ Belt corners, end caps, start lips and join flanges as sprites (0.73.0, from the reference art in `docs/art-upgrade/pieces/`), with the chevrons still moving in code. The tesla bolt stays drawn in code; its reference is only a guide
 - ✅ Music: thirteen original tracks generated in code in a late-90s adventure style: the menu theme, seven shuffled in-game tracks from slow to upbeat, a fanfare for the first delivery, and a short piece for each season. Menu and game music flow into each other without a cut (D-032, D-051, D-052)
+- ✅ Music as MP3 (0.96.1, D-190): 32 MB of WAV down to 5.8 MB; the whole game is about 9 MB
 - ✅ Forest placeholders: grass, decorations, trees, fireflies and leaves; detailed bugs (batch 2)
 - ✅ Sound effects, synthesized in the browser (D-043), including a machine-running hum that follows how busy the factory on screen is
 - ✅ Animation: belts (chevrons, corners) and turret aim in code; enemy, engineer and machine animations from strips (0.43.0, D-082). ⬜ A hub idle loop and young-bug art

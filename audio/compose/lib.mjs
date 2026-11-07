@@ -3,7 +3,8 @@
 // adventure games, a reverb, and a WAV writer. Each track script describes its
 // notes and calls render().
 
-import { writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { rmSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const RATE = 22050;
@@ -224,8 +225,9 @@ export function reverb(input, { feedback = 0.86, damp = 0.35 } = {}) {
 // ----------------------------------------------------------- mix down
 
 /**
- * Adds reverb, sets the level and writes public/music/<name>.wav (22 kHz,
- * 16-bit mono). With `loudness` (dBFS), every track is brought to the same
+ * Adds reverb, sets the level and writes public/music/<name>.mp3 (22 kHz mono, 64 kbit/s, encoded by ffmpeg
+ * from a 16-bit WAV; about a fifth of the WAV's size). The tracks' crossfades cover the short silence an MP3
+ * adds at each end. With `loudness` (dBFS), every track is brought to the same
  * average level, so the playlist doesn't jump in volume; otherwise the peak
  * is set to 0.85.
  */
@@ -266,9 +268,13 @@ export function render(tr, name, { wet = 0.6, dryLevel = 0.85, room, loudness } 
   header.write('data', 36);
   header.writeUInt32LE(data.length, 40);
 
-  const out = fileURLToPath(new URL(`../../public/music/${name}.wav`, import.meta.url));
-  writeFileSync(out, Buffer.concat([header, data]));
+  const wav = fileURLToPath(new URL(`../../public/music/${name}.wav`, import.meta.url));
+  const out = fileURLToPath(new URL(`../../public/music/${name}.mp3`, import.meta.url));
+  writeFileSync(wav, Buffer.concat([header, data]));
+  const enc = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', wav, '-codec:a', 'libmp3lame', '-b:a', '64k', out], { stdio: 'inherit' });
+  rmSync(wav);
+  if (enc.error || enc.status !== 0) throw new Error(`ffmpeg could not encode ${name} (is ffmpeg installed?)`);
   let sum = 0;
   for (let i = 0; i < total; i++) sum += (data.readInt16LE(i * 2) / 32768) ** 2;
-  console.log(`${name}: ${(total / RATE).toFixed(1)} s, ${((44 + data.length) / 1024 / 1024).toFixed(2)} MB, ${(10 * Math.log10(sum / total)).toFixed(1)} dBFS`);
+  console.log(`${name}: ${(total / RATE).toFixed(1)} s, ${(statSync(out).size / 1024 / 1024).toFixed(2)} MB, ${(10 * Math.log10(sum / total)).toFixed(1)} dBFS`);
 }
