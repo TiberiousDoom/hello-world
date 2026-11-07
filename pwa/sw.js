@@ -42,8 +42,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   // Everything else is named by its content, so the kept copy is right; fonts are kept as they arrive.
+  // ignoreVary: a host may answer with `Vary: Origin`, and the page's module script is asked for with an
+  // Origin header the kept copy was fetched without, so it would never match and offline play would fail.
   event.respondWith(
-    caches.match(req).then(
+    caches.match(req, { ignoreVary: true }).then(
       (hit) =>
         hit ||
         fetch(req).then((res) => {

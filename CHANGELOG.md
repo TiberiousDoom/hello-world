@@ -3,6 +3,14 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.96.2 · 2026-11-07 · A quicker start
+### New
+- **The game starts about two and a half times sooner:** pictures are now prepared as they're first needed instead of all at once, so the main menu is ready in about a second and a half on a computer, and far sooner on phones.
+- **The game is now served by Cloudflare** at the same address, playnestfall.com. The privacy page says so and links Cloudflare's privacy policy; its address is now playnestfall.com/privacy (the old one still works).
+
+### Fixed
+- **Offline play** could fail to start on some hosts: the game now always finds the copy it kept.
+
 ## 0.96.1 · 2026-11-07 · A lighter download
 ### New
 - **The music downloads five times faster:** the tracks are now MP3 instead of WAV, so the whole game is about 9 MB instead of 35 MB. The music sounds the same.

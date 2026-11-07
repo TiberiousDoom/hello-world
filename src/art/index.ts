@@ -115,24 +115,39 @@ export function tilesOf(key: string): [number, number] {
 /** Each strip's frames, by its name without the count ('enemies/crawler_walk'). */
 const strips = new Map<string, HTMLCanvasElement[]>();
 const cache = new Map<string, HTMLCanvasElement>();
+/**
+ * Images that have arrived but aren't drawn into canvases yet. Drawing them all at once kept the page busy for
+ * seconds on loading (about 20 on a slow phone), so each is prepared the first time it's drawn, and the rest a
+ * few at a time while the browser is idle.
+ */
+const pending = new Map<string, HTMLImageElement>();
+/** A pending strip's image key, by the strip's name. */
+const pendingStrips = new Map<string, string>();
+/** Images arrived so far, prepared or not. */
+let arrived = 0;
 
 /** URL for use in HTML (toolbar, menus). */
 export function artUrl(key: string): string | undefined {
   return urls.get(key);
 }
 
-/** How many sprites have loaded so far; pictures cached from sprites redraw when it changes. */
+/**
+ * How many sprites have loaded so far; pictures cached from sprites redraw when it changes. It counts images
+ * that have arrived, not ones prepared, so it stops changing once loading is done.
+ */
 export function spritesLoaded(): number {
-  return cache.size;
+  return arrived;
 }
 
 /** A pre-rendered sprite for the canvas, if it exists and has loaded. */
 export function sprite(key: string): HTMLCanvasElement | undefined {
+  if (!cache.has(key)) prepare(key);
   return cache.get(key);
 }
 
 /** Frame `i` of a strip (counting round: any whole number works), if it exists and has loaded. */
 export function frame(key: string, i: number): HTMLCanvasElement | undefined {
+  if (!strips.has(key)) prepare(pendingStrips.get(key));
   const frames = strips.get(key);
   if (!frames) return undefined;
   const n = frames.length;
@@ -178,12 +193,13 @@ export function pixelFrame(key: string, angle: number, i: number): HTMLCanvasEle
 
 /** How many frames a strip has (0 if it isn't loaded). */
 export function frameCount(key: string): number {
+  if (!strips.has(key)) prepare(pendingStrips.get(key));
   return strips.get(key)?.length ?? 0;
 }
 
 /**
- * Loads and pre-renders every map sprite once, so drawing is a cheap image
- * copy instead of rasterising SVG every frame. UI icons are only used in HTML.
+ * Loads every map sprite. Each is pre-rendered once, on first use or in an idle moment, so drawing is a cheap
+ * image copy instead of rasterising SVG every frame. UI icons are only used in HTML.
  */
 export async function loadArt(): Promise<void> {
   const jobs = [...urls].filter(([key]) => !key.startsWith('ui/'));
@@ -193,34 +209,14 @@ export async function loadArt(): Promise<void> {
         new Promise<void>((resolve) => {
           const img = new Image();
           img.onload = () => {
+            arrived++;
             if (key.startsWith('pixel/')) {
               pixelSheets.set(key, cutPixelSheet(img));
               resolve();
               return;
             }
-            const unit = key.startsWith('items/') ? PX_PER_TILE / 2 : PX_PER_TILE;
-            const n = stripFrames(key);
-            const name = n ? key.replace(/_\d+f$/, '') : key;
-            const [tw, th] = tilesOf(name);
-            const w = unit * tw;
-            const h = unit * th;
-            const whole = document.createElement('canvas');
-            whole.width = w * Math.max(1, n);
-            whole.height = h;
-            whole.getContext('2d')!.drawImage(img, 0, 0, whole.width, whole.height);
-            if (n) {
-              // Cut the strip into its frames.
-              const frames: HTMLCanvasElement[] = [];
-              for (let i = 0; i < n; i++) {
-                const f = document.createElement('canvas');
-                f.width = w;
-                f.height = h;
-                f.getContext('2d')!.drawImage(whole, i * w, 0, w, h, 0, 0, w, h);
-                frames.push(f);
-              }
-              strips.set(name, frames);
-            }
-            cache.set(key, n ? strips.get(name)![0] : whole);
+            pending.set(key, img);
+            if (stripFrames(key)) pendingStrips.set(key.replace(/_\d+f$/, ''), key);
             resolve();
           };
           img.onerror = () => {
@@ -231,6 +227,53 @@ export async function loadArt(): Promise<void> {
         }),
     ),
   );
+  prepareWhenIdle();
+}
+
+/** Draws an arrived image into its canvases (its frames, for a strip), once. */
+function prepare(key: string | undefined): void {
+  const img = key && pending.get(key);
+  if (!key || !img) return;
+  pending.delete(key);
+  const unit = key.startsWith('items/') ? PX_PER_TILE / 2 : PX_PER_TILE;
+  const n = stripFrames(key);
+  const name = n ? key.replace(/_\d+f$/, '') : key;
+  pendingStrips.delete(name);
+  const [tw, th] = tilesOf(name);
+  const w = unit * tw;
+  const h = unit * th;
+  const whole = document.createElement('canvas');
+  whole.width = w * Math.max(1, n);
+  whole.height = h;
+  whole.getContext('2d')!.drawImage(img, 0, 0, whole.width, whole.height);
+  if (n) {
+    // Cut the strip into its frames.
+    const frames: HTMLCanvasElement[] = [];
+    for (let i = 0; i < n; i++) {
+      const f = document.createElement('canvas');
+      f.width = w;
+      f.height = h;
+      f.getContext('2d')!.drawImage(whole, i * w, 0, w, h, 0, 0, w, h);
+      frames.push(f);
+    }
+    strips.set(name, frames);
+  }
+  cache.set(key, n ? strips.get(name)![0] : whole);
+}
+
+/** Prepares the sprites not drawn yet a few at a time, in the browser's idle moments, so none waits for its first use. */
+function prepareWhenIdle(): void {
+  const step = (deadline?: IdleDeadline) => {
+    const until = performance.now() + 8;
+    for (const key of pending.keys()) {
+      if (deadline ? deadline.timeRemaining() < 4 : performance.now() > until) break;
+      prepare(key);
+    }
+    if (pending.size) later();
+  };
+  // Safari has no requestIdleCallback before 18.4: a short timer does.
+  const later = () => (typeof requestIdleCallback === 'function' ? requestIdleCallback(step, { timeout: 2000 }) : setTimeout(step, 50));
+  later();
 }
 
 const iconSources = import.meta.glob<string>('./ui/*.svg', { eager: true, query: '?raw', import: 'default' });

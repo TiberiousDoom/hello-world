@@ -113,7 +113,7 @@ test("the main menu shows the version, and What's new lists the changes until it
 
 test("the main menu's footer links the privacy page and the developer's Ko-fi page (D-169)", async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#mm-privacy')).toHaveAttribute('href', /\/privacy\.html$/);
+  await expect(page.locator('#mm-privacy')).toHaveAttribute('href', /\/privacy$/);
   await expect(page.locator('#mm-support')).toBeVisible();
   await expect(page.locator('#mm-support')).toHaveAttribute('href', 'https://ko-fi.com/box47games');
   // The page itself, with a real contact address.
