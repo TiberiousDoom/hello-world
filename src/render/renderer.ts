@@ -47,7 +47,7 @@ import {
   burnsFuel,
 } from '../sim/data';
 import { Building, Enemy, LEFT, STUMP, Shot, TICK, TREE, World, defenceTier, outOfFuel } from '../sim/world';
-import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, placementAt } from '../ui/state';
+import { PING_MS, PLAYER_COLORS, Plan, Spot, UIState, movingBuilding, placementAt } from '../ui/state';
 import { clipCorner } from '../ui/clipboard';
 import { launching, shipyard } from '../sim/ship';
 import { clockAt, darkness, seasonTurn, type Look } from '../sim/clock';
@@ -755,11 +755,10 @@ export class Renderer {
     const hovered = ui.hover && ui.tool === 'express_belt' ? world.buildingAt(ui.hover.x, ui.hover.y) : undefined;
     if (hovered?.type === 'belt') this.drawUpgradeLine(world, world.beltLine(hovered), z);
     else if (ui.clipMode) this.drawClip(world, ui, z);
-    else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, ui.dirSet, z);
+    else if (ui.plan) this.drawPlan(world, ui.plan, ui.dir, ui.dirSet, z, movingBuilding(world, ui));
     else if (ui.hover && ui.tool) {
       // Moving a building (#76, #83): its own tiles don't block it, and nothing is paid.
-      const moving = ui.moving != null ? world.byId.get(ui.moving) : undefined;
-      this.drawGhost(world, ui.tool, ui.hover, ui.dir, z, { keepDir: ui.dirSet, moving: moving?.type === ui.tool ? moving : undefined });
+      this.drawGhost(world, ui.tool, ui.hover, ui.dir, z, { keepDir: ui.dirSet, moving: movingBuilding(world, ui) });
     }
     // Aiming an orbital strike (D-131): a red target over the strike's reach under the pointer.
     if (ui.aiming != null && ui.hover && !ui.tool) {
@@ -865,14 +864,14 @@ export class Renderer {
   }
 
   /** A blueprint waiting for ✓: dashed ghosts, red where a tile can't be built. Occupied tiles are skipped. */
-  private drawPlan(world: World, plan: Plan, dir: Dir, keepDir: boolean, z: number): void {
+  private drawPlan(world: World, plan: Plan, dir: Dir, keepDir: boolean, z: number, moving?: Building): void {
     const single = plan.tiles.length === 1;
-    const steps = planSteps(world, plan, dir, keepDir, this.viewer);
+    const steps = planSteps(world, plan, dir, keepDir, this.viewer, moving);
     let entrance: Spot | null = null;
     for (const s of steps) {
       if (s.status === 'occupied' && !s.over) continue;
       if (s.over) continue; // passed under (#65)
-      this.drawGhost(world, s.tool, s.tile, s.dir, z, { ok: s.status === null, range: single, dashed: true, replaceBelt: single, exit: s.exit, keepDir });
+      this.drawGhost(world, s.tool, s.tile, s.dir, z, { ok: s.status === null, range: single, dashed: true, replaceBelt: single && !moving, exit: s.exit, keepDir });
       if (s.tool === 'tunnel' && !s.exit) entrance = s.tile;
       else if (s.exit && entrance) linkLine(this.ctx, entrance, s.tile, z);
     }

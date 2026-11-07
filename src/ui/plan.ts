@@ -1,9 +1,9 @@
 // Soft placement (D-030): the ✓ / ⟳ / ✕ bar that floats beside a blueprint.
 
 import { BUILDINGS, BuildingType, DX, DY, Dir, ItemCounts, ItemId, TUNNEL_RANGE, isBelt } from '../sim/data';
-import { PlaceError, TREE, World } from '../sim/world';
+import { Building, PlaceError, TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
-import { Plan, Spot, UIState, isBeltPath, placementAt, planDirs } from './state';
+import { Plan, Spot, UIState, isBeltPath, movingBuilding, placementAt, planDirs } from './state';
 
 /**
  * One tile of a blueprint as it will be built. Along a belt line that crosses another belt, the tiles
@@ -24,9 +24,12 @@ export interface PlanStep {
  * tiles before it, so a line longer than the stock allows shows where it runs out. An underground
  * crossing that can't be paid for stops the line there (#65).
  */
-/** `player`: whose engineer's inventory helps pay (D-147). */
-export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false, player?: number): PlanStep[] {
-  const single = plan.tiles.length === 1; // only a single placement may go over a belt
+/**
+ * `player`: whose engineer's inventory helps pay (D-147). `moving`: the building this blueprint moves (#258):
+ * its own tiles don't block it, it never goes over a belt, and it's free.
+ */
+export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false, player?: number, moving?: Building): PlanStep[] {
+  const single = plan.tiles.length === 1 && !moving; // only a single new placement may go over a belt
   const dirs = planDirs(plan, dir);
   const steps: PlanStep[] = plan.tiles.map((tile, i) => ({ tile, tool: plan.tool, dir: dirs[i], status: null }));
   // Rollers have no underground (D-102): only belts tunnel.
@@ -43,8 +46,9 @@ export function planSteps(world: World, plan: Plan, dir: Dir, keepDir = false, p
     if (stopped) return void (s.status = 'cost');
     if (s.over) return void (s.status = 'occupied');
     const at = placementAt(world, s.tool, s.tile, s.dir, single, keepDir);
-    const err = world.checkPlace(s.tool, at.x, at.y, at.dir, single, undefined, player);
+    const err = world.checkPlace(s.tool, at.x, at.y, at.dir, single, moving, player);
     if (err && err !== 'cost') return void (s.status = err);
+    if (moving) return;
     // An entrance is paid for together with its exit: both, or the line stops here.
     const exit = s.tool === 'tunnel' && !s.exit ? steps.slice(i + 1).find((q) => q.exit) : undefined;
     const cost = world.buildCost(s.tool, at.x, at.y, at.dir);
@@ -95,8 +99,8 @@ function tunnelUnder(world: World, steps: PlanStep[]): void {
 }
 
 /** Whether each planned tile can be built (see planSteps). */
-export function planStatus(world: World, plan: Plan, dir: Dir, keepDir = false, player?: number): (PlaceError | null)[] {
-  return planSteps(world, plan, dir, keepDir, player).map((s) => s.status);
+export function planStatus(world: World, plan: Plan, dir: Dir, keepDir = false, player?: number, moving?: Building): (PlaceError | null)[] {
+  return planSteps(world, plan, dir, keepDir, player, moving).map((s) => s.status);
 }
 
 /**
@@ -147,7 +151,7 @@ export class PlanBar {
     const show = visible && !!this.ui.plan;
     this.el.hidden = !show;
     if (!show || !plan) return;
-    const status = planStatus(world, plan, this.ui.dir, this.ui.dirSet, this.ui.player);
+    const status = planStatus(world, plan, this.ui.dir, this.ui.dirSet, this.ui.player, movingBuilding(world, this.ui));
     const ok = status.filter((s) => s === null).length;
     this.count.textContent = plan.tiles.length > 1 ? `${ok} of ${plan.tiles.length}` : '';
     this.count.hidden = plan.tiles.length < 2;

@@ -1866,7 +1866,7 @@ export class World {
         if (!this.inBounds(x + dx, y + dy)) return 'bounds';
         const b = this.buildingAt(x + dx, y + dy);
         if (b && b !== moving && !(replaceBelt && this.beltToReplace(type, x + dx, y + dy))) return 'occupied';
-        if (this.treeAt(x + dx, y + dy) === TREE && (type !== 'lumber_camp' || moving)) return 'tree'; // only a new lumber camp goes over trees (D-147)
+        if (this.treeAt(x + dx, y + dy) === TREE && type !== 'lumber_camp') return 'tree'; // only a lumber camp goes over trees, built or moved (D-147, D-196)
         if (moundAt(this, x + dx, y + dy) && this.state.mode !== 'hardcore') return 'nest'; // Hardcore nests are destroyed by building over them (D-133)
         if (type !== 'water_wheel' && this.isWater(x + dx, y + dy)) return 'water';
       }
@@ -1915,6 +1915,7 @@ export class World {
     [b.x, b.y, b.dir] = [x, y, dir];
     if (b.type === 'extractor') b.recipe = this.oreUnder(x, y, ...footprint(b.type, dir));
     this.index(b);
+    if (b.type === 'lumber_camp') this.cutUnder(b);
     this.clearStumps(x, y, ...footprint(b.type, dir));
     revealBuilding(this.state, b, ...footprint(b.type, dir));
     checkBuiltOver(this, b); // moved onto the last open tile around a Hardcore mound (D-133)
@@ -1969,6 +1970,29 @@ export class World {
     if (spare) this.noteMade(b, spare);
     onBuilt(this, b);
     return b;
+  }
+
+  /**
+   * A lumber camp moved over trees cuts them at once and clears the ground for good, as a new one does (D-196).
+   * Their logs go into its output, as many as fit; a move is free, so there's no cost for them to pay.
+   */
+  private cutUnder(b: Building): void {
+    const [w, h] = footprint(b.type, b.dir);
+    let logs = 0;
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const i = this.idx(b.x + dx, b.y + dy);
+        if (this.state.trees[i] !== TREE) continue;
+        this.fell(i);
+        delete this.state.cuts?.[i];
+        this.state.trees[i] = NO_TREE;
+        delete this.state.regrow[i];
+        logs += LUMBER.logsPerTree;
+      }
+    }
+    const fit = Math.min(logs, Math.max(0, LUMBER.buffer - b.outputs.length));
+    for (let k = 0; k < fit; k++) b.outputs.push('log');
+    if (fit) this.noteMade(b, fit);
   }
 
   /** Stumps under a moved or turned building are gone for good, as under a new one: no tree grows back there. */

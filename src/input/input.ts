@@ -32,7 +32,7 @@ import type { Command, ResultOf } from '../sim/commands';
 import { PlaceError, TREE, World } from '../sim/world';
 import { Camera } from '../render/camera';
 import { buzz } from './haptics';
-import { Plan, UIState, isBeltPath, isBig, placementAt, planDirs, turnTool } from '../ui/state';
+import { Plan, UIState, isBeltPath, isBig, movingBuilding, placementAt, planDirs, turnTool } from '../ui/state';
 import { clipCorner, copyArea, pasteChunks, rotateClip } from '../ui/clipboard';
 import { dialogOpen, isKey } from '../ui/keys';
 import { byDevice } from '../ui/device';
@@ -220,9 +220,13 @@ export class Input {
       this.mode = 'none';
       this.cb.onChange();
     } else if (this.mover()) {
-      // Moving a building (#76, #83): the tap puts it down there, no blueprint.
-      this.mode = 'none';
-      this.paintTile(this.ui.hover, this.ui.dir);
+      // Moving a building (#76, #83, #258): its ghost is dragged, or goes where the press is, and waits to be confirmed.
+      if (this.onPlan(this.ui.hover)) this.startMove(this.ui.hover, true);
+      else {
+        this.prevPlan = this.ui.plan;
+        this.ui.plan = { tool: this.mover()!.type, tiles: [this.ui.hover] };
+        this.startMove(this.ui.hover, false);
+      }
     } else if (this.onPlan(this.ui.hover)) {
       // Pressing a single building's blueprint: a tap builds it, a drag moves it.
       this.startMove(this.ui.hover, true);
@@ -385,8 +389,7 @@ export class Input {
   /** Makes the building at `t` the tool in hand, facing the way it does. */
   /** The building being moved (#76, #83), while the tool in hand is still its type. */
   private mover() {
-    const b = this.ui.moving != null ? this.cb.getWorld().byId.get(this.ui.moving) : undefined;
-    return b && b.type === this.ui.tool ? b : undefined;
+    return movingBuilding(this.cb.getWorld(), this.ui);
   }
 
   pick(t: Tile): void {
@@ -484,9 +487,11 @@ export class Input {
     if (!completed || !this.ui.plan) return this.abandonMove();
     const { existing, dragged } = this.moving;
     // A tap or click on a waiting blueprint builds it; so does a plain desktop click.
-    if (!dragged && (existing || pointerType === 'mouse')) return this.confirmPlan();
+    // A building being moved always waits to be confirmed: the first tap only puts its ghost there (#258).
+    const moving = !!this.mover();
+    if (!dragged && (existing || (pointerType === 'mouse' && !moving))) return this.confirmPlan();
     // With touch confirmation off, letting go builds.
-    if (pointerType !== 'mouse' && !this.ui.confirmTouch) return this.confirmPlan();
+    if (pointerType !== 'mouse' && !this.ui.confirmTouch && !moving) return this.confirmPlan();
     this.cb.onChange(); // the blueprint waits for a click, a tap, Enter or ✓
   }
 
@@ -531,7 +536,8 @@ export class Input {
     const plan = this.ui.plan;
     if (!plan) return;
     const dirs = planDirs(plan, this.ui.dir);
-    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir, this.ui.dirSet, this.ui.player);
+    const mover = this.mover();
+    const steps = planSteps(this.cb.getWorld(), plan, this.ui.dir, this.ui.dirSet, this.ui.player, mover);
     this.reportedError = false;
     this.ui.plan = null; // building an underground entrance may put up its exit's blueprint (#64)
     this.ui.dir = dirs[dirs.length - 1];
@@ -545,6 +551,7 @@ export class Input {
       }
       this.paintTile(s.tile, s.dir, single, s.tool);
     }
+    if (mover && this.ui.moving != null) this.ui.plan = plan; // it couldn't go there: the ghost stays to try again
     // On a touch screen a single building's tool is put down once it's built, unless pinned (#164, D-145).
     if (single && this.lastPlaced && !this.ui.plan && this.pointerType !== 'mouse' && !this.ui.pinned && !LINE_TOOLS.includes(plan.tool) && this.ui.tool === plan.tool) {
       this.ui.tool = null;
@@ -564,6 +571,11 @@ export class Input {
 
   cancelPlan(): void {
     this.ui.plan = null;
+    if (this.mover()) {
+      // Cancelling a move puts the building's tool away; the building stays where it was.
+      this.ui.moving = null;
+      this.ui.tool = null;
+    }
     this.cb.onChange();
   }
 
@@ -629,16 +641,18 @@ export class Input {
       }
       return;
     }
-    const at = placementAt(world, tool, t, dir, replaceBelt, this.ui.dirSet);
     const mover = this.mover();
+    if (mover) replaceBelt = false; // a moved building never goes over a belt
+    const at = placementAt(world, tool, t, dir, replaceBelt, this.ui.dirSet);
     if (mover) {
-      // Moving a building (#76, #83): one tap puts it down, then the tool is put away.
+      // Moving a building (#76, #83): once confirmed it goes there, then the tool is put away.
+      // Its panel stays closed (#258): the player picked it up to put it somewhere, not to look at it.
       const moved = this.cb.issue({ kind: 'relocate', id: mover.id, x: at.x, y: at.y, dir: at.dir }) ?? world.checkPlace(tool, at.x, at.y, at.dir, false, mover);
       if (typeof moved === 'string') this.cb.onPlaceError(moved);
       else {
         this.ui.moving = null;
         this.ui.tool = null;
-        this.ui.selected = mover.id;
+        this.ui.selected = null;
         this.mode = 'none'; // the drag that follows doesn't paint
       }
       this.cb.onChange();

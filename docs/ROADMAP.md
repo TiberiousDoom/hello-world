@@ -167,6 +167,7 @@ In this order:
 - ✅ **Belt snapping can be overridden (#85, 0.45.3, D-088):** turning a building after it lines up with a belt keeps your facing
 - ✅ **Haptics for mining by hand (#84, 0.46.2):** a short vibration on each tap on phones that support it (a long press already vibrates)
 - ✅ **Move a placed building (#76, #83, 0.53.0, D-110):** a Move button in the building's panel, beside Rotate and Demolish, makes the building the tool in hand, keeping its recipe, filter and contents
+- ✅ **Moving with care (#257, #258, 0.97.0, D-196):** Move shows a ghost to drag or tap into place and waits for a confirm; the panel stays closed after; a lumber camp can be moved onto trees
 - ✅ **Undo** (0.85.0, D-144) for building, demolishing and pasting: Ctrl+Z, Z or the Undo button; a dragged line undoes in one step
 - ✅ **Copy and paste** (0.85.0, D-144) for sections of a factory, with recipes and filters, turned with R; works in co-op
 - ✅ **Tutorial rework (M3c, D-025):** lessons (six now, with Wood), each starting the first time it's useful: *Essentials* (a fresh factory, or chosen on New game), *Bugs* (the first provoked nest, or building near one), *Splitters and tunnels* (when researched), *The escape ship* (when researched) and *Breaches* (the first breach). Lessons never open over a window.
