@@ -135,7 +135,7 @@ game (room code, the players in it, the command stream). Options:
 
 **Chosen (D-077): serverless WebSocket rooms on Cloudflare**, in `relay/`: a Worker with one
 Durable Object per room, on the free plan. It's live at
-`wss://foundry-front-relay.stephen-pederson.workers.dev/rooms/<code>` (`/health` answers `ok`), deployed by
+`wss://relay.playnestfall.com/rooms/<code>` (the `nestfall-relay` Worker, D-195; `/health` answers `ok`), deployed by
 CI from master.
 
 - **The relay only routes.** A guest's messages go to the host; the host's go to one guest or to
@@ -169,8 +169,8 @@ CI from master.
   by `validReport` in `src/net/report.ts`). One Durable Object, `Reports`, keeps one row per kind of error
   (the same message from the same version) with a count and its latest report, 300 kinds at most, and takes
   60 reports a minute at most. `GET /reports` with `Authorization: Bearer <REPORTS_KEY>` (a secret) lists them,
-  newest first: `curl -H "Authorization: Bearer <key>" https://foundry-front-relay.stephen-pederson.workers.dev/reports`.
-  Set the secret in the Cloudflare dashboard (Workers → foundry-front-relay → Settings → Variables and Secrets)
+  newest first: `curl -H "Authorization: Bearer <key>" https://relay.playnestfall.com/reports`.
+  Set the secret in the Cloudflare dashboard (Workers → nestfall-relay → Settings → Variables and Secrets)
   or with `npx wrangler secret put REPORTS_KEY` in `relay/`. The relay can also email the first report of each
   kind (from `reports@box47games.com` to a `REPORT_TO` secret, 20 a day at most), but sending email needs the
   Workers Paid plan, so `REPORT_TO` is left unset and nothing is emailed (D-175).

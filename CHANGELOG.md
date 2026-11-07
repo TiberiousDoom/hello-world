@@ -3,6 +3,10 @@
 The newest version is at the top; the game shows this file under "What's new". Each release lists
 what's **New** and what's **Fixed**.
 
+## 0.96.4 · 2026-11-07 · Co-op at home
+### New
+- **Behind the scenes:** Play together now connects through relay.playnestfall.com, the game's own address. Nothing changes in how you play.
+
 ## 0.96.3 · 2026-11-07 · Feedback by email
 ### New
 - **Send feedback by email:** the feedback form now opens your email app with your report filled in, addressed to hello@box47games.com. No GitHub account needed. Copy and Download save are still there.

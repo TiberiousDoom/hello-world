@@ -5,8 +5,11 @@
 import { CLOSE_LEAVING, DeskAsk, DeskReply, HOST_GRACE_MS, RefuseReason, RelayMessage, Role, RoomHost, RoomInfo, RoomStatus, validRelayMessage, validReply } from './protocol';
 import { Peer, admit, expire, leave, retire, route, status, welcome } from './room';
 
-/** The relay on Cloudflare. `?relay=ws://localhost:8787` picks a local one, `?relay=local` two tabs. */
-export const RELAY_URL = 'wss://nestfall-relay.stephen-pederson.workers.dev';
+/**
+ * The relay on Cloudflare, at the game's own domain (the `nestfall-relay` Worker, D-195).
+ * `?relay=ws://localhost:8787` picks a local one, `?relay=local` two tabs.
+ */
+export const RELAY_URL = 'wss://relay.playnestfall.com';
 /**
  * The dedicated server's room (D-084, D-086): the code it opened, kept in its room.json. The Play together
  * screen joins it with one button and shows its status. `?server=CODE` picks another, for testing.
